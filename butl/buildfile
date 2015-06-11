@@ -1,0 +1,6 @@
+# file      : butl/buildfile
+# copyright : Copyright (c) 2014-2015 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+lib{butl}: cxx{dummy}
+lib{butl}: cxx.export.poptions = -I$src_root

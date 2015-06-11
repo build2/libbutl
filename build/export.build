@@ -1,0 +1,6 @@
+$out_root/:
+{
+  include butl/
+}
+
+export $out_root/butl/lib{butl}
