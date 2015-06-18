@@ -1,7 +1,7 @@
-# file      : tests/buildfile
+# file      : tests/path/buildfile
 # copyright : Copyright (c) 2014-2015 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
-d = path/ prefix-map/
-.: $d
-include $d
+exe{driver}: cxx{driver} ../../butl/lib{butl}
+
+include ../../butl/

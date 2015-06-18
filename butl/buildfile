@@ -2,6 +2,6 @@
 # copyright : Copyright (c) 2014-2015 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
-lib{butl}: cxx{fdstream process}
+lib{butl}: cxx{fdstream filesystem path process timestamp}
 cxx.poptions += -I$src_root
 lib{butl}: cxx.export.poptions = -I$src_root
