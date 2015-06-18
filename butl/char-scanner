@@ -1,0 +1,82 @@
+// file      : butl/char-scanner -*- C++ -*-
+// copyright : Copyright (c) 2014-2015 Code Synthesis Ltd
+// license   : MIT; see accompanying LICENSE file
+
+#ifndef BUTL_CHAR_SCANNER
+#define BUTL_CHAR_SCANNER
+
+#include <string>  // char_traits
+#include <iosfwd>
+#include <cstdint> // uint64_t
+
+namespace butl
+{
+  // Low-level character stream scanner. Normally used as a base for
+  // higher-level lexers.
+  //
+  class char_scanner
+  {
+  public:
+    char_scanner (std::istream& is): is_ (is) {}
+
+    char_scanner (const char_scanner&) = delete;
+    char_scanner& operator= (const char_scanner&) = delete;
+
+    // Scanner interface.
+    //
+  public:
+
+    // Extended character. It includes line/column information
+    // and is capable of representing EOF.
+    //
+    class xchar
+    {
+    public:
+      typedef std::char_traits<char> traits_type;
+      typedef traits_type::int_type int_type;
+      typedef traits_type::char_type char_type;
+
+      int_type value;
+      std::uint64_t line;
+      std::uint64_t column;
+
+      operator char_type () const {return static_cast<char_type> (value);}
+
+      xchar (int_type v, std::uint64_t l = 0, std::uint64_t c = 0)
+          : value (v), line (l), column (c) {}
+    };
+
+    xchar
+    get ();
+
+    void
+    unget (const xchar&);
+
+    // Note that if there is an "ungot" character, peek() will return
+    // that.
+    //
+    xchar
+    peek ();
+
+    // Tests. In the future we can add tests line alpha(), alnum(),
+    // etc.
+    //
+    static bool
+    eos (const xchar& c) {return c.value == xchar::traits_type::eof ();}
+
+    // Line and column of the furthest seen (either via get() or
+    // peek()) character.
+    //
+    std::uint64_t line {1};
+    std::uint64_t column {1};
+
+  protected:
+    std::istream& is_;
+
+    bool unget_ {false};
+    xchar buf_ = '\0';
+    bool eos_ {false};
+  };
+}
+
+#endif // BUTL_CHAR_SCANNER
