@@ -1,0 +1,53 @@
+// file      : butl/utility -*- C++ -*-
+// copyright : Copyright (c) 2014-2015 Code Synthesis Ltd
+// license   : MIT; see accompanying LICENSE file
+
+#ifndef BUTL_UTILITY
+#define BUTL_UTILITY
+
+#include <cstring> // strcmp
+
+namespace butl
+{
+  // Key comparators (i.e., to be used in sets, maps, etc).
+  //
+  struct compare_c_string
+  {
+    bool operator() (const char* x, const char* y) const
+    {
+      return std::strcmp (x, y) < 0;
+    }
+  };
+
+  struct compare_pointer_target
+  {
+    template <typename P>
+    bool operator() (const P& x, const P& y) const {return *x < *y;}
+  };
+
+  // Support for reverse iteration using range-based for-loop:
+  //
+  // for (... : reverse_iterate (x)) ...
+  //
+  template <typename T>
+  class reverse_range
+  {
+    T& x_;
+
+  public:
+    reverse_range (T& x): x_ (x) {}
+
+    auto begin () -> decltype (this->x_.rbegin ()) {return x_.rbegin ();}
+    auto end () -> decltype (this->x_.rend ()) {return x_.rend ();}
+  };
+
+  template <typename T>
+  inline reverse_range<T>
+  reverse_iterate (T& x) {return reverse_range<T> (x);}
+
+  template <typename T>
+  inline reverse_range<const T>
+  reverse_iterate (const T& x) {return reverse_range<const T> (x);}
+}
+
+#endif // BUTL_UTILITY
