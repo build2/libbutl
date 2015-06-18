@@ -3,4 +3,5 @@
 # license   : MIT; see accompanying LICENSE file
 
 lib{butl}: cxx{fdstream}
+cxx.poptions += -I$src_root
 lib{butl}: cxx.export.poptions = -I$src_root
