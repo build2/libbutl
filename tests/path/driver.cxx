@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <type_traits>
 
 #include <butl/path>
 #include <butl/path-io>
@@ -14,6 +15,12 @@ using namespace butl;
 int
 main ()
 {
+  static_assert (is_nothrow_destructible<path>::value, "");
+  static_assert (is_nothrow_move_constructible<path>::value, "");
+
+  static_assert (is_nothrow_destructible<dir_path>::value, "");
+  static_assert (is_nothrow_move_constructible<dir_path>::value, "");
+
   assert (path ("/").string () == "/");
   assert (path ("//").string () == "/");
   assert (path ("/tmp/foo/").string () == "/tmp/foo");
