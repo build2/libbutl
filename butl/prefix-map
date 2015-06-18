@@ -7,8 +7,8 @@
 
 #include <map>
 #include <string>
-#include <utility>   // move
-#include <algorithm> // min
+#include <utility>   // move()
+#include <algorithm> // min()
 
 namespace butl
 {
