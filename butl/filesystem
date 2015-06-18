@@ -8,9 +8,18 @@
 #include <sys/types.h> // mode_t
 
 #include <butl/path>
+#include <butl/timestamp>
 
 namespace butl
 {
+  // Return timestamp_nonexistent if the entry at the specified path
+  // does not exist or is not a path. All other errors are reported
+  // by throwing std::system_error. Note that this function resolves
+  // symlinks.
+  //
+  timestamp
+  file_mtime (const path&);
+
   // Return true if the path is to an existing directory. Note that
   // this function resolves symlinks.
   //
@@ -48,7 +57,7 @@ namespace butl
   rmdir_status
   try_rmdir (const path&);
 
-  // Try to remove the file (or symbolic link) returning not_exist if
+  // Try to remove the file (or symlinks) returning not_exist if
   // it does not exist. All other errors are reported by throwing
   // std::system_error.
   //

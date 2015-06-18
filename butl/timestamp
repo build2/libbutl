@@ -6,7 +6,6 @@
 #define BUTL_TIMESTAMP
 
 #include <chrono>
-#include <string>
 #include <iosfwd>
 
 #include <butl/path>
@@ -34,21 +33,19 @@ namespace butl
   using timestamp = system_clock::time_point;
   using duration = system_clock::duration;
 
+  // Generally-useful special values.
+  //
   const timestamp timestamp_unknown {duration {-1}};
   const timestamp timestamp_nonexistent {duration {0}};
 
+  // Human-readable representation. Note that these operators
+  // may throw std::system_error.
+  //
   std::ostream&
   operator<< (std::ostream&, const timestamp&);
 
   std::ostream&
   operator<< (std::ostream&, const duration&);
-
-  // Returns timestamp_nonexistent if the entry at the specified path
-  // does not exist. All other errors are reported by throwing
-  // std::system_error.
-  //
-  timestamp
-  path_mtime (const path&);
 };
 
 #endif // BUTL_TIMESTAMP

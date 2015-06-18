@@ -4,10 +4,6 @@
 
 #include <butl/timestamp>
 
-#include <unistd.h>    // stat
-#include <sys/types.h> // stat
-#include <sys/stat.h>  // stat
-
 #include <time.h> // localtime, gmtime, strftime
 
 #include <ostream>
@@ -17,46 +13,6 @@ using namespace std;
 
 namespace butl
 {
-  // Figuring out whether we have the nanoseconds in some form.
-  //
-  template <typename S>
-  constexpr auto nsec (const S* s) -> decltype(s->st_mtim.tv_nsec)
-  {
-    return s->st_mtim.tv_nsec; // POSIX (GNU/Linux, Solaris).
-  }
-
-  template <typename S>
-  constexpr auto nsec (const S* s) -> decltype(s->st_mtimespec.tv_nsec)
-  {
-    return s->st_mtimespec.tv_nsec; // MacOS X.
-  }
-
-  template <typename S>
-  constexpr auto nsec (const S* s) -> decltype(s->st_mtime_n)
-  {
-    return s->st_mtime_n; // AIX 5.2 and later.
-  }
-
-  template <typename S>
-  constexpr int nsec (...) {return 0;}
-
-  timestamp
-  path_mtime (const path& p)
-  {
-    struct stat s;
-    if (stat (p.string ().c_str (), &s) != 0)
-    {
-      if (errno == ENOENT || errno == ENOTDIR)
-        return timestamp_nonexistent;
-      else
-        throw system_error (errno, system_category ());
-    }
-
-    return system_clock::from_time_t (s.st_mtime) +
-      chrono::duration_cast<duration> (
-        chrono::nanoseconds (nsec<struct stat> (&s)));
-  }
-
   ostream&
   operator<< (ostream& os, const timestamp& ts)
   {
