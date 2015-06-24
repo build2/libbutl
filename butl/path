@@ -343,7 +343,9 @@ namespace butl
     basic_path
     base () const;
 
-    // Return the extension or NULL if not present.
+    // Return the extension or NULL if not present. If not NULL, then
+    // the result points to the character past the dot but it is legal
+    // to decrement it once to obtain the value with the dot.
     //
     const C*
     extension () const;
