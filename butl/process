@@ -48,7 +48,7 @@ namespace butl
     bool
     wait ();
 
-    ~process () {assert (id == 0);}
+    ~process () {if (id != 0) wait ();}
 
 #ifndef _WIN32
     typedef pid_t id_type;
