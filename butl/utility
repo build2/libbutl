@@ -5,6 +5,7 @@
 #ifndef BUTL_UTILITY
 #define BUTL_UTILITY
 
+#include <utility> // forward()
 #include <cstring> // strcmp
 
 namespace butl
@@ -32,22 +33,18 @@ namespace butl
   template <typename T>
   class reverse_range
   {
-    T& x_;
+    T x_;
 
   public:
-    reverse_range (T& x): x_ (x) {}
+    reverse_range (T&& x): x_ (std::forward<T> (x)) {}
 
-    auto begin () -> decltype (this->x_.rbegin ()) {return x_.rbegin ();}
-    auto end () -> decltype (this->x_.rend ()) {return x_.rend ();}
+    auto begin () const -> decltype (this->x_.rbegin ()) {return x_.rbegin ();}
+    auto end () const -> decltype (this->x_.rend ()) {return x_.rend ();}
   };
 
   template <typename T>
   inline reverse_range<T>
-  reverse_iterate (T& x) {return reverse_range<T> (x);}
-
-  template <typename T>
-  inline reverse_range<const T>
-  reverse_iterate (const T& x) {return reverse_range<const T> (x);}
+  reverse_iterate (T&& x) {return reverse_range<T> (std::forward<T> (x));}
 }
 
 #endif // BUTL_UTILITY
