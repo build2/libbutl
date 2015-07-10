@@ -25,6 +25,33 @@ namespace butl
   }
 #endif
 
+  // @@ Should only enable_if P is basic_path<C, K1>.
+  //
+  template <class P, class C, class K>
+  inline P
+  path_cast (const basic_path<C, K>& p)
+  {
+    return P (p.path_, false);
+  }
+
+  template <class P, class C, class K>
+  inline P
+  path_cast (basic_path<C, K>&& p)
+  {
+    return P (std::move (p.path_), false);
+  }
+
+  template <typename C, typename K>
+  inline bool basic_path<C, K>::
+  simple () const
+  {
+    return
+#ifndef _WIN32
+      root () ||
+#endif
+      traits::find_separator (this->path_) == string_type::npos;
+  }
+
   template <typename C, typename K>
   inline bool basic_path<C, K>::
   absolute () const

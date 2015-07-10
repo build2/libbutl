@@ -145,6 +145,12 @@ namespace butl
   template <typename C, typename K>
   class basic_path;
 
+  // Cast from one path kind to another without any checking or
+  // processing.
+  //
+  template <class P, class C, class K> P path_cast (const basic_path<C, K>&);
+  template <class P, class C, class K> P path_cast (basic_path<C, K>&&);
+
   template <typename C>
   class path_data;
 
@@ -277,6 +283,13 @@ namespace butl
     {
       return this->path_.empty ();
     }
+
+    // Return true if this path doesn't have any directories. Note
+    // that "/foo" is not a simple path (it is "foo" in root directory)
+    // while "/" is (it is the root directory).
+    //
+    bool
+    simple () const;
 
     bool
     absolute () const;
@@ -497,6 +510,18 @@ namespace butl
     posix_string () const;
 
   private:
+    template <class P, class C1, class K1>
+    friend P butl::path_cast (const basic_path<C1, K1>&);
+
+    template <class P, class C1, class K1>
+    friend P butl::path_cast (basic_path<C1, K1>&&);
+
+    basic_path (string_type s, bool i): base_type (std::move (s))
+    {
+      if (i)
+        init ();
+    }
+
     void
     init ();
   };
