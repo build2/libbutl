@@ -56,6 +56,12 @@ namespace butl
   mkdir_status
   try_mkdir (const path&, mode_t = 0777);
 
+  // The '-p' version of the above (i.e., it creates the parent
+  // directories if necessary).
+  //
+  mkdir_status
+  try_mkdir_p (const path&, mode_t = 0777);
+
   // Try to remove the directory returning not_exist if it does not
   // exist and not_empty if it is not empty. All other errors are
   // reported by throwing std::system_error.

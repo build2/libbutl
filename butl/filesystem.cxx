@@ -108,6 +108,20 @@ namespace butl
     return r;
   }
 
+  mkdir_status
+  try_mkdir_p (const path& p, mode_t m)
+  {
+    if (!p.root ())
+    {
+      path d (p.directory ());
+
+      if (!dir_exists (d))
+        try_mkdir_p (d, m);
+    }
+
+    return try_mkdir (p, m);
+  }
+
   rmdir_status
   try_rmdir (const path& p)
   {
