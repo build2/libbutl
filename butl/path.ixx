@@ -147,6 +147,26 @@ namespace butl
   }
 
   template <typename C, typename K>
+  inline basic_path<C, K>::
+  basic_path (const iterator& b, const iterator& e)
+  {
+    //assert (b.p_ == e.p_);
+
+    if (b != e)
+    {
+      this->path_.assign (
+        *b.p_, b.b_, (e.b_ != string_type::npos ? e.b_ - b.b_ - 1 : e.b_));
+
+#ifndef _WIN32
+      if (this->path_.empty ())
+        this->path_ = '/';
+#endif
+
+      // No init() should be necessary.
+    }
+  }
+
+  template <typename C, typename K>
   inline basic_path<C, K>& basic_path<C, K>::
   complete ()
   {

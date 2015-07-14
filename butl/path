@@ -235,6 +235,8 @@ namespace butl
 
     typedef path_traits<C> traits;
 
+    struct iterator;
+
     // Construct special empty path. Note that we have to provide our
     // own implementation rather than using '=default' to make clang
     // allow default-initialized const instances of this type.
@@ -255,6 +257,11 @@ namespace butl
 
     basic_path (const string_type& s, size_type p, size_type n)
         : base_type (string_type (s, p, n)) {init ();}
+
+    // Create a path as a sub-path identified by the [begin, end)
+    // range of components.
+    //
+    basic_path (const iterator& begin, const iterator& end);
 
     void
     swap (basic_path& p)
@@ -399,7 +406,7 @@ namespace butl
       }
 
       iterator
-      operator++ (int) {iterator r (*this); return ++r;}
+      operator++ (int) const {iterator r (*this); return ++r;}
 
       string_type operator* () const
       {
@@ -416,6 +423,8 @@ namespace butl
       operator!= (const iterator& x, const iterator& y) {return !(x == y);}
 
     private:
+      friend class basic_path;
+
       // b != npos && e == npos - last component
       // b == npos && e == npos - one past last component (end)
       //
