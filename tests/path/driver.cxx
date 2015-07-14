@@ -130,28 +130,28 @@ main ()
   {
     path p ("foo");
     assert (path (p.begin (), p.end ()) == p);
-    assert (path (p.begin ()++, p.end ()) == path ());
+    assert (path (++p.begin (), p.end ()) == path ());
   }
   {
     path p ("foo/bar");
     assert (path (p.begin (), p.end ()) == p);
-    assert (path (p.begin ()++, p.end ()) == path ("bar"));
-    assert (path (p.begin (), p.begin ()++) == path ("foo"));
+    assert (path (++p.begin (), p.end ()) == path ("bar"));
+    assert (path (p.begin (), ++p.begin ()) == path ("foo"));
   }
   {
     path p ("/foo/bar");
     assert (path (p.begin (), p.end ()) == p);
-    assert (path (p.begin ()++, p.end ()) == path ("foo/bar"));
-    assert (path ((p.begin ()++)++, p.end ()) == path ("bar"));
-    assert (path (p.begin (), p.begin ()++) == path ("/"));
-    assert (path (p.begin ()++, (p.begin ()++)++) == path ("foo"));
-    assert (path ((p.begin ()++)++, ((p.begin ()++)++)++) == path ("bar"));
+    assert (path (++p.begin (), p.end ()) == path ("foo/bar"));
+    assert (path (++(++p.begin ()), p.end ()) == path ("bar"));
+    assert (path (p.begin (), ++p.begin ()) == path ("/"));
+    assert (path (++p.begin (), ++(++p.begin ())) == path ("foo"));
+    assert (path (++(++p.begin ()), ++(++(++p.begin ()))) == path ("bar"));
   }
 #ifndef _WIN32
   {
     path p ("/");
     assert (path (p.begin (), p.end ()) == p);
-    assert (path (p.begin ()++, p.end ()) == path ());
+    assert (path (++p.begin (), p.end ()) == path ());
   }
 #endif
 
