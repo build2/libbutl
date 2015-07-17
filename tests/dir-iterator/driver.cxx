@@ -37,10 +37,10 @@ main (int argc, const char* argv[])
   {
     for (const dir_entry& de: dir_iterator (dir_path (argv[1])))
     {
-      cerr << de.type () << " ";
+      cerr << de.ltype () << " ";
 
-      if (de.type () == entry_type::symlink)
-        cerr << de.ltype ();
+      if (de.ltype () == entry_type::symlink)
+        cerr << de.type ();
       else
         cerr << "   ";
 

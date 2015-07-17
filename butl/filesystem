@@ -96,11 +96,11 @@ namespace butl
   public:
     typedef butl::path path_type;
 
+    // Symlink target type in case of the symlink, ltype() otherwise.
+    //
     entry_type
     type () const;
 
-    // Symlink target type in case of the symlink, type() otherwise.
-    //
     entry_type
     ltype () const;
 

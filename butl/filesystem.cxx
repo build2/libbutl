@@ -42,7 +42,7 @@ namespace butl
   file_mtime (const path& p)
   {
     struct stat s;
-    if (::lstat (p.string ().c_str (), &s) != 0)
+    if (::stat (p.string ().c_str (), &s) != 0)
     {
       if (errno == ENOENT || errno == ENOTDIR)
         return timestamp_nonexistent;
@@ -61,7 +61,7 @@ namespace butl
   dir_exists (const path& p)
   {
     struct stat s;
-    if (::lstat (p.string ().c_str (), &s) != 0)
+    if (::stat (p.string ().c_str (), &s) != 0)
     {
       if (errno == ENOENT || errno == ENOTDIR)
         return false;
@@ -76,7 +76,7 @@ namespace butl
   file_exists (const path& p)
   {
     struct stat s;
-    if (::lstat (p.string ().c_str (), &s) != 0)
+    if (::stat (p.string ().c_str (), &s) != 0)
     {
       if (errno == ENOENT || errno == ENOTDIR)
         return false;

@@ -9,16 +9,16 @@ namespace butl
   inline entry_type dir_entry::
   type () const
   {
-    return t_ != entry_type::unknown ? t_ : (t_ = type (false));
+    entry_type t (ltype ());
+    return t != entry_type::symlink
+      ? t
+      : lt_ != entry_type::unknown ? lt_ : (lt_ = type (true));
   }
 
   inline entry_type dir_entry::
   ltype () const
   {
-    entry_type t (type ());
-    return t != entry_type::symlink
-      ? t
-      : lt_ != entry_type::unknown ? lt_ : (lt_ = type (true));
+    return t_ != entry_type::unknown ? t_ : (t_ = type (false));
   }
 
   // dir_iterator
