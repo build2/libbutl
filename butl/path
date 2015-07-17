@@ -406,7 +406,7 @@ namespace butl
       }
 
       iterator
-      operator++ (int) {iterator r (*this); operator++(); return r;}
+      operator++ (int) {iterator r (*this); operator++ (); return r;}
 
       string_type operator* () const
       {
