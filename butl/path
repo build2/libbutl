@@ -236,6 +236,7 @@ namespace butl
     typedef path_traits<C> traits;
 
     struct iterator;
+    typedef std::reverse_iterator<iterator> reverse_iterator;
 
     // Construct special empty path. Note that we have to provide our
     // own implementation rather than using '=default' to make clang
@@ -262,6 +263,9 @@ namespace butl
     // range of components.
     //
     basic_path (const iterator& begin, const iterator& end);
+
+    basic_path (const reverse_iterator& rbegin, const reverse_iterator& rend)
+        : basic_path (end.base (), begin.base ()) {}
 
     void
     swap (basic_path& p)
@@ -435,6 +439,9 @@ namespace butl
 
     iterator begin () const;
     iterator end () const;
+
+    reverse_iterator rbegin () const {return reverse_iterator (end ());}
+    reverse_iterator rend () const {return reverse_iterator (begin ());}
 
   public:
     // Normalize the path. This includes collapsing the '.' and '..'
