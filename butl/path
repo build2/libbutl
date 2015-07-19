@@ -388,9 +388,9 @@ namespace butl
     {
       typedef string_type value_type;
       typedef string_type* pointer;
-      typedef string_type& reference;
+      typedef string_type reference;
       typedef std::ptrdiff_t difference_type;
-      typedef std::forward_iterator_tag iterator_category;
+      typedef std::bidirectional_iterator_tag iterator_category;
 
       typedef typename string_type::size_type size_type;
 
@@ -409,8 +409,29 @@ namespace butl
         return *this;
       }
 
+      iterator&
+      operator-- ()
+      {
+        e_ = b_;
+
+        if (e_ != 0)
+        {
+          b_ = e_ == string_type::npos ?
+            traits::rfind_separator (*p_) /* Rigtmost component */ :
+            --e_ > 0 ? traits::rfind_separator (*p_, e_ - 1) :
+            string_type::npos /* Leftmost empty component */;
+
+          b_ = b_ == string_type::npos ? 0 : b_ + 1;
+        }
+
+        return *this;
+      }
+
       iterator
       operator++ (int) {iterator r (*this); operator++ (); return r;}
+
+      iterator
+      operator-- (int) {iterator r (*this); operator-- (); return r;}
 
       string_type operator* () const
       {

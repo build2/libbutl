@@ -92,10 +92,20 @@ main ()
     assert (p.begin () == p.end ());
   }
   {
+    path p;
+    assert (p.rbegin () == p.rend ());
+  }
+  {
     path p ("foo");
     path::iterator i (p.begin ());
     assert (i != p.end () && *i == "foo");
     assert (++i == p.end ());
+  }
+  {
+    path p ("foo");
+    path::reverse_iterator i (p.rbegin ());
+    assert (i != p.rend () && *i == "foo");
+    assert (++i == p.rend ());
   }
   {
     path p ("foo/bar");
@@ -105,6 +115,13 @@ main ()
     assert (++i == p.end ());
   }
   {
+    path p ("foo/bar");
+    path::reverse_iterator i (p.rbegin ());
+    assert (i != p.rend () && *i == "bar");
+    assert (++i != p.rend () && *i == "foo");
+    assert (++i == p.rend ());
+  }
+  {
     path p ("/foo/bar");
     path::iterator i (p.begin ());
     assert (i != p.end () && *i == "");
@@ -112,12 +129,26 @@ main ()
     assert (++i != p.end () && *i == "bar");
     assert (++i == p.end ());
   }
+  {
+    path p ("/foo/bar");
+    path::reverse_iterator i (p.rbegin ());
+    assert (i != p.rend () && *i == "bar");
+    assert (++i != p.rend () && *i == "foo");
+    assert (++i != p.rend () && *i == "");
+    assert (++i == p.rend ());
+  }
 #ifndef _WIN32
   {
     path p ("/");
     path::iterator i (p.begin ());
     assert (i != p.end () && *i == "");
     assert (++i == p.end ());
+  }
+  {
+    path p ("/");
+    path::reverse_iterator i (p.rbegin ());
+    assert (i != p.rend () && *i == "");
+    assert (++i == p.rend ());
   }
 #endif
 
@@ -197,11 +228,11 @@ main ()
 
   // comparison
   //
-  assert (path ("./foo") == path("./foo"));
-  assert (path ("./boo") < path("./foo"));
+  assert (path ("./foo") == path ("./foo"));
+  assert (path ("./boo") < path ("./foo"));
 #ifdef _WIN32
-  assert (path (".\\foo") == path("./FoO"));
-  assert (path (".\\boo") < path(".\\Foo"));
+  assert (path (".\\foo") == path ("./FoO"));
+  assert (path (".\\boo") < path (".\\Foo"));
 #endif
 
   // posix_string
