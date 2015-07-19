@@ -265,7 +265,7 @@ namespace butl
     basic_path (const iterator& begin, const iterator& end);
 
     basic_path (const reverse_iterator& rbegin, const reverse_iterator& rend)
-        : basic_path (end.base (), begin.base ()) {}
+        : basic_path (rend.base (), rbegin.base ()) {}
 
     void
     swap (basic_path& p)
