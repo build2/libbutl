@@ -414,15 +414,15 @@ namespace butl
       {
         e_ = b_;
 
-        if (e_ != 0)
-        {
-          b_ = e_ == string_type::npos ?
-            traits::rfind_separator (*p_) /* Rigtmost component */ :
-            --e_ > 0 ? traits::rfind_separator (*p_, e_ - 1) :
-            string_type::npos /* Leftmost empty component */;
+        b_ = e_ == string_type::npos // Last component?
+          ? traits::rfind_separator (*p_)
+          : (--e_ == 0 // First empty component?
+             ? string_type::npos
+             : traits::rfind_separator (*p_, e_ - 1));
 
-          b_ = b_ == string_type::npos ? 0 : b_ + 1;
-        }
+        b_ = b_ == string_type::npos // First component?
+          ? 0
+          : b_ + 1;
 
         return *this;
       }
