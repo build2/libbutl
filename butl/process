@@ -28,18 +28,36 @@ namespace butl
 
   struct process
   {
-    // Start another process using the specified command line. Connect the
-    // newly created process' stdin to out_fd. Also if connect_* are true,
-    // connect the created process' stdout and stderr to in_*fd. Throw
-    // process_error if anything goes wrong.
+    // Start another process using the specified command line. The default
+    // values to the in, out and err arguments indicate that the child
+    // process should inherit the parent process stdin, stdout, and stderr,
+    // respectively. If -1 is passed instead, then the corresponding child
+    // process descriptor is connected (via a pipe) to out_fd for stdin,
+    // in_ofd for stdout, and in_efd for stderr (see data members below).
     //
-    // Note that some of the exceptions (e.g., if exec() failed) can be
-    // thrown in the child version of us.
+    // Instead of passing -1 or the default value, you can also pass your
+    // own descriptors. Note, however, that in this case they are not
+    // closed by the parent. So you should do this yourself, if required.
+    // For example, to redirect the child process stdout to stderr, you
+    // can do:
     //
-    process (char const* args[],
-             bool connect_stdin = false,
-             bool connect_stderr = false,
-             bool connect_stdout = false);
+    // process p (..., 0, 2);
+    //
+    // Throw process_error if anything goes wrong. Note that some of the
+    // exceptions (e.g., if exec() failed) can be thrown in the child
+    // version of us.
+    //
+    process (char const* args[], int in = 0, int out = 1, int err = 2);
+
+    // The "piping" constructor, for example:
+    //
+    // process lhs (..., 0, -1); // Redirect stdout to a pipe.
+    // process rhs (..., lhs);   // Redirect stdin to lhs's pipe.
+    //
+    // rhs.wait (); // Wait for last first.
+    // lhs.wait ();
+    //
+    process (char const* args[], process& in, int out = 1, int err = 2);
 
     // Wait for the process to terminate. Return true if the process
     // terminated normally and with the zero exit status. Throw
@@ -50,6 +68,9 @@ namespace butl
 
     ~process () {if (id != 0) wait ();}
 
+    process (const process&) = delete;
+    process& operator= (const process&) = delete;
+
 #ifndef _WIN32
     typedef pid_t id_type;
 #else
@@ -57,9 +78,10 @@ namespace butl
 #endif
 
     id_type id;
+
     int out_fd; // Write to this fd to send to the new process' stdin.
-    int in_efd; // Read from this fd to receive from the new process' stderr.
     int in_ofd; // Read from this fd to receive from the new process' stdout.
+    int in_efd; // Read from this fd to receive from the new process' stderr.
   };
 }
 

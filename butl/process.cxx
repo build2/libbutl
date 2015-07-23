@@ -16,6 +16,8 @@
 #  include <fcntl.h>     // _O_TEXT
 #endif
 
+#include <cassert>
+
 using namespace std;
 
 namespace butl
@@ -23,15 +25,15 @@ namespace butl
 #ifndef _WIN32
 
   process::
-  process (char const* args[], bool in, bool err, bool out)
+  process (char const* args[], int in, int out, int err)
   {
-    int out_fd[2];
-    int in_efd[2];
-    int in_ofd[2];
+    int out_fd[2] = {in, 0};
+    int in_ofd[2] = {0, out};
+    int in_efd[2] = {0, err};
 
-    if ((in && pipe (out_fd) == -1)  ||
-        (err && pipe (in_efd) == -1) ||
-        (out && pipe (in_ofd) == -1))
+    if ((in == -1 && pipe (out_fd) == -1)  ||
+        (out == -1 && pipe (in_ofd) == -1) ||
+        (err == -1 && pipe (in_efd) == -1))
       throw process_error (errno, false);
 
     id = fork ();
@@ -44,31 +46,31 @@ namespace butl
       // Child. If requested, close the write end of the pipe and duplicate
       // the read end to stdin. Then close the original read end descriptor.
       //
-      if (in)
+      if (in != STDIN_FILENO)
       {
-        if (close (out_fd[1]) == -1 ||
-            dup2 (out_fd[0], STDIN_FILENO) == -1 ||
-            close (out_fd[0]) == -1)
-          throw process_error (errno, true);
-      }
-
-      // Do the same for the stderr if requested.
-      //
-      if (err)
-      {
-        if (close (in_efd[0]) == -1 ||
-            dup2 (in_efd[1], STDERR_FILENO) == -1 ||
-            close (in_efd[1]) == -1)
+        if ((in == -1 && close (out_fd[1]) == -1) ||
+            dup2 (out_fd[0], STDIN_FILENO) == -1  ||
+            (in == -1 && close (out_fd[0]) == -1))
           throw process_error (errno, true);
       }
 
       // Do the same for the stdout if requested.
       //
-      if (out)
+      if (out != STDOUT_FILENO)
       {
-        if (close (in_ofd[0]) == -1 ||
-            dup2 (in_ofd[1], STDOUT_FILENO) == -1 ||
-            close (in_ofd[1]) == -1)
+        if ((out == -1 && close (in_ofd[0]) == -1) ||
+            dup2 (in_ofd[1], STDOUT_FILENO) == -1  ||
+            (out == -1 && close (in_ofd[1]) == -1))
+          throw process_error (errno, true);
+      }
+
+      // Do the same for the stderr if requested.
+      //
+      if (err != STDERR_FILENO)
+      {
+        if ((err == -1 && close (in_efd[0]) == -1) ||
+            dup2 (in_efd[1], STDERR_FILENO) == -1  ||
+            (err == -1 && close (in_efd[1]) == -1))
           throw process_error (errno, true);
       }
 
@@ -79,15 +81,23 @@ namespace butl
     {
       // Parent. Close the other ends of the pipes.
       //
-      if ((in && close (out_fd[0]) == -1)  ||
-          (err && close (in_efd[1]) == -1) ||
-          (out && close (in_ofd[1]) == -1))
+      if ((in == -1 && close (out_fd[0]) == -1)  ||
+          (out == -1 && close (in_ofd[1]) == -1) ||
+          (err == -1 && close (in_efd[1]) == -1))
         throw process_error (errno, false);
     }
 
-    this->out_fd = in ? out_fd[1] : 0;
-    this->in_efd = err ? in_efd[0] : 0;
-    this->in_ofd = out ? in_ofd[0] : 0;
+    this->out_fd = in == -1 ? out_fd[1] : -1;
+    this->in_ofd = out == -1 ? in_ofd[0] : -1;
+    this->in_efd = err == -1 ? in_efd[0] : -1;
+  }
+
+  process::
+  process (char const* args[], process& in, int out, int err)
+      : process (args, in.in_ofd, out, err)
+  {
+    assert (in.in_ofd != -1); // Should be a pipe.
+    close (in.in_ofd); // Close it on our side.
   }
 
   bool process::
