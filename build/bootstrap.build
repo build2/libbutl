@@ -4,3 +4,4 @@
 
 project = libbutl
 using config
+using test
