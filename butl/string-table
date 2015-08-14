@@ -70,6 +70,9 @@ namespace butl
     bool
     empty () const {return vec_.empty ();}
 
+    void
+    clear () {vec_.clear (); map_.clear ();}
+
   private:
     using key_type = butl::map_key<std::string>;
     using value_type = string_table_element<I, D>;
