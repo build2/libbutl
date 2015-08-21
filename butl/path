@@ -438,6 +438,8 @@ namespace butl
         return string_type (*p_, b_, (e_ != string_type::npos ? e_ - b_ : e_));
       }
 
+      pointer operator-> () const = delete;
+
       friend bool
       operator== (const iterator& x, const iterator& y)
       {
@@ -532,10 +534,13 @@ namespace butl
 
   public:
     const string_type&
-    string () const
-    {
-      return this->path_;
-    }
+    string () const& {return this->path_;}
+
+    // Moves the underlying path string out of the path object. The
+    // path object becomes empty. Usage: std::move (p).string ().
+    //
+    string_type
+    string () && {string_type r; r.swap (this->path_); return r;}
 
     // If possible, return a POSIX representation of the path. For example,
     // for a Windows path in the form foo\bar this function will return
