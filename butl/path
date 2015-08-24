@@ -238,26 +238,39 @@ namespace butl
     struct iterator;
     typedef std::reverse_iterator<iterator> reverse_iterator;
 
-    // Construct special empty path. Note that we have to provide our
+    // Create a special empty path. Note that we have to provide our
     // own implementation rather than using '=default' to make clang
     // allow default-initialized const instances of this type.
     //
     basic_path () {};
 
     explicit
-    basic_path (C const* s): base_type (s) {init ();}
+    basic_path (C const* s): base_type (s) {init (this->path_);}
 
     basic_path (C const* s, size_type n)
-        : base_type (string_type (s, n)) {init ();}
+        : base_type (string_type (s, n)) {init (this->path_);}
 
     explicit
-    basic_path (string_type s): base_type (std::move (s)) {init ();}
+    basic_path (string_type s): base_type (std::move (s)) {init (this->path_);}
 
     basic_path (const string_type& s, size_type n)
-        : base_type (string_type (s, 0, n)) {init ();}
+        : base_type (string_type (s, 0, n)) {init (this->path_);}
 
     basic_path (const string_type& s, size_type p, size_type n)
-        : base_type (string_type (s, p, n)) {init ();}
+        : base_type (string_type (s, p, n)) {init (this->path_);}
+
+    // Create a path using the exact string representation. If
+    // the string is not a valid path or if it would require a
+    // modification, then empty path is created instead and the
+    // passed string rvalue-reference is left untouched. See
+    // also string() && below.
+    //
+    enum exact_type {exact};
+    basic_path (string_type&& s, exact_type)
+    {
+      if (init (s, true))
+        this->path_ = std::move (s);
+    }
 
     // Create a path as a sub-path identified by the [begin, end)
     // range of components.
@@ -268,16 +281,10 @@ namespace butl
         : basic_path (rend.base (), rbegin.base ()) {}
 
     void
-    swap (basic_path& p)
-    {
-      this->path_.swap (p.path_);
-    }
+    swap (basic_path& p) {this->path_.swap (p.path_);}
 
     void
-    clear ()
-    {
-      this->path_.clear ();
-    }
+    clear () {this->path_.clear ();}
 
     // Get/set current working directory. Throw std::system_error
     // to report the underlying OS errors.
@@ -561,11 +568,15 @@ namespace butl
     basic_path (string_type s, bool i): base_type (std::move (s))
     {
       if (i)
-        init ();
+        init (this->path_);
     }
 
-    void
-    init ();
+    // If exact is true, return whether the initialization was
+    // successful, that is, the passed string is a valid path
+    // and no modifications were necessary.
+    //
+    bool
+    init (string_type& s, bool exact = false);
   };
 
   template <typename C, typename K>

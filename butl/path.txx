@@ -243,14 +243,23 @@ namespace butl
   }
 
   template <typename C, typename K>
-  void basic_path<C, K>::
-  init ()
+  bool basic_path<C, K>::
+  init (string_type& s, bool exact)
   {
     // Strip trailing slashes except for the case where the single
     // slash represents the root directory.
     //
-    size_type n (this->path_.size ());
-    for (; n > 1 && traits::is_separator (this->path_[n - 1]); --n) ;
-    this->path_.resize (n);
+    size_type n (s.size ());
+    for (; n > 1 && traits::is_separator (s[n - 1]); --n) ;
+
+    if (n != s.size ())
+    {
+      if (!exact)
+        this->path_.resize (n);
+
+      return !exact;
+    }
+
+    return true;
   }
 }
