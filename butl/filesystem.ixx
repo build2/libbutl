@@ -4,6 +4,35 @@
 
 namespace butl
 {
+  inline rmdir_status
+  try_rmdir_r (const dir_path& p)
+  {
+    bool e (dir_exists (p)); //@@ What if it exists but is not a directory?
+
+    if (e)
+      rmdir_r (p);
+
+    return e ? rmdir_status::success : rmdir_status::not_exist;
+  }
+
+  // permissions
+  //
+  inline permissions operator& (permissions x, permissions y) {return x &= y;}
+  inline permissions operator| (permissions x, permissions y) {return x &= y;}
+  inline permissions operator&= (permissions& x, permissions y)
+  {
+    return x = static_cast<permissions> (
+      static_cast<std::uint16_t> (x) &
+      static_cast<std::uint16_t> (y));
+  }
+
+  inline permissions operator|= (permissions& x, permissions y)
+  {
+    return x = static_cast<permissions> (
+      static_cast<std::uint16_t> (x) |
+      static_cast<std::uint16_t> (y));
+  }
+
   // dir_entry
   //
   inline entry_type dir_entry::

@@ -12,6 +12,7 @@
 #endif
 
 #include <cstddef>  // ptrdiff_t
+#include <cstdint>  // uint16_t
 #include <utility>  // move()
 #include <iterator>
 
@@ -20,14 +21,6 @@
 
 namespace butl
 {
-  // Return timestamp_nonexistent if the entry at the specified path
-  // does not exist or is not a path. All other errors are reported
-  // by throwing std::system_error. Note that this function resolves
-  // symlinks.
-  //
-  timestamp
-  file_mtime (const path&);
-
   // Return true if the path is to an existing directory. Note that
   // this function resolves symlinks.
   //
@@ -54,13 +47,13 @@ namespace butl
   enum class mkdir_status {success, already_exists};
 
   mkdir_status
-  try_mkdir (const path&, mode_t = 0777);
+  try_mkdir (const dir_path&, mode_t = 0777);
 
   // The '-p' version of the above (i.e., it creates the parent
   // directories if necessary).
   //
   mkdir_status
-  try_mkdir_p (const path&, mode_t = 0777);
+  try_mkdir_p (const dir_path&, mode_t = 0777);
 
   // Try to remove the directory returning not_exist if it does not
   // exist and not_empty if it is not empty. All other errors are
@@ -69,7 +62,19 @@ namespace butl
   enum class rmdir_status {success, not_exist, not_empty};
 
   rmdir_status
-  try_rmdir (const path&);
+  try_rmdir (const dir_path&);
+
+  // The '-r' (recursive) version of the above. Note that it will
+  // never return not_empty.
+  //
+  rmdir_status
+  try_rmdir_r (const dir_path&);
+
+  // As above but throws rather than returns not_exist if the directory
+  // does not exist, so check before calling.
+  //
+  void
+  rmdir_r (const dir_path&);
 
   // Try to remove the file (or symlinks) returning not_exist if
   // it does not exist. All other errors are reported by throwing
@@ -79,6 +84,43 @@ namespace butl
 
   rmfile_status
   try_rmfile (const path&);
+
+  // Return timestamp_nonexistent if the entry at the specified path
+  // does not exist or is not a path. All other errors are reported
+  // by throwing std::system_error. Note that this function resolves
+  // symlinks.
+  //
+  timestamp
+  file_mtime (const path&);
+
+  // Path permissions.
+  //
+  enum class permissions: std::uint16_t
+  {
+    // Note: matching POSIX values.
+    //
+    xo = 0001,
+    wo = 0002,
+    ro = 0004,
+
+    xg = 0010,
+    wg = 0020,
+    rg = 0040,
+
+    xu = 0100,
+    wu = 0200,
+    ru = 0400,
+
+    none = 0
+  };
+
+  permissions operator& (permissions, permissions);
+  permissions operator| (permissions, permissions);
+  permissions operator&= (permissions&, permissions);
+  permissions operator|= (permissions&, permissions);
+
+  permissions
+  path_permissions (const path&);
 
   // Directory entry iteration.
   //

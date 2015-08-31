@@ -15,6 +15,128 @@ using namespace std;
 
 namespace butl
 {
+  bool
+  dir_exists (const path& p)
+  {
+    struct stat s;
+    if (::stat (p.string ().c_str (), &s) != 0)
+    {
+      if (errno == ENOENT || errno == ENOTDIR)
+        return false;
+      else
+        throw system_error (errno, system_category ());
+    }
+
+    return S_ISDIR (s.st_mode);
+  }
+
+  bool
+  file_exists (const path& p)
+  {
+    struct stat s;
+    if (::stat (p.string ().c_str (), &s) != 0)
+    {
+      if (errno == ENOENT || errno == ENOTDIR)
+        return false;
+      else
+        throw system_error (errno, system_category ());
+    }
+
+    return S_ISREG (s.st_mode);
+  }
+
+  mkdir_status
+  try_mkdir (const dir_path& p, mode_t m)
+  {
+    mkdir_status r (mkdir_status::success);
+
+    if (::mkdir (p.string ().c_str (), m) != 0)
+    {
+      int e (errno);
+
+      // EEXIST means the path already exists but not necessarily as
+      // a directory.
+      //
+      if (e == EEXIST && dir_exists (p))
+        return mkdir_status::already_exists;
+      else
+        throw system_error (e, system_category ());
+    }
+
+    return r;
+  }
+
+  mkdir_status
+  try_mkdir_p (const dir_path& p, mode_t m)
+  {
+    if (!p.root ())
+    {
+      dir_path d (p.directory ());
+
+      if (!dir_exists (d))
+        try_mkdir_p (d, m);
+    }
+
+    return try_mkdir (p, m);
+  }
+
+  rmdir_status
+  try_rmdir (const dir_path& p)
+  {
+    rmdir_status r (rmdir_status::success);
+
+    if (::rmdir (p.string ().c_str ()) != 0)
+    {
+      if (errno == ENOENT)
+        r = rmdir_status::not_exist;
+      else if (errno == ENOTEMPTY || errno == EEXIST)
+        r = rmdir_status::not_empty;
+      else
+        throw system_error (errno, system_category ());
+    }
+
+    return r;
+  }
+
+  void
+  rmdir_r (const dir_path& p)
+  {
+    // An nftw()-based implementation (for platforms that support it)
+    // might be a faster way.
+    //
+    for (const dir_entry& de: dir_iterator (p))
+    {
+      path ep (p / de.path ()); //@@ Would be good to reuse the buffer.
+
+      if (de.ltype () == entry_type::directory)
+        rmdir_r (path_cast<dir_path> (ep));
+      else
+        try_rmfile (ep);
+    }
+
+    rmdir_status r (try_rmdir (p));
+
+    if (r != rmdir_status::success)
+      throw system_error (r == rmdir_status::not_empty ? ENOTEMPTY : ENOENT,
+                          system_category ());
+  }
+
+  rmfile_status
+  try_rmfile (const path& p)
+  {
+    rmfile_status r (rmfile_status::success);
+
+    if (::unlink (p.string ().c_str ()) != 0)
+    {
+      if (errno == ENOENT || errno == ENOTDIR)
+        r = rmfile_status::not_exist;
+      else
+        throw system_error (errno, system_category ());
+    }
+
+    return r;
+  }
+
   // Figuring out whether we have the nanoseconds in some form.
   //
   template <typename S>
@@ -57,103 +179,15 @@ namespace butl
       : timestamp_nonexistent;
   }
 
-  bool
-  dir_exists (const path& p)
+  permissions
+  path_permissions (const path& p)
   {
     struct stat s;
     if (::stat (p.string ().c_str (), &s) != 0)
-    {
-      if (errno == ENOENT || errno == ENOTDIR)
-        return false;
-      else
-        throw system_error (errno, system_category ());
-    }
+      throw system_error (errno, system_category ());
 
-    return S_ISDIR (s.st_mode);
-  }
-
-  bool
-  file_exists (const path& p)
-  {
-    struct stat s;
-    if (::stat (p.string ().c_str (), &s) != 0)
-    {
-      if (errno == ENOENT || errno == ENOTDIR)
-        return false;
-      else
-        throw system_error (errno, system_category ());
-    }
-
-    return S_ISREG (s.st_mode);
-  }
-
-  mkdir_status
-  try_mkdir (const path& p, mode_t m)
-  {
-    mkdir_status r (mkdir_status::success);
-
-    if (::mkdir (p.string ().c_str (), m) != 0)
-    {
-      int e (errno);
-
-      // EEXIST means the path already exists but not necessarily as
-      // a directory.
-      //
-      if (e == EEXIST && dir_exists (p))
-        return mkdir_status::already_exists;
-      else
-        throw system_error (e, system_category ());
-    }
-
-    return r;
-  }
-
-  mkdir_status
-  try_mkdir_p (const path& p, mode_t m)
-  {
-    if (!p.root ())
-    {
-      path d (p.directory ());
-
-      if (!dir_exists (d))
-        try_mkdir_p (d, m);
-    }
-
-    return try_mkdir (p, m);
-  }
-
-  rmdir_status
-  try_rmdir (const path& p)
-  {
-    rmdir_status r (rmdir_status::success);
-
-    if (::rmdir (p.string ().c_str ()) != 0)
-    {
-      if (errno == ENOENT)
-        r = rmdir_status::not_exist;
-      else if (errno == ENOTEMPTY || errno == EEXIST)
-        r = rmdir_status::not_empty;
-      else
-        throw system_error (errno, system_category ());
-    }
-
-    return r;
-  }
-
-  rmfile_status
-  try_rmfile (const path& p)
-  {
-    rmfile_status r (rmfile_status::success);
-
-    if (::unlink (p.string ().c_str ()) != 0)
-    {
-      if (errno == ENOENT || errno == ENOTDIR)
-        r = rmfile_status::not_exist;
-      else
-        throw system_error (errno, system_category ());
-    }
-
-    return r;
+    return static_cast<permissions> (
+      s.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO));
   }
 
 #ifndef _WIN32
