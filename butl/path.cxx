@@ -38,7 +38,7 @@ namespace butl
 
 #ifdef _WIN32
     char cwd[_MAX_PATH];
-    if(_getcwd(cwd, _MAX_PATH) == 0)
+    if(_getcwd (cwd, _MAX_PATH) == 0)
       throw system_error (errno, system_category ());
 #else
     char cwd[PATH_MAX];
@@ -54,7 +54,7 @@ namespace butl
   current (string_type const& s)
   {
 #ifdef _WIN32
-    if(_chdir(s.c_str ()) != 0)
+    if(_chdir (s.c_str ()) != 0)
       throw system_error (errno, system_category ());
 #else
     if (chdir (s.c_str ()) != 0)
@@ -72,7 +72,7 @@ namespace butl
   {
 #ifdef _WIN32
     wchar_t wcwd[_MAX_PATH];
-    if(_wgetcwd(wcwd, _MAX_PATH) == 0)
+    if(_wgetcwd (wcwd, _MAX_PATH) == 0)
       throw system_error (errno, system_category ());
 #else
     char cwd[PATH_MAX];
@@ -92,7 +92,7 @@ namespace butl
   current (string_type const& s)
   {
 #ifdef _WIN32
-    if(_wchdir(s.c_str ()) != 0)
+    if(_wchdir (s.c_str ()) != 0)
       throw system_error (errno, system_category ());
 #else
     char ns[PATH_MAX + 1];
