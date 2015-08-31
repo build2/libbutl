@@ -5,7 +5,7 @@
 #include <butl/process>
 
 #ifndef _WIN32
-#  include <unistd.h>    // execvp, fork, dup2, pipe, {STDIN,STDERR}_FILENO
+#  include <unistd.h>    // execvp, fork, dup2, pipe, chdir, *_FILENO
 #  include <sys/wait.h>  // waitpid
 #else
 #  ifndef WIN32_LEAN_AND_MEAN
@@ -25,7 +25,7 @@ namespace butl
 #ifndef _WIN32
 
   process::
-  process (char const* args[], int in, int out, int err)
+  process (const char* cwd, char const* args[], int in, int out, int err)
   {
     int out_fd[2] = {in, 0};
     int in_ofd[2] = {0, out};
@@ -74,6 +74,11 @@ namespace butl
           throw process_error (errno, true);
       }
 
+      // Change current working directory if requested.
+      //
+      if (cwd != nullptr && chdir (cwd) != 0)
+        throw process_error (errno, true);
+
       if (execvp (args[0], const_cast<char**> (&args[0])) == -1)
         throw process_error (errno, true);
     }
@@ -93,8 +98,8 @@ namespace butl
   }
 
   process::
-  process (char const* args[], process& in, int out, int err)
-      : process (args, in.in_ofd, out, err)
+  process (const char* cwd, char const* args[], process& in, int out, int err)
+      : process (cwd, args, in.in_ofd, out, err)
   {
     assert (in.in_ofd != -1); // Should be a pipe.
     close (in.in_ofd); // Close it on our side.
