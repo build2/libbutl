@@ -11,4 +11,15 @@ namespace butl
   inline process::
   process (char const* args[], process& in, int out, int err)
       : process (nullptr, args, in, out, err) {}
+
+  inline process::
+  process (process&& p)
+      : id (p.id),
+        status (p.status),
+        out_fd (p.out_fd),
+        in_ofd (p.in_ofd),
+        in_efd (p.in_efd)
+  {
+    p.id = 0;
+  }
 }

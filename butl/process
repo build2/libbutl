@@ -67,23 +67,32 @@ namespace butl
 
     // Wait for the process to terminate. Return true if the process
     // terminated normally and with the zero exit status. Throw
-    // process_error if anything goes wrong.
+    // process_error if anything goes wrong. This function can be
+    // called multiple times with subsequent calls simply returning
+    // the status.
     //
     bool
     wait ();
 
     ~process () {if (id != 0) wait ();}
 
+    // Move constructible-only type.
+    //
+    process (process&&);
+    process& operator= (process&&) = delete;
+
     process (const process&) = delete;
     process& operator= (const process&) = delete;
 
 #ifndef _WIN32
     typedef pid_t id_type;
+    typedef int status_type;
 #else
     typedef void* id_type; // Win32 HANDLE.
 #endif
 
     id_type id;
+    status_type status;
 
     int out_fd; // Write to this fd to send to the new process' stdin.
     int in_ofd; // Read from this fd to receive from the new process' stdout.

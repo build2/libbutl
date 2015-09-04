@@ -108,12 +108,14 @@ namespace butl
   bool process::
   wait ()
   {
-    int status;
-    int r (waitpid (id, &status, 0));
-    id = 0; // We have tried.
+    if (id != 0)
+    {
+      int r (waitpid (id, &status, 0));
+      id = 0; // We have tried.
 
-    if (r == -1)
-      throw process_error (errno, false);
+      if (r == -1)
+        throw process_error (errno, false);
+    }
 
     return WIFEXITED (status) && WEXITSTATUS (status) == 0;
   }
