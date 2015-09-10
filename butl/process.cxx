@@ -25,7 +25,7 @@ namespace butl
 #ifndef _WIN32
 
   process::
-  process (const char* cwd, char const* args[], int in, int out, int err)
+  process (const char* cwd, char const* const args[], int in, int out, int err)
   {
     int out_fd[2] = {in, 0};
     int in_ofd[2] = {0, out};
@@ -98,7 +98,8 @@ namespace butl
   }
 
   process::
-  process (const char* cwd, char const* args[], process& in, int out, int err)
+  process (const char* cwd, char const* const args[],
+           process& in, int out, int err)
       : process (cwd, args, in.in_ofd, out, err)
   {
     assert (in.in_ofd != -1); // Should be a pipe.

@@ -47,7 +47,7 @@ namespace butl
     // exceptions (e.g., if exec() failed) can be thrown in the child
     // version of us.
     //
-    process (char const* args[], int in = 0, int out = 1, int err = 2);
+    process (char const* const args[], int in = 0, int out = 1, int err = 2);
 
     // The "piping" constructor, for example:
     //
@@ -57,13 +57,13 @@ namespace butl
     // rhs.wait (); // Wait for last first.
     // lhs.wait ();
     //
-    process (char const* args[], process& in, int out = 1, int err = 2);
+    process (char const* const args[], process& in, int out = 1, int err = 2);
 
     // Versions of the above constructors that allow us to change the
     // current working directory of the child process.
     //
-    process (const char* cwd, char const*[], int = 0, int = 1, int = 2);
-    process (const char* cwd, char const*[], process& in, int = 1, int = 2);
+    process (const char* cwd, char const* const[], int = 0, int = 1, int = 2);
+    process (const char* cwd, char const* const[], process&, int = 1, int = 2);
 
     // Wait for the process to terminate. Return true if the process
     // terminated normally and with the zero exit status. Throw

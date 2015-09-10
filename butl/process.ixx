@@ -5,11 +5,11 @@
 namespace butl
 {
   inline process::
-  process (char const* args[], int in, int out, int err)
+  process (char const* const args[], int in, int out, int err)
       : process (nullptr, args, in, out, err) {}
 
   inline process::
-  process (char const* args[], process& in, int out, int err)
+  process (char const* const args[], process& in, int out, int err)
       : process (nullptr, args, in, out, err) {}
 
   inline process::
