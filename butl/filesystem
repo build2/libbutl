@@ -71,10 +71,11 @@ namespace butl
   try_rmdir_r (const dir_path&);
 
   // As above but throws rather than returns not_exist if the directory
-  // does not exist, so check before calling.
+  // does not exist, so check before calling. If the second argument is
+  // false, the the directory itself is not removed.
   //
   void
-  rmdir_r (const dir_path&);
+  rmdir_r (const dir_path&, bool dir = true);
 
   // Try to remove the file (or symlinks) returning not_exist if
   // it does not exist. All other errors are reported by throwing
