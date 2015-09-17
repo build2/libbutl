@@ -9,6 +9,9 @@ namespace butl
 {
   // Simple optional class template while waiting for std::optional.
   //
+  struct nullopt_t {constexpr nullopt_t (int) {}};
+  constexpr nullopt_t nullopt = 1;
+
   template <typename T>
   class optional
   {
@@ -16,7 +19,10 @@ namespace butl
     typedef T value_type;
 
     optional (): null_ (true) {}
+    optional (nullopt_t): null_ (true) {}
     optional (const T& v): value_ (v), null_ (false) {}
+
+    optional& operator= (nullopt_t) {value_ = T (); null_ = true; return *this;}
     optional& operator= (const T& v) {value_ = v; null_ = false; return *this;}
 
     T&       value () {return value_;}
