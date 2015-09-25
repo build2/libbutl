@@ -60,7 +60,8 @@ namespace butl
     process (char const* const args[], process& in, int out = 1, int err = 2);
 
     // Versions of the above constructors that allow us to change the
-    // current working directory of the child process.
+    // current working directory of the child process. NULL and empty
+    // cwd arguments are ignored.
     //
     process (const char* cwd, char const* const[], int = 0, int = 1, int = 2);
     process (const char* cwd, char const* const[], process&, int = 1, int = 2);

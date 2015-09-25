@@ -76,7 +76,7 @@ namespace butl
 
       // Change current working directory if requested.
       //
-      if (cwd != nullptr && chdir (cwd) != 0)
+      if (cwd != nullptr && *cwd != '\0' && chdir (cwd) != 0)
         throw process_error (errno, true);
 
       if (execvp (args[0], const_cast<char**> (&args[0])) == -1)
