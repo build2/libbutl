@@ -81,7 +81,7 @@ namespace butl
   }
 
   rmdir_status
-  try_rmdir (const dir_path& p)
+  try_rmdir (const dir_path& p, bool ignore_error)
   {
     rmdir_status r (rmdir_status::success);
 
@@ -91,7 +91,7 @@ namespace butl
         r = rmdir_status::not_exist;
       else if (errno == ENOTEMPTY || errno == EEXIST)
         r = rmdir_status::not_empty;
-      else
+      else if (!ignore_error)
         throw system_error (errno, system_category ());
     }
 
@@ -125,7 +125,7 @@ namespace butl
   }
 
   rmfile_status
-  try_rmfile (const path& p)
+  try_rmfile (const path& p, bool ignore_error)
   {
     rmfile_status r (rmfile_status::success);
 
@@ -133,7 +133,7 @@ namespace butl
     {
       if (errno == ENOENT || errno == ENOTDIR)
         r = rmfile_status::not_exist;
-      else
+      else if (!ignore_error)
         throw system_error (errno, system_category ());
     }
 

@@ -5,15 +5,46 @@
 namespace butl
 {
   inline rmdir_status
-  try_rmdir_r (const dir_path& p)
+  try_rmdir_r (const dir_path& p, bool ignore_error)
   {
     bool e (dir_exists (p)); //@@ What if it exists but is not a directory?
 
     if (e)
-      rmdir_r (p);
+      rmdir_r (p, ignore_error);
 
     return e ? rmdir_status::success : rmdir_status::not_exist;
   }
+
+  // auto_rm
+  //
+  template <typename P>
+  inline auto_rm<P>::
+  auto_rm (auto_rm&& x)
+      : path_ (std::move (x.path_))
+  {
+    x.cancel ();
+  }
+
+  template <typename P>
+  inline auto_rm<P>& auto_rm<P>::
+  operator= (auto_rm&& x)
+  {
+    if (this != &x)
+    {
+      path_ = std::move (x.path_);
+      x.cancel ();
+    }
+
+    return *this;
+  }
+
+  template <>
+  inline auto_rm<path>::
+  ~auto_rm () {if (!path_.empty ()) try_rmfile (path_, true);}
+
+  template <>
+  inline auto_rm<dir_path>::
+  ~auto_rm () {if (!path_.empty ()) try_rmdir_r (path_, true);}
 
   // permissions
   //

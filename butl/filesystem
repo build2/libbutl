@@ -55,20 +55,20 @@ namespace butl
   mkdir_status
   try_mkdir_p (const dir_path&, mode_t = 0777);
 
-  // Try to remove the directory returning not_exist if it does not
-  // exist and not_empty if it is not empty. All other errors are
-  // reported by throwing std::system_error.
+  // Try to remove the directory returning not_exist if it does not exist
+  // and not_empty if it is not empty. Unless ignore_error is true, all
+  // other errors are reported by throwing std::system_error.
   //
   enum class rmdir_status {success, not_exist, not_empty};
 
   rmdir_status
-  try_rmdir (const dir_path&);
+  try_rmdir (const dir_path&, bool ignore_error = false);
 
   // The '-r' (recursive) version of the above. Note that it will
   // never return not_empty.
   //
   rmdir_status
-  try_rmdir_r (const dir_path&);
+  try_rmdir_r (const dir_path&, bool ignore_error = false);
 
   // As above but throws rather than returns not_exist if the directory
   // does not exist, so check before calling. If the second argument is
@@ -78,13 +78,45 @@ namespace butl
   rmdir_r (const dir_path&, bool dir = true);
 
   // Try to remove the file (or symlinks) returning not_exist if
-  // it does not exist. All other errors are reported by throwing
-  // std::system_error.
+  // it does not exist. Unless ignore_error is true, all other
+  // errors are reported by throwing std::system_error.
   //
   enum class rmfile_status {success, not_exist};
 
   rmfile_status
-  try_rmfile (const path&);
+  try_rmfile (const path&, bool ignore_error = false);
+
+  // Automatically try to remove the path on destruction unless cancelled.
+  // Since the non-cancelled destruction will normally happen as a result
+  // of an exception, the failure to remove the path is silently ignored.
+  //
+  template <typename P>
+  struct auto_rm
+  {
+    explicit
+    auto_rm (P p = P ()): path_ (std::move (p)) {}
+
+    void
+    cancel () {path_ = P ();}
+
+    const P&
+    path () {return path_;}
+
+    // Movable-only type. Move-assignment cancels the lhs object.
+    //
+    auto_rm (auto_rm&&);
+    auto_rm& operator= (auto_rm&&);
+    auto_rm (const auto_rm&) = delete;
+    auto_rm& operator= (const auto_rm&) = delete;
+
+    ~auto_rm ();
+
+  private:
+    P path_;
+  };
+
+  using auto_rmfile = auto_rm<path>;
+  using auto_rmdir = auto_rm<dir_path>; // Note: recursive (rm_r).
 
   // Return timestamp_nonexistent if the entry at the specified path
   // does not exist or is not a path. All other errors are reported
