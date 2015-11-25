@@ -83,14 +83,20 @@ namespace butl
 
     ~process () {if (id != 0) wait ();}
 
-    // Move constructible-only type.
+    // Moveable-only type.
     //
     process (process&&);
-    process& operator= (process&&) = delete;
+    process& operator= (process&&);
 
     process (const process&) = delete;
     process& operator= (const process&) = delete;
 
+    // Create an empty or "already terminated" process. That is, id is 0
+    // and exit status is 0.
+    //
+    process ();
+
+  public:
 #ifndef _WIN32
     typedef pid_t id_type;
     typedef int status_type;
