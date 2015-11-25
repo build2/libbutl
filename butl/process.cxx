@@ -121,6 +121,26 @@ namespace butl
     return WIFEXITED (status) && WEXITSTATUS (status) == 0;
   }
 
+  bool process::
+  try_wait (bool& s)
+  {
+    if (id != 0)
+    {
+      int r (waitpid (id, &status, WNOHANG));
+
+      if (r == 0) // Not exited yet.
+        return false;
+
+      id = 0; // We have tried.
+
+      if (r == -1)
+        throw process_error (errno, false);
+    }
+
+    s =  WIFEXITED (status) && WEXITSTATUS (status) == 0;
+    return true;
+  }
+
 #else // _WIN32
 
   static void

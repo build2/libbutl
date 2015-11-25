@@ -75,6 +75,12 @@ namespace butl
     bool
     wait ();
 
+    // Return true if the process has already terminated in which case
+    // the argument is set to the result of wait().
+    //
+    bool
+    try_wait (bool&);
+
     ~process () {if (id != 0) wait ();}
 
     // Move constructible-only type.
