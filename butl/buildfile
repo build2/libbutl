@@ -2,6 +2,20 @@
 # copyright : Copyright (c) 2014-2015 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
-lib{butl}: cxx{char-scanner fdstream filesystem path process timestamp}
+lib{butl}:                          \
+{ hxx         cxx }{ char-scanner } \
+{ hxx         cxx }{ fdstream     } \
+{ hxx ixx     cxx }{ filesystem   } \
+{ hxx             }{ multi-index  } \
+{ hxx             }{ optional     } \
+{ hxx ixx txx cxx }{ path         } \
+{ hxx             }{ path-io      } \
+{ hxx             }{ path-map     } \
+{ hxx     txx     }{ prefix-map   } \
+{ hxx ixx     cxx }{ process      } \
+{ hxx     txx     }{ string-table } \
+{ hxx         cxx }{ timestamp    } \
+{ hxx             }{ utility      }
+
 cxx.poptions += -I$src_root
 lib{butl}: cxx.export.poptions = -I$src_root

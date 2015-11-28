@@ -3,5 +3,5 @@
 # license   : MIT; see accompanying LICENSE file
 
 d = butl/ tests/
-.: $d
+./: $d file{version}
 include $d
