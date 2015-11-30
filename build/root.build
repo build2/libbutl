@@ -11,9 +11,7 @@ cxx.ext = cxx
 
 cxx.std = 14
 
-# All exe{} in tests/ are, well, tests.
+# All exe{} in tests/ are, well, tests. Don't install them.
 #
-tests/:
-{
-  test.exe = true
-}
+tests/: test.exe = true
+tests/: install = false

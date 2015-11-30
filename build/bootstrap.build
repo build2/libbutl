@@ -4,8 +4,10 @@
 
 project = libbutl
 version = 0.1.0
+
 using config
 using dist
 using test
+using install
 
 dist.package = $project-$version
