@@ -15,7 +15,8 @@ lib{butl}:                        \
 {hxx ixx     cxx}{ process      } \
 {hxx     txx    }{ string-table } \
 {hxx         cxx}{ timestamp    } \
-{hxx            }{ utility      }
+{hxx            }{ utility      } \
+{hxx            }{ version      }
 
 cxx.poptions += -I$src_root
 lib{butl}: cxx.export.poptions = -I$src_root
