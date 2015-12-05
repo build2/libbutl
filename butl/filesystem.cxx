@@ -140,28 +140,34 @@ namespace butl
     return r;
   }
 
-  // Figuring out whether we have the nanoseconds in some form.
+  // Figuring out whether we have the nanoseconds in struct stat. Some
+  // platforms (e.g., FreeBSD), may provide some "compatibility" #define's,
+  // so use the second argument to not end up with the same signatures.
   //
   template <typename S>
-  inline constexpr auto nsec (const S* s) -> decltype(s->st_mtim.tv_nsec)
+  inline constexpr auto
+  nsec (const S* s, bool) -> decltype(s->st_mtim.tv_nsec)
   {
     return s->st_mtim.tv_nsec; // POSIX (GNU/Linux, Solaris).
   }
 
   template <typename S>
-  inline constexpr auto nsec (const S* s) -> decltype(s->st_mtimespec.tv_nsec)
+  inline constexpr auto
+  nsec (const S* s, int) -> decltype(s->st_mtimespec.tv_nsec)
   {
-    return s->st_mtimespec.tv_nsec; // MacOS X.
+    return s->st_mtimespec.tv_nsec; // *BSD, MacOS.
   }
 
   template <typename S>
-  inline constexpr auto nsec (const S* s) -> decltype(s->st_mtime_n)
+  inline constexpr auto
+  nsec (const S* s, float) -> decltype(s->st_mtime_n)
   {
     return s->st_mtime_n; // AIX 5.2 and later.
   }
 
   template <typename S>
-  inline constexpr int nsec (...) {return 0;}
+  inline constexpr int
+  nsec (...) {return 0;}
 
   timestamp
   file_mtime (const path& p)
@@ -178,7 +184,7 @@ namespace butl
     return S_ISREG (s.st_mode)
       ? system_clock::from_time_t (s.st_mtime) +
       chrono::duration_cast<duration> (
-        chrono::nanoseconds (nsec<struct stat> (&s)))
+        chrono::nanoseconds (nsec<struct stat> (&s, true)))
       : timestamp_nonexistent;
   }
 
