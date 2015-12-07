@@ -1,0 +1,11 @@
+: 1
+name: libbutl
+version: 0.1.0
+summary: build2 utility library
+license: MIT
+tags: build2, utility
+description-file: README
+changes-file: NEWS
+url: http://build2.org
+email: build2-users@build2.org
+requires: c++11
