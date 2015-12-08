@@ -9,3 +9,4 @@ changes-file: NEWS
 url: http://build2.org
 email: build2-users@build2.org
 requires: c++11
+requires: build2 >= 0.1.0
