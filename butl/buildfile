@@ -18,7 +18,7 @@ lib{butl}:                        \
 {hxx            }{ utility      } \
 {hxx            }{ version      }
 
-cxx.poptions += -I$src_root
+cxx.poptions =+ -I$src_root
 lib{butl}: cxx.export.poptions = -I$src_root
 
 # Install into the butl/ subdirectory of, say, /usr/include/.
