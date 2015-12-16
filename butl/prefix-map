@@ -46,15 +46,13 @@ namespace butl
       return compare (x.c_str (), x.size (), y.c_str (), y.size ()) < 0;
     }
 
-    // Note: doesn't check for k.size () being at least p.size ().
-    //
     bool
     prefix (const K& p, const K& k) const
     {
-      size_type pn (p.size ());
+      size_type pn (p.size ()), kn (k.size ());
       return pn == 0 || // Empty key is always a prefix.
-        compare (
-          p.c_str (), pn, k.c_str (), pn == k.size () ? pn : pn + 1) == 0;
+        (pn <= kn &&
+         compare (p.c_str (), pn, k.c_str (), pn == kn ? pn : pn + 1) == 0);
     }
 
   protected:
