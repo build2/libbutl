@@ -9,7 +9,7 @@ ixx{*}: extension = ixx
 txx{*}: extension = txx
 cxx{*}: extension = cxx
 
-cxx.std = 14
+cxx.std = 11
 
 # All exe{} in tests/ are, well, tests. Don't install them.
 #
