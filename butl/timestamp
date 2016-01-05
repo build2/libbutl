@@ -30,7 +30,7 @@ namespace butl
   //
   using std::chrono::system_clock;
 
-  // Note that uninitialized timestamp has the timestamp_nonexistent
+  // Note that the default-initialized timestamp has the timestamp_nonexistent
   // value.
   //
   using timestamp = system_clock::time_point;
@@ -41,11 +41,45 @@ namespace butl
   const timestamp timestamp_unknown {duration {-1}};
   const timestamp timestamp_nonexistent {duration {0}};
 
-  // Human-readable representation. Note that these operators
-  // may throw std::system_error.
+  // Human-readable representation. By default the timestamp is printed by
+  // localtime_r() in the local timezone, so tzset() from <time.h> should be
+  // called prior to using the corresponding operator or the to_stream()
+  // function (normally from main() or equivalent).
+  //
+  // The format argument in the to_stream() function is the put_time() format
+  // string except that it also supports the nanoseconds conversion specifier
+  // in the form %[<d>N] where <d> is the optional single delimiter character,
+  // for example '.'. If the nanoseconds part is 0, then it is not printed (nor
+  // the delimiter character).
+  //
+  // The special argument in the to_stream() function indicates whether the
+  // special timestamp_unknown and timestamp_nonexistent values should be
+  // printed as '<unknown>' and '<nonexistent>', respectively.
+  //
+  // The local argument in the to_stream() function indicates whether to use
+  // localtime_r() or gmtime_r().
+  //
+  // Note also that these operators/function may throw std::system_error.
+  //
+  // Potential improvements:
+  //  - add flag to to_stream() to use
+  //  - support %[<d>U] (microseconds) and %[<d>M] (milliseconds).
+  //  - make to_stream() a manipulator, similar to put_time()
+  //  - support %(N) version for non-optional printing
+  //  - support for suffix %[<d>N<s>], for example %[N nsec]
   //
   std::ostream&
-  operator<< (std::ostream&, const timestamp&);
+  to_stream (std::ostream&,
+             const timestamp&,
+             const char* format,
+             bool special,
+             bool local);
+
+  inline std::ostream&
+  operator<< (std::ostream& os, const timestamp& ts)
+  {
+    return to_stream (os, ts, "%Y-%m-%d %H:%M:%S%[.N]", true, true);
+  }
 
   std::ostream&
   operator<< (std::ostream&, const duration&);
