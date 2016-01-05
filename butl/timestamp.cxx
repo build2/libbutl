@@ -8,9 +8,10 @@
 #include <errno.h> // EINVAL
 
 #include <ctime>        // tm, strftime()
-#include <iomanip>      // put_time()
+#include <iomanip>      // put_time(), setw(), dec, right
 #include <cstring>      // strlen(), memcpy()
 #include <ostream>
+#include <stdexcept>    // runtime_error
 #include <system_error>
 
 using namespace std;
@@ -101,6 +102,10 @@ namespace butl
       {
         if (fmt[j + 1] == '[')
         {
+          if (os.width () != 0)
+            throw runtime_error (
+              "padding is not supported when printing nanoseconds");
+
           // Our fragment. First see if we need to call put_time().
           //
           if (i != j)
@@ -129,9 +134,12 @@ namespace butl
           {
             if (d != '\0')
               os << d;
-            os.width (9);
-            os.fill ('0');
-            os << ns.count ();
+
+            ostream::fmtflags fl (os.flags ());
+            char fc (os.fill ('0'));
+            os << dec << right << setw (9) << ns.count ();
+            os.fill (fc);
+            os.flags (fl);
           }
 
           i = j + 1; // j is incremented in the for-loop header.
@@ -155,6 +163,10 @@ namespace butl
   ostream&
   operator<< (ostream& os, const duration& d)
   {
+    if (os.width () != 0) // We always print nanosecond.
+      throw runtime_error (
+        "padding is not supported when printing nanoseconds");
+
     timestamp ts; // Epoch.
     ts += d;
 
@@ -162,17 +174,17 @@ namespace butl
 
     const char* fmt (nullptr);
     const char* unt ("nanoseconds");
-    if (t >= 365 * 12 * 24 * 60 * 60)
+    if (t >= 365 * 24 * 60 * 60)
     {
       fmt = "%Y-%m-%d %H:%M:%S";
       unt = "years";
     }
-    else if (t >= 12 * 24 * 60* 60)
+    else if (t >= 31 * 24 * 60 * 60)
     {
       fmt = "%m-%d %H:%M:%S";
       unt = "months";
     }
-    else if (t >= 24 * 60* 60)
+    else if (t >= 24 * 60 * 60)
     {
       fmt = "%d %H:%M:%S";
       unt = "days";
@@ -199,6 +211,18 @@ namespace butl
       if (gmtime_r (&t, &tm) == nullptr)
         throw system_error (errno, system_category ());
 
+      if (t >= 24 * 60 * 60)
+        tm.tm_mday -= 1; // Make day of the month to be a zero-based number.
+
+      if (t >= 31 * 24 * 60 * 60)
+        tm.tm_mon -= 1; // Make month of the year to be a zero-based number.
+
+      if (t >= 365 * 24 * 60 * 60)
+        // Make the year to be a 1970-based number. Negative values allowed
+        // according to the POSIX specification.
+        //
+        tm.tm_year -= 1970;
+
       if (!(os << put_time (&tm, fmt)))
         return os;
     }
@@ -212,12 +236,16 @@ namespace butl
     {
       if (fmt != nullptr)
       {
-        os << '.';
-        os.width (9);
-        os.fill ('0');
+        ostream::fmtflags fl (os.flags ());
+        char fc (os.fill ('0'));
+        os << '.' << dec << right << setw (9) << ns.count ();
+        os.fill (fc);
+        os.flags (fl);
       }
+      else
+        os << ns.count ();
 
-      os << ns.count () << ' ' << unt;
+      os << ' ' << unt;
     }
     else if (fmt == nullptr)
       os << '0';

@@ -61,6 +61,10 @@ namespace butl
   //
   // Note also that these operators/function may throw std::system_error.
   //
+  // Finally, padding is not fully supported by these operators/function. They
+  // throw runtime_error if nanoseconds conversion specifier is present and
+  // the stream's width field has been set to non-zero value before the call.
+  //
   // Potential improvements:
   //  - add flag to to_stream() to use
   //  - support %[<d>U] (microseconds) and %[<d>M] (milliseconds).
