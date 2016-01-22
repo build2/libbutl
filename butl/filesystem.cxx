@@ -73,7 +73,7 @@ namespace butl
     {
       dir_path d (p.directory ());
 
-      if (!dir_exists (d))
+      if (!d.empty () && !dir_exists (d))
         try_mkdir_p (d, m);
     }
 
