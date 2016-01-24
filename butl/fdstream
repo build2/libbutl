@@ -103,7 +103,7 @@ namespace butl
     ofdstream (): std::ostream (&buf_) {}
     ofdstream (int fd): fdstream_base (fd), std::ostream (&buf_) {}
 
-    void close () {buf_.close ();}
+    void close () {flush (); buf_.close ();}
     void open (int fd) {buf_.open (fd);}
     bool is_open () const {return buf_.is_open ();}
   };
