@@ -1,7 +1,7 @@
-# file      : tests/buildfile
+# file      : tests/triplet/buildfile
 # copyright : Copyright (c) 2014-2016 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
-d = dir-iterator/ path/ prefix-map/ triplet/
-.: $d
-include $d
+exe{driver}: cxx{driver} ../../butl/lib{butl}
+
+include ../../butl/

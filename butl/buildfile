@@ -15,6 +15,7 @@ lib{butl}:                        \
 {hxx ixx     cxx}{ process      } \
 {hxx     txx    }{ string-table } \
 {hxx         cxx}{ timestamp    } \
+{hxx         cxx}{ triplet      } \
 {hxx            }{ utility      } \
 {hxx            }{ version      }
 
