@@ -8,6 +8,7 @@ lib{butl}:                        \
 {hxx ixx     cxx}{ filesystem   } \
 {hxx            }{ multi-index  } \
 {hxx            }{ optional     } \
+{hxx         cxx}{ pager        } \
 {hxx ixx txx cxx}{ path         } \
 {hxx            }{ path-io      } \
 {hxx            }{ path-map     } \
