@@ -5,3 +5,5 @@
 d = butl/ tests/
 ./: $d doc{LICENSE version} file{manifest}
 include $d
+
+doc{INSTALL*}: install = false
