@@ -1,6 +1,6 @@
 : 1
 name: libbutl
-version: 0.1.0
+version: 0.2.0
 summary: build2 utility library
 license: MIT
 tags: build2, utility
@@ -9,4 +9,4 @@ changes-file: NEWS
 url: https://build2.org
 email: users@build2.org
 requires: c++11
-requires: build2 >= 0.1.0
+requires: build2 >= 0.2.0
