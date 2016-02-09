@@ -40,6 +40,20 @@ namespace butl
     T value_;
     bool null_;
   };
+
+  template <typename T>
+  inline auto
+  operator== (const optional<T>& x, const optional<T>& y) -> decltype (*x == *y)
+  {
+    return static_cast<bool> (x) == static_cast<bool> (y) && (!x || *x == *y);
+  }
+
+  template <typename T>
+  inline auto
+  operator!= (const optional<T>& x, const optional<T>& y) -> decltype (x == y)
+  {
+    return !(x == y);
+  }
 }
 
 #endif // BUTL_OPTIONAL
