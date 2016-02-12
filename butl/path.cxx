@@ -16,6 +16,12 @@
 
 #include <system_error>
 
+#ifndef _WIN32
+#  ifndef PATH_MAX
+#    define PATH_MAX 4096
+#  endif
+#endif
+
 using namespace std;
 
 namespace butl
