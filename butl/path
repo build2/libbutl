@@ -14,6 +14,33 @@
 
 namespace butl
 {
+  class invalid_path_base: std::exception
+  {
+  public:
+    virtual char const*
+    what () const throw ();
+  };
+
+  template <typename C>
+  class invalid_basic_path: public invalid_path_base
+  {
+  public:
+    typedef std::basic_string<C> string_type;
+
+    invalid_basic_path (C const* p): path_ (p) {}
+    invalid_basic_path (string_type const& p): path_ (p) {}
+    ~invalid_basic_path () throw () {}
+
+    string_type const&
+    path () const
+    {
+      return path_;
+    }
+
+  private:
+    string_type path_;
+  };
+
   template <typename C>
   struct path_traits
   {
@@ -123,14 +150,23 @@ namespace butl
       return ln < rn ? -1 : (ln > rn ? 1 : 0);
     }
 
-    // Get/set current working directory. Throw std::system_error
-    // to report the underlying OS errors.
+    // Get/set current working directory. Throw std::system_error to report
+    // the underlying OS errors.
     //
     static string_type
     current ();
 
     static void
     current (string_type const&);
+
+    // Make the path real (by calling realpath(3)). Throw invalid_basic_path
+    // if the path is invalid (e.g., some components do not exist) and
+    // std::system_error to report other underlying OS errors.
+    //
+#ifndef _WIN32
+    static void
+    realize (string_type&);
+#endif
 
   private:
 #ifdef _WIN32
@@ -178,35 +214,6 @@ namespace butl
   typedef basic_path<wchar_t, any_path_kind<wchar_t>> wpath;
   typedef basic_path<wchar_t, dir_path_kind<wchar_t>> dir_wpath;
   typedef invalid_basic_path<wchar_t> invalid_wpath;
-
-  //
-  //
-  class invalid_path_base: std::exception
-  {
-  public:
-    virtual char const*
-    what () const throw ();
-  };
-
-  template <typename C>
-  class invalid_basic_path: public invalid_path_base
-  {
-  public:
-    typedef std::basic_string<C> string_type;
-
-    invalid_basic_path (C const* p): path_ (p) {}
-    invalid_basic_path (string_type const& p): path_ (p) {}
-    ~invalid_basic_path () throw () {}
-
-    string_type const&
-    path () const
-    {
-      return path_;
-    }
-
-  private:
-    string_type path_;
-  };
 
   template <typename C>
   class path_data
@@ -477,16 +484,23 @@ namespace butl
     // Normalize the path. This includes collapsing the '.' and '..'
     // directories if possible, collapsing multiple directory
     // separators, and converting all directory separators to the
-    // canonical form. Returns *this.
+    // canonical form. Return *this.
     //
     basic_path&
     normalize ();
 
     // Make the path absolute using the current directory unless
-    // it is already absolute.
+    // it is already absolute. Return *this.
     //
     basic_path&
     complete ();
+
+    // Make the path real, that is, absolute, normalized, and with resolved
+    // symlinks. On POSIX systems this is accomplished with the call to
+    // realpath(3). On Windows -- complete() and normalize(). Return *this.
+    //
+    basic_path&
+    realize ();
 
   public:
     basic_path&

@@ -6,14 +6,15 @@
 
 #ifdef _WIN32
 #  include <stdlib.h> // _MAX_PATH
-#  include <direct.h> // _[w]getcwd, _[w]chdir
+#  include <direct.h> // _[w]getcwd(), _[w]chdir()
 #else
 #  include <errno.h>  // EINVAL
-#  include <stdlib.h> // mbstowcs, wcstombs
+#  include <stdlib.h> // mbstowcs(), wcstombs(), realpath()
 #  include <limits.h> // PATH_MAX
-#  include <unistd.h> // getcwd, chdir
+#  include <unistd.h> // getcwd(), chdir()
 #endif
 
+#include <cassert>
 #include <system_error>
 
 #ifndef _WIN32
@@ -68,6 +69,27 @@ namespace butl
 #endif
   }
 
+#ifndef _WIN32
+  template <>
+  void path_traits<char>::
+  realize (string_type& s)
+  {
+    char r[PATH_MAX];
+    if (realpath (s.c_str (), r) == nullptr)
+    {
+      // @@ If there were a message in invalid_basic_path, we could have said
+      // what exactly is wrong with the path.
+      //
+      if (errno == EACCES || errno == ENOENT || errno == ENOTDIR)
+        throw invalid_basic_path<char> (s);
+      else
+        throw system_error (errno, system_category ());
+    }
+
+    s = r;
+  }
+#endif
+
   //
   // wchar_t
   //
@@ -112,4 +134,13 @@ namespace butl
       throw system_error (errno, system_category ());
 #endif
   }
+
+#ifndef _WIN32
+  template <>
+  void path_traits<wchar_t>::
+  realize (string_type&)
+  {
+    assert (false); // Implement if/when needed.
+  }
+#endif
 }

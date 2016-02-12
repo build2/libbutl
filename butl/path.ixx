@@ -177,6 +177,19 @@ namespace butl
   }
 
   template <typename C, typename K>
+  inline basic_path<C, K>& basic_path<C, K>::
+  realize ()
+  {
+#ifdef _WIN32
+    complete ();
+    normalize ();
+#else
+    traits::realize (this->path_);
+#endif
+    return *this;
+  }
+
+  template <typename C, typename K>
   inline typename basic_path<C, K>::dir_type basic_path<C, K>::
   root_directory () const
   {
