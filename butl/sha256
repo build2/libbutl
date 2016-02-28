@@ -1,0 +1,76 @@
+// file      : butl/sha256 -*- C++ -*-
+// copyright : Copyright (c) 2014-2016 Code Synthesis Ltd
+// license   : MIT; see accompanying LICENSE file
+
+#ifndef BUTL_SHA256
+#define BUTL_SHA256
+
+#include <string>
+#include <cstring> // strlen()
+#include <cstdint>
+#include <cstddef> // size_t
+
+namespace butl
+{
+  // SHA256 checksum calculator.
+  //
+  // For a single chunk of data a sum can be obtained in one line, for
+  // example:
+  //
+  // cerr << sha256 ("123").string () << endl;
+  //
+  class sha256
+  {
+  public:
+    sha256 ();
+    explicit sha256 (const std::string& s): sha256 () {append (s);}
+    explicit sha256 (const char* s): sha256 () {append (s);}
+    sha256 (const void* b, std::size_t n): sha256 () {append (b, n);}
+
+    // Append string (without the traling '\0').
+    //
+    void
+    append (const std::string& s) {append (s.c_str (), s.size ());}
+
+    // Append C-string (without the traling '\0').
+    //
+    void
+    append (const char* s) {append (s, std::strlen (s));}
+
+    // Append binary data.
+    //
+    void
+    append (const void*, std::size_t);
+
+    // Extract result. It can be obtained as either a 32-byte binary digest or
+    // as a 64- character hex-encoded C-string.
+    //
+    using digest_type = std::uint8_t[32];
+
+    const digest_type&
+    binary () const;
+
+    const char*
+    string () const;
+
+  public:
+    struct context
+    {
+      std::uint32_t state[8];
+      std::uint64_t count;
+      std::uint8_t buf[64];
+    };
+
+  private:
+    union
+    {
+      mutable context ctx_;
+      mutable char str_[65];
+    };
+
+    mutable digest_type bin_;
+    mutable bool done_;
+  };
+};
+
+#endif // BUTL_SHA256
