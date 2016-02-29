@@ -23,27 +23,35 @@ namespace butl
   {
   public:
     sha256 ();
-    explicit sha256 (const std::string& s): sha256 () {append (s);}
-    explicit sha256 (const char* s): sha256 () {append (s);}
-    sha256 (const void* b, std::size_t n): sha256 () {append (b, n);}
-
-    // Append string (without the traling '\0').
-    //
-    void
-    append (const std::string& s) {append (s.c_str (), s.size ());}
-
-    // Append C-string (without the traling '\0').
-    //
-    void
-    append (const char* s) {append (s, std::strlen (s));}
 
     // Append binary data.
     //
     void
     append (const void*, std::size_t);
 
-    // Extract result. It can be obtained as either a 32-byte binary digest or
-    // as a 64- character hex-encoded C-string.
+    sha256 (const void* b, std::size_t n): sha256 () {append (b, n);}
+
+    // Append string.
+    //
+    // Note that the hash includes the '\0' terminator. Failed that, a call
+    // with an empty string will be indistinguishable from no call at all.
+    //
+    void
+    append (const std::string& s) {append (s.c_str (), s.size () + 1);}
+
+    void
+    append (const char* s) {append (s, std::strlen (s) + 1);}
+
+    explicit
+    sha256 (const std::string& s): sha256 () {append (s);}
+
+    explicit
+    sha256 (const char* s): sha256 () {append (s);}
+
+    // Extract result.
+    //
+    // It can be obtained as either a 32-byte binary digest or as a 64-
+    // character hex-encoded C-string.
     //
     using digest_type = std::uint8_t[32];
 
