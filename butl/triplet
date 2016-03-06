@@ -31,7 +31,10 @@ namespace butl
   // attribute w64 to OS-ABI, the MinGW-W64 folks insist it is a (presumably
   // toolchain) vendor.
   //
-  // To make thing more regular we also convert the information-free vendor
+  // Another example where the vendor seems to be reused for something else
+  // entirely is the Intel's MIC architecture: x86_64-k1om-linux.
+  //
+  // To make things more regular we also convert the information-free vendor
   // names 'pc', 'unknown' and 'none' to the empty name.
   //
   // OS/KERNEL-OS/OS-ABI
