@@ -102,6 +102,10 @@ main ()
   assert (test ("sparc-sun-solaris2.9",
                 "sparc-sun-solaris2.9",
                 "sparc", "sun", "solaris", "2.9"));
+
+  assert (test ("x86_64-microsoft-win32-msvc14.0",
+                "x86_64-microsoft-win32-msvc14.0",
+                "x86_64", "microsoft", "win32-msvc", "14.0"));
 }
 
 static bool
