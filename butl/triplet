@@ -56,8 +56,8 @@ namespace butl
   // strategy for (presumably less common) cases were we don't split things
   // correctly.
   //
-  // Note also that the version splitting is only done for certain,
-  // commonly-used targets.
+  // Note also that the version splitting is only done for certain commonly-
+  // used targets.
   //
   // Some examples of canonicalization and splitting:
   //
@@ -75,6 +75,17 @@ namespace butl
   // x86_64-linux-gnux32              x86_64             linux-gnux32
   // x86_64-microsoft-win32-msvc14.0  x86_64  microsoft  win32-msvc     14.0
   //
+  // Similar to version splitting, for certain commonly-used targets we also
+  // derive the "target class" which can be used as a shorthand, more
+  // convenient way to identify a targets. If the target is not recognized,
+  // then the special 'other' value is used. Currently the following classes
+  // are recognized:
+  //
+  // linux     *-*-linux-*
+  // macosx    *-apple-darwin*
+  // freebsd   *-*-freebsd*
+  // windows   *-*-win32-* | *-*-mingw32
+  //
   // References:
   //
   // 1. The libtool repository contains the PLATFORM file that lists many known
@@ -88,6 +99,7 @@ namespace butl
     std::string vendor;
     std::string system;
     std::string version;
+    std::string class_;
 
     // Parse the triplet optionally returning the canonicalized string. Throw
     // std::invalid_argument if the triplet is not recognizable.

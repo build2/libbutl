@@ -20,7 +20,8 @@ test (const char*,
       const char* cpu,
       const char* vendor,
       const char* system,
-      const char* version);
+      const char* version,
+      const char* class_ = "other");
 
 int
 main ()
@@ -49,31 +50,31 @@ main ()
 
   assert (test ("arm-none-linux-gnueabi",
                 "arm-linux-gnueabi",
-                "arm", "", "linux-gnueabi", ""));
+                "arm", "", "linux-gnueabi", "", "linux"));
 
   assert (test ("arm-softfloat-linux-gnu",
                 "arm-softfloat-linux-gnu",
-                "arm", "softfloat", "linux-gnu", ""));
+                "arm", "softfloat", "linux-gnu", "", "linux"));
 
   assert (test ("i686-pc-mingw32",
                 "i686-mingw32",
-                "i686", "", "mingw32", ""));
+                "i686", "", "mingw32", "", "windows"));
 
   assert (test ("i686-w64-mingw32",
                 "i686-w64-mingw32",
-                "i686", "w64", "mingw32", ""));
+                "i686", "w64", "mingw32", "", "windows"));
 
   assert (test ("i686-lfs-linux-gnu",
                 "i686-lfs-linux-gnu",
-                "i686", "lfs", "linux-gnu", ""));
+                "i686", "lfs", "linux-gnu", "", "linux"));
 
   assert (test ("x86_64-unknown-linux-gnu",
                 "x86_64-linux-gnu",
-                "x86_64", "", "linux-gnu", ""));
+                "x86_64", "", "linux-gnu", "", "linux"));
 
   assert (test ("x86_64-linux-gnux32",
                 "x86_64-linux-gnux32",
-                "x86_64", "", "linux-gnux32", ""));
+                "x86_64", "", "linux-gnux32", "", "linux"));
 
   // Removal of none-.
   //
@@ -89,11 +90,11 @@ main ()
   //
   assert (test ("x86_64-apple-darwin14.5.0",
                 "x86_64-apple-darwin14.5.0",
-                "x86_64", "apple", "darwin", "14.5.0"));
+                "x86_64", "apple", "darwin", "14.5.0", "macosx"));
 
   assert (test ("x86_64-unknown-freebsd10.2",
                 "x86_64-freebsd10.2",
-                "x86_64", "", "freebsd", "10.2"));
+                "x86_64", "", "freebsd", "10.2", "freebsd"));
 
   assert (test ("x86_64-pc-openbsd5.6",
                 "x86_64-openbsd5.6",
@@ -105,7 +106,7 @@ main ()
 
   assert (test ("x86_64-microsoft-win32-msvc14.0",
                 "x86_64-microsoft-win32-msvc14.0",
-                "x86_64", "microsoft", "win32-msvc", "14.0"));
+                "x86_64", "microsoft", "win32-msvc", "14.0", "windows"));
 }
 
 static bool
@@ -114,7 +115,8 @@ test (const char* s,
       const char* cpu,
       const char* vendor,
       const char* system,
-      const char* version)
+      const char* version,
+      const char* class_)
 {
   string c;
   triplet t (s, c);
@@ -137,7 +139,8 @@ test (const char* s,
     cmp (t.cpu, cpu, "cpu") &&
     cmp (t.vendor, vendor, "vendor") &&
     cmp (t.system, system, "system") &&
-    cmp (t.version, version, "version");
+    cmp (t.version, version, "version") &&
+    cmp (t.class_, class_, "class");
 }
 
 static bool

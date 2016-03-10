@@ -103,7 +103,7 @@ namespace butl
       *c += system;
     }
 
-    // Finally, extract VERSION for some recognized systems.
+    // Extract VERSION for some recognized systems.
     //
     string::size_type v (0);
     if (system.compare (0, (v = 6),  "darwin") == 0  ||
@@ -118,5 +118,18 @@ namespace butl
       version.assign (system, v, string::npos);
       system.resize (system.size () - version.size ());
     }
+
+    // Determine class for some recognized systems.
+    //
+    if (system.compare (0, 5, "linux") == 0)
+      class_ = "linux";
+    else if (vendor == "apple" && system == "darwin")
+      class_ = "macosx";
+    else if (system == "freebsd")
+      class_ = "freebsd";
+    else if (system.compare (0, 5, "win32") == 0 || system == "mingw32")
+      class_ = "windows";
+    else
+      class_ = "other";
   }
 }
