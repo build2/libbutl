@@ -5,6 +5,8 @@
 #ifndef BUTL_OPTIONAL
 #define BUTL_OPTIONAL
 
+#include <utility> // move()
+
 namespace butl
 {
   // Simple optional class template while waiting for std::optional.
@@ -21,9 +23,11 @@ namespace butl
     optional (): null_ (true) {}
     optional (nullopt_t): null_ (true) {}
     optional (const T& v): value_ (v), null_ (false) {}
+    optional (T&& v): value_ (std::move (v)), null_ (false) {}
 
     optional& operator= (nullopt_t) {value_ = T (); null_ = true; return *this;}
     optional& operator= (const T& v) {value_ = v; null_ = false; return *this;}
+    optional& operator= (T&& v) {value_ = std::move (v); null_ = false; return *this;}
 
     T&       value () {return value_;}
     const T& value () const {return value_;}
