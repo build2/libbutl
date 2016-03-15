@@ -1,0 +1,17 @@
+Version 0.3.0
+
+  * Add SHA256 hash calculator based on code from the FreeBSD project. That
+    code is (naturally) licensed under the simplified/2-clause BSD license so
+    the library is now MIT/BSD-licensed.
+
+  * Implement path::realize() which on POSIX calls realpath(3).
+
+  * Recognize MSVC target triplet (*-microsoft-win32-msvcXX.Z).
+
+  * Derive a target class from the target triplet for some targets. Currently
+    the classes are: 'linux', 'macosx', 'freebsd', 'windows', and 'other'.
+
+
+Version 0.2.0
+
+  * First public release.
