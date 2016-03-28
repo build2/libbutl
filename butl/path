@@ -535,23 +535,10 @@ namespace butl
     // Note that comparison is case-insensitive if the filesystem is
     // not case-sensitive (e.g., Windows).
     //
-    bool
-    operator== (basic_path const& x) const
-    {
-      return traits::compare (this->path_, x.path_) == 0;
-    }
-
-    bool
-    operator!= (basic_path const& x) const
-    {
-      return !(*this == x);
-    }
-
-    bool
-    operator< (basic_path const& x) const
-    {
-      return traits::compare (this->path_, x.path_) < 0;
-    }
+    template <typename K1>
+    int
+    compare (const basic_path<C, K1>& x) const {
+      return traits::compare (this->path_, x.path_);}
 
   public:
     const string_type&
@@ -600,6 +587,27 @@ namespace butl
     basic_path<C, K> r (x);
     r /= y;
     return r;
+  }
+
+  template <typename C, typename K1, typename K2>
+  inline bool
+  operator== (const basic_path<C, K1>& x, const basic_path<C, K2>& y)
+  {
+    return x.compare (y) == 0;
+  }
+
+  template <typename C, typename K1, typename K2>
+  inline bool
+  operator!= (const basic_path<C, K1>& x, const basic_path<C, K2>& y)
+  {
+    return !(x == y);
+  }
+
+  template <typename C, typename K1, typename K2>
+  inline bool
+  operator< (const basic_path<C, K1>& x, const basic_path<C, K2>& y)
+  {
+    return x.compare (y) < 0;
   }
 
   // Additional operators for certain path kind combinations.
