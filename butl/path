@@ -559,18 +559,19 @@ namespace butl
     string_type
     posix_string () const;
 
+  protected:
+    basic_path (string_type s, bool i): base_type (std::move (s))
+    {
+      if (i)
+        init (this->path_);
+    }
+
   private:
     template <class P, class C1, class K1>
     friend P butl::path_cast (const basic_path<C1, K1>&);
 
     template <class P, class C1, class K1>
     friend P butl::path_cast (basic_path<C1, K1>&&);
-
-    basic_path (string_type s, bool i): base_type (std::move (s))
-    {
-      if (i)
-        init (this->path_);
-    }
 
     // If exact is true, return whether the initialization was
     // successful, that is, the passed string is a valid path
