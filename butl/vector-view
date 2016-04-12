@@ -88,6 +88,8 @@ namespace butl
 
     // modifiers:
     //
+    void assign (T* d, size_type s) {data_ = d; size_ = s;}
+    void clear () {data_ = nullptr; size_ = 0;}
     void swap (vector_view& v) {
       std::swap (data_, v.data_); std::swap (size_, v.size_);}
 
