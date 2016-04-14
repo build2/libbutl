@@ -4,7 +4,9 @@ Version 0.3.0
     code is (naturally) licensed under the simplified/2-clause BSD license so
     the library is now MIT/BSD-licensed.
 
-  * Implement path::realize() which on POSIX calls realpath(3).
+  * Add vector_view class template.
+
+  * Implement path::realize() (on POSIX calls realpath(3)), path::compare().
 
   * Recognize MSVC target triplet (*-microsoft-win32-msvcXX.Z).
 
