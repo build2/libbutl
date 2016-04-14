@@ -4,13 +4,16 @@
 
 #include <butl/timestamp>
 
-#include <time.h>  // localtime_r(), gmtime_r()
+#include <time.h>  // localtime_r(), gmtime_r(), strptime(), timegm()
 #include <errno.h> // EINVAL
 
-#include <ctime>        // tm, strftime()
+#include <ctime>        // tm, time_t, strftime(), mktime()
+#include <cstdlib>      // strtoull()
+#include <cassert>
 #include <iomanip>      // put_time(), setw(), dec, right
 #include <cstring>      // strlen(), memcpy()
 #include <ostream>
+#include <utility>      // pair, make_pair()
 #include <stdexcept>    // runtime_error
 #include <system_error>
 
@@ -28,6 +31,9 @@ using namespace std;
 // of the std::tm argument.
 //
 #ifdef __GLIBCXX__
+#include <ctime>   // tm, strftime()
+#include <ostream>
+
 namespace details
 {
   struct put_time_data
@@ -251,5 +257,286 @@ namespace butl
       os << '0';
 
     return os;
+  }
+}
+
+// VC++ implementation of strptime() via std::get_time().
+//
+// To debug fallback functions with GCC, uncomment the following defines.
+//
+//#define _MSC_VER
+//#define strptime strptime_
+//#define timegm   timegm_
+
+#ifdef _MSC_VER
+#include <ctime>   // time_t, tm, mktime(), gmtime()
+#include <locale>
+#include <clocale>
+#include <sstream>
+#include <iomanip>
+#include <cstring> // strlen()
+
+namespace details
+{
+  static char*
+  strptime (const char* input, const char* format, tm* time)
+  {
+    istringstream is (input);
+
+    // The original strptime() function behaves according to the process' C
+    // locale (set with std::setlocale()), which can differ from the process
+    // C++ locale (set with std::locale::global()).
+    //
+    is.imbue (locale (setlocale (LC_ALL, nullptr)));
+
+    if (!(is >> get_time (time, format)))
+      return nullptr;
+    else
+      // tellg () behaves as UnformattedInputFunction, so returns failure
+      // status if eofbit is set.
+      //
+      return const_cast<char*> (
+        input + (is.eof ()
+                 ? strlen (input)
+                 : static_cast<size_t> (is.tellg ())));
+  }
+
+  static time_t
+  timegm (tm* ctm)
+  {
+    const time_t e (static_cast<time_t> (-1));
+
+    // We will use an example to explain how it works. Say *ctm contains 9 AM
+    // of some day. Note that no time zone information is available.
+    //
+    // Convert it to the time from Epoch as if it's in the local time zone.
+    //
+    ctm->tm_isdst = -1;
+    time_t t (mktime (ctm));
+    if (t == e)
+      return e;
+
+    // Let's say we are in Moscow, and t contains the time passed from Epoch
+    // till 9 AM MSK. But that is not what we need. What we need is the time
+    // passed from Epoch till 9 AM GMT. This is some bigger number, as it takes
+    // longer to achieve the same calendar time for more Western location. So
+    // we need to find that offset, and increment t with it to obtain the
+    // desired value. The offset is effectively the time difference between MSK
+    // and GMT time zones.
+    //
+    tm gtm;
+    if (gmtime_r (&t, &gtm) == nullptr)
+      return e;
+
+    // gmtime_r() being called for the timepoint t returns 6 AM. So now we
+    // have *ctm and gtm, which value difference (3 hours) reflects the
+    // desired offset. The only problem is that we can not deduct gtm from
+    // *ctm, to get the offset expressed as time_t. To do that we need to apply
+    // to both of them the same conversion function transforming std::tm to
+    // std::time_t. The mktime() can do that, so the expression (mktime(ctm) -
+    // mktime(&gtm)) calculates the desired offset.
+    //
+    // To ensure mktime() works exactly the same way for both cases, we need
+    // to reset Daylight Saving Time flag for each of *ctm and gtm.
+    //
+    ctm->tm_isdst = 0;
+    time_t lt (mktime (ctm));
+    if (lt == e)
+      return e;
+
+    gtm.tm_isdst = 0;
+    time_t gt (mktime (&gtm));
+    if (gt == e)
+      return e;
+
+    // C11 standard specifies time_t to be a real type (integer and real
+    // floating types are collectively called real types). So we can not
+    // consider it to be signed.
+    //
+    return lt > gt ? t + (lt - gt) : t - (gt - lt);
+  }
+}
+
+using namespace details;
+#endif
+
+namespace butl
+{
+  static pair<tm, chrono::nanoseconds>
+  from_string (const char* input, const char* format, const char** end)
+  {
+    auto bad_val = []() {throw system_error (EINVAL, system_category ());};
+
+    // See if we have our specifier.
+    //
+    size_t i (0);
+    size_t n (strlen (format));
+    for (; i != n; ++i)
+    {
+      if (format[i] == '%' && i + 1 != n)
+      {
+        if (format[i + 1] == '[')
+          break;
+        else
+          ++i; // To handle %%.
+      }
+    }
+
+    // Call the fraction of a second as just fraction from now on.
+    //
+    using namespace chrono;
+    nanoseconds ns (nanoseconds::zero ());
+
+    if (i == n)
+    {
+      // No %[], so just parse with strptime().
+      //
+      tm t {};
+      const char* p (strptime (input, format, &t));
+      if (p == nullptr)
+        bad_val ();
+
+      if (end != nullptr)
+        *end = p;
+      else if (*p != '\0')
+        bad_val (); // Input is not fully read.
+
+      return make_pair (t, ns);
+    }
+
+    // Now the overall plan is:
+    //
+    // 1. Parse the fraction part of the input string to obtain nanoseconds.
+    //
+    // 2. Remove fraction part from the input string.
+    //
+    // 3. Remove %[] from the format string.
+    //
+    // 4. Re-parse the modified input with the modified format to fill the
+    //    std::tm structure.
+    //
+    // Parse the %[] specifier.
+    //
+    assert (format[i] == '%');
+    string fm (format, i++); // Start assembling the new format string.
+
+    assert (format[i] == '[');
+    if (++i == n)
+      bad_val ();
+
+    char d (format[i]); // Delimiter character.
+    if (++i == n)
+      bad_val ();
+
+    char f (format[i]); // Fraction specifier character.
+    if ((f != 'N' && f != 'U' && f != 'M') || ++i == n)
+      bad_val ();
+
+    if (format[i++] != ']')
+      bad_val ();
+
+    // Parse the input with the initial part of the format string, the one
+    // that preceeds the %[] specifier. The returned pointer will be the
+    // position we need to start from to parse the fraction.
+    //
+    tm t {};
+
+    // What if %[] is first, there is nothing before it? According to the
+    // strptime() documentation an empty format string is a valid one.
+    //
+    const char* p (strptime (input, fm.c_str (), &t));
+    if (p == nullptr)
+      bad_val ();
+
+    // Start assembling the new input string.
+    //
+    string in (input, p - input);
+    size_t fn (0); // Fraction size.
+
+    if (d == *p)
+    {
+      // Fraction present in the input.
+      //
+
+      // Read fraction digits.
+      //
+      char buf [10];
+      size_t i (0);
+      size_t n (f == 'N' ? 9 : (f == 'U' ? 6 : 3));
+      for (++p; i < n && *p >= '0' && *p <= '9'; ++i, ++p)
+        buf[i] = *p;
+
+      if (i < n)
+        bad_val ();
+
+      buf[n] = '\0';
+      fn = n;
+
+      // Calculate nanoseconds.
+      //
+      char* e (nullptr);
+      unsigned long long t (strtoull (buf, &e, 10));
+      assert (e == buf + n);
+
+      switch (f)
+      {
+      case 'N': ns = nanoseconds (t); break;
+      case 'U': ns = microseconds (t); break;
+      case 'M': ns = milliseconds (t); break;
+      default: assert (false);
+      }
+
+      // Actually the idea to fully remove the fraction from the input string,
+      // and %[] from the format string, has a flaw. After the fraction removal
+      // the spaces around it will be "swallowed" with a single space in the
+      // format string. So, as an example, for the input:
+      //
+      // 2016-02-21 19:31:10 .384902285 GMT
+      //
+      // And the format:
+      //
+      // %Y-%m-%d %H:%M:%S %[.N]
+      //
+      // The unparsed tail of the input will be 'GMT' while expected to be
+      // ' GMT'. To fix that we will not remove, but replace the mentioned
+      // parts with some non-space character.
+      //
+      fm += '-';
+      in += '-';
+    }
+
+    fm += format + i;
+    in += p;
+
+    // Reparse the modified input with the modified format.
+    //
+    t = {};
+    const char* b (in.c_str ());
+    p = strptime (b, fm.c_str (), &t);
+
+    if (p == nullptr)
+      bad_val ();
+
+    if (end != nullptr)
+      *end = input + (p - b + fn);
+    else if (*p != '\0')
+      bad_val (); // Input is not fully read.
+
+    return make_pair (t, ns);
+  }
+
+  timestamp
+  from_string (const char* input,
+               const char* format,
+               bool local,
+               const char** end)
+  {
+    pair<tm, chrono::nanoseconds> t (from_string (input, format, end));
+
+    time_t time (local ? mktime (&t.first) : timegm (&t.first));
+    if (time == -1)
+      throw system_error (errno, system_category ());
+
+    return timestamp::clock::from_time_t (time) + t.second;
   }
 }

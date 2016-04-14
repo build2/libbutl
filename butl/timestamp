@@ -38,19 +38,22 @@ namespace butl
 
   // Generally-useful special values.
   //
-  const timestamp timestamp_unknown {duration {-1}};
-  const timestamp timestamp_nonexistent {duration {0}};
+  const timestamp timestamp_unknown = timestamp (duration (-1));
+  const timestamp timestamp_nonexistent = timestamp (duration (10));
 
-  // Human-readable representation. By default the timestamp is printed by
-  // localtime_r() in the local timezone, so tzset() from <time.h> should be
-  // called prior to using the corresponding operator or the to_stream()
-  // function (normally from main() or equivalent).
+  // Print human-readable representation of the timestamp.
+  //
+  // By default the timestamp is printed by localtime_r() in the local
+  // timezone, so tzset() from <time.h> should be called prior to using the
+  // corresponding operator or the to_stream() function (normally from main()
+  // or equivalent).
   //
   // The format argument in the to_stream() function is the put_time() format
   // string except that it also supports the nanoseconds conversion specifier
   // in the form %[<d>N] where <d> is the optional single delimiter character,
-  // for example '.'. If the nanoseconds part is 0, then it is not printed (nor
-  // the delimiter character).
+  // for example '.'. If the nanoseconds part is 0, then it is not printed
+  // (nor the delimiter character). Otherwise, if necessary, the nanoseconds
+  // part is padded to 9 characters with leading zeros.
   //
   // The special argument in the to_stream() function indicates whether the
   // special timestamp_unknown and timestamp_nonexistent values should be
@@ -87,6 +90,51 @@ namespace butl
 
   std::ostream&
   operator<< (std::ostream&, const duration&);
+
+  // Parse human-readable representation of the timestamp.
+  //
+  // The format argument is the strptime() format string except that it also
+  // supports the fraction of a second specifier in the form %[<d><f>], where
+  // <d> is the optional single delimiter character, for example '.', and <f>
+  // is one of the 'N', 'U', 'M' characters, denoting nanoseconds,
+  // microseconds and milliseconds, respectively.
+  //
+  // The delimiter <d> is mandatory. If no such character is encountered at
+  // the corresponding position of the input string, the function behaves as
+  // if no %[] specifier were provided. Only single %[] specifier in the
+  // format string is currently supported.
+  //
+  // If the delimiter is present, then it should be followed by 9 (N), 6 (U),
+  // or 3 (M) digit value padded with leading zeros if necessary.
+  //
+  // If the local argument is true, then the input is assume to be local time
+  // and the result is returned as local time as well. Otherwise, UCT is used
+  // in both cases.
+  //
+  // If the end argument is not NULL, then it points to the first character
+  // that was not parsed. Otherwise, throw invalid_argument in case of any
+  // unparsed characters.
+  //
+  // Throw std::system_error on input/format mismatch and underlying time
+  // conversion function failures.
+  //
+  // Note that internally from_string() calls strptime(), which behaves
+  // according to the process' C locale (set with std::setlocale()) and not
+  // the C++ locale (set with std::locale::global()). Meanwhile the behaviour
+  // can be affected by std::locale::global() as well, as it itself calls
+  // std::setlocale() for the locale with a name.
+  //
+  // Potential improvements:
+  //   - support %() version for non-optional component but with optional
+  //     delimiter
+  //   - ability to parse local, return UTC and vice-versa
+  //   - handle timezone parsing
+  //
+  timestamp
+  from_string (const char* input,
+               const char* format,
+               bool local,
+               const char** end = nullptr);
 };
 
 #endif // BUTL_TIMESTAMP

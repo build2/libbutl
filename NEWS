@@ -13,6 +13,7 @@ Version 0.3.0
   * Derive a target class from the target triplet for some targets. Currently
     the classes are: 'linux', 'macosx', 'freebsd', 'windows', and 'other'.
 
+  * Implement timestamp from_string().
 
 Version 0.2.0
 
