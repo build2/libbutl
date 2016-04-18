@@ -48,6 +48,10 @@ namespace butl
     vector_view (const std::vector<T1, A>& v)
         : data_ (v.data ()), size_ (v.size ()) {}
 
+    template <typename T1>
+    vector_view (const vector_view<T1>& v)
+        : data_ (v.data ()), size_ (v.size ()) {}
+
     vector_view (vector_view&&) = default;
     vector_view (const vector_view&) = default;
     vector_view& operator= (vector_view&&) = default;
