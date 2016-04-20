@@ -79,6 +79,21 @@ namespace butl
     mutable digest_type bin_;
     mutable bool done_;
   };
+
+  // Convert a SHA256 string representation (64 hex digits) to the fingerprint
+  // canonical representation (32 colon-separated upper case hex digit pairs,
+  // like 01:AB:CD:...). Throw invalid_argument if the argument is not a valid
+  // SHA256 string.
+  //
+  std::string
+  sha256_to_fingerprint (const std::string&);
+
+  // Convert a fingerprint (32 colon-separated hex digit pairs) to the SHA256
+  // string representation (64 lower case hex digits). Throw invalid_argument
+  // if the argument is not a valid fingerprint.
+  //
+  std::string
+  fingerprint_to_sha256 (const std::string&);
 };
 
 #endif // BUTL_SHA256

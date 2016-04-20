@@ -37,4 +37,13 @@ main ()
   string s (h.string ());
   assert (s ==
           "204d9db65789fbede7829ed77f72ba1f0fe21a833d95abad4849b82f33a69b9d");
+
+  string fp ("F4:9D:C0:02:C6:B6:62:06:A5:48:AE:87:35:32:95:64:C2:B8:C9:6D:9B:"
+             "28:85:6D:EF:CA:FA:7F:04:B5:4F:A6");
+
+  string sh (
+    "f49dc002c6b66206a548ae8735329564c2b8c96d9b28856defcafa7f04b54fa6");
+
+  assert (fingerprint_to_sha256 (fp) == sh);
+  assert (sha256_to_fingerprint (sh) == fp);
 }

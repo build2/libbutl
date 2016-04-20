@@ -9,6 +9,9 @@
 #include <stdint.h>
 #include <stddef.h> // size_t
 
+#include <cctype>    // isxdigit(), toupper(), tolower()
+#include <stdexcept> // invalid_argument
+
 using SHA256_CTX = butl::sha256::context;
 
 extern "C"
@@ -24,6 +27,8 @@ using namespace std;
 
 namespace butl
 {
+  // sha256
+  //
   sha256::
   sha256 ()
       : done_ (false)
@@ -72,5 +77,64 @@ namespace butl
     }
 
     return str_;
+  }
+
+  // Conversion functions
+  //
+  string
+  sha256_to_fingerprint (const string& s)
+  {
+    auto bad = []() {throw invalid_argument ("invalid SHA256 string");};
+
+    size_t n (s.size ());
+    if (n != 64)
+      bad ();
+
+    string f;
+    f.reserve (n + 31);
+    for (size_t i (0); i < n; ++i)
+    {
+      char c (s[i]);
+      if (!isxdigit (c))
+        bad ();
+
+      if (i > 0 && i % 2 == 0)
+        f += ":";
+
+      f += toupper (c);
+    }
+
+    return f;
+  }
+
+  string
+  fingerprint_to_sha256 (const string& f)
+  {
+    auto bad = []() {throw invalid_argument ("invalid fingerprint");};
+
+    size_t n (f.size ());
+    if (n != 32 * 3 - 1)
+      bad ();
+
+    string s;
+    s.reserve (64);
+    for (size_t i (0); i < n; ++i)
+    {
+      char c (f[i]);
+      if ((i + 1) % 3 == 0)
+      {
+        if (c != ':')
+          bad ();
+      }
+      else
+      {
+        if (!isxdigit (c))
+          bad ();
+
+        s += tolower (c);
+      }
+    }
+
+    return s;
   }
 }
