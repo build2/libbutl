@@ -5,6 +5,7 @@
 #ifndef BUTL_UTILITY
 #define BUTL_UTILITY
 
+#include <cstddef> // std::size_t
 #include <utility> // forward()
 #include <cstring> // strcmp
 
@@ -25,6 +26,23 @@ namespace butl
     template <typename P>
     bool operator() (const P& x, const P& y) const {return *x < *y;}
   };
+
+  // Combine one or more hash values.
+  //
+  inline std::size_t
+  combine_hash (std::size_t s, std::size_t h)
+  {
+    // Magic formula from boost::hash_combine().
+    //
+    return s ^ (h + 0x9e3779b9 + (s << 6) + (s >> 2));
+  }
+
+  template <typename... S>
+  inline std::size_t
+  combine_hash (std::size_t s, std::size_t h, S... hs)
+  {
+    return combine_hash (combine_hash (s, h), hs...);
+  }
 
   // Support for reverse iteration using range-based for-loop:
   //
