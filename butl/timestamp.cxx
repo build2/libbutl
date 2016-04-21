@@ -391,7 +391,7 @@ namespace butl
     {
       // No %[], so just parse with strptime().
       //
-      tm t {};
+      tm t = tm ();
       const char* p (strptime (input, format, &t));
       if (p == nullptr)
         bad_val ();
@@ -439,7 +439,7 @@ namespace butl
     // that preceeds the %[] specifier. The returned pointer will be the
     // position we need to start from to parse the fraction.
     //
-    tm t {};
+    tm t = tm ();
 
     // What if %[] is first, there is nothing before it? According to the
     // strptime() documentation an empty format string is a valid one.
@@ -510,7 +510,7 @@ namespace butl
 
     // Reparse the modified input with the modified format.
     //
-    t = {};
+    t = tm ();
     const char* b (in.c_str ());
     p = strptime (b, fm.c_str (), &t);
 
