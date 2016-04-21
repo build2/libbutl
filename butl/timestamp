@@ -39,7 +39,7 @@ namespace butl
   // Generally-useful special values.
   //
   const timestamp timestamp_unknown = timestamp (duration (-1));
-  const timestamp timestamp_nonexistent = timestamp (duration (10));
+  const timestamp timestamp_nonexistent = timestamp (duration (0));
 
   // Print human-readable representation of the timestamp.
   //
