@@ -4,18 +4,20 @@ Version 0.3.0
     code is (naturally) licensed under the simplified/2-clause BSD license so
     the library is now MIT/BSD-licensed.
 
+    Also add helper sha256_to_fingerprint() fingerprint_to_sha256() functions.
+
   * Add vector_view class template.
 
-  * Implement path::realize() (on POSIX calls realpath(3)), path::compare().
+  * Add path::realize() (on POSIX calls realpath(3)), path::compare().
 
   * Recognize MSVC target triplet (*-microsoft-win32-msvcXX.Z).
 
   * Derive a target class from the target triplet for some targets. Currently
     the classes are: 'linux', 'macosx', 'freebsd', 'windows', and 'other'.
 
-  * Implement timestamp from_string().
+  * Add timestamp from_string().
 
-  * Implement sha256_to_fingerprint (), fingerprint_to_sha256 ().
+  * Add combine_hash() utility function.
 
 Version 0.2.0
 
