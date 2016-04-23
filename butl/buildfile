@@ -19,7 +19,13 @@ lib{butl}:                        \
 {hxx         cxx}{ timestamp    } \
 {hxx         cxx}{ triplet      } \
 {hxx            }{ utility      } \
+{hxx            }{ vector-view  } \
 {hxx            }{ version      }
+
+# This one is included into sha256.cxx so treat it as file to exclude
+# from the compilation.
+#
+lib{butl}: file{sha256c.c}
 
 cxx.poptions =+ -I$src_root
 lib{butl}: cxx.export.poptions = -I$src_root
