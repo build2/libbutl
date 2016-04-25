@@ -537,6 +537,7 @@ namespace butl
     if (time == -1)
       throw system_error (errno, system_category ());
 
-    return timestamp::clock::from_time_t (time) + t.second;
+    return timestamp::clock::from_time_t (time) +
+      chrono::duration_cast<duration> (t.second);
   }
 }

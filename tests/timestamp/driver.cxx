@@ -4,10 +4,12 @@
 
 #include <time.h> // tzset()
 
+#include <chrono>
 #include <locale>
 #include <clocale>
 #include <cassert>
 #include <sstream>
+#include <iomanip>
 #include <iostream>
 #include <system_error>
 
@@ -20,9 +22,9 @@ using namespace butl;
 // same format string, ensure the output matches the input.
 //
 static bool
-parse (const char* in, const char* fmt, bool local, const char* out)
+parse (const char* in, const char* fmt, bool local, string out)
 {
-  if (out == nullptr)
+  if (out.empty ())
     out = in;
 
   try
@@ -43,7 +45,7 @@ parse (const char* in, const char* fmt, bool local, const char* out)
 }
 
 static bool
-parse (const char* in, const char* fmt, const char* out = nullptr)
+parse (const char* in, const char* fmt, const string& out = "")
 {
   return parse (in, fmt, true, out) && parse (in, fmt, false, out);
 }
@@ -60,6 +62,20 @@ fail (const char* in, const char* fmt)
   {
     return true;
   }
+}
+
+// Convert nanoseconds to string according to the butl::duration period.
+//
+static string
+ns (unsigned long long t)
+{
+  duration d (chrono::duration_cast<duration> (chrono::nanoseconds (t)));
+  chrono::nanoseconds n (chrono::duration_cast<chrono::nanoseconds> (d));
+
+  ostringstream o;
+  o.fill ('0');
+  o << setw (9) << n.count ();
+  return o.str ();
 }
 
 int
@@ -110,37 +126,51 @@ main ()
   assert (parse ("Feb 11 19:31:10 2016 GMT", "%b %d %H:%M:%S%[.N] %Y"));
   assert (parse ("2016-02-11 19:31:10 GMT", "%Y-%m-%d %H:%M:%S%[.N]"));
 
-  assert (parse (
-    "Feb 21 19:31:10.384902285 2016 GMT", "%b %d %H:%M:%S%[.N] %Y"));
-  assert (parse (
-    "2016-02-21 19:31:10.384902285 GMT", "%Y-%m-%d %H:%M:%S%[.N]"));
+  assert (parse ("Feb 21 19:31:10.384902285 2016 GMT",
+                 "%b %d %H:%M:%S%[.N] %Y",
+                 "Feb 21 19:31:10." + ns (384902285) + " 2016 GMT"));
 
-  assert (parse (
-    "Feb 21 19:31:10 .384902285 2016 GMT", "%b %d %H:%M:%S %[.N] %Y"));
-  assert (parse (
-    "2016-02-21 19:31:10 .384902285 GMT", "%Y-%m-%d %H:%M:%S %[.N]"));
+  assert (parse ("2016-02-21 19:31:10.384902285 GMT",
+                 "%Y-%m-%d %H:%M:%S%[.N]",
+                 "2016-02-21 19:31:10." + ns (384902285) + " GMT"));
+
+  assert (parse ("Feb 21 19:31:10 .384902285 2016 GMT",
+                 "%b %d %H:%M:%S %[.N] %Y",
+                 "Feb 21 19:31:10 ." + ns (384902285) + " 2016 GMT"));
+
+  assert (parse ("2016-02-21 19:31:10 .384902285 GMT",
+                 "%Y-%m-%d %H:%M:%S %[.N]",
+                 "2016-02-21 19:31:10 ." + ns (384902285) + " GMT"));
 
   assert (parse (
     "2016-02-21 19:31:10  .384902285 GMT",
     "%Y-%m-%d %H:%M:%S %[.N]",
-    "2016-02-21 19:31:10 .384902285 GMT"));
+    "2016-02-21 19:31:10 ." + ns (384902285) + " GMT"));
 
   assert (parse (
     "2016-02-21 19:31:10 .384902285  GMT",
     "%Y-%m-%d %H:%M:%S  %[.N]",
-    "2016-02-21 19:31:10  .384902285  GMT"));
+    "2016-02-21 19:31:10  ." + ns (384902285) + "  GMT"));
 
-  assert (parse (
-    "Feb 21 19:31:10 .384902285NS 2016 GMT", "%b %d %H:%M:%S %[.N]NS %Y"));
-  assert (parse (
-    "2016-02-21 19:31:10 .384902285NS GMT", "%Y-%m-%d %H:%M:%S %[.N]NS"));
+  assert (parse ("Feb 21 19:31:10 .384902285NS 2016 GMT",
+                 "%b %d %H:%M:%S %[.N]NS %Y",
+                 "Feb 21 19:31:10 ." + ns (384902285) + "NS 2016 GMT"));
 
-  assert (parse (
-    ".384902285 Feb 21 19:31:10 2016", "%[.N] %b %d %H:%M:%S %Y"));
-  assert (parse (
-    ".384902285 2016-02-21 19:31:10", "%[.N] %Y-%m-%d %H:%M:%S"));
-  assert (parse (
-    ".3849022852016-02-21 19:31:10", "%[.N]%Y-%m-%d %H:%M:%S"));
+  assert (parse ("2016-02-21 19:31:10 .384902285NS GMT",
+                 "%Y-%m-%d %H:%M:%S %[.N]NS",
+                 "2016-02-21 19:31:10 ." + ns (384902285) + "NS GMT"));
+
+  assert (parse (".384902285 Feb 21 19:31:10 2016",
+                 "%[.N] %b %d %H:%M:%S %Y",
+                 "." + ns (384902285) + " Feb 21 19:31:10 2016"));
+
+  assert (parse (".384902285 2016-02-21 19:31:10",
+                 "%[.N] %Y-%m-%d %H:%M:%S",
+                 "." + ns (384902285) + " 2016-02-21 19:31:10"));
+
+  assert (parse (".3849022852016-02-21 19:31:10",
+                 "%[.N]%Y-%m-%d %H:%M:%S",
+                 "." + ns (384902285) + "2016-02-21 19:31:10"));
 
   /*
   setlocale (LC_ALL, "de_DE.utf-8");
