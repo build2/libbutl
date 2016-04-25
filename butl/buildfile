@@ -3,6 +3,7 @@
 # license   : MIT; see accompanying LICENSE file
 
 lib{butl}:                        \
+{hxx         cxx}{ base64       } \
 {hxx         cxx}{ char-scanner } \
 {hxx         cxx}{ fdstream     } \
 {hxx ixx     cxx}{ filesystem   } \

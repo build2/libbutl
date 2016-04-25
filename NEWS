@@ -4,6 +4,8 @@ Version 0.4.0
 
   * Add temp_directory(), temp_path() utility functions.
 
+  * Add base64_encode(), base64_decode() utility functions.
+
 Version 0.3.0
 
   * Add SHA256 hash calculator based on code from the FreeBSD project. That
