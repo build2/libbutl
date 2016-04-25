@@ -81,10 +81,15 @@ namespace butl
     // element access:
     //
     reference  operator[](size_type n) const {return data_[n];}
-    reference  at(size_type n) const {
-      if (n >= size_) throw std::out_of_range (); return data_[n];}
     reference  front() const {return data_[0];}
     reference  back() const {return data_[size_ - 1];}
+
+    reference  at(size_type n) const
+    {
+      if (n >= size_)
+        throw std::out_of_range ("index out of range");
+      return data_[n];
+    }
 
     // data access:
     //
