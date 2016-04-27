@@ -5,7 +5,7 @@
 #include <butl/process>
 
 #ifndef _WIN32
-#  include <unistd.h>    // execvp, fork, dup2, pipe, chdir, *_FILENO
+#  include <unistd.h>    // execvp, fork, dup2, pipe, chdir, *_FILENO, getpid
 #  include <sys/wait.h>  // waitpid
 #else
 #  ifndef WIN32_LEAN_AND_MEAN
@@ -36,12 +36,12 @@ namespace butl
         (err == -1 && pipe (in_efd) == -1))
       throw process_error (errno, false);
 
-    id = fork ();
+    handle = fork ();
 
-    if (id == -1)
+    if (handle == -1)
       throw process_error (errno, false);
 
-    if (id == 0)
+    if (handle == 0)
     {
       // Child. If requested, close the write end of the pipe and duplicate
       // the read end to stdin. Then close the original read end descriptor.
@@ -109,10 +109,10 @@ namespace butl
   bool process::
   wait ()
   {
-    if (id != 0)
+    if (handle != 0)
     {
-      int r (waitpid (id, &status, 0));
-      id = 0; // We have tried.
+      int r (waitpid (handle, &status, 0));
+      handle = 0; // We have tried.
 
       if (r == -1)
         throw process_error (errno, false);
@@ -124,14 +124,14 @@ namespace butl
   bool process::
   try_wait (bool& s)
   {
-    if (id != 0)
+    if (handle != 0)
     {
-      int r (waitpid (id, &status, WNOHANG));
+      int r (waitpid (handle, &status, WNOHANG));
 
       if (r == 0) // Not exited yet.
         return false;
 
-      id = 0; // We have tried.
+      handle = 0; // We have tried.
 
       if (r == -1)
         throw process_error (errno, false);
@@ -141,7 +141,19 @@ namespace butl
     return true;
   }
 
+  process::id_type process::
+  current_id ()
+  {
+    return getpid ();
+  }
+
 #else // _WIN32
+
+  process::id_type process::
+  current_id ()
+  {
+    return GetCurrentProcessId ();
+  }
 
   static void
   print_error (char const* name)

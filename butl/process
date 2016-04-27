@@ -10,6 +10,7 @@
 #endif
 
 #include <cassert>
+#include <cstdint> // uint32_t
 #include <system_error>
 
 namespace butl
@@ -26,8 +27,9 @@ namespace butl
     bool child_;
   };
 
-  struct process
+  class process
   {
+  public:
     // Start another process using the specified command line. The default
     // values to the in, out and err arguments indicate that the child
     // process should inherit the parent process stdin, stdout, and stderr,
@@ -81,7 +83,7 @@ namespace butl
     bool
     try_wait (bool&);
 
-    ~process () {if (id != 0) wait ();}
+    ~process () {if (handle != 0) wait ();}
 
     // Moveable-only type.
     //
@@ -91,20 +93,26 @@ namespace butl
     process (const process&) = delete;
     process& operator= (const process&) = delete;
 
-    // Create an empty or "already terminated" process. That is, id is 0
+    // Create an empty or "already terminated" process. That is, handle is 0
     // and exit status is 0.
     //
     process ();
 
   public:
 #ifndef _WIN32
-    typedef pid_t id_type;
-    typedef int status_type;
+    using handle_type = pid_t;
+    using id_type = pid_t;
+    using status_type = int;
 #else
-    typedef void* id_type; // Win32 HANDLE.
+    using handle_type = void*;      // Win32 HANDLE
+    using id_type = std::uint32_t;  // Win32 DWORD
 #endif
 
-    id_type id;
+    static id_type
+    current_id ();
+
+  public:
+    handle_type handle;
     status_type status;
 
     int out_fd; // Write to this fd to send to the new process' stdin.

@@ -6,7 +6,7 @@ namespace butl
 {
   inline process::
   process ()
-      : id (0),
+      : handle (0),
         status (0), // This is a bit of an assumption.
         out_fd (-1),
         in_ofd (-1),
@@ -24,13 +24,13 @@ namespace butl
 
   inline process::
   process (process&& p)
-      : id (p.id),
+      : handle (p.handle),
         status (p.status),
         out_fd (p.out_fd),
         in_ofd (p.in_ofd),
         in_efd (p.in_efd)
   {
-    p.id = 0;
+    p.handle = 0;
   }
 
   inline process& process::
@@ -38,16 +38,16 @@ namespace butl
   {
     if (this != &p)
     {
-      if (id != 0)
+      if (handle != 0)
         wait ();
 
-      id = p.id;
+      handle = p.handle;
       status = p.status;
       out_fd = p.out_fd;
       in_ofd = p.in_ofd;
       in_efd = p.in_efd;
 
-      p.id = 0;
+      p.handle = 0;
     }
 
     return *this;
