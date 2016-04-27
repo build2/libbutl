@@ -2,6 +2,8 @@ Version 0.4.0
 
   * Add process::current_id().
 
+  * Add temp_directory(), temp_path() utility functions.
+
 Version 0.3.0
 
   * Add SHA256 hash calculator based on code from the FreeBSD project. That

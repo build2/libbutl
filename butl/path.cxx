@@ -5,17 +5,28 @@
 #include <butl/path>
 
 #ifdef _WIN32
-#  include <stdlib.h> // _MAX_PATH
-#  include <direct.h> // _[w]getcwd(), _[w]chdir()
+#  include <stdlib.h>  // _MAX_PATH
+#  include <direct.h>  // _[w]getcwd(), _[w]chdir()
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  include <windows.h> // GetTempPath*()
+#  include <memory>    // unique_ptr
 #else
-#  include <errno.h>  // EINVAL
-#  include <stdlib.h> // mbstowcs(), wcstombs(), realpath()
-#  include <limits.h> // PATH_MAX
-#  include <unistd.h> // getcwd(), chdir()
+#  include <errno.h>     // EINVAL
+#  include <stdlib.h>    // mbstowcs(), wcstombs(), realpath(), getenv()
+#  include <limits.h>    // PATH_MAX
+#  include <unistd.h>    // getcwd(), chdir()
+#  include <string.h>    // strlen(), strcpy()
+#  include <sys/stat.h>  // stat(), S_IS*
+#  include <sys/types.h> // stat
 #endif
 
+#include <atomic>
 #include <cassert>
 #include <system_error>
+
+#include <butl/process>
 
 #ifndef _WIN32
 #  ifndef PATH_MAX
@@ -67,6 +78,88 @@ namespace butl
     if (chdir (s.c_str ()) != 0)
       throw system_error (errno, system_category ());
 #endif
+  }
+
+#ifdef _WIN32
+  struct msg_deleter
+  {
+    void operator() (char* p) const {LocalFree (p);}
+  };
+
+  static string
+  last_error ()
+  {
+    DWORD e (GetLastError ());
+    char* msg;
+    if (!FormatMessageA (
+          FORMAT_MESSAGE_ALLOCATE_BUFFER |
+          FORMAT_MESSAGE_FROM_SYSTEM |
+          FORMAT_MESSAGE_IGNORE_INSERTS |
+          FORMAT_MESSAGE_MAX_WIDTH_MASK,
+          0,
+          e,
+          MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
+          (char*)&msg,
+          0,
+          0))
+      return "unknown error code " + to_string (e);
+
+    unique_ptr<char, msg_deleter> m (msg);
+    return msg;
+  }
+#else
+  static const char*
+  temp_directory ()
+  {
+    const char* dir (nullptr);
+    const char* env[] = {"TMPDIR", "TMP", "TEMP", "TEMPDIR", nullptr};
+
+    for (auto e (env); dir == nullptr && *e != nullptr; ++e)
+      dir = getenv (*e);
+
+    if (dir == nullptr)
+      dir = "/tmp";
+
+    struct stat s;
+    if (stat (dir, &s) != 0)
+      throw system_error (errno, system_category ());
+
+    if (!S_ISDIR (s.st_mode))
+      throw system_error (ENOTDIR, system_category ());
+
+    return dir;
+  }
+#endif
+
+  template <>
+  path_traits<char>::string_type path_traits<char>::
+  temp_directory ()
+  {
+#ifdef _WIN32
+    char d[_MAX_PATH + 1];
+    DWORD r (GetTempPathA (_MAX_PATH + 1, d));
+
+    if (r == 0)
+    {
+      string e (last_error ());
+      throw system_error (ENOTDIR, system_category (), e);
+    }
+
+    return string_type (d);
+#else
+    return string_type (butl::temp_directory ());
+#endif
+  }
+
+  static atomic<size_t> temp_name_count;
+
+  template <>
+  path_traits<char>::string_type path_traits<char>::
+  temp_name (string_type const& prefix)
+  {
+    return prefix
+      + "-" + to_string (process::current_id ())
+      + "-" + to_string (temp_name_count++);
   }
 
 #ifndef _WIN32
@@ -133,6 +226,48 @@ namespace butl
     if (chdir (ns) != 0)
       throw system_error (errno, system_category ());
 #endif
+  }
+
+  template <>
+  path_traits<wchar_t>::string_type path_traits<wchar_t>::
+  temp_directory ()
+  {
+#ifdef _WIN32
+    wchar_t d[_MAX_PATH + 1];
+    DWORD r (GetTempPathW (_MAX_PATH + 1, d));
+
+    if (r == 0)
+    {
+      string e (last_error ());
+      throw system_error (ENOTDIR, system_category (), e);
+    }
+#else
+    wchar_t d[PATH_MAX];
+
+    // The usage of mbstowcs() supposes the program's C-locale is set to the
+    // proper locale before the call (can be done with setlocale(LC_ALL, "...")
+    // call). Otherwise mbstowcs() fails with EILSEQ errno for non-ASCII
+    // directory paths.
+    //
+    size_t r (mbstowcs (d, butl::temp_directory (), PATH_MAX));
+
+    if (r == size_t (-1))
+      throw system_error (EINVAL, system_category ());
+
+    if (r == PATH_MAX)
+      throw system_error (ENOTSUP, system_category ());
+#endif
+
+    return string_type (d);
+  }
+
+  template <>
+  path_traits<wchar_t>::string_type path_traits<wchar_t>::
+  temp_name (string_type const& prefix)
+  {
+    return prefix +
+      L"-" + to_wstring (process::current_id ()) +
+      L"-" + to_wstring (temp_name_count++);
   }
 
 #ifndef _WIN32

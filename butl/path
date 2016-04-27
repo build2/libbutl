@@ -159,6 +159,20 @@ namespace butl
     static void
     current (string_type const&);
 
+    // Return the temporary directory. Throw std::system_error to report the
+    // underlying OS errors.
+    //
+    static string_type
+    temp_directory ();
+
+    // Return a temporary name. The name is constructed by starting with the
+    // prefix followed by the process id following by a unique counter value
+    // inside the process. Throw std::system_error to report the underlying OS
+    // errors.
+    //
+    static string_type
+    temp_name (string_type const& prefix);
+
     // Make the path real (by calling realpath(3)). Throw invalid_basic_path
     // if the path is invalid (e.g., some components do not exist) and
     // std::system_error to report other underlying OS errors.
@@ -301,6 +315,24 @@ namespace butl
 
     static void
     current (basic_path const&);
+
+    // Return the temporary directory. Throw std::system_error to report the
+    // underlying OS errors.
+    //
+    static dir_type
+    temp_directory () {return dir_type (traits::temp_directory ());}
+
+    // Return a temporary path. The path is constructed by starting with the
+    // temporary directory and then appending a path component consisting of
+    // the prefix followed by the process id following by a unique counter
+    // value inside the process. Throw std::system_error to report the
+    // underlying OS errors.
+    //
+    static basic_path
+    temp_path (const string_type& prefix)
+    {
+      return temp_directory () / basic_path (traits::temp_name (prefix));
+    }
 
   public:
     bool
