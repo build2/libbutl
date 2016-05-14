@@ -14,8 +14,8 @@ lib{butl}:                        \
 {hxx            }{ path-io      } \
 {hxx            }{ path-map     } \
 {hxx     txx    }{ prefix-map   } \
-{hxx         cxx}{ sha256       } \
 {hxx ixx     cxx}{ process      } \
+{hxx         cxx}{ sha256       } \
 {hxx     txx    }{ string-table } \
 {hxx         cxx}{ timestamp    } \
 {hxx         cxx}{ triplet      } \
