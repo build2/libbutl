@@ -401,6 +401,7 @@ namespace butl
       else if (*p != '\0')
         bad_val (); // Input is not fully read.
 
+      t.tm_isdst = -1;
       return make_pair (t, ns);
     }
 
@@ -522,6 +523,7 @@ namespace butl
     else if (*p != '\0')
       bad_val (); // Input is not fully read.
 
+    t.tm_isdst = -1;
     return make_pair (t, ns);
   }
 
