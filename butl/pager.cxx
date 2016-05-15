@@ -7,17 +7,19 @@
 #ifndef _WIN32
 #  include <unistd.h>    // close(), STDOUT_FILENO
 #  include <sys/ioctl.h> // ioctl()
+
+#  include <chrono>
+#  include <thread> // this_thread::sleep_for()
 #else
 #  ifndef WIN32_LEAN_AND_MEAN
 #    define WIN32_LEAN_AND_MEAN
 #  endif
-#  include <windows.h>   // GetConsoleScreenBufferInfo(), GetStdHandle()
-#  include <io.h>        // _close()
+#  include <windows.h>  // GetConsoleScreenBufferInfo(), GetStdHandle(),
+                        // Sleep()
+#  include <io.h>       // _close()
 #endif
 
-#include <chrono>
-#include <thread>    // this_thread::sleep_for()
-#include <cstring>  // strchr()
+#include <cstring>      // strchr()
 #include <system_error>
 
 using namespace std;
@@ -44,7 +46,9 @@ namespace butl
         col = static_cast<size_t> (w.ws_col);
 #  endif
 #else
-#error  TODO: needs testing
+      // This works properly on PowerShell, while for the regular console
+      // (cmd.exe) it always returns 80 columns.
+      //
       CONSOLE_SCREEN_BUFFER_INFO w;
       if (GetConsoleScreenBufferInfo (GetStdHandle (STD_OUTPUT_HANDLE), &w))
         col = static_cast<size_t> (w.srWindow.Right - w.srWindow.Left + 1);
@@ -70,7 +74,8 @@ namespace butl
       prompt = "-Ps" + name + " (press q to quit, h for help)";
 
       args.push_back ("less");
-      args.push_back ("-R");            // Handle ANSI color.
+      args.push_back ("-R");    // Handle ANSI color.
+
       args.push_back (prompt.c_str ());
     }
 
@@ -117,13 +122,19 @@ namespace butl
       // approach doesn't work; the pipe is buffered and therefore is always
       // ready for writing).
       //
+      // MINGW GCC 4.9 doesn't implement this_thread so use Win32 Sleep().
+      //
+#ifndef _WIN32
       this_thread::sleep_for (chrono::milliseconds (50));
+#else
+      Sleep (50);
+#endif
 
       bool r;
       if (p_.try_wait (r))
       {
 #ifndef _WIN32
-        ::close (p_.out_fd);
+        close (p_.out_fd);
 #else
         _close (p_.out_fd);
 #endif

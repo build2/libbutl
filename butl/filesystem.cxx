@@ -4,9 +4,17 @@
 
 #include <butl/filesystem>
 
+#include <errno.h>     // errno, E*
 #include <unistd.h>    // stat, rmdir(), unlink()
 #include <sys/types.h> // stat
-#include <sys/stat.h>  // stat, lstat(), S_IS*, mkdir()
+#include <sys/stat.h>  // stat(), lstat(), S_IS*, mkdir()
+
+#ifndef _WIN32
+#  include <dirent.h> // struct dirent, *dir()
+#else
+#  include <io.h>     // _find*()
+#  include <direct.h> // _mkdir()
+#endif
 
 #include <memory>       // unique_ptr
 #include <system_error>
@@ -19,7 +27,7 @@ namespace butl
   dir_exists (const path& p)
   {
     struct stat s;
-    if (::stat (p.string ().c_str (), &s) != 0)
+    if (stat (p.string ().c_str (), &s) != 0)
     {
       if (errno == ENOENT || errno == ENOTDIR)
         return false;
@@ -34,7 +42,7 @@ namespace butl
   file_exists (const path& p)
   {
     struct stat s;
-    if (::stat (p.string ().c_str (), &s) != 0)
+    if (stat (p.string ().c_str (), &s) != 0)
     {
       if (errno == ENOENT || errno == ENOTDIR)
         return false;
@@ -46,11 +54,15 @@ namespace butl
   }
 
   mkdir_status
+#ifndef _WIN32
   try_mkdir (const dir_path& p, mode_t m)
   {
-    mkdir_status r (mkdir_status::success);
-
-    if (::mkdir (p.string ().c_str (), m) != 0)
+    if (mkdir (p.string ().c_str (), m) != 0)
+#else
+  try_mkdir (const dir_path& p, mode_t)
+  {
+    if (_mkdir (p.string ().c_str ()) != 0)
+#endif
     {
       int e (errno);
 
@@ -63,7 +75,7 @@ namespace butl
         throw system_error (e, system_category ());
     }
 
-    return r;
+    return mkdir_status::success;
   }
 
   mkdir_status
@@ -85,7 +97,7 @@ namespace butl
   {
     rmdir_status r (rmdir_status::success);
 
-    if (::rmdir (p.string ().c_str ()) != 0)
+    if (rmdir (p.string ().c_str ()) != 0)
     {
       if (errno == ENOENT)
         r = rmdir_status::not_exist;
@@ -129,7 +141,7 @@ namespace butl
   {
     rmfile_status r (rmfile_status::success);
 
-    if (::unlink (p.string ().c_str ()) != 0)
+    if (unlink (p.string ().c_str ()) != 0)
     {
       if (errno == ENOENT || errno == ENOTDIR)
         r = rmfile_status::not_exist;
@@ -173,7 +185,7 @@ namespace butl
   file_mtime (const path& p)
   {
     struct stat s;
-    if (::stat (p.string ().c_str (), &s) != 0)
+    if (stat (p.string ().c_str (), &s) != 0)
     {
       if (errno == ENOENT || errno == ENOTDIR)
         return timestamp_nonexistent;
@@ -192,25 +204,67 @@ namespace butl
   path_permissions (const path& p)
   {
     struct stat s;
-    if (::stat (p.string ().c_str (), &s) != 0)
+    if (stat (p.string ().c_str (), &s) != 0)
       throw system_error (errno, system_category ());
 
-    return static_cast<permissions> (
-      s.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO));
+    // VC++ has no S_IRWXU defined. MINGW GCC <= 4.9 has no S_IRWXG, S_IRWXO
+    // defined.
+    //
+    // We could extrapolate user permissions to group/other permissions if
+    // S_IRWXG/S_IRWXO are undefined. That is, we could consider their absence
+    // as meaning that the platform does not distinguish between permissions
+    // for different kinds of users. Let's wait for a use-case first.
+    //
+    mode_t f (S_IREAD | S_IWRITE | S_IEXEC);
+
+#ifdef S_IRWXG
+    f |= S_IRWXG;
+#endif
+
+#ifdef S_IRWXO
+    f |= S_IRWXO;
+#endif
+
+    return static_cast<permissions> (s.st_mode & f);
   }
 
+  // dir_{entry,iterator}
+  //
 #ifndef _WIN32
 
   // dir_entry
   //
+  dir_iterator::
+  ~dir_iterator ()
+  {
+    if (h_ != nullptr)
+      closedir (h_); // Ignore any errors.
+  }
+
+  dir_iterator& dir_iterator::
+  operator= (dir_iterator&& x)
+  {
+    if (this != &x)
+    {
+      e_ = move (x.e_);
+
+      if (h_ != nullptr && closedir (h_) == -1)
+        throw system_error (errno, system_category ());
+
+      h_ = x.h_;
+      x.h_ = nullptr;
+    }
+    return *this;
+  }
+
   entry_type dir_entry::
   type (bool link) const
   {
     path_type p (b_ / p_);
     struct stat s;
     if ((link
-         ? ::stat (p.string ().c_str (), &s)
-         : ::lstat (p.string ().c_str (), &s)) != 0)
+         ? stat (p.string ().c_str (), &s)
+         : lstat (p.string ().c_str (), &s)) != 0)
     {
       throw system_error (errno, system_category ());
     }
@@ -233,13 +287,13 @@ namespace butl
   //
   struct dir_deleter
   {
-    void operator() (DIR* p) const {if (p != nullptr) ::closedir (p);}
+    void operator() (DIR* p) const {if (p != nullptr) closedir (p);}
   };
 
   dir_iterator::
   dir_iterator (const dir_path& d)
   {
-    unique_ptr<DIR, dir_deleter> h (::opendir (d.string ().c_str ()));
+    unique_ptr<DIR, dir_deleter> h (opendir (d.string ().c_str ()));
     h_ = h.get ();
 
     if (h_ == nullptr)
@@ -294,7 +348,7 @@ namespace butl
     for (;;)
     {
       errno = 0;
-      if (struct dirent* de = ::readdir (h_))
+      if (struct dirent* de = readdir (h_))
       {
         const char* n (de->d_name);
 
@@ -311,7 +365,7 @@ namespace butl
       {
         // End of stream.
         //
-        ::closedir (h_);
+        closedir (h_);
         h_ = nullptr;
       }
       else
@@ -321,5 +375,146 @@ namespace butl
     }
   }
 #else
+
+  // dir_entry
+  //
+  dir_iterator::
+  ~dir_iterator ()
+  {
+    if (h_ != -1)
+      _findclose (h_); // Ignore any errors.
+  }
+
+  dir_iterator& dir_iterator::
+  operator= (dir_iterator&& x)
+  {
+    if (this != &x)
+    {
+      e_ = move (x.e_);
+
+      if (h_ != -1 && _findclose (h_) == -1)
+        throw system_error (errno, system_category ());
+
+      h_ = x.h_;
+      x.h_ = -1;
+    }
+    return *this;
+  }
+
+  entry_type dir_entry::
+  type (bool) const
+  {
+    // Note that we currently do not support symlinks (yes, there is symlink
+    // support since Vista).
+    //
+    path_type p (b_ / p_);
+
+    struct stat s;
+    if (stat (p.string ().c_str (), &s) != 0)
+      throw system_error (errno, system_category ());
+
+    entry_type r;
+    if (S_ISREG (s.st_mode))
+      r = entry_type::regular;
+    else if (S_ISDIR (s.st_mode))
+      r = entry_type::directory;
+    else
+      r = entry_type::other;
+
+    return r;
+  }
+
+  // dir_iterator
+  //
+  struct auto_dir
+  {
+    explicit
+    auto_dir (intptr_t& h): h_ (&h) {}
+
+    auto_dir (const auto_dir&) = delete;
+    auto_dir& operator= (const auto_dir&) = delete;
+
+    ~auto_dir ()
+    {
+      if (h_ != nullptr && *h_ != -1)
+        _findclose (*h_);
+    }
+
+    void release () {h_ = nullptr;}
+
+  private:
+    intptr_t* h_;
+  };
+
+  dir_iterator::
+  dir_iterator (const dir_path& d)
+  {
+    auto_dir h (h_);
+    e_.b_ = d; // Used by next() to call _findfirst().
+
+    next ();
+    h.release ();
+  }
+
+  void dir_iterator::
+  next ()
+  {
+    for (;;)
+    {
+      bool r;
+      _finddata_t fi;
+
+      if (h_ == -1)
+      {
+        // The call is made from the constructor. Any other call with h_ == -1
+        // is illegal.
+        //
+
+        // Check to distinguish non-existent vs empty directories.
+        //
+        if (!dir_exists (e_.b_))
+          throw system_error (ENOENT, system_category ());
+
+        h_ = _findfirst ((e_.b_ / path ("*")).string ().c_str (), &fi);
+        r = h_ != -1;
+      }
+      else
+        r = _findnext (h_, &fi) == 0;
+
+      if (r)
+      {
+        const char* n (fi.name);
+
+        // Skip '.' and '..'.
+        //
+        if (n[0] == '.' && (n[1] == '\0' || (n[1] == '.' && n[2] == '\0')))
+          continue;
+
+        e_.p_ = path (n);
+
+        // We do not support symlinks at the moment.
+        //
+        e_.t_ = fi.attrib & _A_SUBDIR
+          ? entry_type::directory
+          : entry_type::regular;
+
+        e_.lt_ = entry_type::unknown;
+      }
+      else if (errno == ENOENT)
+      {
+        // End of stream.
+        //
+        if (h_ != -1)
+        {
+          _findclose (h_);
+          h_ = -1;
+        }
+      }
+      else
+        throw system_error (errno, system_category ());
+
+      break;
+    }
+  }
 #endif
 }

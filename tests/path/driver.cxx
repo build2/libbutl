@@ -15,11 +15,20 @@ using namespace butl;
 int
 main ()
 {
+  // Make sure we have nothrow destructor and move constructor so that
+  // storage in containers is not pessimized.
+  //
   static_assert (is_nothrow_destructible<path>::value, "");
-  static_assert (is_nothrow_move_constructible<path>::value, "");
-
   static_assert (is_nothrow_destructible<dir_path>::value, "");
+
+  // MINGW GCC 4.9 std::string is not nothrow-move-constructible, so path and
+  // dir_path (which have a member of std::string type) are not as such as
+  // well.
+  //
+#if !defined(_WIN32) || !defined(__GNUC__) || __GNUC__ > 4
+  static_assert (is_nothrow_move_constructible<path>::value, "");
   static_assert (is_nothrow_move_constructible<dir_path>::value, "");
+#endif
 
   assert (path ("/").string () == "/");
   assert (path ("//").string () == "/");
@@ -174,7 +183,11 @@ main ()
     assert (path (p.begin (), p.end ()) == p);
     assert (path (++p.begin (), p.end ()) == path ("foo/bar"));
     assert (path (++(++p.begin ()), p.end ()) == path ("bar"));
+
+#ifndef _WIN32
     assert (path (p.begin (), ++p.begin ()) == path ("/"));
+#endif
+
     assert (path (++p.begin (), ++(++p.begin ())) == path ("foo"));
     assert (path (++(++p.begin ()), ++(++(++p.begin ()))) == path ("bar"));
   }

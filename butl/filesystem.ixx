@@ -84,21 +84,14 @@ namespace butl
   // dir_iterator
   //
   inline dir_iterator::
-  dir_iterator (dir_iterator&& x): e_ (std::move (x.e_)), h_ (x.h_)
+  dir_iterator (dir_iterator&& x)
+      : e_ (std::move (x.e_)), h_ (x.h_)
   {
+#ifndef _WIN32
     x.h_ = nullptr;
-  }
-
-  inline dir_iterator& dir_iterator::
-  operator= (dir_iterator&& x)
-  {
-    if (this != &x)
-    {
-      e_ = std::move (x.e_);
-      h_ = x.h_;
-      x.h_ = nullptr;
-    }
-    return *this;
+#else
+    x.h_ = -1;
+#endif
   }
 
   inline bool
@@ -112,14 +105,4 @@ namespace butl
   {
     return !(x == y);
   }
-
-#ifndef _WIN32
-  inline dir_iterator::
-  ~dir_iterator ()
-  {
-    if (h_ != nullptr)
-      ::closedir (h_); // Ignore any errors.
-  }
-#else
-#endif
 }

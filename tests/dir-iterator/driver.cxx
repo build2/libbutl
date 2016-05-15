@@ -24,6 +24,9 @@ operator<< (ostream& os, entry_type e)
   return os << entry_type_string[static_cast<size_t> (e)];
 }
 
+// @@ Should we make the test silent unless -v arg passed. In silen mode could
+// compare the output with a set of predefined dir entries.
+//
 int
 main (int argc, const char* argv[])
 {

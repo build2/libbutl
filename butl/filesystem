@@ -8,7 +8,9 @@
 #include <sys/types.h> // mode_t
 
 #ifndef _WIN32
-#  include <dirent.h> // DIR, struct dirent, *dir()
+#  include <dirent.h> // DIR
+#else
+#  include <stddef.h> // intptr_t
 #endif
 
 #include <cstddef>  // ptrdiff_t
@@ -244,9 +246,7 @@ namespace butl
 #ifndef _WIN32
     DIR* h_ {nullptr};
 #else
-    // Check move implementation.
-    //
-#  error Win32 implementation lacking
+    intptr_t h_ {-1};
 #endif
   };
 

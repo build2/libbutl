@@ -4,10 +4,10 @@
 
 #include <butl/timestamp>
 
-#include <time.h>  // localtime_r(), gmtime_r(), strptime(), timegm()
+#include <time.h>  // localtime_{r,s}(), gmtime_{r,s}(), strptime(), timegm()
 #include <errno.h> // EINVAL
 
-#include <ctime>        // tm, time_t, strftime(), mktime()
+#include <ctime>        // tm, time_t, mktime()
 #include <cstdlib>      // strtoull()
 #include <cassert>
 #include <iomanip>      // put_time(), setw(), dec, right
@@ -31,6 +31,7 @@ using namespace std;
 // of the std::tm argument.
 //
 #ifdef __GLIBCXX__
+
 #include <ctime>   // tm, strftime()
 #include <ostream>
 
@@ -61,7 +62,37 @@ namespace details
 }
 
 using namespace details;
+
 #endif
+
+// Thread-safe implementations of gmtime() and localtime().
+//
+// Normally we would provide POSIX function replacement for Windows if the
+// original function is absent. However, MinGW GCC can sometimes provide them.
+// And so to avoid name clashes we hide them in the details namespace.
+//
+namespace details
+{
+  static tm*
+  gmtime (const time_t* t, tm* r)
+  {
+#ifdef _WIN32
+    return gmtime_s (r, t) != 0 ? nullptr : r;
+#else
+    return gmtime_r (t, r);
+#endif
+  }
+
+  static tm*
+  localtime (const time_t* t, tm* r)
+  {
+#ifdef _WIN32
+    return localtime_s (r, t) != 0 ? nullptr : r;
+#else
+    return localtime_r (t, r);
+#endif
+  }
+}
 
 namespace butl
 {
@@ -84,7 +115,9 @@ namespace butl
     time_t t (system_clock::to_time_t (ts));
 
     std::tm tm;
-    if ((local ? localtime_r (&t, &tm) : gmtime_r (&t, &tm)) == nullptr)
+    if ((local
+         ? details::localtime (&t, &tm)
+         : details::gmtime (&t, &tm)) == nullptr)
       throw system_error (errno, system_category ());
 
     using namespace chrono;
@@ -214,7 +247,7 @@ namespace butl
     if (fmt != nullptr)
     {
       std::tm tm;
-      if (gmtime_r (&t, &tm) == nullptr)
+      if (details::gmtime (&t, &tm) == nullptr)
         throw system_error (errno, system_category ());
 
       if (t >= 24 * 60 * 60)
@@ -260,105 +293,119 @@ namespace butl
   }
 }
 
-// VC++ implementation of strptime() via std::get_time().
+// Implementation of strptime() and timegm() for Windows.
 //
-// To debug fallback functions with GCC, uncomment the following defines.
+// Here we have several cases. If this is VC++, then we implement strptime()
+// via C++11 std::get_time(). And if this is MINGW GCC (or, more precisely,
+// libstdc++), then we have several problems. Firstly, GCC prior to 5 doesn't
+// implement std::get_time(). Secondly, GCC 5 and even 6 have buggy
+// std::get_time() (it cannot parse single-digit days). So what we are going
+// to do in this case is use a FreeBSD-based strptime() implementation.
 //
-//#define _MSC_VER
-//#define strptime strptime_
-//#define timegm   timegm_
+#ifdef _WIN32
 
-#ifdef _MSC_VER
-#include <ctime>   // time_t, tm, mktime(), gmtime()
+#ifdef __GLIBCXX__
+
+// Fallback to a FreeBSD-based implementation.
+//
+extern "C"
+{
+#include "strptime.c"
+}
+
+#else // NOT __GLIBCXX__
+
+#include <ctime>   // tm
 #include <locale>
 #include <clocale>
 #include <sstream>
 #include <iomanip>
 #include <cstring> // strlen()
 
-namespace details
+// VC++ std::get_time()-based implementation.
+//
+static char*
+strptime (const char* input, const char* format, tm* time)
 {
-  static char*
-  strptime (const char* input, const char* format, tm* time)
-  {
-    istringstream is (input);
+  istringstream is (input);
 
-    // The original strptime() function behaves according to the process' C
-    // locale (set with std::setlocale()), which can differ from the process
-    // C++ locale (set with std::locale::global()).
+  // The original strptime() function behaves according to the process' C
+  // locale (set with std::setlocale()), which can differ from the process C++
+  // locale (set with std::locale::global()).
+  //
+  is.imbue (locale (setlocale (LC_ALL, nullptr)));
+
+  if (!(is >> get_time (time, format)))
+    return nullptr;
+  else
+    // tellg() behaves as UnformattedInputFunction, so returns failure status
+    // if eofbit is set.
     //
-    is.imbue (locale (setlocale (LC_ALL, nullptr)));
-
-    if (!(is >> get_time (time, format)))
-      return nullptr;
-    else
-      // tellg () behaves as UnformattedInputFunction, so returns failure
-      // status if eofbit is set.
-      //
-      return const_cast<char*> (
-        input + (is.eof ()
-                 ? strlen (input)
-                 : static_cast<size_t> (is.tellg ())));
-  }
-
-  static time_t
-  timegm (tm* ctm)
-  {
-    const time_t e (static_cast<time_t> (-1));
-
-    // We will use an example to explain how it works. Say *ctm contains 9 AM
-    // of some day. Note that no time zone information is available.
-    //
-    // Convert it to the time from Epoch as if it's in the local time zone.
-    //
-    ctm->tm_isdst = -1;
-    time_t t (mktime (ctm));
-    if (t == e)
-      return e;
-
-    // Let's say we are in Moscow, and t contains the time passed from Epoch
-    // till 9 AM MSK. But that is not what we need. What we need is the time
-    // passed from Epoch till 9 AM GMT. This is some bigger number, as it takes
-    // longer to achieve the same calendar time for more Western location. So
-    // we need to find that offset, and increment t with it to obtain the
-    // desired value. The offset is effectively the time difference between MSK
-    // and GMT time zones.
-    //
-    tm gtm;
-    if (gmtime_r (&t, &gtm) == nullptr)
-      return e;
-
-    // gmtime_r() being called for the timepoint t returns 6 AM. So now we
-    // have *ctm and gtm, which value difference (3 hours) reflects the
-    // desired offset. The only problem is that we can not deduct gtm from
-    // *ctm, to get the offset expressed as time_t. To do that we need to apply
-    // to both of them the same conversion function transforming std::tm to
-    // std::time_t. The mktime() can do that, so the expression (mktime(ctm) -
-    // mktime(&gtm)) calculates the desired offset.
-    //
-    // To ensure mktime() works exactly the same way for both cases, we need
-    // to reset Daylight Saving Time flag for each of *ctm and gtm.
-    //
-    ctm->tm_isdst = 0;
-    time_t lt (mktime (ctm));
-    if (lt == e)
-      return e;
-
-    gtm.tm_isdst = 0;
-    time_t gt (mktime (&gtm));
-    if (gt == e)
-      return e;
-
-    // C11 standard specifies time_t to be a real type (integer and real
-    // floating types are collectively called real types). So we can not
-    // consider it to be signed.
-    //
-    return lt > gt ? t + (lt - gt) : t - (gt - lt);
-  }
+    return const_cast<char*> (
+      input + (is.eof ()
+               ? strlen (input)
+               : static_cast<size_t> (is.tellg ())));
 }
 
-using namespace details;
-#endif
+#endif // __GLIBCXX__
+
+#include <ctime> // time_t, tm, mktime()
+
+static time_t
+timegm (tm* ctm)
+{
+  const time_t e (static_cast<time_t> (-1));
+
+  // We will use an example to explain how it works. Say *ctm contains 9 AM of
+  // some day. Note that no time zone information is available.
+  //
+  // Convert it to the time from Epoch as if it's in the local time zone.
+  //
+  ctm->tm_isdst = -1;
+  time_t t (mktime (ctm));
+  if (t == e)
+    return e;
+
+  // Let's say we are in Moscow, and t contains the time passed from Epoch till
+  // 9 AM MSK. But that is not what we need. What we need is the time passed
+  // from Epoch till 9 AM GMT. This is some bigger number, as it takes longer
+  // to achieve the same calendar time for more Western location. So we need to
+  // find that offset, and increment t with it to obtain the desired value. The
+  // offset is effectively the time difference between MSK and GMT time zones.
+  //
+  tm gtm;
+  if (details::gmtime (&t, &gtm) == nullptr)
+    return e;
+
+  // gmtime() being called for the timepoint t returns 6 AM. So now we have
+  // *ctm and gtm, which value difference (3 hours) reflects the desired
+  // offset. The only problem is that we can not deduct gtm from *ctm, to get
+  // the offset expressed as time_t. To do that we need to apply to both of
+  // them the same conversion function transforming std::tm to std::time_t. The
+  // mktime() can do that, so the expression (mktime(ctm) - mktime(&gtm))
+  // calculates the desired offset.
+  //
+  // To ensure mktime() works exactly the same way for both cases, we need to
+  // reset Daylight Saving Time flag for each of *ctm and gtm.
+  //
+  ctm->tm_isdst = 0;
+  time_t lt (mktime (ctm));
+  if (lt == e)
+    return e;
+
+  gtm.tm_isdst = 0;
+  time_t gt (mktime (&gtm));
+  if (gt == e)
+    return e;
+
+  // C11 standard specifies time_t to be a real type (integer and real floating
+  // types are collectively called real types). So we can not consider it to be
+  // signed.
+  //
+  return lt > gt ? t + (lt - gt) : t - (gt - lt);
+}
+
+#endif // _WIN32
 
 namespace butl
 {

@@ -76,37 +76,80 @@ namespace butl
     char buf_[2048];
   };
 
+  // File descriptor translation mode. It has the same semantics as the
+  // binary/text opening modes in std::fstream. Specifically, this is a
+  // noop for POSIX systems where the two modes are the same.
+  //
+  enum class fdtranslate
+  {
+    text,
+    binary
+  };
+
   class fdstream_base
   {
   protected:
     fdstream_base () = default;
     fdstream_base (int fd): buf_ (fd) {}
+    fdstream_base (int, fdtranslate);
 
   protected:
     fdbuf buf_;
   };
 
+  // Note that the destructor may throw.
+  //
   class ifdstream: fdstream_base, public std::istream
   {
   public:
     ifdstream (): std::istream (&buf_) {}
     ifdstream (int fd): fdstream_base (fd), std::istream (&buf_) {}
+    ifdstream (int fd, fdtranslate m)
+        : fdstream_base (fd, m), std::istream (&buf_) {}
 
     void close () {buf_.close ();}
     void open (int fd) {buf_.open (fd);}
     bool is_open () const {return buf_.is_open ();}
   };
 
+  // Note that the destructor flushes the stream and may throw.
+  //
   class ofdstream: fdstream_base, public std::ostream
   {
   public:
     ofdstream (): std::ostream (&buf_) {}
     ofdstream (int fd): fdstream_base (fd), std::ostream (&buf_) {}
+    ofdstream (int fd, fdtranslate m)
+        : fdstream_base (fd, m), std::ostream (&buf_) {}
+
+    ~ofdstream () override {if (is_open ()) buf_.sync ();}
 
     void close () {flush (); buf_.close ();}
     void open (int fd) {buf_.open (fd);}
     bool is_open () const {return buf_.is_open ();}
   };
+
+  // Set the translation mode for the file descriptor. Return the previous
+  // mode on success, throw std::system_error otherwise.
+  //
+  fdtranslate
+  fdmode (int, fdtranslate);
+
+  // Convenience functions for setting the translation mode for standard
+  // streams.
+  //
+  fdtranslate stdin_fdmode  (fdtranslate);
+  fdtranslate stdout_fdmode (fdtranslate);
+  fdtranslate stderr_fdmode (fdtranslate);
+
+  // Low-level, nothrow file descriptor API. Primarily useful in tests.
+  //
+
+  // Close the file descriptor. Return true on success, set errno and return
+  // false otherwise.
+  //
+  bool
+  fdclose (int) noexcept;
 }
 
 #endif // BUTL_FDSTREAM

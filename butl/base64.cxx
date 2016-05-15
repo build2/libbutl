@@ -159,8 +159,8 @@ namespace butl
     is.setstate (istream::eofbit);
   }
 
-  std::string
-  base64_encode (const std::vector<char>& v)
+  string
+  base64_encode (const vector<char>& v)
   {
     string r;
     back_insert_iterator<string> o (r);

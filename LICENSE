@@ -1,6 +1,6 @@
-butl/sha256c.c:
+butl/sha256c.c, butl/strptime.c, butl/timelocal.h, butl/timelocal.c:
 
-2-clause BSD, see the file header for details.
+2-clause BSD, see the file headers for details.
 
 The rest:
 

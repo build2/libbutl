@@ -5,9 +5,11 @@
 #include <butl/fdstream>
 
 #ifndef _WIN32
-#  include <unistd.h>    // close(), read(), write()
+#  include <unistd.h> // close(), read(), write()
 #else
-#  include <io.h>        // _close(), _read(), _write()
+#  include <io.h>     // _close(), _read(), _write(), _setmode()
+#  include <stdio.h>  // _fileno(), stdin, stdout, stderr
+#  include <fcntl.h>  // _O_BINARY, _O_TEXT
 #endif
 
 #include <system_error>
@@ -16,6 +18,8 @@ using namespace std;
 
 namespace butl
 {
+  // fdbuf
+  //
   fdbuf::
   ~fdbuf () {close ();}
 
@@ -33,11 +37,9 @@ namespace butl
   {
     if (is_open ())
     {
-#ifndef _WIN32
-      ::close (fd_);
-#else
-      _close (fd_);
-#endif
+      if (!fdclose (fd_))
+        throw system_error (errno, system_category ());
+
       fd_ = -1;
     }
   }
@@ -66,7 +68,7 @@ namespace butl
   load ()
   {
 #ifndef _WIN32
-    ssize_t n (::read (fd_, buf_, sizeof (buf_)));
+    ssize_t n (read (fd_, buf_, sizeof (buf_)));
 #else
     int n (_read (fd_, buf_, sizeof (buf_)));
 #endif
@@ -112,9 +114,9 @@ namespace butl
     if (n != 0)
     {
 #ifndef _WIN32
-      ssize_t m (::write (fd_, buf_, n));
+      ssize_t m (write (fd_, buf_, n));
 #else
-      int m (_write (fd_, buf_, static_cast<unsigned int> (sizeof (buf_))));
+      int m (_write (fd_, buf_, n));
 #endif
 
       if (m == -1)
@@ -128,4 +130,102 @@ namespace butl
 
     return true;
   }
+
+  // fdstream_base
+  //
+  fdstream_base::
+  fdstream_base (int fd, fdtranslate m)
+      : fdstream_base (fd) // Delegate.
+  {
+    // Note that here we rely on fdstream_base() (and fdbuf() which it calls)
+    // to note read from the file.
+    //
+    fdmode (fd, m);
+  }
+
+  // Utility functions
+  //
+#ifndef _WIN32
+
+  bool
+  fdclose (int fd) noexcept
+  {
+    return close (fd) == 0;
+  }
+
+  fdtranslate
+  fdmode (int, fdtranslate)
+  {
+    return fdtranslate::binary;
+  }
+
+  fdtranslate
+  stdin_fdmode (fdtranslate)
+  {
+    return fdtranslate::binary;
+  }
+
+  fdtranslate
+  stdout_fdmode (fdtranslate)
+  {
+    return fdtranslate::binary;
+  }
+
+  fdtranslate
+  stderr_fdmode (fdtranslate)
+  {
+    return fdtranslate::binary;
+  }
+
+#else
+
+  bool
+  fdclose (int fd) noexcept
+  {
+    return _close (fd) == 0;
+  }
+
+  fdtranslate
+  fdmode (int fd, fdtranslate m)
+  {
+    int r (_setmode (fd, m == fdtranslate::binary ? _O_BINARY : _O_TEXT));
+    if (r == -1)
+      throw system_error (errno, system_category ());
+
+    return (r & _O_BINARY) == _O_BINARY
+      ? fdtranslate::binary
+      : fdtranslate::text;
+  }
+
+  fdtranslate
+  stdin_fdmode (fdtranslate m)
+  {
+    int fd (_fileno (stdin));
+    if (fd == -1)
+      throw system_error (errno, system_category ());
+
+    return fdmode (fd, m);
+  }
+
+  fdtranslate
+  stdout_fdmode (fdtranslate m)
+  {
+    int fd (_fileno (stdout));
+    if (fd == -1)
+      throw system_error (errno, system_category ());
+
+    return fdmode (fd, m);
+  }
+
+  fdtranslate
+  stderr_fdmode (fdtranslate m)
+  {
+    int fd (_fileno (stderr));
+    if (fd == -1)
+      throw system_error (errno, system_category ());
+
+    return fdmode (fd, m);
+  }
+
+#endif
 }

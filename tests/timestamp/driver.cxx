@@ -10,7 +10,6 @@
 #include <cassert>
 #include <sstream>
 #include <iomanip>
-#include <iostream>
 #include <system_error>
 
 #include <butl/timestamp>
@@ -172,12 +171,16 @@ main ()
                  "%[.N]%Y-%m-%d %H:%M:%S",
                  "." + ns (384902285) + "2016-02-21 19:31:10"));
 
-  /*
-  setlocale (LC_ALL, "de_DE.utf-8");
-  locale::global (locale ("de_DE.utf-8"));
+//  setlocale (LC_ALL, "");
+//  setlocale (LC_ALL, "de_DE.utf-8");
+//  setlocale (LC_ALL, "de-de");
+//  setlocale (LC_ALL, "German_Germany.1252");
+//  locale::global (locale (""));
+//  locale::global (locale ("de_DE.utf-8"));
+/*
   assert (parse ("Mai 11 19:31:10 2016 GMT", "%b %d %H:%M:%S%[.N] %Y"));
   locale::global (locale ("C"));
-  */
+*/
 
   // @@ When debuging strptime() fallback implementation compiled with GCC
   //    5.3.1, the following asserts will fail due to bugs in implementation

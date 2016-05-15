@@ -17,11 +17,18 @@ namespace butl
 {
   struct process_error: std::system_error
   {
-    process_error (int e, bool child)
-        : system_error (e, std::system_category ()), child_ (child) {}
-
     bool
     child () const {return child_;}
+
+  public:
+
+#ifndef _WIN32
+    process_error (int e, bool child)
+        : system_error (e, std::system_category ()), child_ (child) {}
+#else
+    process_error (const std::string& d)
+        : system_error (ECHILD, std::system_category (), d), child_ (false) {}
+#endif
 
   private:
     bool child_;
@@ -37,11 +44,18 @@ namespace butl
     // process descriptor is connected (via a pipe) to out_fd for stdin,
     // in_ofd for stdout, and in_efd for stderr (see data members below).
     //
-    // Instead of passing -1 or the default value, you can also pass your
-    // own descriptors. Note, however, that in this case they are not
-    // closed by the parent. So you should do this yourself, if required.
-    // For example, to redirect the child process stdout to stderr, you
-    // can do:
+    // On Windows parent process pipe descriptors are set to text mode to be
+    // consistent with the default (text) mode of standard file descriptors of
+    // the child process. When reading in the text mode the sequence of 0xD,
+    // 0xA characters is translated into the single OxA character and 0x1A is
+    // interpreted as EOF. When writing in the text mode the OxA character is
+    // translated into the 0xD, 0xA sequence. Use the _setmode() function to
+    // change the mode, if required.
+    //
+    // Instead of passing -1 or the default value, you can also pass your own
+    // descriptors. Note, however, that in this case they are not closed by
+    // the parent. So you should do this yourself, if required.  For example,
+    // to redirect the child process stdout to stderr, you can do:
     //
     // process p (..., 0, 2);
     //
@@ -104,8 +118,9 @@ namespace butl
     using id_type = pid_t;
     using status_type = int;
 #else
-    using handle_type = void*;      // Win32 HANDLE
-    using id_type = std::uint32_t;  // Win32 DWORD
+    using handle_type = void*;         // Win32 HANDLE
+    using id_type = std::uint32_t;     // Win32 DWORD
+    using status_type = std::uint32_t; // Win32 DWORD
 #endif
 
     static id_type
