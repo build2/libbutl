@@ -38,11 +38,16 @@ namespace butl
   {
   public:
     // Start another process using the specified command line. The default
-    // values to the in, out and err arguments indicate that the child
-    // process should inherit the parent process stdin, stdout, and stderr,
+    // values to the in, out and err arguments indicate that the child process
+    // should inherit the parent process stdin, stdout, and stderr,
     // respectively. If -1 is passed instead, then the corresponding child
     // process descriptor is connected (via a pipe) to out_fd for stdin,
-    // in_ofd for stdout, and in_efd for stderr (see data members below).
+    // in_ofd for stdout, and in_efd for stderr (see data members below). If
+    // -2 is passed, then the corresponding child process descriptor is
+    // replaced with the null device descriptor (e.g., /dev/null). This
+    // results in the child process not being able to read anything from stdin
+    // (gets immediate EOF) and all data written to stdout/stderr being
+    // discarded.
     //
     // On Windows parent process pipe descriptors are set to text mode to be
     // consistent with the default (text) mode of standard file descriptors of
@@ -52,8 +57,8 @@ namespace butl
     // translated into the 0xD, 0xA sequence. Use the _setmode() function to
     // change the mode, if required.
     //
-    // Instead of passing -1 or the default value, you can also pass your own
-    // descriptors. Note, however, that in this case they are not closed by
+    // Instead of passing -1, -2 or the default value, you can also pass your
+    // own descriptors. Note, however, that in this case they are not closed by
     // the parent. So you should do this yourself, if required.  For example,
     // to redirect the child process stdout to stderr, you can do:
     //

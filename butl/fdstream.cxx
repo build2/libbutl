@@ -5,9 +5,11 @@
 #include <butl/fdstream>
 
 #ifndef _WIN32
+#  include <fcntl.h>  // open(), O_RDWR
 #  include <unistd.h> // close(), read(), write()
 #else
-#  include <io.h>     // _close(), _read(), _write(), _setmode()
+#  include <io.h>     // _close(), _read(), _write(), _setmode(), _sopen()
+#  include <share.h>  // _SH_DENYNO
 #  include <stdio.h>  // _fileno(), stdin, stdout, stderr
 #  include <fcntl.h>  // _O_BINARY, _O_TEXT
 #endif
@@ -153,6 +155,12 @@ namespace butl
     return close (fd) == 0;
   }
 
+  int
+  fdnull () noexcept
+  {
+    return open ("/dev/null", O_RDWR);
+  }
+
   fdtranslate
   fdmode (int, fdtranslate)
   {
@@ -183,6 +191,12 @@ namespace butl
   fdclose (int fd) noexcept
   {
     return _close (fd) == 0;
+  }
+
+  int
+  fdnull () noexcept
+  {
+    return _sopen ("nul", _O_RDWR, _SH_DENYNO);
   }
 
   fdtranslate

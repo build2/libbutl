@@ -142,7 +142,7 @@ namespace butl
   fdtranslate stdout_fdmode (fdtranslate);
   fdtranslate stderr_fdmode (fdtranslate);
 
-  // Low-level, nothrow file descriptor API. Primarily useful in tests.
+  // Low-level, nothrow file descriptor API.
   //
 
   // Close the file descriptor. Return true on success, set errno and return
@@ -150,6 +150,15 @@ namespace butl
   //
   bool
   fdclose (int) noexcept;
+
+  // Open the null device (e.g., /dev/null) that discards all data written to
+  // it and provides no data for read operations (i.e., yelds EOF on read).
+  // Return file descriptor on success, set errno and return -1 otherwise.
+  // Note that it's the caller's responsibility to close the returned file
+  // descriptor.
+  //
+  int
+  fdnull () noexcept;
 }
 
 #endif // BUTL_FDSTREAM

@@ -35,42 +35,28 @@ exec (const path& p,
 
   const char* cwd (!wd.empty () ? wd.string ().c_str () : nullptr);
 
-  auto args = [&p, bin, &cwd](bool i, bool o, bool e) -> cstrings
-  {
-    cstrings a {p.string ().c_str (), "-c"};
+  cstrings args {p.string ().c_str (), "-c"};
 
-    if (i)
-      a.push_back ("-i");
+  if (bin)
+    args.push_back ("-b");
 
-    if (o)
-      a.push_back ("-o");
+  if (cwd != nullptr)
+    args.push_back (cwd);
 
-    if (e)
-      a.push_back ("-e");
-
-    if (bin)
-      a.push_back ("-b");
-
-    if (cwd != nullptr)
-      a.push_back (cwd);
-
-    a.push_back (nullptr);
-    return a;
-  };
+  args.push_back (nullptr);
 
   try
   {
     bool r (true);
-    cstrings a (args (!in.empty (), out, err));
 
     // If both o and e are true, then redirect STDERR to STDOUT, so both can be
     // read from the same stream.
     //
     process pr (cwd,
-                a.data (),
-                !in.empty () ? -1 : 0,
-                out ? -1 : 1,
-                err ? (out ? 1 : -1) : 2);
+                args.data (),
+                !in.empty () ? -1 : -2,
+                out ? -1 : -2,
+                err ? (out ? 1 : -1) : -2);
 
     try
     {
@@ -103,9 +89,8 @@ exec (const path& p,
             // input fd as an output for another one (pr2.out = pr3.in). The
             // overall pipeline looks like 'os -> pr -> pr2 -> pr3 -> is'.
             //
-            cstrings a (args (true, true, false));
-            process pr3 (cwd, a.data (), -1, -1);
-            process pr2 (cwd, a.data (), pr, bin_mode (pr3.out_fd));
+            process pr3 (cwd, args.data (), -1, -1, -2);
+            process pr2 (cwd, args.data (), pr, bin_mode (pr3.out_fd), -2);
 
             bool cr (fdclose (pr3.out_fd));
             assert (cr);
@@ -184,9 +169,6 @@ main (int argc, const char* argv[])
 try
 {
   bool child (false);
-  bool in (false);
-  bool out (false);
-  bool err (false);
   bool bin (false);
   dir_path wd; // Working directory.
 
@@ -198,12 +180,6 @@ try
     string v (argv[i]);
     if (v == "-c")
       child = true;
-    else if (v == "-i")
-      in = true;
-    else if (v == "-o")
-      out = true;
-    else if (v == "-e")
-      err = true;
     else if (v == "-b")
       bin = true;
     else
@@ -255,9 +231,6 @@ try
     if (!wd.empty () && wd.realize () != dir_path::current ())
       return 1;
 
-    if (!in)
-      return 0; // Nothing to read, so nothing to write.
-
     try
     {
       if (bin)
@@ -270,17 +243,11 @@ try
       vector<char> data
         ((istreambuf_iterator<char> (cin)), istreambuf_iterator<char> ());
 
-      if (out)
-      {
-        cout.exceptions (istream::badbit);
-        copy (data.begin (), data.end (), ostream_iterator<char> (cout));
-      }
+      cout.exceptions (istream::badbit);
+      copy (data.begin (), data.end (), ostream_iterator<char> (cout));
 
-      if (err)
-      {
-        cerr.exceptions (istream::badbit);
-        copy (data.begin (), data.end (), ostream_iterator<char> (cerr));
-      }
+      cerr.exceptions (istream::badbit);
+      copy (data.begin (), data.end (), ostream_iterator<char> (cerr));
     }
     catch (const ios_base::failure&)
     {

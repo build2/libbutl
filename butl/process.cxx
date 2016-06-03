@@ -25,6 +25,8 @@
 
 #include <cassert>
 
+#include <butl/fdstream> // fdnull(), fdclose()
+
 using namespace std;
 
 namespace butl
@@ -56,16 +58,13 @@ namespace butl
     {
       if (fd_ != -1)
       {
-#ifndef _WIN32
-        int r (close (fd_));
-#else
-        int r (_close (fd_));
-#endif
+        bool r (fdclose (fd_));
+
         // The valid file descriptor that has no IO operations being
         // performed on it should close successfully, unless something is
         // severely damaged.
         //
-        assert (r != -1);
+        assert (r);
       }
 
       fd_ = fd;
@@ -98,14 +97,31 @@ namespace butl
       p[1].reset (pd[1]);
     };
 
+    auto create_null = [&fail](auto_fd& n)
+    {
+      int fd (fdnull ());
+      if (fd == -1)
+        fail (false);
+
+      n.reset (fd);
+    };
+
+    // If we are asked to open null (-2) then open "half-pipe".
+    //
     if (in == -1)
       create_pipe (out_fd);
+    else if (in == -2)
+      create_null (out_fd[0]);
 
     if (out == -1)
       create_pipe (in_ofd);
+    else if (out == -2)
+      create_null (in_ofd[1]);
 
     if (err == -1)
       create_pipe (in_efd);
+    else if (err == -2)
+      create_null (in_efd[1]);
 
     handle = fork ();
 
@@ -116,16 +132,16 @@ namespace butl
     {
       // Child.
       //
-      // Duplicate the user-supplied (fd != -1) or the created pipe descriptor
+      // Duplicate the user-supplied (fd > -1) or the created pipe descriptor
       // to the standard stream descriptor (read end for STDIN_FILENO, write
       // end otherwise). Close the the pipe afterwards.
       //
       auto duplicate = [&fail](int sd, int fd, pipe& pd)
       {
-        if (fd == -1)
+        if (fd == -1 || fd == -2)
           fd = pd[sd == STDIN_FILENO ? 0 : 1].get ();
 
-        assert (fd != -1);
+        assert (fd > -1);
         if (dup2 (fd, sd) == -1)
           fail (true);
 
@@ -385,14 +401,55 @@ namespace butl
         fail ();
     };
 
+    // Resolve file descriptor to HANDLE and make sure it is inherited. Note
+    // that the handle is closed either when CloseHandle() is called for it or
+    // when _close() is called for the associated file descriptor. Make sure
+    // that either the original file descriptor or the resulted HANDLE is
+    // closed but not both of them.
+    //
+    auto get_osfhandle = [&fail](int fd) -> HANDLE
+    {
+      HANDLE h (reinterpret_cast<HANDLE> (_get_osfhandle (fd)));
+      if (h == INVALID_HANDLE_VALUE)
+        fail ("unable to obtain file handle");
+
+      // SetHandleInformation() fails for standard handles. We assume they are
+      // inherited by default.
+      //
+      if (fd != STDIN_FILENO && fd != STDOUT_FILENO && fd != STDERR_FILENO)
+      {
+        if (!SetHandleInformation (
+              h, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT))
+          fail ();
+      }
+
+      return h;
+    };
+
+    auto create_null = [&get_osfhandle, &fail](auto_handle& n)
+    {
+      auto_fd fd (fdnull ());
+      if (fd.get () == -1)
+        fail ();
+
+      n.reset (get_osfhandle (fd.get ()));
+      fd.release (); // Not to close the handle twice.
+    };
+
     if (in == -1)
       create_pipe (out_h, 1);
+    else if (in == -2)
+      create_null (out_h[0]);
 
     if (out == -1)
       create_pipe (in_oh, 0);
+    else if (out == -2)
+      create_null (in_oh[1]);
 
     if (err == -1)
       create_pipe (in_eh, 0);
+    else if (err == -2)
+      create_null (in_eh[1]);
 
     // Create the process.
     //
@@ -447,42 +504,19 @@ namespace butl
     si.cb = sizeof (STARTUPINFO);
     si.dwFlags |= STARTF_USESTDHANDLES;
 
-    // Resolve file descriptor to HANDLE and make sure it is inherited. Note
-    // that the handle is closed when _close() is called for the associated
-    // file descriptor.
-    //
-    auto get_osfhandle = [&fail](int fd) -> HANDLE
-    {
-      HANDLE h (reinterpret_cast<HANDLE> (_get_osfhandle (fd)));
-      if (h == INVALID_HANDLE_VALUE)
-        fail ("unable to obtain file handle");
-
-      // SetHandleInformation() fails for standard handles. We assume they are
-      // inherited by default.
-      //
-      if (fd != STDIN_FILENO && fd != STDOUT_FILENO && fd != STDERR_FILENO)
-      {
-        if (!SetHandleInformation (
-              h, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT))
-          fail ();
-      }
-
-      return h;
-    };
-
-    si.hStdInput = in == -1
+    si.hStdInput = in == -1 || in == -2
       ? out_h[0].get ()
       : in == STDIN_FILENO
         ? GetStdHandle (STD_INPUT_HANDLE)
         : get_osfhandle (in);
 
-    si.hStdOutput = out == -1
+    si.hStdOutput = out == -1 || out == -2
       ? in_oh[1].get ()
       : out == STDOUT_FILENO
         ? GetStdHandle (STD_OUTPUT_HANDLE)
         : get_osfhandle (out);
 
-    si.hStdError = err == -1
+    si.hStdError = err == -1 || err == -2
       ? in_eh[1].get ()
       : err == STDERR_FILENO
         ? GetStdHandle (STD_ERROR_HANDLE)
