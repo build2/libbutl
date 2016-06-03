@@ -132,8 +132,13 @@ namespace butl
     static int
     compare (string_type const& l, string_type const& r)
     {
-      size_type ln (l.size ()), rn (r.size ()), n (ln < rn ? ln : rn);
-      for (size_type i (0); i != n; ++i)
+      return compare (l.c_str (), l.size (), r.c_str (), r.size ());
+    }
+
+    static int
+    compare (const C* l, size_type ln, const C* r, size_t rn)
+    {
+      for (size_type i (0), n (ln < rn ? ln : rn); i != n; ++i)
       {
 #ifdef _WIN32
         C lc (tolower (l[i])), rc (tolower (r[i]));
