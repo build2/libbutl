@@ -198,7 +198,9 @@ namespace butl
   {
     return absolute ()
 #ifdef _WIN32
-      ? dir_type (this->path_, 2)
+      // Disambiguate with dir_type(string_type,bool).
+      //
+      ? dir_type (this->path_, static_cast<size_type> (2))
 #else
       ? dir_type ("/")
 #endif
