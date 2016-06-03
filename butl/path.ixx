@@ -87,7 +87,8 @@ namespace butl
 
     // The second condition guards against the /foo-bar vs /foo case.
     //
-    return m >= n && this->path_.compare (0, n, p.path_) == 0 &&
+    return m >= n &&
+      traits::compare (this->path_.c_str (), n, p.path_.c_str (), n) == 0 &&
       (traits::is_separator (p.path_.back ()) || // p ends with a separator
        m == n                                 || // *this == p
        traits::is_separator (this->path_[n]));   // next char is a separator
@@ -106,8 +107,10 @@ namespace butl
 
     // The second condition guards against the /foo-bar vs bar case.
     //
-    return m >= n && this->path_.compare (m - n, n, p.path_) == 0 &&
-      (m == n                                   ||     // *this == p
+    return m >= n &&
+      traits::compare (
+        this->path_.c_str () +  m - n, n, p.path_.c_str (), n) == 0 &&
+      (m == n ||                                       // *this == p
        traits::is_separator (this->path_[m - n - 1])); // prev char separator
   }
 
