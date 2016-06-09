@@ -71,13 +71,27 @@ using namespace details;
 // original function is absent. However, MinGW GCC can sometimes provide them.
 // And so to avoid name clashes we hide them in the details namespace.
 //
+// Previously we have used gmtime_s() and localtime_s() for gmtime() and
+// localtime() implementations for Windows, but that required Security-Enhanced
+// version of CRT to be present, which is not always the case. In particular if
+// MinGW is configured with --disable-secure-api option then declarations of
+// *_s() functions are not available. So we use ::gmtime() and ::localtime()
+// for that purpose. Note that according to MSDN "gmtime and localtime all use
+// one common tm structure per thread for the conversion", which mean that they
+// are thread-safe.
+//
 namespace details
 {
   static tm*
   gmtime (const time_t* t, tm* r)
   {
 #ifdef _WIN32
-    return gmtime_s (r, t) != 0 ? nullptr : r;
+    const tm* gt (::gmtime (t));
+    if (gt == nullptr)
+      return nullptr;
+
+    *r = *gt;
+    return r;
 #else
     return gmtime_r (t, r);
 #endif
@@ -87,7 +101,12 @@ namespace details
   localtime (const time_t* t, tm* r)
   {
 #ifdef _WIN32
-    return localtime_s (r, t) != 0 ? nullptr : r;
+    const tm* lt (::localtime (t));
+    if (lt == nullptr)
+      return nullptr;
+
+    *r = *lt;
+    return r;
 #else
     return localtime_r (t, r);
 #endif

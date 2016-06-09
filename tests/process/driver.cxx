@@ -2,7 +2,7 @@
 // copyright : Copyright (c) 2014-2016 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <stdlib.h> // getenv(), setenv(), _putenv_s()
+#include <stdlib.h> // getenv(), setenv(), _putenv()
 
 #include <ios>
 #include <string>
@@ -306,7 +306,7 @@ try
 #ifndef _WIN32
   assert (setenv ("PATH", paths.c_str (), 1) == 0);
 #else
-  assert (_putenv_s ("PATH", paths.c_str ()) == 0);
+  assert (_putenv (("PATH=" + paths).c_str ()) == 0);
 #endif
 
   dir_path::current (fp.directory () / dir_path (".."));
