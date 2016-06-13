@@ -135,6 +135,9 @@ namespace butl
       return compare (l.c_str (), l.size (), r.c_str (), r.size ());
     }
 
+    // @@ Currently for case-insensitive filesystems (Windows) compare()
+    // works properly only for ASCII.
+    //
     static int
     compare (const C* l, size_type ln, const C* r, size_t rn)
     {
