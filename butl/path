@@ -167,6 +167,12 @@ namespace butl
     static void
     current (string_type const&);
 
+    // Return the user home directory. Throw std::system_error to report the
+    // underlying OS errors.
+    //
+    static string_type
+    home ();
+
     // Return the temporary directory. Throw std::system_error to report the
     // underlying OS errors.
     //
@@ -273,9 +279,9 @@ namespace butl
     //
     basic_path () {};
 
-    // Constructors that take a path string as an argument throw
-    // invalid_basic_path if the string is not a valid path (e.g. uses
-    // unsupported notation on Windows).
+    // Constructors that initialize a path from a string argument throw the
+    // invalid_path exception if the string is not a valid path (e.g., uses
+    // unsupported path notations on Windows).
     //
     explicit
     basic_path (C const* s): base_type (s) {init (this->path_);}
@@ -292,11 +298,11 @@ namespace butl
     basic_path (const string_type& s, size_type p, size_type n)
         : base_type (string_type (s, p, n)) {init (this->path_);}
 
-    // Create a path using the exact string representation. If
-    // the string is not a valid path or if it would require a
-    // modification, then empty path is created instead and the
-    // passed string rvalue-reference is left untouched. See
-    // also string() && below.
+    // Create a path using the exact string representation. If the string is
+    // not a valid path or if it would require a modification, then empty path
+    // is created instead and the passed string rvalue-reference is left
+    // untouched. Note that no exception is thrown if the path is invalid. See
+    // also string()&& below.
     //
     enum exact_type {exact};
     basic_path (string_type&& s, exact_type)
@@ -327,6 +333,12 @@ namespace butl
 
     static void
     current (basic_path const&);
+
+    // Return the user home directory. Throw std::system_error to report the
+    // underlying OS errors.
+    //
+    static dir_type
+    home () {return dir_type (traits::home ());}
 
     // Return the temporary directory. Throw std::system_error to report the
     // underlying OS errors.
@@ -617,10 +629,10 @@ namespace butl
     template <class P, class C1, class K1>
     friend P butl::path_cast (basic_path<C1, K1>&&);
 
-    // If exact is true, return whether the initialization was
-    // successful, that is, the passed string is a valid path
-    // and no modifications were necessary. Throw invalid_basic_path
-    // if the string is not a valid path (e.g. uses unsupported notation on
+    // If exact is true, return whether the initialization was successful,
+    // that is, the passed string is a valid path and no modifications were
+    // necessary. Otherwise (extact is false), throw invalid_path if the
+    // string is not a valid path (e.g., uses an unsupported path notation on
     // Windows).
     //
     bool

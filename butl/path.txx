@@ -255,11 +255,16 @@ namespace butl
     //
     if ((n > 2 && s[1] == ':' && s[2] != '\\' && s[2] != '/') ||
         (n > 1 && s[0] == '\\' && s[1] == '\\'))
-      throw invalid_basic_path<C> (s);
+    {
+      if (exact)
+        return false;
+      else
+        throw invalid_basic_path<C> (s);
+    }
 #endif
 
-    // Strip trailing slashes except for the case where the single
-    // slash represents the root directory.
+    // Strip trailing slashes except for the case where the single slash
+    // represents the root directory.
     //
     for (; n > 1 && traits::is_separator (s[n - 1]); --n) ;
 

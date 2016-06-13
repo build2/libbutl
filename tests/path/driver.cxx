@@ -40,7 +40,7 @@ main ()
   assert (path ("C:\\tmp\\foo\\").string () == "C:\\tmp\\foo");
 #endif
 
-  // abslute/relative/root
+  // absolute/relative/root
   //
 #ifndef _WIN32
   assert (path ("/").root ());
@@ -300,6 +300,12 @@ main ()
   assert (path ("/foo/bar/baz").relative (path ("/")) ==
           path ("foo/bar/baz"));
 #endif
+
+  assert (path::temp_directory ().absolute ());
+  assert (wpath::temp_directory ().absolute ());
+
+  assert (path::home ().absolute ());
+  assert (wpath::home ().absolute ());
 
   /*
   path p ("../foo");

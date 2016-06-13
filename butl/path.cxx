@@ -5,14 +5,17 @@
 #include <butl/path>
 
 #ifdef _WIN32
-#  include <stdlib.h>  // _MAX_PATH
+#  include <stdlib.h>  // _MAX_PATH, _wgetenv()
 #  include <direct.h>  // _[w]getcwd(), _[w]chdir()
 #  ifndef WIN32_LEAN_AND_MEAN
 #    define WIN32_LEAN_AND_MEAN
 #  endif
-#  include <windows.h> // GetTempPath*()
-#  include <memory>    // unique_ptr
+#  include <windows.h>  // GetTempPath*(), FormatMessageA(), LocalFree()
+#  include <shlobj.h>   // SHGetFolderPath*(), CSIDL_PROFILE
+#  include <winerror.h> // SUCCEEDED()
+#  include <memory>     // unique_ptr
 #else
+#  include <pwd.h>       // struct passwd, getpwuid_r()
 #  include <errno.h>     // EINVAL
 #  include <stdlib.h>    // mbstowcs(), wcstombs(), realpath(), getenv()
 #  include <limits.h>    // PATH_MAX
@@ -20,6 +23,7 @@
 #  include <string.h>    // strlen(), strcpy()
 #  include <sys/stat.h>  // stat(), S_IS*
 #  include <sys/types.h> // stat
+#  include <vector>
 #endif
 
 #include <atomic>
@@ -87,9 +91,8 @@ namespace butl
   };
 
   static string
-  last_error ()
+  error_msg (DWORD e)
   {
-    DWORD e (GetLastError ());
     char* msg;
     if (!FormatMessageA (
           FORMAT_MESSAGE_ALLOCATE_BUFFER |
@@ -106,6 +109,12 @@ namespace butl
 
     unique_ptr<char, msg_deleter> m (msg);
     return msg;
+  }
+
+  inline static string
+  last_error ()
+  {
+    return error_msg (GetLastError ());
   }
 #else
   static const char*
@@ -128,6 +137,35 @@ namespace butl
       throw system_error (ENOTDIR, system_category ());
 
     return dir;
+  }
+
+  static string
+  home ()
+  {
+    if (const char* h = getenv ("HOME"))
+      return h;
+
+    // Struct passwd has 5 members that will use this buffer. Two are the
+    // home directory and shell paths. The other three are the user login
+    // name, password, and real name (comment). We expect them to fit into
+    // PATH_MAX * 2.
+    //
+    char buf[PATH_MAX * 4];
+
+    passwd pw;
+    passwd* rpw;
+
+    int r (getpwuid_r (getuid (), &pw, buf, sizeof (buf), &rpw));
+    if (r == -1)
+      throw system_error (errno, system_category ());
+
+    if (r == 0 && rpw == nullptr)
+      // According to POSIX errno should be left unchanged if an entry is not
+      // found.
+      //
+      throw system_error (ENOENT, system_category ());
+
+    return pw.pw_dir;
   }
 #endif
 
@@ -160,6 +198,31 @@ namespace butl
     return prefix
       + "-" + to_string (process::current_id ())
       + "-" + to_string (temp_name_count++);
+  }
+
+  template <>
+  path_traits<char>::string_type path_traits<char>::
+  home ()
+  {
+#ifndef _WIN32
+    return string_type (butl::home ());
+#else
+    // Could be set by, e.g., MSYS and Cygwin shells.
+    //
+    if (const char* h = getenv ("HOME"))
+      return string_type (h);
+
+    char h[_MAX_PATH];
+    HRESULT r (SHGetFolderPathA (NULL, CSIDL_PROFILE, NULL, 0, h));
+
+    if (!SUCCEEDED (r))
+    {
+      string e (error_msg (r));
+      throw system_error (ENOTDIR, system_category (), e);
+    }
+
+    return string_type (h);
+#endif
   }
 
 #ifndef _WIN32
@@ -268,6 +331,40 @@ namespace butl
     return prefix +
       L"-" + to_wstring (process::current_id ()) +
       L"-" + to_wstring (temp_name_count++);
+  }
+
+  template <>
+  path_traits<wchar_t>::string_type path_traits<wchar_t>::
+  home ()
+  {
+#ifndef _WIN32
+    wchar_t d[PATH_MAX];
+    size_t r (mbstowcs (d, butl::home ().c_str (), PATH_MAX));
+
+    if (r == size_t (-1))
+      throw system_error (EINVAL, system_category ());
+
+    if (r == PATH_MAX)
+      throw system_error (ENOTSUP, system_category ());
+
+    return string_type (d);
+#else
+    // Could be set by, e.g., MSYS and Cygwin shells.
+    //
+    if (const wchar_t* h = _wgetenv (L"HOME"))
+      return string_type (h);
+
+    wchar_t h[_MAX_PATH];
+    HRESULT r (SHGetFolderPathW (NULL, CSIDL_PROFILE, NULL, 0, h));
+
+    if (!SUCCEEDED (r))
+    {
+      string e (error_msg (r));
+      throw system_error (ENOTDIR, system_category (), e);
+    }
+
+    return string_type (h);
+#endif
   }
 
 #ifndef _WIN32
