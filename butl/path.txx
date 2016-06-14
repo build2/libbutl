@@ -246,10 +246,21 @@ namespace butl
   bool basic_path<C, K>::
   init (string_type& s, bool exact)
   {
+    size_type n (s.size ());
+
+#ifdef _WIN32
+    // We do not support any special Windows path name notations like in C:abc,
+    // \\?\c:\abc, \\server\abc and \\?\UNC\server\abc (more about them at
+    // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247.aspx).
+    //
+    if ((n > 2 && s[1] == ':' && s[2] != '\\' && s[2] != '/') ||
+        (n > 1 && s[0] == '\\' && s[1] == '\\'))
+      throw invalid_basic_path<C> (s);
+#endif
+
     // Strip trailing slashes except for the case where the single
     // slash represents the root directory.
     //
-    size_type n (s.size ());
     for (; n > 1 && traits::is_separator (s[n - 1]); --n) ;
 
     if (n != s.size ())

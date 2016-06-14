@@ -273,6 +273,10 @@ namespace butl
     //
     basic_path () {};
 
+    // Constructors that take a path string as an argument throw
+    // invalid_basic_path if the string is not a valid path (e.g. uses
+    // unsupported notation on Windows).
+    //
     explicit
     basic_path (C const* s): base_type (s) {init (this->path_);}
 
@@ -615,7 +619,9 @@ namespace butl
 
     // If exact is true, return whether the initialization was
     // successful, that is, the passed string is a valid path
-    // and no modifications were necessary.
+    // and no modifications were necessary. Throw invalid_basic_path
+    // if the string is not a valid path (e.g. uses unsupported notation on
+    // Windows).
     //
     bool
     init (string_type& s, bool exact = false);

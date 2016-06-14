@@ -34,14 +34,13 @@ main ()
   assert (path ("//").string () == "/");
   assert (path ("/tmp/foo/").string () == "/tmp/foo");
 #ifdef _WIN32
-  assert (path ("\\\\").string () == "\\");
   assert (path ("/\\").string () == "/");
   assert (path ("C:").string () == "C:");
   assert (path ("C:\\").string () == "C:");
   assert (path ("C:\\tmp\\foo\\").string () == "C:\\tmp\\foo");
 #endif
 
-  // abslote/relative/root
+  // abslute/relative/root
   //
 #ifndef _WIN32
   assert (path ("/").root ());
@@ -56,7 +55,6 @@ main ()
   assert (path ("C:\\foo\\bar").absolute ());
   assert (path ("bar\\baz").relative ());
 #endif
-
 
   // leaf
   //
