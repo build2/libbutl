@@ -524,15 +524,15 @@ namespace butl
 
     // Perform standard stream redirection if requested.
     //
-    if (si.hStdError == GetStdHandle (STD_OUTPUT_HANDLE))
+    if (err == STDOUT_FILENO)
       si.hStdError = si.hStdOutput;
-    else if (si.hStdOutput == GetStdHandle (STD_ERROR_HANDLE))
+    else if (out == STDERR_FILENO)
       si.hStdOutput = si.hStdError;
 
-    if (si.hStdError == GetStdHandle (STD_INPUT_HANDLE) ||
-        si.hStdOutput == GetStdHandle (STD_INPUT_HANDLE) ||
-        si.hStdInput == GetStdHandle (STD_OUTPUT_HANDLE) ||
-        si.hStdInput == GetStdHandle (STD_ERROR_HANDLE))
+    if (err == STDIN_FILENO ||
+        out == STDIN_FILENO ||
+        in == STDOUT_FILENO ||
+        in == STDERR_FILENO)
       fail ("invalid file descriptor");
 
     if (!CreateProcess (
