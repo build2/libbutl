@@ -111,7 +111,7 @@ namespace butl
   }
 
   void
-  rmdir_r (const dir_path& p, bool dir)
+  rmdir_r (const dir_path& p, bool dir, bool ignore_error)
   {
     // An nftw()-based implementation (for platforms that support it)
     // might be a faster way.
@@ -121,16 +121,16 @@ namespace butl
       path ep (p / de.path ()); //@@ Would be good to reuse the buffer.
 
       if (de.ltype () == entry_type::directory)
-        rmdir_r (path_cast<dir_path> (ep));
+        rmdir_r (path_cast<dir_path> (ep), true, ignore_error);
       else
-        try_rmfile (ep);
+        try_rmfile (ep, ignore_error);
     }
 
     if (dir)
     {
       rmdir_status r (try_rmdir (p));
 
-      if (r != rmdir_status::success)
+      if (r != rmdir_status::success && !ignore_error)
         throw system_error (r == rmdir_status::not_empty ? ENOTEMPTY : ENOENT,
                             system_category ());
     }

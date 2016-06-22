@@ -10,7 +10,7 @@ namespace butl
     bool e (dir_exists (p)); //@@ What if it exists but is not a directory?
 
     if (e)
-      rmdir_r (p, ignore_error);
+      rmdir_r (p, true, ignore_error);
 
     return e ? rmdir_status::success : rmdir_status::not_exist;
   }
