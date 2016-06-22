@@ -5,15 +5,12 @@
 #include <butl/path>
 
 #ifdef _WIN32
+#  include <butl/win32-utility>
+
 #  include <stdlib.h>  // _MAX_PATH, _wgetenv()
 #  include <direct.h>  // _[w]getcwd(), _[w]chdir()
-#  ifndef WIN32_LEAN_AND_MEAN
-#    define WIN32_LEAN_AND_MEAN
-#  endif
-#  include <windows.h>  // GetTempPath*(), FormatMessageA(), LocalFree()
 #  include <shlobj.h>   // SHGetFolderPath*(), CSIDL_PROFILE
 #  include <winerror.h> // SUCCEEDED()
-#  include <memory>     // unique_ptr
 #else
 #  include <pwd.h>       // struct passwd, getpwuid_r()
 #  include <errno.h>     // EINVAL
@@ -23,6 +20,7 @@
 #  include <string.h>    // strlen(), strcpy()
 #  include <sys/stat.h>  // stat(), S_IS*
 #  include <sys/types.h> // stat
+
 #  include <vector>
 #endif
 
@@ -39,6 +37,10 @@
 #endif
 
 using namespace std;
+
+#ifdef _WIN32
+using namespace butl::win32;
+#endif
 
 namespace butl
 {
@@ -84,39 +86,7 @@ namespace butl
 #endif
   }
 
-#ifdef _WIN32
-  struct msg_deleter
-  {
-    void operator() (char* p) const {LocalFree (p);}
-  };
-
-  static string
-  error_msg (DWORD e)
-  {
-    char* msg;
-    if (!FormatMessageA (
-          FORMAT_MESSAGE_ALLOCATE_BUFFER |
-          FORMAT_MESSAGE_FROM_SYSTEM |
-          FORMAT_MESSAGE_IGNORE_INSERTS |
-          FORMAT_MESSAGE_MAX_WIDTH_MASK,
-          0,
-          e,
-          MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
-          (char*)&msg,
-          0,
-          0))
-      return "unknown error code " + to_string (e);
-
-    unique_ptr<char, msg_deleter> m (msg);
-    return msg;
-  }
-
-  inline static string
-  last_error ()
-  {
-    return error_msg (GetLastError ());
-  }
-#else
+#ifndef _WIN32
   static const char*
   temp_directory ()
   {
@@ -179,7 +149,7 @@ namespace butl
 
     if (r == 0)
     {
-      string e (last_error ());
+      string e (last_error_msg ());
       throw system_error (ENOTDIR, system_category (), e);
     }
 
@@ -301,7 +271,7 @@ namespace butl
 
     if (r == 0)
     {
-      string e (last_error ());
+      string e (last_error_msg ());
       throw system_error (ENOTDIR, system_category (), e);
     }
 #else

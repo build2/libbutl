@@ -8,10 +8,8 @@
 #  include <unistd.h>    // execvp, fork, dup2, pipe, chdir, *_FILENO, getpid
 #  include <sys/wait.h>  // waitpid
 #else
-#  ifndef WIN32_LEAN_AND_MEAN
-#    define WIN32_LEAN_AND_MEAN
-#  endif
-#  include <windows.h>   // CreatePipe(), CreateProcess()
+#  include <butl/win32-utility>
+
 #  include <io.h>        // _open_osfhandle(), _get_osfhandle(), _close()
 #  include <fcntl.h>     // _O_TEXT
 #  include <stdlib.h>    // getenv()
@@ -21,6 +19,7 @@
 #  include <memory>    // unique_ptr
 
 #  include <butl/path>
+#  include <butl/win32-utility>
 #endif
 
 #include <cassert>
@@ -28,6 +27,10 @@
 #include <butl/fdstream> // fdnull(), fdclose()
 
 using namespace std;
+
+#ifdef _WIN32
+using namespace butl::win32;
+#endif
 
 namespace butl
 {
@@ -226,38 +229,6 @@ namespace butl
 
 #else // _WIN32
 
-  struct msg_deleter
-  {
-    void operator() (char* p) const {LocalFree (p);}
-  };
-
-  static string
-  error (DWORD e)
-  {
-    char* msg;
-    if (!FormatMessageA (
-          FORMAT_MESSAGE_ALLOCATE_BUFFER |
-          FORMAT_MESSAGE_FROM_SYSTEM |
-          FORMAT_MESSAGE_IGNORE_INSERTS |
-          FORMAT_MESSAGE_MAX_WIDTH_MASK,
-          0,
-          e,
-          MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
-          (char*)&msg,
-          0,
-          0))
-      return "unknown error code " + to_string (e);
-
-    unique_ptr<char, msg_deleter> m (msg);
-    return msg;
-  }
-
-  static inline string
-  last_error ()
-  {
-    return error (GetLastError ());
-  }
-
   static path
   path_search (const path& f)
   {
@@ -383,7 +354,7 @@ namespace butl
 
     auto fail = [](const char* m = nullptr)
     {
-      throw process_error (m == nullptr ? last_error () : m);
+      throw process_error (m == nullptr ? last_error_msg () : m);
     };
 
     // Create a pipe and clear the inherit flag on the parent side.
@@ -605,7 +576,7 @@ namespace butl
       handle = 0; // We have tried.
 
       if (e != NO_ERROR)
-        throw process_error (error (e));
+        throw process_error (error_msg (e));
 
       status = s;
     }
@@ -631,7 +602,7 @@ namespace butl
       handle = 0; // We have tried.
 
       if (e != NO_ERROR)
-        throw process_error (error (e));
+        throw process_error (error_msg (e));
 
       status = s;
     }

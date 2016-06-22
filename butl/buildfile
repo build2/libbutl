@@ -2,26 +2,27 @@
 # copyright : Copyright (c) 2014-2016 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
-lib{butl}:                        \
-{hxx         cxx}{ base64       } \
-{hxx         cxx}{ char-scanner } \
-{hxx         cxx}{ fdstream     } \
-{hxx ixx     cxx}{ filesystem   } \
-{hxx            }{ multi-index  } \
-{hxx            }{ optional     } \
-{hxx         cxx}{ pager        } \
-{hxx ixx txx cxx}{ path         } \
-{hxx            }{ path-io      } \
-{hxx            }{ path-map     } \
-{hxx     txx    }{ prefix-map   } \
-{hxx ixx     cxx}{ process      } \
-{hxx         cxx}{ sha256       } \
-{hxx     txx    }{ string-table } \
-{hxx         cxx}{ timestamp    } \
-{hxx         cxx}{ triplet      } \
-{hxx            }{ utility      } \
-{hxx            }{ vector-view  } \
-{hxx            }{ version      }
+lib{butl}:                         \
+{hxx         cxx}{ base64        } \
+{hxx         cxx}{ char-scanner  } \
+{hxx         cxx}{ fdstream      } \
+{hxx ixx     cxx}{ filesystem    } \
+{hxx            }{ multi-index   } \
+{hxx            }{ optional      } \
+{hxx         cxx}{ pager         } \
+{hxx ixx txx cxx}{ path          } \
+{hxx            }{ path-io       } \
+{hxx            }{ path-map      } \
+{hxx     txx    }{ prefix-map    } \
+{hxx ixx     cxx}{ process       } \
+{hxx         cxx}{ sha256        } \
+{hxx     txx    }{ string-table  } \
+{hxx         cxx}{ timestamp     } \
+{hxx         cxx}{ triplet       } \
+{hxx            }{ utility       } \
+{hxx            }{ vector-view   } \
+{hxx            }{ version       } \
+{hxx         cxx}{ win32-utility }
 
 # This one is included into sha256.cxx so treat it as file to exclude
 # from the compilation.

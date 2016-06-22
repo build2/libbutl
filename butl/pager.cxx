@@ -11,11 +11,8 @@
 #  include <chrono>
 #  include <thread> // this_thread::sleep_for()
 #else
-#  ifndef WIN32_LEAN_AND_MEAN
-#    define WIN32_LEAN_AND_MEAN
-#  endif
-#  include <windows.h>  // GetConsoleScreenBufferInfo(), GetStdHandle(),
-                        // Sleep()
+#  include <butl/win32-utility>
+
 #  include <io.h>       // _close()
 #endif
 

@@ -4,17 +4,22 @@
 
 #include <butl/filesystem>
 
+#ifndef _WIN32
+#  include <dirent.h> // struct dirent, *dir()
+#  include <unistd.h> // symlink(), link()
+#else
+#  include <butl/win32-utility>
+
+#  include <io.h>       // _find*()
+#  include <direct.h>   // _mkdir()
+
+#  include <cassert>
+#endif
+
 #include <errno.h>     // errno, E*
 #include <unistd.h>    // stat, rmdir(), unlink()
 #include <sys/types.h> // stat
 #include <sys/stat.h>  // stat(), lstat(), S_IS*, mkdir()
-
-#ifndef _WIN32
-#  include <dirent.h> // struct dirent, *dir()
-#else
-#  include <io.h>     // _find*()
-#  include <direct.h> // _mkdir()
-#endif
 
 #include <memory>       // unique_ptr
 #include <system_error>
@@ -151,6 +156,48 @@ namespace butl
 
     return r;
   }
+
+#ifndef _WIN32
+  void
+  mksymlink (const path& target, const path& link, bool)
+  {
+    if (symlink (target.string ().c_str (), link.string ().c_str ()) == -1)
+      throw system_error (errno, system_category ());
+  }
+
+  void
+  mkhardlink (const path& target, const path& link, bool)
+  {
+    if (::link (target.string ().c_str (), link.string ().c_str ()) == -1)
+      throw system_error (errno, system_category ());
+  }
+
+#else
+
+  void
+  mksymlink (const path&, const path&, bool)
+  {
+    throw system_error (ENOSYS, system_category (), "symlinks not supported");
+  }
+
+  void
+  mkhardlink (const path& target, const path& link, bool dir)
+  {
+    if (!dir)
+    {
+      if (!CreateHardLinkA (link.string ().c_str (),
+                            target.string ().c_str (),
+                            nullptr))
+      {
+        string e (win32::last_error_msg ());
+        throw system_error (EIO, system_category (), e);
+      }
+    }
+    else
+      throw system_error (
+        ENOSYS, system_category (), "directory hard links not supported");
+  }
+#endif
 
   // Figuring out whether we have the nanoseconds in struct stat. Some
   // platforms (e.g., FreeBSD), may provide some "compatibility" #define's,

@@ -120,6 +120,41 @@ namespace butl
   using auto_rmfile = auto_rm<path>;
   using auto_rmdir = auto_rm<dir_path>; // Note: recursive (rm_r).
 
+  // Create a symbolic link to a file (default) or directory (third argument
+  // is true). Throw std::system_error on failures.
+  //
+  // Note that Windows symlinks are currently not supported.
+  //
+  void
+  mksymlink (const path& target, const path& link, bool dir = false);
+
+  // Create a symbolic link to a directory. Throw std::system_error on
+  // failures.
+  //
+  inline void
+  mksymlink (const dir_path& target, const dir_path& link)
+  {
+    mksymlink (target, link, true);
+  }
+
+  // Create a hard link to a file (default) or directory (third argument is
+  // true). Throw std::system_error on failures.
+  //
+  // Note that on Linix, FreeBSD and some other platforms the target can not
+  // be a directory. While Windows support directories (via junktions), this
+  // is currently not implemented.
+  //
+  void
+  mkhardlink (const path& target, const path& link, bool dir = false);
+
+  // Create a hard link to a directory. Throw std::system_error on failures.
+  //
+  inline void
+  mkhardlink (const dir_path& target, const dir_path& link)
+  {
+    mkhardlink (target, link, true);
+  }
+
   // Return timestamp_nonexistent if the entry at the specified path
   // does not exist or is not a path. All other errors are reported
   // by throwing std::system_error. Note that this function resolves

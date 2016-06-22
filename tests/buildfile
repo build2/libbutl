@@ -2,7 +2,7 @@
 # copyright : Copyright (c) 2014-2016 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
-d = base64/ dir-iterator/ pager/ path/ prefix-map/ process/ sha256/ \
+d = base64/ dir-iterator/ link/ pager/ path/ prefix-map/ process/ sha256/ \
     timestamp/ triplet/
 
 .: $d
