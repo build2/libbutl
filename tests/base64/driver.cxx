@@ -23,6 +23,13 @@ encode (const string& i, const string& o)
   if (r)
   {
     is.seekg (0);
+
+    // VC 19 seekg() doesn't clear eofbit.
+    //
+#if defined(_MSC_VER) && _MSC_VER <= 1900
+    is.clear ();
+#endif
+
     ostringstream os;
     base64_encode (os, is);
     r = os.str () == o && is.eof ();

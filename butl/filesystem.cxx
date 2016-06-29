@@ -5,34 +5,45 @@
 #include <butl/filesystem>
 
 #ifndef _WIN32
-#  include <dirent.h> // struct dirent, *dir()
-#  include <unistd.h> // symlink(), link()
+#  include <dirent.h>    // struct dirent, *dir()
+#  include <unistd.h>    // symlink(), link(), stat(), rmdir(), unlink()
+#  include <sys/types.h> // stat
+#  include <sys/stat.h>  // stat(), lstat(), S_IS*, mkdir()
 #else
 #  include <butl/win32-utility>
 
-#  include <io.h>       // _find*()
-#  include <direct.h>   // _mkdir()
+#  include <io.h>        // _find*(), _unlink()
+#  include <direct.h>    // _mkdir(), _rmdir()
+#  include <sys/types.h> // _stat
+#  include <sys/stat.h>  // _stat(), S_IF*
 
 #  include <cassert>
 #endif
 
-#include <errno.h>     // errno, E*
-#include <unistd.h>    // stat, rmdir(), unlink()
-#include <sys/types.h> // stat
-#include <sys/stat.h>  // stat(), lstat(), S_IS*, mkdir()
+#include <errno.h> // errno, E*
 
 #include <memory>       // unique_ptr
 #include <system_error>
 
 using namespace std;
 
+#ifdef _MSC_VER // Unlikely to be fixed in newer versions.
+#  define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#  define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#endif
+
 namespace butl
 {
   bool
   dir_exists (const path& p)
   {
+#ifndef _WIN32
     struct stat s;
     if (stat (p.string ().c_str (), &s) != 0)
+#else
+    struct _stat s;
+    if (_stat (p.string ().c_str (), &s) != 0)
+#endif
     {
       if (errno == ENOENT || errno == ENOTDIR)
         return false;
@@ -46,8 +57,13 @@ namespace butl
   bool
   file_exists (const path& p)
   {
+#ifndef _WIN32
     struct stat s;
     if (stat (p.string ().c_str (), &s) != 0)
+#else
+    struct _stat s;
+    if (_stat (p.string ().c_str (), &s) != 0)
+#endif
     {
       if (errno == ENOENT || errno == ENOTDIR)
         return false;
@@ -102,7 +118,11 @@ namespace butl
   {
     rmdir_status r (rmdir_status::success);
 
+#ifndef _WIN32
     if (rmdir (p.string ().c_str ()) != 0)
+#else
+    if (_rmdir (p.string ().c_str ()) != 0)
+#endif
     {
       if (errno == ENOENT)
         r = rmdir_status::not_exist;
@@ -146,7 +166,11 @@ namespace butl
   {
     rmfile_status r (rmfile_status::success);
 
+#ifndef _WIN32
     if (unlink (p.string ().c_str ()) != 0)
+#else
+    if (_unlink (p.string ().c_str ()) != 0)
+#endif
     {
       if (errno == ENOENT || errno == ENOTDIR)
         r = rmfile_status::not_exist;

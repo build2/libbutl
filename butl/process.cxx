@@ -32,6 +32,15 @@ using namespace std;
 using namespace butl::win32;
 #endif
 
+#ifdef _MSC_VER // Unlikely to be fixed in newer versions.
+#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#  define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+
+#  define STDIN_FILENO  0
+#  define STDOUT_FILENO 1
+#  define STDERR_FILENO 2
+#endif // _MSC_VER
+
 namespace butl
 {
   class auto_fd

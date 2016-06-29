@@ -5,12 +5,19 @@
 #ifndef BUTL_FILESYSTEM
 #define BUTL_FILESYSTEM
 
-#include <sys/types.h> // mode_t
-
 #ifndef _WIN32
 #  include <dirent.h> // DIR
 #else
 #  include <stddef.h> // intptr_t
+#endif
+
+// VC's sys/types.h header file doesn't define mode_t type. So let's define it
+// ourselves according to the POSIX specification.
+//
+#ifndef _MSC_VER
+#  include <sys/types.h> // mode_t
+#else
+   typedef int mode_t;
 #endif
 
 #include <cstddef>  // ptrdiff_t
