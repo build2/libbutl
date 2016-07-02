@@ -7,6 +7,10 @@
 
 #include <istream>
 #include <ostream>
+#include <cstdint> // uint16_t
+
+#include <butl/path>
+#include <butl/filesystem>  // permissions
 
 namespace butl
 {
@@ -73,7 +77,7 @@ namespace butl
 
   private:
     int fd_ = -1;
-    char buf_[2048];
+    char buf_[4096];
   };
 
   // File descriptor translation mode. It has the same semantics as the
@@ -129,6 +133,49 @@ namespace butl
     bool is_open () const {return buf_.is_open ();}
   };
 
+  // File open flags.
+  //
+  enum class fdopen_mode: std::uint16_t
+  {
+    in         = 0x01, // Open for reading.
+    out        = 0x02, // Open for writing.
+    append     = 0x04, // Seek to the end of file before each write.
+    truncate   = 0x08, // Discard the file contents on open.
+    create     = 0x10, // Create a file if not exists.
+    exclusive  = 0x20, // Fail if the file exists and the create flag is set.
+    binary     = 0x40, // Set binary translation mode.
+
+    none = 0           // Usefull when build the mode incrementally.
+  };
+
+  fdopen_mode operator& (fdopen_mode, fdopen_mode);
+  fdopen_mode operator| (fdopen_mode, fdopen_mode);
+  fdopen_mode operator&= (fdopen_mode&, fdopen_mode);
+  fdopen_mode operator|= (fdopen_mode&, fdopen_mode);
+
+  // Open a file returning the file descriptor on success and throwing
+  // std::system_error otherwise.
+  //
+  // The mode argument should have at least one of the in or out flags set.
+  // The append and truncate flags are meaningless in the absense of the out
+  // flag and are ignored without it. The exclusive flag is meaningless in the
+  // absense of the create flag and is ignored without it. Note also that if
+  // the exclusive flag is specified then a dangling symbolic link is treated
+  // as an existing file.
+  //
+  // The permissions argument is taken into account only if the file is
+  // created. Note also that permissions can be adjusted while being set in a
+  // way specific for the OS. On POSIX systems they are modified with the
+  // process' umask, so effective permissions are permissions & ~umask. On
+  // Windows permissions other than ru and wu are unlikelly to have effect.
+  //
+  int
+  fdopen (const path&,
+          fdopen_mode,
+          permissions = permissions::ru | permissions::wu |
+                        permissions::rg | permissions::wg |
+                        permissions::ro | permissions::wo);
+
   // Set the translation mode for the file descriptor. Return the previous
   // mode on success, throw std::system_error otherwise.
   //
@@ -160,5 +207,7 @@ namespace butl
   int
   fdnull () noexcept;
 }
+
+#include <butl/fdstream.ixx>
 
 #endif // BUTL_FDSTREAM

@@ -8,22 +8,22 @@
 #  include <dirent.h>    // struct dirent, *dir()
 #  include <unistd.h>    // symlink(), link(), stat(), rmdir(), unlink()
 #  include <sys/types.h> // stat
-#  include <sys/stat.h>  // stat(), lstat(), S_IS*, mkdir()
+#  include <sys/stat.h>  // stat(), lstat(), S_I*, mkdir(), chmod()
 #else
 #  include <butl/win32-utility>
 
-#  include <io.h>        // _find*(), _unlink()
+#  include <io.h>        // _find*(), _unlink(), _chmod()
 #  include <direct.h>    // _mkdir(), _rmdir()
 #  include <sys/types.h> // _stat
-#  include <sys/stat.h>  // _stat(), S_IF*
-
-#  include <cassert>
+#  include <sys/stat.h>  // _stat(), S_I*
 #endif
 
 #include <errno.h> // errno, E*
 
 #include <memory>       // unique_ptr
 #include <system_error>
+
+#include <butl/fdstream>
 
 using namespace std;
 
@@ -223,6 +223,68 @@ namespace butl
   }
 #endif
 
+  void
+  cpfile (const path& from, const path& to, cpflags fl)
+  {
+    permissions perm (path_permissions (from));
+
+    // We do not enable exceptions to be thrown when badbit/failbit are set for
+    // the ifs stream nor check the bits manually down the road as there is no
+    // input functions being called for the stream. Input functions are called
+    // directly for the input stream buffer, which is our fdbuf that throws.
+    //
+    ifdstream ifs (fdopen (from, fdopen_mode::in | fdopen_mode::binary));
+
+    fdopen_mode om (fdopen_mode::out      |
+                    fdopen_mode::truncate |
+                    fdopen_mode::create   |
+                    fdopen_mode::binary);
+
+    if ((fl & cpflags::overwrite_content) != cpflags::overwrite_content)
+      om |= fdopen_mode::exclusive;
+
+    // Create prior to the output file stream creation so that the file is
+    // removed after it is closed.
+    //
+    auto_rmfile rm;
+
+    ofdstream ofs (fdopen (to, om, perm));
+    rm = auto_rmfile (to);
+
+    // Setting badbit for the ofs stream is the only way to make sure the
+    // original std::system_error, that is thrown on the output operation
+    // failure, is retrown by the output stream's operator<<() and flush()
+    // calls (the latter is called from close()). Note that both of the
+    // functions behave as UnformattedOutputFunction.
+    //
+    ofs.exceptions (ofdstream::badbit);
+
+    // If the output operation ends up with the badbit set for a reason other
+    // than std::system_error being thrown (by fdbuf), then ofdstream::failure
+    // will be thrown instead. We need to convert it to std::system_error to
+    // comply with the cpfile() interface specification.
+    //
+    try
+    {
+      // Throws std::system_error on fdbuf read/write failures.
+      //
+      ofs << ifs.rdbuf ();
+
+      ifs.close ();
+      ofs.close (); // Throws std::system_error on flush failure.
+    }
+    catch (const ofdstream::failure& e)
+    {
+      throw system_error (EIO, system_category (), e.what ());
+    }
+
+    if ((fl & cpflags::overwrite_permissions) ==
+        cpflags::overwrite_permissions)
+      path_permissions (to, perm);
+
+    rm.cancel ();
+  }
+
   // Figuring out whether we have the nanoseconds in struct stat. Some
   // platforms (e.g., FreeBSD), may provide some "compatibility" #define's,
   // so use the second argument to not end up with the same signatures.
@@ -255,8 +317,13 @@ namespace butl
   timestamp
   file_mtime (const path& p)
   {
+#ifndef _WIN32
     struct stat s;
     if (stat (p.string ().c_str (), &s) != 0)
+#else
+    struct _stat s;
+    if (_stat (p.string ().c_str (), &s) != 0)
+#endif
     {
       if (errno == ENOENT || errno == ENOTDIR)
         return timestamp_nonexistent;
@@ -274,8 +341,13 @@ namespace butl
   permissions
   path_permissions (const path& p)
   {
+#ifndef _WIN32
     struct stat s;
     if (stat (p.string ().c_str (), &s) != 0)
+#else
+    struct _stat s;
+    if (_stat (p.string ().c_str (), &s) != 0)
+#endif
       throw system_error (errno, system_category ());
 
     // VC++ has no S_IRWXU defined. MINGW GCC <= 4.9 has no S_IRWXG, S_IRWXO
@@ -297,6 +369,29 @@ namespace butl
 #endif
 
     return static_cast<permissions> (s.st_mode & f);
+  }
+
+  void
+  path_permissions (const path& p, permissions f)
+  {
+    mode_t m (S_IREAD | S_IWRITE | S_IEXEC);
+
+#ifdef S_IRWXG
+    m |= S_IRWXG;
+#endif
+
+#ifdef S_IRWXO
+    m |= S_IRWXO;
+#endif
+
+    m &= static_cast<mode_t> (f);
+
+#ifndef _WIN32
+    if (chmod (p.string ().c_str (), m) == -1)
+#else
+    if (_chmod (p.string ().c_str (), m) == -1)
+#endif
+      throw system_error (errno, system_category ());
   }
 
   // dir_{entry,iterator}

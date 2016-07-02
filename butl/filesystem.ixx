@@ -46,6 +46,24 @@ namespace butl
   inline auto_rm<dir_path>::
   ~auto_rm () {if (!path_.empty ()) try_rmdir_r (path_, true);}
 
+  // cpflags
+  //
+  inline cpflags operator& (cpflags x, cpflags y) {return x &= y;}
+  inline cpflags operator| (cpflags x, cpflags y) {return x |= y;}
+  inline cpflags operator&= (cpflags& x, cpflags y)
+  {
+    return x = static_cast<cpflags> (
+      static_cast<std::uint16_t> (x) &
+      static_cast<std::uint16_t> (y));
+  }
+
+  inline cpflags operator|= (cpflags& x, cpflags y)
+  {
+    return x = static_cast<cpflags> (
+      static_cast<std::uint16_t> (x) |
+      static_cast<std::uint16_t> (y));
+  }
+
   // permissions
   //
   inline permissions operator& (permissions x, permissions y) {return x &= y;}

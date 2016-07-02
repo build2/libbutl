@@ -5,13 +5,15 @@
 #include <butl/fdstream>
 
 #ifndef _WIN32
-#  include <fcntl.h>  // open(), O_RDWR
-#  include <unistd.h> // close(), read(), write()
+#  include <fcntl.h>    // open(), O_*
+#  include <unistd.h>   // close(), read(), write()
+#  include <sys/stat.h> // S_I*
 #else
-#  include <io.h>     // _close(), _read(), _write(), _setmode(), _sopen()
-#  include <share.h>  // _SH_DENYNO
-#  include <stdio.h>  // _fileno(), stdin, stdout, stderr
-#  include <fcntl.h>  // _O_BINARY, _O_TEXT
+#  include <io.h>       // _close(), _read(), _write(), _setmode(), _sopen()
+#  include <share.h>    // _SH_DENYNO
+#  include <stdio.h>    // _fileno(), stdin, stdout, stderr
+#  include <fcntl.h>    // _O_*
+#  include <sys/stat.h> // S_I*
 #endif
 
 #include <system_error>
@@ -147,6 +149,122 @@ namespace butl
 
   // Utility functions
   //
+  int
+  fdopen (const path& f, fdopen_mode m, permissions p)
+  {
+    mode_t pf (S_IREAD | S_IWRITE | S_IEXEC);
+
+#ifdef S_IRWXG
+    pf |= S_IRWXG;
+#endif
+
+#ifdef S_IRWXO
+    pf |= S_IRWXO;
+#endif
+
+    pf &= static_cast<mode_t> (p);
+
+    // Return true if the open mode contains a specific flag.
+    //
+    auto mode = [m](fdopen_mode flag) -> bool {return (m & flag) == flag;};
+
+    int of (0);
+    bool in (mode (fdopen_mode::in));
+    bool out (mode (fdopen_mode::out));
+
+#ifndef _WIN32
+
+    if (in && out)
+      of |= O_RDWR;
+    else if (in)
+      of |= O_RDONLY;
+    else if (out)
+      of |= O_WRONLY;
+
+    if (out)
+    {
+      if (mode (fdopen_mode::append))
+        of |= O_APPEND;
+
+      if (mode (fdopen_mode::truncate))
+        of |= O_TRUNC;
+    }
+
+    if (mode (fdopen_mode::create))
+    {
+      of |= O_CREAT;
+
+      if (mode (fdopen_mode::exclusive))
+        of |= O_EXCL;
+    }
+
+#ifdef O_LARGEFILE
+    of |= O_LARGEFILE;
+#endif
+
+    int fd (open (f.string ().c_str (), of, pf));
+
+#else
+
+    if (in && out)
+      of |= _O_RDWR;
+    else if (in)
+      of |= _O_RDONLY;
+    else if (out)
+      of |= _O_WRONLY;
+
+    if (out)
+    {
+      if (mode (fdopen_mode::append))
+        of |= _O_APPEND;
+
+      if (mode (fdopen_mode::truncate))
+        of |= _O_TRUNC;
+    }
+
+    if (mode (fdopen_mode::create))
+    {
+      of |= _O_CREAT;
+
+      if (mode (fdopen_mode::exclusive))
+        of |= _O_EXCL;
+    }
+
+    of |= mode (fdopen_mode::binary) ? _O_BINARY : _O_TEXT;
+
+    // According to Microsoft _sopen() should not change the permissions of an
+    // existing file. Meanwhile it does if we pass them (reproduced on Windows
+    // XP, 7, and 8). And we must pass them if we have _O_CREATE. So we need
+    // to take care of preserving the permissions ourselves. Note that Wine's
+    // implementation of _sopen() works properly.
+    //
+    bool pass_perm (of & _O_CREAT);
+
+    if (pass_perm && file_exists (f))
+    {
+      // If the _O_CREAT flag is set then we need to clear it so that we can
+      // omit the permissions. But if the _O_EXCL flag is set as well we can't
+      // do that as fdopen() wouldn't fail as expected.
+      //
+      if (of & _O_EXCL)
+        throw system_error (EEXIST, system_category ());
+
+      of &= ~_O_CREAT;
+      pass_perm = false;
+    }
+
+    int fd (pass_perm
+            ? _sopen (f.string ().c_str (), of, _SH_DENYNO, pf)
+            : _sopen (f.string ().c_str (), of, _SH_DENYNO));
+
+#endif
+
+    if (fd == -1)
+      throw system_error (errno, system_category ());
+
+    return fd;
+  }
+
 #ifndef _WIN32
 
   bool

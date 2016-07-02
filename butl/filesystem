@@ -162,6 +162,47 @@ namespace butl
     mkhardlink (target, link, true);
   }
 
+  // File copy flags.
+  //
+  enum class cpflags: std::uint16_t
+  {
+    overwrite_content     = 0x1,
+    overwrite_permissions = 0x2,
+
+    none = 0
+  };
+
+  cpflags operator& (cpflags, cpflags);
+  cpflags operator| (cpflags, cpflags);
+  cpflags operator&= (cpflags&, cpflags);
+  cpflags operator|= (cpflags&, cpflags);
+
+  // Copy a regular file, including its permissions. Throw std::system_error
+  // on failure. Fail if the destination file exists and the overwrite_content
+  // flag is not set. Leave permissions of an existing destination file intact
+  // unless the overwrite_permissions flag is set. Delete incomplete copies
+  // before throwing.
+  //
+  // Note that in case of overwriting, the existing destination file gets
+  // truncated (not deleted) prior to being overwritten. As a side-effect,
+  // hard link to the destination file will still reference the same file
+  // system node after the copy.
+  //
+  // Also note that if the overwrite_content flag is not set and the
+  // destination is a dangling symbolic link, then this function will still
+  // fail.
+  //
+  void
+  cpfile (const path& from, const path& to, cpflags = cpflags::none);
+
+  // Copy a regular file to an existing directory.
+  //
+  inline void
+  cpfile (const path& from, const dir_path& to, cpflags fl = cpflags::none)
+  {
+    cpfile (from, to / from.leaf (), fl);
+  }
+
   // Return timestamp_nonexistent if the entry at the specified path
   // does not exist or is not a path. All other errors are reported
   // by throwing std::system_error. Note that this function resolves
@@ -196,8 +237,17 @@ namespace butl
   permissions operator&= (permissions&, permissions);
   permissions operator|= (permissions&, permissions);
 
+  // Get path permissions. Throw std::system_error on failure. Note that this
+  // function resolves symlinks.
+  //
   permissions
   path_permissions (const path&);
+
+  // Set path permissions. Throw std::system_error on failure. Note that this
+  // function resolves symlinks.
+  //
+  void
+  path_permissions (const path&, permissions);
 
   // Directory entry iteration.
   //
