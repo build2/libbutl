@@ -49,7 +49,7 @@ namespace butl
   // permissions
   //
   inline permissions operator& (permissions x, permissions y) {return x &= y;}
-  inline permissions operator| (permissions x, permissions y) {return x &= y;}
+  inline permissions operator| (permissions x, permissions y) {return x |= y;}
   inline permissions operator&= (permissions& x, permissions y)
   {
     return x = static_cast<permissions> (
