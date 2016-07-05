@@ -122,7 +122,7 @@ namespace butl
     ofdstream (int fd, fdtranslate m)
         : fdstream_base (fd, m), std::ostream (&buf_) {}
 
-    ~ofdstream () override {if (is_open ()) buf_.sync ();}
+    ~ofdstream () override {if (is_open () && good ()) buf_.sync ();}
 
     void close () {flush (); buf_.close ();}
     void open (int fd) {buf_.open (fd);}
