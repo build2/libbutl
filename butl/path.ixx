@@ -233,4 +233,19 @@ namespace butl
     return string ();
   }
 #endif
+
+  template <typename C, typename K>
+  inline void basic_path<C, K>::
+  combine (const C* r, size_type rn)
+  {
+    size_type ln (this->path_.size ());
+
+    if (ln != 0 && rn != 0)
+    {
+      if (!traits::is_separator (this->path_[ln - 1]))
+        this->path_ += traits::directory_separator;
+    }
+
+    this->path_.append (r, rn);
+  }
 }

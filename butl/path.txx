@@ -61,16 +61,31 @@ namespace butl
     if (r.absolute () && !this->path_.empty ()) // Allow ('' / '/foo').
       throw invalid_basic_path<C> (r.path_);
 
-    if (this->path_.empty () || r.path_.empty ())
-    {
-      this->path_ += r.path_;
-      return *this;
-    }
+    combine (r.path_.c_str (), r.path_.size ());
+    return *this;
+  }
 
-    if (!traits::is_separator (this->path_[this->path_.size () - 1]))
-      this->path_ += traits::directory_separator;
+  template <typename C, typename K>
+  basic_path<C, K>& basic_path<C, K>::
+  operator/= (string_type const& r)
+  {
+    if (traits::find_separator (r) != string_type::npos)
+      throw invalid_basic_path<C> (r);
 
-    this->path_ += r.path_;
+    combine (r.c_str (), r.size ());
+    return *this;
+  }
+
+  template <typename C, typename K>
+  basic_path<C, K>& basic_path<C, K>::
+  operator/= (const C* r)
+  {
+    size_type rn (string_type::traits_type::length (r));
+
+    if (traits::find_separator (r, rn) != nullptr)
+      throw invalid_basic_path<C> (r);
+
+    combine (r, rn);
     return *this;
   }
 

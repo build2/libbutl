@@ -74,13 +74,20 @@ namespace butl
     static size_type
     find_separator (string_type const& s, size_type pos = 0)
     {
-      for (size_type n (s.size ()); pos < n; ++pos)
+      const C* r (find_separator (s.c_str () + pos, s.size () - pos));
+      return r != nullptr ? r - s.c_str () : string_type::npos;
+    }
+
+    static const C*
+    find_separator (const C* s, size_type n)
+    {
+      for (const C* e (s + n); s != e; ++s)
       {
-        if (is_separator (s[pos]))
-          return pos;
+        if (is_separator (*s))
+          return s;
       }
 
-      return string_type::npos;
+      return nullptr;
     }
 
     static size_type
@@ -360,10 +367,10 @@ namespace butl
 
   public:
     bool
-    empty () const
-    {
-      return this->path_.empty ();
-    }
+    empty () const {return this->path_.empty ();}
+
+    size_type
+    size () const {return this->path_.size ();}
 
     // Return true if this path doesn't have any directories. Note
     // that "/foo" is not a simple path (it is "foo" in root directory)
@@ -562,8 +569,23 @@ namespace butl
     basic_path&
     operator/= (basic_path const&);
 
+    // Append a single path component (must not contain directory separators)
+    // as a string, without first constructing the path object.
+    //
+    basic_path&
+    operator/= (string_type const&);
+
+    basic_path&
+    operator/= (const C*);
+
     basic_path
     operator+ (string_type const& s) const
+    {
+      return basic_path (this->path_ + s);
+    }
+
+    basic_path
+    operator+ (const C* s) const
     {
       return basic_path (this->path_ + s);
     }
@@ -576,6 +598,13 @@ namespace butl
 
     basic_path&
     operator+= (string_type const& s)
+    {
+      this->path_ += s;
+      return *this;
+    }
+
+    basic_path&
+    operator+= (const C* s)
     {
       this->path_ += s;
       return *this;
@@ -622,6 +651,11 @@ namespace butl
         init (this->path_);
     }
 
+    // Common implementation for operator=/().
+    //
+    void
+    combine (const C*, size_type);
+
   private:
     template <class P, class C1, class K1>
     friend P butl::path_cast (const basic_path<C1, K1>&);
@@ -642,6 +676,24 @@ namespace butl
   template <typename C, typename K>
   inline basic_path<C, K>
   operator/ (basic_path<C, K> const& x, basic_path<C, K> const& y)
+  {
+    basic_path<C, K> r (x);
+    r /= y;
+    return r;
+  }
+
+  template <typename C, typename K>
+  inline basic_path<C, K>
+  operator/ (basic_path<C, K> const& x, std::basic_string<C> const& y)
+  {
+    basic_path<C, K> r (x);
+    r /= y;
+    return r;
+  }
+
+  template <typename C, typename K>
+  inline basic_path<C, K>
+  operator/ (basic_path<C, K> const& x, const C* y)
   {
     basic_path<C, K> r (x);
     r /= y;
