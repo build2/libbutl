@@ -5,5 +5,5 @@
 d = base64/ cpfile/ dir-iterator/ fdstream/ link/ pager/ path/ prefix-map/ \
     process/ sha256/ timestamp/ triplet/
 
-.: $d
+./: $d
 include $d
