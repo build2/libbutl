@@ -5,24 +5,37 @@
 #ifndef BUTL_FDSTREAM
 #define BUTL_FDSTREAM
 
+#include <string>
 #include <istream>
 #include <ostream>
 #include <cstdint> // uint16_t
 
 #include <butl/path>
-#include <butl/filesystem>  // permissions
+#include <butl/filesystem> // permissions
 
 namespace butl
 {
-  // An iostream that is initialized with a file descriptor rather than
-  // a file name.
+  // An [io]fstream that can be initialized with a file descriptor in addition
+  // to a file name and that also by default enables exceptions on badbit and
+  // failbit. So instead of a dance like this:
+  //
+  // ifstream ifs;
+  // ifs.exceptions (ifstream::badbit | ifstream::failbit);
+  // ifs.open (path.string ());
+  //
+  // You can simply do:
+  //
+  // ifdstream ifs (path);
   //
   // Notes and limitations:
   //
   // - char only
   // - input or output but not both
   // - no support for put back
-  // - throws std::system_error in case of a read()/write() error
+  // - throws ios::failure in case of open()/read()/write()/close() errors
+  // - exception mask has at least badbit
+  // - after catching an exception caused by badbit the stream is no longer
+  //   used
   // - not movable, though can be easily supported
   //
   class fdbuf: public std::basic_streambuf<char>
@@ -80,60 +93,30 @@ namespace butl
     char buf_[4096];
   };
 
-  // File descriptor translation mode. It has the same semantics as the
-  // binary/text opening modes in std::fstream. Specifically, this is a
-  // noop for POSIX systems where the two modes are the same.
+  // File stream mode.
   //
-  enum class fdtranslate
-  {
-    text,
-    binary
-  };
-
-  class fdstream_base
-  {
-  protected:
-    fdstream_base () = default;
-    fdstream_base (int fd): buf_ (fd) {}
-    fdstream_base (int, fdtranslate);
-
-  protected:
-    fdbuf buf_;
-  };
-
-  // Note that the destructor may throw.
+  // The text/binary flags have the same semantics as those in std::fstream.
+  // Specifically, this is a noop for POSIX systems where the two modes are
+  // the same.
   //
-  class ifdstream: fdstream_base, public std::istream
-  {
-  public:
-    ifdstream (): std::istream (&buf_) {}
-    ifdstream (int fd): fdstream_base (fd), std::istream (&buf_) {}
-    ifdstream (int fd, fdtranslate m)
-        : fdstream_base (fd, m), std::istream (&buf_) {}
-
-    void close () {buf_.close ();}
-    void open (int fd) {buf_.open (fd);}
-    bool is_open () const {return buf_.is_open ();}
-  };
-
-  // Note that the destructor flushes the stream and may throw.
+  // The skip flag instructs the stream to skip to the end before closing the
+  // file descriptor. This is primarily useful when working with pipes where
+  // you may want not to "offend" the other end by closing your end before
+  // reading all the data.
   //
-  class ofdstream: fdstream_base, public std::ostream
+  enum class fdstream_mode: std::uint16_t
   {
-  public:
-    ofdstream (): std::ostream (&buf_) {}
-    ofdstream (int fd): fdstream_base (fd), std::ostream (&buf_) {}
-    ofdstream (int fd, fdtranslate m)
-        : fdstream_base (fd, m), std::ostream (&buf_) {}
-
-    ~ofdstream () override {if (is_open () && good ()) buf_.sync ();}
-
-    void close () {flush (); buf_.close ();}
-    void open (int fd) {buf_.open (fd);}
-    bool is_open () const {return buf_.is_open ();}
+    text   = 0x01,
+    binary = 0x02,
+    skip   = 0x04
   };
 
-  // File open flags.
+  fdstream_mode operator& (fdstream_mode, fdstream_mode);
+  fdstream_mode operator| (fdstream_mode, fdstream_mode);
+  fdstream_mode operator&= (fdstream_mode&, fdstream_mode);
+  fdstream_mode operator|= (fdstream_mode&, fdstream_mode);
+
+  // Extended (compared to ios::openmode) file open flags.
   //
   enum class fdopen_mode: std::uint16_t
   {
@@ -144,6 +127,7 @@ namespace butl
     create     = 0x10, // Create a file if not exists.
     exclusive  = 0x20, // Fail if the file exists and the create flag is set.
     binary     = 0x40, // Set binary translation mode.
+    at_end     = 0x80, // Seek to the end of stream immediately after open.
 
     none = 0           // Usefull when build the mode incrementally.
   };
@@ -153,8 +137,218 @@ namespace butl
   fdopen_mode operator&= (fdopen_mode&, fdopen_mode);
   fdopen_mode operator|= (fdopen_mode&, fdopen_mode);
 
+  class fdstream_base
+  {
+  protected:
+    fdstream_base () = default;
+    fdstream_base (int fd): buf_ (fd) {}
+    fdstream_base (int, fdstream_mode);
+
+  protected:
+    fdbuf buf_;
+  };
+
+  // iofdstream constructors and open() functions that take openmode as an
+  // argument mimic the corresponding iofstream functions in terms of the
+  // openmode mask interpretation. They throw std::invalid_argument for an
+  // invalid combination of flags (as per the standard). Note that the in and
+  // out flags are always added implicitly for ifdstream and ofdstream,
+  // respectively.
+  //
+  // iofdstream constructors and open() functions that take fdopen_mode as an
+  // argument interpret the mask literally just ignoring some flags which are
+  // meaningless in the absense of others (read more on that in the comment
+  // for fdopen()). Note that the in and out flags are always added implicitly
+  // for ifdstream and ofdstream, respectively.
+  //
+  // iofdstream constructors and open() functions that take file path as a
+  // const std::string& or const char* may throw the invalid_path exception.
+  //
+  // Passing -1 as a file descriptor is valid and results in the creation of
+  // an unopened object.
+  //
+  // Also note that open() and close() functions can be successfully called
+  // for an opened and unopened objects respectively. That is in contrast with
+  // iofstream that sets failbit in such cases.
+  //
+  // @@ Need to make sure performance is on par with fstream on both
+  //    Linux and Windows.
+  //
+  // @@ Do we need to increase default buffer size? Make it customizable?
+  //    Wonder what it is in libstdc++ and MSVC?
+
+  // Note that ifdstream destructor will close an open file descriptor but
+  // will ignore any errors. To detect such errors, call close() explicitly.
+  //
+  class ifdstream: fdstream_base, public std::istream
+  {
+  public:
+    // Create an unopened object with iostate = badbit | failbit (we cannot
+    // have the iostate as an argument since it clashes with int fd) To create
+    // an unopened object with non-default exception mask one can do:
+    //
+    // ifdstream (-1, ...);
+    //
+    ifdstream ();
+
+    explicit
+    ifdstream (int fd, iostate e = badbit | failbit);
+    ifdstream (int fd, fdstream_mode m, iostate e = badbit | failbit);
+
+    explicit
+    ifdstream (const char*,
+               openmode = in,
+               iostate e = badbit | failbit);
+
+    explicit
+    ifdstream (const std::string&,
+               openmode = in,
+               iostate e = badbit | failbit);
+
+    explicit
+    ifdstream (const path&,
+               openmode = in,
+               iostate e = badbit | failbit);
+
+    ifdstream (const char*,
+               fdopen_mode,
+               iostate e = badbit | failbit);
+
+    ifdstream (const std::string&,
+               fdopen_mode,
+               iostate e = badbit | failbit);
+
+    ifdstream (const path&,
+               fdopen_mode,
+               iostate e = badbit | failbit);
+
+    ~ifdstream () override;
+
+    void
+    open (const char*, openmode = in);
+
+    void
+    open (const std::string&, openmode = in);
+
+    void
+    open (const path&, openmode = in);
+
+    void
+    open (const char*, fdopen_mode);
+
+    void
+    open (const std::string&, fdopen_mode);
+
+    void
+    open (const path&, fdopen_mode);
+
+    void
+    open (int fd) {buf_.open (fd); clear();}
+
+    void close ();
+    bool is_open () const {return buf_.is_open ();}
+
+  private:
+    bool skip_ = false;
+  };
+
+  // Note that ofdstream requires that you explicitly call close() before
+  // destroying it. Or, more specifically, the ofdstream object should not be
+  // in the opened state by the time its destructor is called, unless it is in
+  // the "not good" state (good() == false) or the destructor is being called
+  // during the stack unwinding due to an exception being thrown
+  // (std::uncaught_exception() == true). This is enforced with assert() in
+  // the ofdstream destructor.
+  //
+  class ofdstream: fdstream_base, public std::ostream
+  {
+  public:
+    // Create an unopened object with iostate = badbit | failbit (we cannot
+    // have the iostate as an argument since it clashes with int fd). To create
+    // an unopened object with non-default exception mask one can do:
+    //
+    // ofdstream (-1, ...);
+    //
+    ofdstream ();
+
+    explicit
+    ofdstream (int fd, iostate e = badbit | failbit);
+    ofdstream (int fd, fdstream_mode m, iostate e = badbit | failbit);
+
+    explicit
+    ofdstream (const char*,
+               openmode = out,
+               iostate e = badbit | failbit);
+
+    explicit
+    ofdstream (const std::string&,
+               openmode = out,
+               iostate e = badbit | failbit);
+
+    explicit
+    ofdstream (const path&,
+               openmode = out,
+               iostate e = badbit | failbit);
+
+    ofdstream (const char*,
+               fdopen_mode,
+               iostate e = badbit | failbit);
+
+    ofdstream (const std::string&,
+               fdopen_mode,
+               iostate e = badbit | failbit);
+
+    ofdstream (const path&,
+               fdopen_mode,
+               iostate e = badbit | failbit);
+
+    ~ofdstream () override;
+
+    void
+    open (const char*, openmode = out);
+
+    void
+    open (const std::string&, openmode = out);
+
+    void
+    open (const path&, openmode = out);
+
+    void
+    open (const char*, fdopen_mode);
+
+    void
+    open (const std::string&, fdopen_mode);
+
+    void
+    open (const path&, fdopen_mode);
+
+    void
+    open (int fd) {buf_.open (fd); clear ();}
+
+    void close () {if (is_open ()) flush (); buf_.close ();}
+    bool is_open () const {return buf_.is_open ();}
+  };
+
+  // The std::getline() replacement that provides a workaround for libstdc++'s
+  // ios::failure ABI fiasco (#66145) by throwing ios::failure, as it is
+  // defined at libbutl build time (new ABI on recent distributions) rather
+  // than libstdc++ build time (still old ABI on most distributions).
+  //
+  // Notes:
+  //
+  // - This relies of ADL so if the stream is used via the std::istream
+  //   interface, then std::getline() will still be used. To put it another
+  //   way, this is "the best we can do" until GCC folks get their act
+  //   together.
+  //
+  // - The fail and eof bits may be left cleared in the stream exception mask
+  //   when the function throws because of badbit.
+  //
+  ifdstream&
+  getline (ifdstream&, std::string&, char delim = '\n');
+
   // Open a file returning the file descriptor on success and throwing
-  // std::system_error otherwise.
+  // ios:failure otherwise.
   //
   // The mode argument should have at least one of the in or out flags set.
   // The append and truncate flags are meaningless in the absense of the out
@@ -170,6 +364,20 @@ namespace butl
   // Windows permissions other than ru and wu are unlikelly to have effect.
   //
   int
+  fdopen (const char*,
+          fdopen_mode,
+          permissions = permissions::ru | permissions::wu |
+                        permissions::rg | permissions::wg |
+                        permissions::ro | permissions::wo);
+
+  int
+  fdopen (const std::string&,
+          fdopen_mode,
+          permissions = permissions::ru | permissions::wu |
+                        permissions::rg | permissions::wg |
+                        permissions::ro | permissions::wo);
+
+  int
   fdopen (const path&,
           fdopen_mode,
           permissions = permissions::ru | permissions::wu |
@@ -177,17 +385,17 @@ namespace butl
                         permissions::ro | permissions::wo);
 
   // Set the translation mode for the file descriptor. Return the previous
-  // mode on success, throw std::system_error otherwise.
+  // mode on success, throw ios::failure otherwise.
   //
-  fdtranslate
-  fdmode (int, fdtranslate);
+  fdstream_mode
+  fdmode (int, fdstream_mode);
 
   // Convenience functions for setting the translation mode for standard
   // streams.
   //
-  fdtranslate stdin_fdmode  (fdtranslate);
-  fdtranslate stdout_fdmode (fdtranslate);
-  fdtranslate stderr_fdmode (fdtranslate);
+  fdstream_mode stdin_fdmode  (fdstream_mode);
+  fdstream_mode stdout_fdmode (fdstream_mode);
+  fdstream_mode stderr_fdmode (fdstream_mode);
 
   // Low-level, nothrow file descriptor API.
   //

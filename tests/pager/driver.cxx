@@ -2,6 +2,7 @@
 // copyright : Copyright (c) 2014-2016 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
+#include <ios>      // ios_base::failure
 #include <vector>
 #include <string>
 #include <utility>  // move()
@@ -103,6 +104,10 @@ public:
     p.stream () << s;
 
     assert (p.wait ());
+  }
+  catch (const ios_base::failure&)
+  {
+    assert (false);
   }
   catch (const system_error&)
   {

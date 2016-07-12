@@ -68,13 +68,12 @@ exec (const path& p,
         auto bin_mode = [bin](int fd) -> int
           {
             if (bin)
-              fdmode (fd, fdtranslate::binary);
+              fdmode (fd, fdstream_mode::binary);
 
             return fd;
           };
 
         ofdstream os (bin_mode (pr.out_fd));
-        os.exceptions (ofdstream::badbit);
         copy (in.begin (), in.end (), ostream_iterator<char> (os));
         os.close ();
 
@@ -166,7 +165,6 @@ exec (const path& p,
 
 int
 main (int argc, const char* argv[])
-try
 {
   bool child (false);
   bool bin (false);
@@ -201,8 +199,7 @@ try
   if (i != argc)
   {
     if (!child)
-      cerr << "usage: " << argv[0] << " [-c] [-i] [-o] [-e] [-b] [<dir>]"
-           << endl;
+      cerr << "usage: " << argv[0] << " [-c] [-b] [<dir>]" << endl;
 
     return 1;
   }
@@ -235,9 +232,9 @@ try
     {
       if (bin)
       {
-        stdin_fdmode  (fdtranslate::binary);
-        stdout_fdmode (fdtranslate::binary);
-        stderr_fdmode (fdtranslate::binary);
+        stdin_fdmode  (fdstream_mode::binary);
+        stdout_fdmode (fdstream_mode::binary);
+        stderr_fdmode (fdstream_mode::binary);
       }
 
       vector<char> data
@@ -317,8 +314,13 @@ try
   //
   assert (exec (
     fp.leaf (), vector<char> (), false, false, false, true, fp.directory ()));
-}
-catch (const system_error&)
-{
-  assert (false);
+
+#ifndef _WIN32
+  // Check that wait() works properly if the underlying low-level wait
+  // operation fails.
+  //
+  process pr;
+  pr.handle = reinterpret_cast<process::handle_type>(-1);
+  assert (!pr.wait (true) && !pr.wait (false));
+#endif
 }

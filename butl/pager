@@ -45,7 +45,7 @@ namespace butl
   class pager: protected std::streambuf
   {
   public:
-    ~pager () {wait ();}
+    ~pager () {wait (true);}
 
     // If verbose is true, then print (to STDERR) the pager command line.
     //
@@ -58,7 +58,7 @@ namespace butl
     stream () {return os_.is_open () ? os_ : std::cout;}
 
     bool
-    wait ();
+    wait (bool ignore_errors = false);
 
     // The streambuf output interface that implements indentation. You can
     // override it to implement custom output pre-processing.

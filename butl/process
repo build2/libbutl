@@ -88,13 +88,13 @@ namespace butl
     process (const char* cwd, char const* const[], process&, int = 1, int = 2);
 
     // Wait for the process to terminate. Return true if the process
-    // terminated normally and with the zero exit status. Throw
-    // process_error if anything goes wrong. This function can be
-    // called multiple times with subsequent calls simply returning
-    // the status.
+    // terminated normally and with the zero exit status. Unless ignore_error
+    // is true, throw process_error if anything goes wrong. This function can
+    // be called multiple times with subsequent calls simply returning the
+    // status.
     //
     bool
-    wait ();
+    wait (bool ignore_errors = false);
 
     // Return true if the process has already terminated in which case
     // the argument is set to the result of wait().
@@ -102,7 +102,10 @@ namespace butl
     bool
     try_wait (bool&);
 
-    ~process () {if (handle != 0) wait ();}
+    // Note that the destructor will wait for the process but will ignore
+    // any errors and the exit status.
+    //
+    ~process () {if (handle != 0) wait (true);}
 
     // Moveable-only type.
     //

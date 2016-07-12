@@ -5,19 +5,19 @@
 #include <butl/pager>
 
 #ifndef _WIN32
-#  include <unistd.h>    // close(), STDOUT_FILENO
+#  include <unistd.h>    // STDOUT_FILENO
 #  include <sys/ioctl.h> // ioctl()
 
 #  include <chrono>
 #  include <thread> // this_thread::sleep_for()
 #else
 #  include <butl/win32-utility>
-
-#  include <io.h>       // _close()
 #endif
 
 #include <cstring>      // strchr()
 #include <system_error>
+
+#include <butl/fdstream> // fdclose()
 
 using namespace std;
 
@@ -130,11 +130,8 @@ namespace butl
       bool r;
       if (p_.try_wait (r))
       {
-#ifndef _WIN32
-        close (p_.out_fd);
-#else
-        _close (p_.out_fd);
-#endif
+        fdclose (p_.out_fd);
+
         if (pager != nullptr)
           throw system_error (ECHILD, system_category ());
       }
@@ -162,7 +159,7 @@ namespace butl
   }
 
   bool pager::
-  wait ()
+  wait (bool ie)
   {
     // Teardown the indentation machinery.
     //
@@ -172,8 +169,13 @@ namespace butl
       buf_ = nullptr;
     }
 
+    // Prevent ofdstream::close() from throwing in the ignore errors mode.
+    //
+    if (ie)
+      os_.exceptions (ofdstream::goodbit);
+
     os_.close ();
-    return p_.wait ();
+    return p_.wait (ie);
   }
 
   pager::int_type pager::

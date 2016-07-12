@@ -227,13 +227,7 @@ namespace butl
   cpfile (const path& from, const path& to, cpflags fl)
   {
     permissions perm (path_permissions (from));
-
-    // We do not enable exceptions to be thrown when badbit/failbit are set for
-    // the ifs stream nor check the bits manually down the road as there is no
-    // input functions being called for the stream. Input functions are called
-    // directly for the input stream buffer, which is our fdbuf that throws.
-    //
-    ifdstream ifs (fdopen (from, fdopen_mode::in | fdopen_mode::binary));
+    ifdstream ifs (from, fdopen_mode::binary);
 
     fdopen_mode om (fdopen_mode::out      |
                     fdopen_mode::truncate |
@@ -249,34 +243,15 @@ namespace butl
     auto_rmfile rm;
 
     ofdstream ofs (fdopen (to, om, perm));
+
     rm = auto_rmfile (to);
 
-    // Setting badbit for the ofs stream is the only way to make sure the
-    // original std::system_error, that is thrown on the output operation
-    // failure, is retrown by the output stream's operator<<() and flush()
-    // calls (the latter is called from close()). Note that both of the
-    // functions behave as UnformattedOutputFunction.
+    // Throws ios::failure on fdbuf read/write failures.
     //
-    ofs.exceptions (ofdstream::badbit);
+    ofs << ifs.rdbuf ();
 
-    // If the output operation ends up with the badbit set for a reason other
-    // than std::system_error being thrown (by fdbuf), then ofdstream::failure
-    // will be thrown instead. We need to convert it to std::system_error to
-    // comply with the cpfile() interface specification.
-    //
-    try
-    {
-      // Throws std::system_error on fdbuf read/write failures.
-      //
-      ofs << ifs.rdbuf ();
-
-      ifs.close ();
-      ofs.close (); // Throws std::system_error on flush failure.
-    }
-    catch (const ofdstream::failure& e)
-    {
-      throw system_error (EIO, system_category (), e.what ());
-    }
+    ifs.close (); // Throws ios::failure on failure.
+    ofs.close (); // Throws ios::failure on flush/close failure.
 
     if ((fl & cpflags::overwrite_permissions) ==
         cpflags::overwrite_permissions)

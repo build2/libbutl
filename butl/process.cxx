@@ -196,7 +196,7 @@ namespace butl
   }
 
   bool process::
-  wait ()
+  wait (bool ie)
   {
     if (handle != 0)
     {
@@ -204,7 +204,18 @@ namespace butl
       handle = 0; // We have tried.
 
       if (r == -1)
-        throw process_error (errno, false);
+      {
+        if (!ie)
+          throw process_error (errno, false);
+        else
+          // Fold into status, so this and subsequent wait() calls return
+          // false. There is no portable way to update the status bits
+          // representing a process exit code specifically. So we set all bits
+          // to 1 and recon on getting non-zero exit status wherever the exact
+          // bits are.
+          //
+          status = ~0;
+      }
     }
 
     return WIFEXITED (status) && WEXITSTATUS (status) == 0;
@@ -571,7 +582,7 @@ namespace butl
   }
 
   bool process::
-  wait ()
+  wait (bool ie)
   {
     if (handle != 0)
     {
@@ -584,10 +595,15 @@ namespace butl
       auto_handle h (handle); // Auto-deleter.
       handle = 0; // We have tried.
 
-      if (e != NO_ERROR)
-        throw process_error (error_msg (e));
-
-      status = s;
+      if (e == NO_ERROR)
+        status = s;
+      else
+      {
+        if (!ie)
+          throw process_error (error_msg (e));
+        else
+          status = 1; // Fold into status.
+      }
     }
 
     return status == 0;

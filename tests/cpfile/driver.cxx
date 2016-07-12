@@ -2,12 +2,13 @@
 // copyright : Copyright (c) 2014-2016 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
+#include <ios>
 #include <string>
 #include <cassert>
-#include <fstream>
 #include <system_error>
 
 #include <butl/path>
+#include <butl/fdstream>
 #include <butl/filesystem>
 
 using namespace std;
@@ -20,22 +21,20 @@ static const char text3[] = "XAB\r\n9";
 static string
 from_file (const path& f)
 {
-  ifstream ifs;
-  ifs.exceptions (fstream::badbit | fstream::failbit);
-  ifs.open (f.string (), ios::binary);
+  ifdstream ifs (f, ios::binary);
 
   string s;
   getline (ifs, s, '\0');
+  ifs.close (); // Not to miss failed close of the underlying file descriptor.
   return s;
 }
 
 static void
 to_file (const path& f, const char* s)
 {
-  ofstream ofs;
-  ofs.exceptions (fstream::badbit | fstream::failbit);
-  ofs.open (f.string (), ios::binary);
+  ofdstream ofs (f, ios::binary);
   ofs << s;
+  ofs.close ();
 }
 
 int
@@ -89,7 +88,7 @@ main ()
     cpfile (from, to, cpflags::none);
     assert (false);
   }
-  catch (const system_error&)
+  catch (const ios::failure&)
   {
   }
 
@@ -162,11 +161,13 @@ main ()
     cpfile (from, tslink, cpflags::none);
     assert (false);
   }
-  catch (const system_error&)
+  catch (const ios::failure&)
   {
   }
 
-  // Check that copy fail if 'from' symlink points to non-existent file.
+  // Check that copy fail if 'from' symlink points to non-existent file. The
+  // std::system_error is thrown as cpfile() fails to obtain permissions for
+  // the 'from' symlink target.
   //
   try
   {

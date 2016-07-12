@@ -4,11 +4,11 @@
 
 #include <set>
 #include <cassert>
-#include <fstream>
 #include <utility>      // pair
 #include <system_error>
 
 #include <butl/path>
+#include <butl/fdstream>
 #include <butl/filesystem>
 
 using namespace std;
@@ -35,10 +35,9 @@ link_file (const path& target, const path& link, bool hard, bool check_content)
     return true;
 
   string s;
-  ifstream ifs;
-  ifs.exceptions (fstream::badbit | fstream::failbit);
-  ifs.open (link.string ());
+  ifdstream ifs (link);
   ifs >> s;
+  ifs.close (); // Not to miss failed close of the underlying file descriptor.
   return s == text;
 }
 
@@ -93,10 +92,9 @@ main ()
   path fp (td / fn);
 
   {
-    ofstream ofs;
-    ofs.exceptions (fstream::badbit | fstream::failbit);
-    ofs.open (fp.string ());
+    ofdstream ofs (fp);
     ofs << text;
+    ofs.close ();
   }
 
   // Create the file hard link.
