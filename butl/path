@@ -14,6 +14,17 @@
 
 namespace butl
 {
+
+  // Wish list/ideas for improvements.
+  //
+  // Ability to convert to directory/leaf/base in-place, without dynamic
+  // allocation. One idea is something like this:
+  //
+  // p -= "/*"; // directory
+  // p -= "*/"; // leaf
+  // p -= ".*"; // base
+  //
+
   class invalid_path_base: std::exception
   {
   public:
