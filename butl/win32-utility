@@ -35,14 +35,16 @@
 
 #include <string>
 
+#include <butl/export>
+
 namespace butl
 {
   namespace win32
   {
-    std::string
+    LIBBUTL_EXPORT std::string
     error_msg (DWORD code);
 
-    std::string
+    LIBBUTL_EXPORT std::string
     last_error_msg ();
   }
 };

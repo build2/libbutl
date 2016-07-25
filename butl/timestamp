@@ -8,6 +8,8 @@
 #include <chrono>
 #include <iosfwd>
 
+#include <butl/export>
+
 #include <butl/path>
 
 namespace butl
@@ -75,7 +77,7 @@ namespace butl
   //  - support %(N) version for non-optional printing
   //  - support for suffix %[<d>N<s>], for example %[N nsec]
   //
-  std::ostream&
+  LIBBUTL_EXPORT std::ostream&
   to_stream (std::ostream&,
              const timestamp&,
              const char* format,
@@ -88,7 +90,7 @@ namespace butl
     return to_stream (os, ts, "%Y-%m-%d %H:%M:%S%[.N]", true, true);
   }
 
-  std::ostream&
+  LIBBUTL_EXPORT std::ostream&
   operator<< (std::ostream&, const duration&);
 
   // Parse human-readable representation of the timestamp.
@@ -130,7 +132,7 @@ namespace butl
   //   - ability to parse local, return UTC and vice-versa
   //   - handle timezone parsing
   //
-  timestamp
+  LIBBUTL_EXPORT timestamp
   from_string (const char* input,
                const char* format,
                bool local,

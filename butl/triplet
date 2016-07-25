@@ -7,6 +7,8 @@
 
 #include <string>
 
+#include <butl/export>
+
 namespace butl
 {
   // This is the ubiquitous 'target triplet' that loosely has the CPU-VENDOR-OS
@@ -93,7 +95,7 @@ namespace butl
   //
   // 2. LLVM has the Triple class with similar goals.
   //
-  struct triplet
+  struct LIBBUTL_EXPORT triplet
   {
     std::string cpu;
     std::string vendor;

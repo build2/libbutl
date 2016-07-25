@@ -28,6 +28,8 @@
 #include <cassert>
 #include <system_error>
 
+#include <butl/export>
+
 #include <butl/process>
 
 #ifndef _WIN32
@@ -55,7 +57,7 @@ namespace butl
   //
 
   template <>
-  path_traits<char>::string_type path_traits<char>::
+  LIBBUTL_EXPORT path_traits<char>::string_type path_traits<char>::
   current ()
   {
     // @@ throw system_error (and in the other current() versions).
@@ -74,7 +76,7 @@ namespace butl
   }
 
   template <>
-  void path_traits<char>::
+  LIBBUTL_EXPORT void path_traits<char>::
   current (string_type const& s)
   {
 #ifdef _WIN32
@@ -140,7 +142,7 @@ namespace butl
 #endif
 
   template <>
-  path_traits<char>::string_type path_traits<char>::
+  LIBBUTL_EXPORT path_traits<char>::string_type path_traits<char>::
   temp_directory ()
   {
 #ifdef _WIN32
@@ -162,7 +164,7 @@ namespace butl
   static atomic<size_t> temp_name_count;
 
   template <>
-  path_traits<char>::string_type path_traits<char>::
+  LIBBUTL_EXPORT path_traits<char>::string_type path_traits<char>::
   temp_name (string_type const& prefix)
   {
     return prefix
@@ -171,7 +173,7 @@ namespace butl
   }
 
   template <>
-  path_traits<char>::string_type path_traits<char>::
+  LIBBUTL_EXPORT path_traits<char>::string_type path_traits<char>::
   home ()
   {
 #ifndef _WIN32
@@ -197,7 +199,7 @@ namespace butl
 
 #ifndef _WIN32
   template <>
-  void path_traits<char>::
+  LIBBUTL_EXPORT void path_traits<char>::
   realize (string_type& s)
   {
     char r[PATH_MAX];
@@ -221,7 +223,7 @@ namespace butl
   //
 
   template <>
-  path_traits<wchar_t>::string_type path_traits<wchar_t>::
+  LIBBUTL_EXPORT path_traits<wchar_t>::string_type path_traits<wchar_t>::
   current ()
   {
 #ifdef _WIN32
@@ -242,7 +244,7 @@ namespace butl
   }
 
   template <>
-  void path_traits<wchar_t>::
+  LIBBUTL_EXPORT void path_traits<wchar_t>::
   current (string_type const& s)
   {
 #ifdef _WIN32
@@ -262,7 +264,7 @@ namespace butl
   }
 
   template <>
-  path_traits<wchar_t>::string_type path_traits<wchar_t>::
+  LIBBUTL_EXPORT path_traits<wchar_t>::string_type path_traits<wchar_t>::
   temp_directory ()
   {
 #ifdef _WIN32
@@ -295,7 +297,7 @@ namespace butl
   }
 
   template <>
-  path_traits<wchar_t>::string_type path_traits<wchar_t>::
+  LIBBUTL_EXPORT path_traits<wchar_t>::string_type path_traits<wchar_t>::
   temp_name (string_type const& prefix)
   {
     return prefix +
@@ -304,7 +306,7 @@ namespace butl
   }
 
   template <>
-  path_traits<wchar_t>::string_type path_traits<wchar_t>::
+  LIBBUTL_EXPORT path_traits<wchar_t>::string_type path_traits<wchar_t>::
   home ()
   {
 #ifndef _WIN32
@@ -339,7 +341,7 @@ namespace butl
 
 #ifndef _WIN32
   template <>
-  void path_traits<wchar_t>::
+  LIBBUTL_EXPORT void path_traits<wchar_t>::
   realize (string_type&)
   {
     assert (false); // Implement if/when needed.

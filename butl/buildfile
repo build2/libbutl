@@ -5,6 +5,7 @@
 lib{butl}:                         \
 {hxx         cxx}{ base64        } \
 {hxx         cxx}{ char-scanner  } \
+{hxx            }{ export        } \
 {hxx         cxx}{ fdstream      } \
 {hxx ixx     cxx}{ filesystem    } \
 {hxx            }{ multi-index   } \
@@ -30,7 +31,14 @@ lib{butl}:                         \
 lib{butl}: file{sha256c.c}
 
 cxx.poptions =+ -I$src_root
+
 lib{butl}: cxx.export.poptions = -I$src_root
+
+liba{hello}: cxx.export.poptions += -DLIBBUTL_STATIC
+libs{hello}: cxx.export.poptions += -DLIBBUTL_SHARED
+
+obja{*}: cxx.poptions += -DLIBBUTL_STATIC_BUILD
+objs{*}: cxx.poptions += -DLIBBUTL_SHARED_BUILD
 
 # Install into the butl/ subdirectory of, say, /usr/include/.
 #

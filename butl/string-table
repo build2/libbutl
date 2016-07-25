@@ -9,6 +9,8 @@
 #include <string>
 #include <unordered_map>
 
+#include <butl/export>
+
 #include <butl/multi-index>
 
 namespace butl
@@ -36,7 +38,7 @@ namespace butl
   struct string_table_traits;
 
   template <>
-  struct string_table_traits<std::string>
+  struct LIBBUTL_EXPORT string_table_traits<std::string>
   {
     static const std::string&
     key (const std::string& d) {return d;}

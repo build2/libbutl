@@ -13,9 +13,11 @@
 #include <cstdint> // uint32_t
 #include <system_error>
 
+#include <butl/export>
+
 namespace butl
 {
-  struct process_error: std::system_error
+  struct LIBBUTL_EXPORT process_error: std::system_error
   {
     bool
     child () const {return child_;}
@@ -34,7 +36,7 @@ namespace butl
     bool child_;
   };
 
-  class process
+  class LIBBUTL_EXPORT process
   {
   public:
     // Start another process using the specified command line. The default

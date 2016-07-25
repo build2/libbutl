@@ -9,6 +9,8 @@
 #include <vector>
 #include <iostream>
 
+#include <butl/export>
+
 #include <butl/process>
 #include <butl/fdstream>
 
@@ -42,7 +44,7 @@ namespace butl
   //   cerr << "pager error: " << e.what () << endl;
   // }
   //
-  class pager: protected std::streambuf
+  class LIBBUTL_EXPORT pager: protected std::streambuf
   {
   public:
     ~pager () {wait (true);}

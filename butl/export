@@ -1,0 +1,37 @@
+// file      : butl/export -*- C++ -*-
+// copyright : Copyright (c) 2014-2016 Code Synthesis Ltd
+// license   : MIT; see accompanying LICENSE file
+
+#ifndef BUTL_EXPORT
+#define BUTL_EXPORT
+
+// Normally we don't export class templates (but do complete specializations),
+// inline functions, and classes without any member functions. But in the end
+// it's all trial and error to figure out what VC needs exported.
+
+#if defined(LIBBUTL_STATIC)         // Using static.
+#  define LIBBUTL_EXPORT
+#elif defined(LIBBUTL_STATIC_BUILD) // Building static.
+#  define LIBBUTL_EXPORT
+#elif defined(LIBBUTL_SHARED)       // Using shared.
+#  ifdef _WIN32
+#    define LIBBUTL_EXPORT __declspec(dllimport)
+#  else
+#    define LIBBUTL_EXPORT
+#  endif
+#elif defined(LIBBUTL_SHARED_BUILD) // Building shared.
+#  ifdef _WIN32
+#    define LIBBUTL_EXPORT __declspec(dllexport)
+#  else
+#    define LIBBUTL_EXPORT
+#  endif
+#else
+// If none of the above macros are defined, then we assume we are being using
+// by some third-party build system that cannot/doesn't signal the library
+// type. Note that this fallback works for both static and shared but in case
+// of shared will be sub-optimal compared to having dllimport.
+//
+#  define LIBBUTL_EXPORT            // Using static or shared.
+#endif
+
+#endif // BUTL_EXPORT

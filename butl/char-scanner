@@ -9,12 +9,14 @@
 #include <iosfwd>
 #include <cstdint> // uint64_t
 
+#include <butl/export>
+
 namespace butl
 {
   // Low-level character stream scanner. Normally used as a base for
   // higher-level lexers.
   //
-  class char_scanner
+  class LIBBUTL_EXPORT char_scanner
   {
   public:
     char_scanner (std::istream& is): is_ (is) {}

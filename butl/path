@@ -12,6 +12,8 @@
 #include <exception>
 #include <functional> // hash
 
+#include <butl/export>
+
 namespace butl
 {
 
@@ -25,7 +27,7 @@ namespace butl
   // p -= ".*"; // base
   //
 
-  class invalid_path_base: std::exception
+  class LIBBUTL_EXPORT invalid_path_base: std::exception
   {
   public:
     virtual char const*

@@ -9,11 +9,13 @@
 #include <utility> // forward()
 #include <cstring> // strcmp
 
+#include <butl/export>
+
 namespace butl
 {
   // Key comparators (i.e., to be used in sets, maps, etc).
   //
-  struct compare_c_string
+  struct LIBBUTL_EXPORT compare_c_string
   {
     bool operator() (const char* x, const char* y) const
     {
@@ -21,7 +23,7 @@ namespace butl
     }
   };
 
-  struct compare_pointer_target
+  struct LIBBUTL_EXPORT compare_pointer_target
   {
     template <typename P>
     bool operator() (const P& x, const P& y) const {return *x < *y;}
