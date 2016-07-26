@@ -355,8 +355,8 @@ namespace butl
   // for (...: i) ...
   // ++i; // Invalid.
   //
-  inline dir_iterator begin (dir_iterator& i) {return std::move (i);}
-  inline dir_iterator end (const dir_iterator&) {return dir_iterator ();}
+  inline dir_iterator begin (dir_iterator&);
+  inline dir_iterator end (const dir_iterator&);
 }
 
 #include <butl/filesystem.ixx>

@@ -85,18 +85,18 @@ namespace butl
   // dir_entry
   //
   inline entry_type dir_entry::
+  ltype () const
+  {
+    return t_ != entry_type::unknown ? t_ : (t_ = type (false));
+  }
+
+  inline entry_type dir_entry::
   type () const
   {
     entry_type t (ltype ());
     return t != entry_type::symlink
       ? t
       : lt_ != entry_type::unknown ? lt_ : (lt_ = type (true));
-  }
-
-  inline entry_type dir_entry::
-  ltype () const
-  {
-    return t_ != entry_type::unknown ? t_ : (t_ = type (false));
   }
 
   // dir_iterator
@@ -122,5 +122,17 @@ namespace butl
   operator!= (const dir_iterator& x, const dir_iterator& y)
   {
     return !(x == y);
+  }
+
+  inline dir_iterator
+  begin (dir_iterator& i)
+  {
+    return std::move (i);
+  }
+
+  inline dir_iterator
+  end (const dir_iterator&)
+  {
+    return dir_iterator ();
   }
 }

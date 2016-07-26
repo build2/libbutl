@@ -6,8 +6,12 @@
 #define BUTL_EXPORT
 
 // Normally we don't export class templates (but do complete specializations),
-// inline functions, and classes without any member functions. But in the end
-// it's all trial and error to figure out what VC needs exported.
+// inline functions, and classes with only inline member functions. Exporting
+// classes that inherit from non-exported/import bases (e.g., std::string)
+// will end up badly. The only known workarounds are to not inherit or to not
+// export. Also, MinGW GCC doesn't like seeing non-exported function being
+// used before their inline definition. The workaround is to reorder code. In
+// the end it's all trial and error.
 
 #if defined(LIBBUTL_STATIC)         // Using static.
 #  define LIBBUTL_EXPORT

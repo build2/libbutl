@@ -17,7 +17,7 @@
 
 namespace butl
 {
-  struct LIBBUTL_EXPORT process_error: std::system_error
+  struct process_error: std::system_error
   {
     bool
     child () const {return child_;}
