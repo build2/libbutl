@@ -60,8 +60,6 @@ namespace butl
   LIBBUTL_EXPORT path_traits<char>::string_type path_traits<char>::
   current ()
   {
-    // @@ throw system_error (and in the other current() versions).
-
 #ifdef _WIN32
     char cwd[_MAX_PATH];
     if (_getcwd (cwd, _MAX_PATH) == 0)
@@ -72,7 +70,7 @@ namespace butl
       throw system_error (errno, system_category ());
 #endif
 
-    return string_type (cwd);
+    return cwd;
   }
 
   template <>
@@ -147,17 +145,15 @@ namespace butl
   {
 #ifdef _WIN32
     char d[_MAX_PATH + 1];
-    DWORD r (GetTempPathA (_MAX_PATH + 1, d));
-
-    if (r == 0)
+    if (GetTempPathA (_MAX_PATH + 1, d) == 0)
     {
       string e (last_error_msg ());
       throw system_error (ENOTDIR, system_category (), e);
     }
 
-    return string_type (d);
+    return d;
 #else
-    return string_type (butl::temp_directory ());
+    return butl::temp_directory ();
 #endif
   }
 
@@ -177,12 +173,12 @@ namespace butl
   home ()
   {
 #ifndef _WIN32
-    return string_type (butl::home ());
+    return butl::home ();
 #else
     // Could be set by, e.g., MSYS and Cygwin shells.
     //
     if (const char* h = getenv ("HOME"))
-      return string_type (h);
+      return h;
 
     char h[_MAX_PATH];
     HRESULT r (SHGetFolderPathA (NULL, CSIDL_PROFILE, NULL, 0, h));
@@ -193,7 +189,7 @@ namespace butl
       throw system_error (ENOTDIR, system_category (), e);
     }
 
-    return string_type (h);
+    return h;
 #endif
   }
 
@@ -240,7 +236,7 @@ namespace butl
       throw system_error (EINVAL, system_category ());
 #endif
 
-    return string_type (wcwd);
+    return wcwd;
   }
 
   template <>
@@ -269,9 +265,7 @@ namespace butl
   {
 #ifdef _WIN32
     wchar_t d[_MAX_PATH + 1];
-    DWORD r (GetTempPathW (_MAX_PATH + 1, d));
-
-    if (r == 0)
+    if (GetTempPathW (_MAX_PATH + 1, d) == 0)
     {
       string e (last_error_msg ());
       throw system_error (ENOTDIR, system_category (), e);
@@ -293,7 +287,7 @@ namespace butl
       throw system_error (ENOTSUP, system_category ());
 #endif
 
-    return string_type (d);
+    return d;
   }
 
   template <>
@@ -319,12 +313,12 @@ namespace butl
     if (r == PATH_MAX)
       throw system_error (ENOTSUP, system_category ());
 
-    return string_type (d);
+    return d;
 #else
     // Could be set by, e.g., MSYS and Cygwin shells.
     //
     if (const wchar_t* h = _wgetenv (L"HOME"))
-      return string_type (h);
+      return h;
 
     wchar_t h[_MAX_PATH];
     HRESULT r (SHGetFolderPathW (NULL, CSIDL_PROFILE, NULL, 0, h));
@@ -335,7 +329,7 @@ namespace butl
       throw system_error (ENOTDIR, system_category (), e);
     }
 
-    return string_type (h);
+    return h;
 #endif
   }
 

@@ -287,7 +287,7 @@ main (int argc, const char* argv[])
   //
   dir_path::current (fp.directory ());
 
-  assert (exec (path (".") / fp.leaf ()));
+  assert (exec (dir_path (".") / fp.leaf ()));
 
   // Fail for unexistent file path.
   //

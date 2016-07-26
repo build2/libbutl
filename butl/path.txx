@@ -8,30 +8,51 @@ namespace butl
 {
   template <typename C, typename K>
   basic_path<C, K> basic_path<C, K>::
-  leaf () const
+  leaf (basic_path<C, K> const& d) const
   {
-    size_type p (traits::rfind_separator (this->path_));
+    size_type dn (d.path_.size ());
 
-    return p != string_type::npos
-      ? basic_path (this->path_.c_str () + p + 1, this->path_.size () - p - 1)
-      : *this;
+    if (dn == 0)
+      return *this;
+
+    const string_type& s (this->path_);
+
+    if (!sub (d))
+      throw invalid_basic_path<C> (s);
+
+    // If there is implied trailing slash, add it to count. Unless it is
+    // "matched" by the implied slash on the other side.
+    //
+    if (d.diff_ > 0 && dn < s.size ())
+      dn++;
+
+    // Preserve trailing slash.
+    //
+    return basic_path (data_type (string_type (s, dn, s.size () - dn),
+                                  this->diff_));
   }
 
   template <typename C, typename K>
   typename basic_path<C, K>::dir_type basic_path<C, K>::
-  directory () const
+  directory (basic_path<C, K> const& l) const
   {
-    if (root ())
-      return dir_type ();
+    size_type ln (l.path_.size ());
 
-    size_type p (traits::rfind_separator (this->path_));
+    const string_type& s (this->path_);
 
-    // Include the trailing slash so that we get correct behavior
-    // if directory is root.
-    //
-    return p != string_type::npos
-      ? dir_type (this->path_.c_str (), p + 1)
-      : dir_type ();
+    if (ln == 0)
+    {
+      if (this->diff_ == 0) // Must be a directory.
+        throw invalid_basic_path<C> (s);
+
+      return dir_type (data_type (string_type (s), this->diff_));
+    }
+
+    if (!sup (l))
+      throw invalid_basic_path<C> (s);
+
+    return dir_type (
+      data_type (string_type (s, 0, s.size () - ln))); // Include slash.
   }
 
 #ifdef _WIN32
@@ -55,85 +76,6 @@ namespace butl
 #endif
 
   template <typename C, typename K>
-  basic_path<C, K>& basic_path<C, K>::
-  operator/= (basic_path<C, K> const& r)
-  {
-    if (r.absolute () && !this->path_.empty ()) // Allow ('' / '/foo').
-      throw invalid_basic_path<C> (r.path_);
-
-    combine (r.path_.c_str (), r.path_.size ());
-    return *this;
-  }
-
-  template <typename C, typename K>
-  basic_path<C, K>& basic_path<C, K>::
-  operator/= (string_type const& r)
-  {
-    if (traits::find_separator (r) != string_type::npos)
-      throw invalid_basic_path<C> (r);
-
-    combine (r.c_str (), r.size ());
-    return *this;
-  }
-
-  template <typename C, typename K>
-  basic_path<C, K>& basic_path<C, K>::
-  operator/= (const C* r)
-  {
-    size_type rn (string_type::traits_type::length (r));
-
-    if (traits::find_separator (r, rn) != nullptr)
-      throw invalid_basic_path<C> (r);
-
-    combine (r, rn);
-    return *this;
-  }
-
-  template <typename C, typename K>
-  basic_path<C, K> basic_path<C, K>::
-  leaf (basic_path<C, K> const& d) const
-  {
-    size_type n (d.path_.size ());
-
-    if (n == 0)
-      return *this;
-
-    if (!sub (d))
-      throw invalid_basic_path<C> (this->path_);
-
-    size_type m (this->path_.size ());
-
-    if (n != m
-#ifndef _WIN32
-        && !d.root ()
-#endif
-    )
-      n++; // Skip the directory separator (unless it is POSIX root).
-
-    return basic_path (this->path_.c_str () + n, m - n);
-  }
-
-  template <typename C, typename K>
-  typename basic_path<C, K>::dir_type basic_path<C, K>::
-  directory (basic_path<C, K> const& l) const
-  {
-    size_type n (l.path_.size ());
-
-    if (n == 0)
-      return dir_type (this->path_);
-
-    if (!sup (l))
-      throw invalid_basic_path<C> (this->path_);
-
-    size_type m (this->path_.size ());
-
-    if (n != m)
-      n++; // Skip the directory separator.
-
-    return dir_type (this->path_.c_str (), m - n);
-  }
-
-  template <typename C, typename K>
   basic_path<C, K> basic_path<C, K>::
   relative (basic_path<C, K> d) const
   {
@@ -144,7 +86,7 @@ namespace butl
       if (sub (d))
         break;
 
-      r /= basic_path ("..");
+      r /= basic_path ("../");
 
       // Roots of the paths do not match.
       //
@@ -162,40 +104,61 @@ namespace butl
     if (empty ())
       return *this;
 
+    string_type& s (this->path_);
+    difference_type& d (this->diff_);
+
     bool abs (absolute ());
 
     typedef std::vector<string_type> paths;
     paths ps;
 
-    for (size_type b (0), e (traits::find_separator (this->path_)),
-           n (this->path_.size ());;
-         e = traits::find_separator (this->path_, b))
+    bool tsep (d != 0); // Trailing directory separator.
     {
-      string_type s (this->path_, b, e == string_type::npos ? e : e - b);
-      ps.push_back (s);
+      size_type n (_size ());
 
-      if (e == string_type::npos)
-        break;
+      for (size_type b (0), e (traits::find_separator (s, 0, n));
+           ;
+           e = traits::find_separator (s, b, n))
+      {
+        ps.push_back (
+          string_type (s, b, (e == string_type::npos ? n : e) - b));
 
-      ++e;
+        if (e == string_type::npos)
+          break;
 
-      while (e < n && traits::is_separator (this->path_[e]))
         ++e;
 
-      if (e == n)
-        break;
+        // Skip consecutive directory separators.
+        //
+        while (e != n && traits::is_separator (s[e]))
+          ++e;
 
-      b = e;
+        if (e == n)
+          break;
+
+        b = e;
+      }
+
+      // If the last component is "." or ".." then this is a directory.
+      //
+      if (!tsep)
+      {
+        const string_type& l (ps.back ());
+        size_type ln (l.size ());
+
+        if ((ln == 1 && l[0] == '.') ||
+            (ln == 2 && l[0] == '.' && l[1] == '.'))
+          tsep = true;
+      }
     }
 
-    // First collapse '.' and '..'.
+    // Collapse "." and "..".
     //
     paths r;
 
-    for (typename paths::const_iterator i (ps.begin ()), e (ps.end ());
-         i != e; ++i)
+    for (typename paths::iterator i (ps.begin ()), e (ps.end ()); i != e; ++i)
     {
-      string_type const& s (*i);
+      string_type& s (*i);
       size_type n (s.size ());
 
       if (n == 1 && s[0] == '.')
@@ -222,7 +185,7 @@ namespace butl
         }
       }
 
-      r.push_back (s);
+      r.push_back (std::move (s));
     }
 
     // Reassemble the path.
@@ -238,10 +201,20 @@ namespace butl
         p += traits::directory_separator;
     }
 
-    if (p.empty () && !r.empty ())
-      p += traits::directory_separator; // Root directory.
+    if (tsep && (!p.empty () || abs)) // Distinguish "/"-empty and "."-empty.
+    {
+      if (p.empty ())
+      {
+        p += traits::directory_separator;
+        d = -1;
+      }
+      else
+        d = 1; // Canonical separator is always first.
+    }
+    else
+      d = 0;
 
-    this->path_.swap (p);
+    s.swap (p);
     return *this;
   }
 
@@ -257,10 +230,13 @@ namespace butl
     traits::current (s);
   }
 
-  template <typename C, typename K>
-  bool basic_path<C, K>::
-  init (string_type& s, bool exact)
+  template <typename C>
+  auto any_path_kind<C>::
+  init (string_type&& s, bool exact) -> data_type
   {
+    using size_type = typename string_type::size_type;
+    using difference_type = typename string_type::difference_type;
+
     size_type n (s.size ());
 
 #ifdef _WIN32
@@ -272,25 +248,58 @@ namespace butl
         (n > 1 && s[0] == '\\' && s[1] == '\\'))
     {
       if (exact)
-        return false;
+        return data_type ();
       else
         throw invalid_basic_path<C> (s);
     }
 #endif
 
-    // Strip trailing slashes except for the case where the single slash
-    // represents the root directory.
+    // Strip trailing slashes.
     //
-    for (; n > 1 && traits::is_separator (s[n - 1]); --n) ;
+    size_type m (n), di (0);
+    for (size_type i;
+         m != 0 && (i = path_traits<C>::separator_index (s[m - 1])) != 0;
+         --m) di = i;
 
-    if (n != s.size ())
+    difference_type d (0);
+    if (size_t k = n - m)
     {
-      if (!exact)
-        this->path_.resize (n);
+      // We can only accomodate one trailing slash in the exact mode.
+      //
+      if (exact && k > 1)
+        return data_type ();
 
-      return !exact;
+      if (m == 0) // The "/" case.
+      {
+        ++m; // Keep one slash in the string.
+        d = -1;
+      }
+      else
+        d = di;
+
+      s.resize (m);
     }
 
-    return true;
+    return data_type (std::move (s), d);
+  }
+
+  template <typename C>
+  auto dir_path_kind<C>::
+  init (string_type&& s, bool exact) -> data_type
+  {
+    // If we don't already have the separator then this can't be the exact
+    // initialization.
+    //
+    if (exact && !s.empty () && !path_traits<C>::is_separator (s.back ()))
+      return data_type ();
+
+    data_type r (any_path_kind<C>::init (std::move (s), exact));
+
+    // Unless the result is empty, make sure we have the trailing slash.
+    //
+    if (!r.path_.empty () && r.diff_ == 0)
+      r.diff_ = 1; // Canonical separator is always first.
+
+    return r;
   }
 }

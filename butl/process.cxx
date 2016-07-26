@@ -281,13 +281,13 @@ namespace butl
     for (size_t b (0), e (paths.find (traits::path_separator));
          b != string::npos;)
     {
-      path p (string (paths, b, e != string::npos ? e - b : e));
+      dir_path p (string (paths, b, e != string::npos ? e - b : e));
 
       // Empty path (i.e., a double colon or a colon at the beginning or end
       // of PATH) means search in the current dirrectory.
       //
       if (p.empty ())
-        p = path (".");
+        p = dir_path (".");
 
       path dp (p / f);
 

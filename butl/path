@@ -7,7 +7,7 @@
 
 #include <string>
 #include <cstddef>    // ptrdiff_t
-#include <utility>    // move()
+#include <utility>    // move(), swap()
 #include <iterator>
 #include <exception>
 #include <functional> // hash
@@ -16,63 +16,68 @@
 
 namespace butl
 {
-
   // Wish list/ideas for improvements.
   //
-  // Ability to convert to directory/leaf/base in-place, without dynamic
-  // allocation. One idea is something like this:
+  // - posix_representation() in addition to posix_string()
   //
-  // p -= "/*"; // directory
-  // p -= "*/"; // leaf
-  // p -= ".*"; // base
+  // - Ability to convert to directory/leaf/base in-place, without dynamic
+  //   allocation. One idea is something like this:
+  //
+  //   p -= "/*"; // directory
+  //   p -= "*/"; // leaf
+  //   p -= ".*"; // base
+  //
+  // - Faster normalize() implementation.
+  //
+  // - We duplicate the interface for path and dir_path while most of it
+  //   is common. Also, we can implicit-cast dir_path& to path& and use
+  //   non-dir-adapted implementation (see where we call K::cast()).
   //
 
-  class LIBBUTL_EXPORT invalid_path_base: std::exception
+  struct LIBBUTL_EXPORT invalid_path_base: public std::exception
   {
-  public:
     virtual char const*
     what () const throw ();
   };
 
   template <typename C>
-  class invalid_basic_path: public invalid_path_base
+  struct invalid_basic_path: invalid_path_base
   {
-  public:
-    typedef std::basic_string<C> string_type;
+    using string_type = std::basic_string<C>;
 
-    invalid_basic_path (C const* p): path_ (p) {}
-    invalid_basic_path (string_type const& p): path_ (p) {}
-    ~invalid_basic_path () throw () {}
+    string_type path;
 
-    string_type const&
-    path () const
-    {
-      return path_;
-    }
-
-  private:
-    string_type path_;
+    invalid_basic_path (const C* p): path (p) {}
+    invalid_basic_path (const string_type& p): path (p) {}
   };
 
   template <typename C>
   struct path_traits
   {
-    typedef std::basic_string<C> string_type;
-    typedef typename string_type::size_type size_type;
+    using string_type = std::basic_string<C>;
+    using size_type = typename string_type::size_type;
 
     // Canonical directory and path seperators.
     //
 #ifdef _WIN32
-    static C const directory_separator = '\\';
-    static C const path_separator = ';';
+    static const C directory_separator = '\\';
+    static const C path_separator = ';';
 #else
     static C const directory_separator = '/';
     static C const path_separator = ':';
 #endif
 
-    // Directory separator tests. On some platforms there
-    // could be multiple seperators. For example, on Windows
-    // we check for both '/' and '\'.
+    // Canonical and alternative directory separators. Canonical should be
+    // first.
+    //
+#ifdef _WIN32
+    static constexpr const char* const directory_separators = "\\/";
+#else
+    static constexpr const char* const directory_separators = "/";
+#endif
+
+    // Directory separator tests. On some platforms there could be multiple
+    // seperators. For example, on Windows we check for both '/' and '\'.
     //
     static bool
     is_separator (C c)
@@ -84,10 +89,28 @@ namespace butl
 #endif
     }
 
+    // Return 1-based index in directory_separators string or 0 if not a
+    // separator.
+    //
     static size_type
-    find_separator (string_type const& s, size_type pos = 0)
+    separator_index (C c)
     {
-      const C* r (find_separator (s.c_str () + pos, s.size () - pos));
+#ifdef _WIN32
+      return c == '\\' ? 1 : c == '/' ? 2 : 0;
+#else
+      return c == '/' ? 1 : 0;
+#endif
+    }
+
+    static size_type
+    find_separator (string_type const& s,
+                    size_type pos = 0,
+                    size_type n = string_type::npos)
+    {
+      if (n == string_type::npos)
+        n = s.size ();
+
+      const C* r (find_separator (s.c_str () + pos, n - pos));
       return r != nullptr ? r - s.c_str () : string_type::npos;
     }
 
@@ -223,116 +246,216 @@ namespace butl
 #endif
   };
 
-  template <typename C>
-  class invalid_basic_path;
-
+  // This implementation of a filesystem path has two types: path, which can
+  // represent any path (file, directory, etc.) and dir_path, which is derived
+  // from path. The internal representation of directories maintains a
+  // trailing slash. However, it is ignored in path comparison, size, and
+  // string spelling. For example:
+  //
+  // path p1 ("foo");       // File path.
+  // path p2 ("bar/");      // Directory path.
+  //
+  // path p3 (p1 / p2);     // Throw: p1 is not a directory.
+  // path p4 (p2 / p1);     // Ok, file "bar/foo".
+  // path p5 (p2 / p2);     // Ok, directory "bar/bar/".
+  //
+  // dir_path d1 ("foo");   // Directory path "foo/".
+  // dir_path d2 ("bar\\"); // Directory path "bar\".
+  //
+  // dir_path d3 (d2 / d1); // "bar\\foo/"
+  //
+  // (p4 == d3);            // true
+  // d3.string ();          // "bar\\foo"
+  // d3.representation ();  // "bar\\foo/"
+  //
   template <typename C, typename K>
   class basic_path;
 
-  // Cast from one path kind to another without any checking or
-  // processing.
+  template <typename C> struct any_path_kind;
+  template <typename C> struct dir_path_kind;
+
+  using path = basic_path<char, any_path_kind<char>>;
+  using dir_path = basic_path<char, dir_path_kind<char>>;
+  using invalid_path = invalid_basic_path<char>;
+
+  // Cast from one path kind to another. Note that no checking is performed
+  // (e.g., that there is a trailing slash if casting to dir_path) but the
+  // representation is adjusted if necessary (e.g., the trailing slash is
+  // added to dir_path if missing).
   //
   template <class P, class C, class K> P path_cast (const basic_path<C, K>&);
   template <class P, class C, class K> P path_cast (basic_path<C, K>&&);
 
+  // Low-level path data storage. It is also by the implementation to pass
+  // around initialized/valid paths.
+  //
   template <typename C>
-  class path_data;
+  struct path_data
+  {
+    using string_type = std::basic_string<C>;
+    using size_type = typename string_type::size_type;
+    using difference_type = typename string_type::difference_type;
 
-  template <typename C>
-  struct dir_path_kind;
+    // The idea is as follows: path_ is always the "traditional" form; that
+    // is, "/" for the root directory and "/tmp" (no trailing slash) for the
+    // rest. This means we can return/store references to path_.
+    //
+    // Then we have diff_ which is the size difference between path_ and its
+    // "pure" part, that is, without any trailing slashes, even for "/". So:
+    //
+    // diff_ == -1  -- trailing slash in path_ (the "/" case)
+    // diff_ ==  0  -- no trailing slash
+    //
+    // Finally, to represent non-root ("/") trailing slashes we use positive
+    // diff_ values. In this case diff_ is interpreted as a 1-based index in
+    // the path_traits::directory_separators string.
+    //
+    // Notes:
+    //  - If path_ is empty, then diff_ can only be 0.
+    //  - We could have used a much narrower integer for diff_.
+    //
+    string_type path_;
+    difference_type diff_;
+
+    size_type
+    _size () const {return path_.size () + (diff_ < 0 ? -1 : 0);}
+
+    void
+    _swap (path_data& d) {path_.swap (d.path_); std::swap (diff_, d.diff_);}
+
+    void
+    _clear () {path_.clear (); diff_ = 0;}
+
+    // Constructors.
+    //
+    path_data (): diff_ (0) {}
+
+    path_data (string_type&& p, difference_type d)
+        : path_ (std::move (p)), diff_ (path_.empty () ? 0 : d) {}
+
+    explicit
+    path_data (string_type&& p)
+        : path_ (std::move (p)), diff_ (0)
+    {
+      size_type n (path_.size ()), i;
+
+      if (n != 0 && (i = path_traits<C>::separator_index (path_[n - 1])) != 0)
+      {
+        if (n == 1) // The "/" case.
+          diff_ = -1;
+        else
+        {
+          diff_ = i;
+          path_.pop_back ();
+        }
+      }
+    }
+  };
 
   template <typename C>
   struct any_path_kind
   {
-    typedef path_data<C> base_type;
-    typedef basic_path<C, dir_path_kind<C>> dir_type;
+    class base_type: protected path_data<C> // In essence protected path_data.
+    {
+    protected:
+      using path_data<C>::path_data;
+
+      base_type () = default;
+      base_type (path_data<C>&& d): path_data<C> (std::move (d)) {}
+    };
+
+    using dir_type = basic_path<C, dir_path_kind<C>>;
+
+    // Init and cast.
+    //
+    // If exact is true, return the path if the initialization was successful,
+    // that is, the passed string is a valid path and no modifications were
+    // necessary. Otherwise, return the empty object and leave the passed
+    // string untouched.
+    //
+    // If extact is false, throw invalid_path if the string is not a valid
+    // path (e.g., uses an unsupported path notation on Windows).
+    //
+    using data_type = path_data<C>;
+    using string_type = std::basic_string<C>;
+
+    static data_type
+    init (string_type&&, bool exact = false);
+
+    static void
+    cast (data_type&) {}
   };
 
   template <typename C>
   struct dir_path_kind
   {
-    typedef basic_path<C, any_path_kind<C>> base_type;
-    typedef basic_path<C, dir_path_kind<C>> dir_type;
-  };
+    using base_type = basic_path<C, any_path_kind<C>>;
+    using dir_type = basic_path<C, dir_path_kind<C>>;
 
-  typedef basic_path<char, any_path_kind<char>> path;
-  typedef basic_path<char, dir_path_kind<char>> dir_path;
-  typedef invalid_basic_path<char> invalid_path;
+    // Init and cast.
+    //
+    using data_type = path_data<C>;
+    using string_type = std::basic_string<C>;
 
-  typedef basic_path<wchar_t, any_path_kind<wchar_t>> wpath;
-  typedef basic_path<wchar_t, dir_path_kind<wchar_t>> dir_wpath;
-  typedef invalid_basic_path<wchar_t> invalid_wpath;
+    static data_type
+    init (string_type&&, bool exact = false);
 
-  template <typename C>
-  class path_data
-  {
-  public:
-    typedef std::basic_string<C> string_type;
-
-    path_data () = default;
-
-    explicit
-    path_data (string_type s): path_ (std::move (s)) {}
-
-  protected:
-    string_type path_;
+    static void
+    cast (data_type&);
   };
 
   template <typename C, typename K>
   class basic_path: public K::base_type
   {
   public:
-    typedef std::basic_string<C> string_type;
-    typedef typename string_type::size_type size_type;
-
-    typedef typename K::base_type base_type;
-    typedef typename K::dir_type dir_type;
-
-    typedef path_traits<C> traits;
+    using string_type = std::basic_string<C>;
+    using size_type = typename string_type::size_type;
+    using difference_type = typename string_type::difference_type;
+    using traits = path_traits<C>;
 
     struct iterator;
-    typedef std::reverse_iterator<iterator> reverse_iterator;
+    using reverse_iterator = std::reverse_iterator<iterator>;
 
-    // Create a special empty path. Note that we have to provide our
-    // own implementation rather than using '=default' to make clang
-    // allow default-initialized const instances of this type.
+    using base_type = typename K::base_type;
+    using dir_type = typename K::dir_type;
+
+    // Create a special empty path. Note that we have to provide our own
+    // implementation rather than using '=default' to make clang allow
+    // default-initialized const instances of this type.
     //
-    basic_path () {};
+    basic_path () {}
 
     // Constructors that initialize a path from a string argument throw the
     // invalid_path exception if the string is not a valid path (e.g., uses
     // unsupported path notations on Windows).
     //
     explicit
-    basic_path (C const* s): base_type (s) {init (this->path_);}
+    basic_path (C const* s): base_type (K::init (s)) {}
 
     basic_path (C const* s, size_type n)
-        : base_type (string_type (s, n)) {init (this->path_);}
+        : base_type (K::init (string_type (s, n))) {}
 
     explicit
-    basic_path (string_type s): base_type (std::move (s)) {init (this->path_);}
+    basic_path (string_type s): base_type (K::init (std::move (s))) {}
 
     basic_path (const string_type& s, size_type n)
-        : base_type (string_type (s, 0, n)) {init (this->path_);}
+        : base_type (K::init (string_type (s, 0, n))) {}
 
     basic_path (const string_type& s, size_type p, size_type n)
-        : base_type (string_type (s, p, n)) {init (this->path_);}
+        : base_type (K::init (string_type (s, p, n))) {}
 
     // Create a path using the exact string representation. If the string is
     // not a valid path or if it would require a modification, then empty path
     // is created instead and the passed string rvalue-reference is left
     // untouched. Note that no exception is thrown if the path is invalid. See
-    // also string()&& below.
+    // also representation()&& below.
     //
     enum exact_type {exact};
     basic_path (string_type&& s, exact_type)
-    {
-      if (init (s, true))
-        this->path_ = std::move (s);
-    }
+        : base_type (K::init (std::move (s), true)) {}
 
-    // Create a path as a sub-path identified by the [begin, end)
-    // range of components.
+    // Create a path as a sub-path identified by the [begin, end) range of
+    // components.
     //
     basic_path (const iterator& begin, const iterator& end);
 
@@ -340,13 +463,13 @@ namespace butl
         : basic_path (rend.base (), rbegin.base ()) {}
 
     void
-    swap (basic_path& p) {this->path_.swap (p.path_);}
+    swap (basic_path& p) {this->_swap (p);}
 
     void
-    clear () {this->path_.clear ();}
+    clear () {this->_clear ();}
 
-    // Get/set current working directory. Throw std::system_error
-    // to report the underlying OS errors.
+    // Get/set current working directory. Throw std::system_error to report
+    // the underlying OS errors.
     //
     static dir_type
     current () {return dir_type (traits::current ());}
@@ -375,19 +498,22 @@ namespace butl
     static basic_path
     temp_path (const string_type& prefix)
     {
-      return temp_directory () / basic_path (traits::temp_name (prefix));
+      return temp_directory () / traits::temp_name (prefix);
     }
 
   public:
     bool
     empty () const {return this->path_.empty ();}
 
+    // Note that size does not include the trailing separator except for
+    // the root case.
+    //
     size_type
     size () const {return this->path_.size ();}
 
-    // Return true if this path doesn't have any directories. Note
-    // that "/foo" is not a simple path (it is "foo" in root directory)
-    // while "/" is (it is the root directory).
+    // Return true if this path doesn't have any directories. Note that "/foo"
+    // is not a simple path (it is "foo" in root directory) while "/" is (it
+    // is the root directory).
     //
     bool
     simple () const;
@@ -396,10 +522,7 @@ namespace butl
     absolute () const;
 
     bool
-    relative () const
-    {
-      return !absolute ();
-    }
+    relative () const {return !absolute ();}
 
     bool
     root () const;
@@ -421,33 +544,35 @@ namespace butl
     sup (const basic_path&) const;
 
   public:
-    // Return the path without the directory part.
+    // Return the path without the directory part. Leaf of a directory is
+    // itself a directory (contains trailing slash). Leaf of a root is the
+    // path itself.
     //
     basic_path
     leaf () const;
 
     // Return the path without the specified directory part. Throws
-    // invalid_path if the directory is not a prefix of *this. Expects
-    // both paths to be normalized.
+    // invalid_path if the directory is not a prefix of *this. Expects both
+    // paths to be normalized.
     //
     basic_path
     leaf (basic_path const&) const;
 
-    // Return the directory part of the path or empty path if
-    // there is no directory.
+    // Return the directory part of the path or empty path if there is no
+    // directory. Directory of a root is an empty path.
     //
     dir_type
     directory () const;
 
-    // Return the directory part of the path without the specified
-    // leaf part. Throws invalid_path if the leaf is not a suffix of
-    // *this. Expects both paths to be normalized.
+    // Return the directory part of the path without the specified leaf part.
+    // Throws invalid_path if the leaf is not a suffix of *this. Expects both
+    // paths to be normalized.
     //
     dir_type
     directory (basic_path const&) const;
 
-    // Return the root directory of the path or empty path if
-    // the directory is not absolute.
+    // Return the root directory of the path or empty path if the directory is
+    // not absolute.
     //
     dir_type
     root_directory () const;
@@ -476,25 +601,33 @@ namespace butl
   public:
     struct iterator
     {
-      typedef string_type value_type;
-      typedef string_type* pointer;
-      typedef string_type reference;
-      typedef std::ptrdiff_t difference_type;
-      typedef std::bidirectional_iterator_tag iterator_category;
+      using value_type = string_type ;
+      using pointer = string_type*;
+      using reference = string_type ;
+      using size_type = typename string_type::size_type;
+      using difference_type = std::ptrdiff_t ;
+      using iterator_category = std::bidirectional_iterator_tag ;
 
-      typedef typename string_type::size_type size_type;
+      using data_type = path_data<C>;
 
       iterator (): p_ (nullptr) {}
-      iterator (const string_type& p, size_type b, size_type e)
-          : p_ (&p), b_ (b), e_ (e) {}
+      iterator (const data_type* p, size_type b, size_type e)
+          : p_ (p), b_ (b), e_ (e) {}
 
       iterator&
       operator++ ()
       {
-        b_ = e_;
+        const string_type& s (p_->path_);
 
-        if (b_ != string_type::npos)
-          e_ = traits::find_separator (*p_, ++b_);
+        // Position past trailing separator, if any.
+        //
+        b_ = e_ != string_type::npos && ++e_ != s.size ()
+          ? e_
+          : string_type::npos;
+
+        // Find next trailing separator.
+        //
+        e_ = b_ != string_type::npos ? traits::find_separator (s, b_) : b_;
 
         return *this;
       }
@@ -502,13 +635,21 @@ namespace butl
       iterator&
       operator-- ()
       {
-        e_ = b_;
+        const string_type& s (p_->path_);
 
-        b_ = e_ == string_type::npos // Last component?
-          ? traits::rfind_separator (*p_)
-          : (--e_ == 0 // First empty component?
-             ? string_type::npos
-             : traits::rfind_separator (*p_, e_ - 1));
+        // Find the new end.
+        //
+        e_ = b_ == string_type::npos          // Past end?
+          ? (traits::is_separator (s.back ()) // Have trailing slash?
+             ? s.size () - 1
+             : string_type::npos)
+          : b_ - 1;
+
+        // Find the new begin.
+        //
+        b_ = e_ == 0 // Empty component?
+          ? string_type::npos
+          : traits::rfind_separator (s, e_ != string_type::npos ? e_ - 1 : e_);
 
         b_ = b_ == string_type::npos // First component?
           ? 0
@@ -523,9 +664,26 @@ namespace butl
       iterator
       operator-- (int) {iterator r (*this); operator-- (); return r;}
 
-      string_type operator* () const
+      string_type
+      operator* () const
       {
-        return string_type (*p_, b_, (e_ != string_type::npos ? e_ - b_ : e_));
+        return string_type (p_->path_,
+                            b_,
+                            e_ != string_type::npos ? e_ - b_ : e_);
+      }
+
+      // Return the directory separator after this component or '\0' if there
+      // is none. This, for example, can be used to determine if the last
+      // component is a directory.
+      //
+      C
+      separator () const
+      {
+        return e_ != string_type::npos
+          ? p_->path_[e_]
+          : (p_->diff_ > 0
+             ? path_traits<C>::directory_separators[p_->diff_ - 1]
+             : 0);
       }
 
       pointer operator-> () const = delete;
@@ -542,10 +700,11 @@ namespace butl
     private:
       friend class basic_path;
 
-      // b != npos && e == npos - last component
+      // b - first character of component
+      // e - separator after component (or npos if none)
       // b == npos && e == npos - one past last component (end)
       //
-      const string_type* p_;
+      const data_type* p_;
       size_type b_;
       size_type e_;
     };
@@ -558,15 +717,15 @@ namespace butl
 
   public:
     // Normalize the path. This includes collapsing the '.' and '..'
-    // directories if possible, collapsing multiple directory
-    // separators, and converting all directory separators to the
-    // canonical form. Return *this.
+    // directories if possible, collapsing multiple directory separators, and
+    // converting all directory separators to the canonical form. Return
+    // *this.
     //
     basic_path&
     normalize ();
 
-    // Make the path absolute using the current directory unless
-    // it is already absolute. Return *this.
+    // Make the path absolute using the current directory unless it is already
+    // absolute. Return *this.
     //
     basic_path&
     complete ();
@@ -582,7 +741,7 @@ namespace butl
     basic_path&
     operator/= (basic_path const&);
 
-    // Append a single path component (must not contain directory separators)
+    // Combine a single path component (must not contain directory separators)
     // as a string, without first constructing the path object.
     //
     basic_path&
@@ -591,47 +750,20 @@ namespace butl
     basic_path&
     operator/= (const C*);
 
-    basic_path
-    operator+ (string_type const& s) const
-    {
-      return basic_path (this->path_ + s);
-    }
-
-    basic_path
-    operator+ (const C* s) const
-    {
-      return basic_path (this->path_ + s);
-    }
-
-    basic_path
-    operator+ (C c) const
-    {
-      return basic_path (this->path_ + c);
-    }
+    // Append to the end of the path (normally an extension, etc).
+    //
+    basic_path&
+    operator+= (string_type const&);
 
     basic_path&
-    operator+= (string_type const& s)
-    {
-      this->path_ += s;
-      return *this;
-    }
+    operator+= (const C*);
 
     basic_path&
-    operator+= (const C* s)
-    {
-      this->path_ += s;
-      return *this;
-    }
+    operator+= (C);
 
-    basic_path&
-    operator+= (C c)
-    {
-      this->path_ += c;
-      return *this;
-    }
-
-    // Note that comparison is case-insensitive if the filesystem is
-    // not case-sensitive (e.g., Windows).
+    // Note that comparison is case-insensitive if the filesystem is not
+    // case-sensitive (e.g., Windows). And it ignored trailing slashes
+    // except for the root case.
     //
     template <typename K1>
     int
@@ -639,56 +771,88 @@ namespace butl
       return traits::compare (this->path_, x.path_);}
 
   public:
+    // Path string and representation. The string does not contain the
+    // trailing slash except for the root case. In other words, it is the
+    // "traditional" spelling of the path that can be passed to system calls,
+    // etc. Representation, on the other hand is the "precise" spelling that
+    // includes the trailing slash, if any. One cannot always round-trip a
+    // path using string() but can using representation(). Note also that
+    // representation() returns a copy while string() returns a (tracking)
+    // reference.
+    //
     const string_type&
     string () const& {return this->path_;}
 
-    // Moves the underlying path string out of the path object. The
-    // path object becomes empty. Usage: std::move (p).string ().
+    string_type
+    representation () const&;
+
+    // Moves the underlying path string out of the path object. The path
+    // object becomes empty. Usage: std::move (p).string ().
     //
     string_type
     string () && {string_type r; r.swap (this->path_); return r;}
 
-    // If possible, return a POSIX representation of the path. For example,
-    // for a Windows path in the form foo\bar this function will return
-    // foo/bar. If it is not possible to create a POSIX representation for
-    // this path (e.g., c:\foo), this function will throw the invalid_path
-    // exception.
+    string_type
+    representation () &&;
+
+    // Trailing directory separator or '\0' if there is none.
+    //
+    C
+    separator () const;
+
+    // As above but return it as a (potentially empty) string.
+    //
+    string_type
+    separator_string () const;
+
+    // If possible, return a POSIX version of the path. For example, for a
+    // Windows path in the form foo\bar this function will return foo/bar. If
+    // it is not possible to create a POSIX version for this path (e.g.,
+    // c:\foo), this function will throw the invalid_path exception.
     //
     string_type
     posix_string () const;
 
-  protected:
-    basic_path (string_type s, bool i): base_type (std::move (s))
-    {
-      if (i)
-        init (this->path_);
-    }
-
-    // Common implementation for operator=/().
+    // Implementation details.
     //
+  protected:
+    using data_type = path_data<C>;
+
+    // Direct initialization without init()/cast().
+    //
+    explicit
+    basic_path (data_type&& d): base_type (std::move (d)) {}
+
+    using base_type::_size;
+
+    // Common implementation for operator/= and operator+=.
+    //
+    void
+    combine (const C*, size_type, difference_type);
+
     void
     combine (const C*, size_type);
 
-  private:
-    template <class P, class C1, class K1>
-    friend P butl::path_cast (const basic_path<C1, K1>&);
+    void
+    append (const C*, size_type);
 
-    template <class P, class C1, class K1>
-    friend P butl::path_cast (basic_path<C1, K1>&&);
-
-    // If exact is true, return whether the initialization was successful,
-    // that is, the passed string is a valid path and no modifications were
-    // necessary. Otherwise (extact is false), throw invalid_path if the
-    // string is not a valid path (e.g., uses an unsupported path notation on
-    // Windows).
+    // Friends.
     //
-    bool
-    init (string_type& s, bool exact = false);
+    template <class C1, class K1>
+    friend class basic_path;
+
+    template <class C1, class K1, class K2>
+    friend basic_path<C1, K1>
+    path_cast_impl (const basic_path<C1, K2>&, basic_path<C1, K1>*);
+
+    template <class C1, class K1, class K2>
+    friend basic_path<C1, K1>
+    path_cast_impl (basic_path<C1, K2>&&, basic_path<C1, K1>*);
   };
 
   template <typename C, typename K>
   inline basic_path<C, K>
-  operator/ (basic_path<C, K> const& x, basic_path<C, K> const& y)
+  operator/ (const basic_path<C, K>& x, const basic_path<C, K>& y)
   {
     basic_path<C, K> r (x);
     r /= y;
@@ -697,7 +861,7 @@ namespace butl
 
   template <typename C, typename K>
   inline basic_path<C, K>
-  operator/ (basic_path<C, K> const& x, std::basic_string<C> const& y)
+  operator/ (const basic_path<C, K>& x, const std::basic_string<C>& y)
   {
     basic_path<C, K> r (x);
     r /= y;
@@ -706,10 +870,37 @@ namespace butl
 
   template <typename C, typename K>
   inline basic_path<C, K>
-  operator/ (basic_path<C, K> const& x, const C* y)
+  operator/ (const basic_path<C, K>& x, const C* y)
   {
     basic_path<C, K> r (x);
     r /= y;
+    return r;
+  }
+
+  template <typename C, typename K>
+  inline basic_path<C, K>
+  operator+ (const basic_path<C, K>& x, const std::basic_string<C>& y)
+  {
+    basic_path<C, K> r (x);
+    r += y;
+    return r;
+  }
+
+  template <typename C, typename K>
+  inline basic_path<C, K>
+  operator+ (const basic_path<C, K>& x, const C* y)
+  {
+    basic_path<C, K> r (x);
+    r += y;
+    return r;
+  }
+
+  template <typename C, typename K>
+  inline basic_path<C, K>
+  operator+ (const basic_path<C, K>& x, C y)
+  {
+    basic_path<C, K> r (x);
+    r += y;
     return r;
   }
 

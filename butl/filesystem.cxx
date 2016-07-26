@@ -146,7 +146,7 @@ namespace butl
       path ep (p / de.path ()); //@@ Would be good to reuse the buffer.
 
       if (de.ltype () == entry_type::directory)
-        rmdir_r (path_cast<dir_path> (ep), true, ignore_error);
+        rmdir_r (path_cast<dir_path> (move (ep)), true, ignore_error);
       else
         try_rmfile (ep, ignore_error);
     }

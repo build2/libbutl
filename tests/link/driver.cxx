@@ -43,8 +43,10 @@ link_file (const path& target, const path& link, bool hard, bool check_content)
 
 #ifndef _WIN32
 static bool
-link_dir (
-  const dir_path& target, const dir_path& link, bool hard, bool check_content)
+link_dir (const dir_path& target,
+          const dir_path& link,
+          bool hard,
+          bool check_content)
 {
   try
   {
@@ -53,8 +55,9 @@ link_dir (
     else
       mksymlink (target, link);
   }
-  catch (const system_error&)
+  catch (const system_error& e)
   {
+    //cerr << e.what () << endl;
     return false;
   }
 
@@ -62,6 +65,7 @@ link_dir (
     return true;
 
   dir_path tp (target.absolute () ? target : link.directory () / target);
+
   set<pair<entry_type, path>> te;
   for (const dir_entry& de: dir_iterator (tp))
     te.emplace (de.ltype (), de.path ());
@@ -112,7 +116,7 @@ main ()
 
   // Create the file symlink using an unexistent file path.
   //
-  assert (link_file (fp / path ("a"), td / path ("sa"), false, false));
+  assert (link_file (fp + "-a", td / path ("sa"), false, false));
 
   // Prepare the target directory.
   //
