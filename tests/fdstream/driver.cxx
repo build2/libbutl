@@ -263,9 +263,9 @@ main ()
   try
   {
     ofdstream ofs (f);
-    throw true;
+    throw ios::failure ("test");
   }
-  catch (bool)
+  catch (const ios::failure&)
   {
   }
 
