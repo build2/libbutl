@@ -80,14 +80,14 @@ namespace butl
   basic_path<C, K> basic_path<C, K>::
   relative (basic_path<C, K> d) const
   {
-    basic_path r;
+    dir_type r;
 
     for (;; d = d.directory ())
     {
       if (sub (d))
         break;
 
-      r /= basic_path ("../");
+      r /= "..";
 
       // Roots of the paths do not match.
       //

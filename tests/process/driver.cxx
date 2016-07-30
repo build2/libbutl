@@ -291,7 +291,7 @@ main (int argc, const char* argv[])
 
   // Fail for unexistent file path.
   //
-  assert (!exec (path ("./dr")));
+  assert (!exec (dir_path (".") / path ("dr")));
 
   // Execute the child using file name having PATH variable being properly set.
   //
