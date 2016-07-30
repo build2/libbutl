@@ -872,24 +872,6 @@ namespace butl
 
   template <typename C, typename K>
   inline basic_path<C, K>
-  operator/ (const basic_path<C, K>& x, const std::basic_string<C>& y)
-  {
-    basic_path<C, K> r (x);
-    r /= y;
-    return r;
-  }
-
-  template <typename C, typename K>
-  inline basic_path<C, K>
-  operator/ (const basic_path<C, K>& x, const C* y)
-  {
-    basic_path<C, K> r (x);
-    r /= y;
-    return r;
-  }
-
-  template <typename C, typename K>
-  inline basic_path<C, K>
   operator+ (const basic_path<C, K>& x, const std::basic_string<C>& y)
   {
     basic_path<C, K> r (x);
@@ -940,8 +922,32 @@ namespace butl
   //
   template <typename C>
   inline basic_path<C, any_path_kind<C>>
-  operator/ (basic_path<C, dir_path_kind<C>> const& x,
-             basic_path<C, any_path_kind<C>> const& y)
+  operator/ (const basic_path<C, dir_path_kind<C>>& x,
+             const basic_path<C, any_path_kind<C>>& y)
+  {
+    basic_path<C, any_path_kind<C>> r (x);
+    r /= y;
+    return r;
+  }
+
+
+  // Note that the result of (foo / "bar") is always a path, even if foo
+  // is dir_path. An idiom to force it dir_path is this:
+  //
+  // dir_path foo_bar (dir_path (foo) /= "bar");
+  //
+  template <typename C, typename K>
+  inline basic_path<C, any_path_kind<C>>
+  operator/ (const basic_path<C, K>& x, const std::basic_string<C>& y)
+  {
+    basic_path<C, any_path_kind<C>> r (x);
+    r /= y;
+    return r;
+  }
+
+  template <typename C, typename K>
+  inline basic_path<C, any_path_kind<C>>
+  operator/ (const basic_path<C, K>& x, const C* y)
   {
     basic_path<C, any_path_kind<C>> r (x);
     r /= y;
