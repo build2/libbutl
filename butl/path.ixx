@@ -3,8 +3,8 @@
 // license   : MIT; see accompanying LICENSE file
 
 #ifdef _WIN32
-#  include <cctype>  // std::tolower
-#  include <cwctype> // std::towlower
+#  include <cctype>  // tolower(), toupper()
+#  include <cwctype> // towlower(), towupper()
 #endif
 
 namespace butl
@@ -22,6 +22,20 @@ namespace butl
   tolower (wchar_t c)
   {
     return std::towlower (c);
+  }
+
+  template <>
+  inline char path_traits<char>::
+  toupper (char c)
+  {
+    return std::toupper (c);
+  }
+
+  template <>
+  inline wchar_t path_traits<wchar_t>::
+  toupper (wchar_t c)
+  {
+    return std::towupper (c);
   }
 #endif
 
@@ -223,10 +237,14 @@ namespace butl
   realize ()
   {
 #ifdef _WIN32
+    // This is not exactly the semantics of realpath(3). In particular, we
+    // don't fail if the path does not exist. But we could have seeing that
+    // we actualize it.
+    //
     complete ();
-    normalize ();
+    normalize (true);
 #else
-    traits::realize (this->path_); // Note: we retail trailing slash.
+    traits::realize (this->path_); // Note: we retain the trailing slash.
 #endif
     return *this;
   }

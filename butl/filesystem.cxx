@@ -515,6 +515,7 @@ namespace butl
       break;
     }
   }
+
 #else
 
   // dir_entry

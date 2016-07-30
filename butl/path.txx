@@ -3,6 +3,7 @@
 // license   : MIT; see accompanying LICENSE file
 
 #include <vector>
+#include <cassert>
 
 namespace butl
 {
@@ -97,17 +98,31 @@ namespace butl
     return r / leaf (d);
   }
 
+#ifdef _WIN32
+  // Find the actual spelling of a name in the specified dir. If the name is
+  // found, append it to the result and return true. Otherwise, return false.
+  // Throw system_error in case of other failures. Result and dir can be the
+  // same instance.
+  //
+  template <typename C>
+  bool
+  basic_path_append_actual_name (std::basic_string<C>& result,
+                                 const std::basic_string<C>& dir,
+                                 const std::basic_string<C>& name);
+#endif
+
   template <typename C, typename K>
   basic_path<C, K>& basic_path<C, K>::
-  normalize ()
+  normalize (bool actual)
   {
     if (empty ())
       return *this;
 
+    bool abs (absolute ());
+    assert (!actual || abs); // Only absolue can be actualized.
+
     string_type& s (this->path_);
     difference_type& d (this->diff_);
-
-    bool abs (absolute ());
 
     typedef std::vector<string_type> paths;
     paths ps;
@@ -188,14 +203,37 @@ namespace butl
       r.push_back (std::move (s));
     }
 
-    // Reassemble the path.
+    // Reassemble the path, actualizing each component if requested.
     //
     string_type p;
 
-    for (typename paths::const_iterator i (r.begin ()), e (r.end ());
+    for (typename paths::const_iterator b (r.begin ()), i (b), e (r.end ());
          i != e;)
     {
-      p += *i;
+#ifdef _WIN32
+      if (actual)
+      {
+        if (i == b)
+        {
+          // The first component (the drive letter) we have to actualize
+          // ourselves. Capital seems to be canonical. This is, for example,
+          // what getcwd() returns.
+          //
+          p = *i;
+          p[0] = traits::toupper (p[0]);
+        }
+        else
+        {
+          if (!basic_path_append_actual_name (p, p, *i))
+          {
+            p += *i;
+            actual = false; // Ignore for all subsequent components.
+          }
+        }
+      }
+      else
+#endif
+        p += *i;
 
       if (++i != e)
         p += traits::directory_separator;

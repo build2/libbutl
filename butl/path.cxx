@@ -7,8 +7,9 @@
 #ifdef _WIN32
 #  include <butl/win32-utility>
 
-#  include <stdlib.h>  // _MAX_PATH, _wgetenv()
-#  include <direct.h>  // _[w]getcwd(), _[w]chdir()
+#  include <io.h>       // _find*()
+#  include <stdlib.h>   // _MAX_PATH, _wgetenv()
+#  include <direct.h>   // _[w]getcwd(), _[w]chdir()
 #  include <shlobj.h>   // SHGetFolderPath*(), CSIDL_PROFILE
 #  include <winerror.h> // SUCCEEDED()
 #else
@@ -26,6 +27,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <cstring> // strcpy()
 #include <system_error>
 
 #include <butl/export>
@@ -339,6 +341,46 @@ namespace butl
   realize (string_type&)
   {
     assert (false); // Implement if/when needed.
+  }
+#endif
+
+#ifdef _WIN32
+  template <>
+  LIBBUTL_EXPORT bool
+  basic_path_append_actual_name<char> (string& r,
+                                       const string& d,
+                                       const string& n)
+  {
+    assert (d.size () + n.size () + 1 < _MAX_PATH);
+
+    char p[_MAX_PATH];
+    strcpy (p, d.c_str ());
+    p[d.size ()] = '\\';
+    strcpy (p + d.size () + 1, n.c_str ());
+
+    // It could be that using FindFirstFile() is faster.
+    //
+    _finddata_t fi;
+    intptr_t h (_findfirst (p, &fi));
+
+    if (h == -1 && errno == ENOENT)
+      return false;
+
+    if (h == -1 || _findclose (h) == -1)
+      throw system_error (errno, system_category ());
+
+    r += fi.name;
+    return true;
+  }
+
+  template <>
+  LIBBUTL_EXPORT bool
+  basic_path_append_actual_name<wchar_t> (wstring&,
+                                          const wstring&,
+                                          const wstring&)
+  {
+    assert (false); // Implement if/when needed.
+    return false;
   }
 #endif
 }

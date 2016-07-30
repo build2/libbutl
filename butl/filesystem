@@ -338,9 +338,9 @@ namespace butl
     dir_entry e_;
 
 #ifndef _WIN32
-    DIR* h_ {nullptr};
+    DIR* h_ = nullptr;
 #else
-    intptr_t h_ {-1};
+    intptr_t h_ = -1;
 #endif
   };
 

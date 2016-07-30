@@ -239,10 +239,14 @@ namespace butl
     realize (string_type&);
 #endif
 
-  private:
+    // Utilities.
+    //
 #ifdef _WIN32
     static C
     tolower (C);
+
+    static C
+    toupper (C);
 #endif
   };
 
@@ -716,13 +720,20 @@ namespace butl
     reverse_iterator rend () const {return reverse_iterator (begin ());}
 
   public:
-    // Normalize the path. This includes collapsing the '.' and '..'
-    // directories if possible, collapsing multiple directory separators, and
-    // converting all directory separators to the canonical form. Return
-    // *this.
+    // Normalize the path and return*this. Normalization involves collapsing
+    // the '.' and '..'  directories if possible, collapsing multiple
+    // directory separators, and converting all directory separators to the
+    // canonical form.
+    //
+    // If actual is true, then for case-insensitive filesystems obtain the
+    // actual spelling of the path. Only an absolute path can be actualized.
+    // If a path component does not exist, then its (and all subsequent)
+    // spelling is unchanged. This is a potentially expensive operation.
+    // Normally one can assume that "well-known" directories (current, home,
+    // etc.) are returned in their actual spelling.
     //
     basic_path&
-    normalize ();
+    normalize (bool actual = false);
 
     // Make the path absolute using the current directory unless it is already
     // absolute. Return *this.

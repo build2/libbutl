@@ -478,6 +478,28 @@ main ()
   assert (path::home ().absolute ());
   //assert (wpath::home ().absolute ());
 
+  // normalize and actualize
+  //
+#ifdef _WIN32
+  {
+    auto test = [] (const char* p)
+    {
+      return path (p).normalize (true).representation ();
+    };
+
+    assert (test ("c:") == "C:");
+    assert (test ("c:/") == "C:\\");
+    assert (test ("c:\\pROGRAM fILES/") == "C:\\Program Files\\");
+    assert (test ("c:\\pROGRAM fILES/NonSense") ==
+            "C:\\Program Files\\NonSense");
+    assert (test ("c:\\pROGRAM fILES/NonSense\\sTUFF/") ==
+            "C:\\Program Files\\NonSense\\sTUFF\\");
+
+    dir_path cwd (path::current ());
+    assert (cwd.normalize (true).representation () == cwd.representation ());
+  }
+#endif
+
   /*
   path p ("../foo");
   p.complete ();

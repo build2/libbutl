@@ -14,8 +14,8 @@ namespace butl
 {
   // prefix_map for filesystem paths
   //
-  // Important: the paths should be normalized but don't have to be
-  // canonicalized.
+  // Important: the paths should be normalized but can use different case
+  // on case-insensitive platforms.
   //
   // Note that the path's representation of POSIX root ('/') is
   // inconsistent in that we have a trailing delimiter at the end of
