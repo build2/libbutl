@@ -66,6 +66,7 @@ namespace butl
     char cwd[_MAX_PATH];
     if (_getcwd (cwd, _MAX_PATH) == 0)
       throw system_error (errno, system_category ());
+    cwd[0] = toupper (cwd[0]); // Canonicalize.
 #else
     char cwd[PATH_MAX];
     if (getcwd (cwd, PATH_MAX) == 0)
@@ -228,6 +229,7 @@ namespace butl
     wchar_t wcwd[_MAX_PATH];
     if (_wgetcwd (wcwd, _MAX_PATH) == 0)
       throw system_error (errno, system_category ());
+    wcwd[0] = toupper (wcwd[0]); // Canonicalize.
 #else
     char cwd[PATH_MAX];
     if (getcwd (cwd, PATH_MAX) == 0)
