@@ -296,9 +296,30 @@ namespace butl
 #ifndef _WIN32
   template <typename C, typename K>
   inline typename basic_path<C, K>::string_type basic_path<C, K>::
-  posix_string () const
+  posix_string () const&
   {
     return string ();
+  }
+
+  template <typename C, typename K>
+  inline typename basic_path<C, K>::string_type basic_path<C, K>::
+  posix_string () &&
+  {
+    return std::move (*this).string ();
+  }
+
+  template <typename C, typename K>
+  inline typename basic_path<C, K>::string_type basic_path<C, K>::
+  posix_representation () const&
+  {
+    return representation ();
+  }
+
+  template <typename C, typename K>
+  inline typename basic_path<C, K>::string_type basic_path<C, K>::
+  posix_representation () &&
+  {
+    return std::move (*this).representation ();
   }
 #endif
 

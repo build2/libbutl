@@ -5,6 +5,10 @@
 #include <vector>
 #include <cassert>
 
+#ifdef _WIN32
+#  include <algorithm> // replace()
+#endif
+
 namespace butl
 {
   template <typename C, typename K>
@@ -59,19 +63,49 @@ namespace butl
 #ifdef _WIN32
   template <typename C, typename K>
   typename basic_path<C, K>::string_type basic_path<C, K>::
-  posix_string () const
+  posix_string () const&
   {
     if (absolute ())
       throw invalid_basic_path<C> (this->path_);
 
-    string_type r (this->path_);
+    string_type r (string ());
+    replace (r.begin (), r.end (), '\\', '/');
+    return r;
+  }
 
-    // Translate Windows-style separators to the POSIX ones.
-    //
-    for (size_type i (0), n (r.size ()); i != n; ++i)
-      if (r[i] == '\\')
-        r[i] = '/';
+  template <typename C, typename K>
+  typename basic_path<C, K>::string_type basic_path<C, K>::
+  posix_string () &&
+  {
+    if (absolute ())
+      throw invalid_basic_path<C> (this->path_);
 
+    string_type r (std::move (*this).string ());
+    replace (r.begin (), r.end (), '\\', '/');
+    return r;
+  }
+
+  template <typename C, typename K>
+  typename basic_path<C, K>::string_type basic_path<C, K>::
+  posix_representation () const&
+  {
+    if (absolute ())
+      throw invalid_basic_path<C> (this->path_);
+
+    string_type r (representation ());
+    replace (r.begin (), r.end (), '\\', '/');
+    return r;
+  }
+
+  template <typename C, typename K>
+  typename basic_path<C, K>::string_type basic_path<C, K>::
+  posix_representation () &&
+  {
+    if (absolute ())
+      throw invalid_basic_path<C> (this->path_);
+
+    string_type r (std::move (*this).representation ());
+    replace (r.begin (), r.end (), '\\', '/');
     return r;
   }
 #endif

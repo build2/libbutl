@@ -18,8 +18,6 @@ namespace butl
 {
   // Wish list/ideas for improvements.
   //
-  // - posix_representation() in addition to posix_string()
-  //
   // - Ability to convert to directory/leaf/base in-place, without dynamic
   //   allocation. One idea is something like this:
   //
@@ -822,7 +820,16 @@ namespace butl
     // c:\foo), this function will throw the invalid_path exception.
     //
     string_type
-    posix_string () const;
+    posix_string () const&;
+
+    string_type
+    posix_representation () const&;
+
+    string_type
+    posix_string () &&;
+
+    string_type
+    posix_representation () &&;
 
     // Implementation details.
     //
