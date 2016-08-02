@@ -25,7 +25,10 @@ namespace butl
   //   p -= "*/"; // leaf
   //   p -= ".*"; // base
   //
-  // - Faster normalize() implementation.
+  // - Faster normalize() implementation. In many cases (e.g., in buil2)
+  //   the path is either already normal or the difference is just slashes
+  //   (i.e., there are no '.' or '..' components). So a fast path case
+  //   might be in order.
   //
   // - We duplicate the interface for path and dir_path while most of it
   //   is common. Also, we can implicit-cast dir_path& to path& and use
