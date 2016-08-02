@@ -12,7 +12,7 @@
 
 #  include <io.h>        // _open_osfhandle(), _get_osfhandle(), _close()
 #  include <fcntl.h>     // _O_TEXT
-#  include <stdlib.h>    // getenv()
+#  include <stdlib.h>    // _MAX_PATH, getenv()
 #  include <sys/types.h> // stat
 #  include <sys/stat.h>  // stat(), S_IS*
 
@@ -249,6 +249,11 @@ namespace butl
 
 #else // _WIN32
 
+  // Why do we search for the program ourselves when CreateProcess() can be
+  // made to do that for us? Well, that's a bit of a historic mystery. We
+  // could use it to disable search in the current working directory. Or we
+  // could handle batch files automatically.
+  //
   static path
   path_search (const path& f)
   {
@@ -257,58 +262,85 @@ namespace butl
     // If there is a directory component in the file, then the PATH search
     // does not apply.
     //
-    if (!f.directory ().empty ())
+    if (!f.simple ())
       return f;
 
-    string paths;
-
-    // If there is no PATH in the environment then the default search path is
-    // the current directory.
-    //
-    if (const char* s = getenv ("PATH"))
+    path r;
+    auto search = [&r, &f] (const char* d, size_t n) -> bool
     {
-      paths = s;
+      string s (move (r).string ()); // Reuse buffer.
 
-      // Also check the current directory.
+      if (n != 0)
+      {
+        s.assign (d, n);
+
+        if (!traits::is_separator (s.back ()))
+          s += traits::directory_separator;
+      }
+
+      s += f.string ();
+      r = path (move (s)); // Move back into result.
+
+      // Check that the file exist without checking for permissions, etc.
       //
-      paths += traits::path_separator;
-    }
-    else
-      paths = traits::path_separator;
-
-    struct stat info;
-
-    for (size_t b (0), e (paths.find (traits::path_separator));
-         b != string::npos;)
-    {
-      dir_path p (string (paths, b, e != string::npos ? e - b : e));
-
-      // Empty path (i.e., a double colon or a colon at the beginning or end
-      // of PATH) means search in the current dirrectory.
-      //
-      if (p.empty ())
-        p = dir_path (".");
-
-      path dp (p / f);
-
-      // Just check that the file exist without checking for permissions, etc.
-      //
-      if (stat (dp.string ().c_str (), &info) == 0 && S_ISREG (info.st_mode))
-        return dp;
+      struct stat info;
+      if (stat (r.string ().c_str (), &info) == 0 && S_ISREG (info.st_mode))
+        return true;
 
       // Also try the path with the .exe extension.
       //
-      dp += ".exe";
+      r += ".exe";
 
-      if (stat (dp.string ().c_str (), &info) == 0 && S_ISREG (info.st_mode))
-        return dp;
+      if (stat (r.string ().c_str (), &info) == 0 && S_ISREG (info.st_mode))
+        return true;
 
-      if (e == string::npos)
-        b = e;
-      else
+      return false;
+    };
+
+    // The search order is documented in CreateProcess(). First we look in
+    // the directory of the parent executable.
+    //
+    {
+      char d[_MAX_PATH + 1];
+      DWORD n (GetModuleFileName (NULL, d, _MAX_PATH + 1));
+
+      if (n == 0 || n == _MAX_PATH + 1) // Failed or truncated.
+        throw process_error (last_error_msg ());
+
+      const char* p (traits::rfind_separator (d, n));
+      assert (p != nullptr);
+
+      if (search (d, p - d + 1)) // Include trailing slash.
+        return r;
+    }
+
+    // Next look in the current working directory. Crazy, I know.
+    //
+    if (search ("", 0))
+      return r;
+
+    // Finally, search in PATH.
+    //
+    if (const char* s = getenv ("PATH"))
+    {
+      string ps (s);
+
+      for (size_t b (0), e (ps.find (traits::path_separator));
+           b != string::npos;)
       {
-        b = e + 1;
-        e = paths.find (traits::path_separator, b);
+        // Empty path (i.e., a double colon or a colon at the beginning or end
+        // of PATH) means search in the current dirrectory.
+        //
+        if (search (ps.c_str () + b, (e != string::npos ? e : ps.size ()) - b))
+          return r;
+
+        if (e == string::npos)
+          b = e;
+        else
+        {
+          b = e + 1;
+          e = ps.find (traits::path_separator, b);
+        }
       }
     }
 
@@ -448,7 +480,7 @@ namespace butl
 
     // Do PATH search.
     //
-    if (file.directory ().empty ())
+    if (file.simple ())
       file = path_search (file);
 
     if (file.empty ())
