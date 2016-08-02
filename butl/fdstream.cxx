@@ -34,30 +34,26 @@ namespace butl
 {
   // throw_ios_failure
   //
-  template <bool = is_base_of<system_error, ios_base::failure>::value>
-  struct throw_ios
+  template <bool v>
+  static inline void
+  throw_ios_failure (error_code e, typename enable_if<v, const char*>::type m)
   {
-    static void impl (error_code e, const char* m) {
-      throw ios_base::failure (m, e);}
-  };
+    throw ios_base::failure (m, e);
+  }
 
-  template <>
-  struct throw_ios<false>
+  template <bool v>
+  static inline void
+  throw_ios_failure (error_code, typename enable_if<!v, const char*>::type m)
   {
-    static void impl (error_code, const char* m) {throw ios_base::failure (m);}
-  };
-
-  inline void
-  throw_ios_failure (int ev)
-  {
-    error_code ec (ev, system_category ());
-    throw_ios<>::impl (ec, ec.message ().c_str ());
+    throw ios_base::failure (m);
   }
 
   inline void
-  throw_ios_failure (int ev, const char* m)
+  throw_ios_failure (int ev, const char* m = nullptr)
   {
-    throw_ios<>::impl (error_code (ev, system_category ()), m);
+    error_code ec (ev, system_category ());
+    throw_ios_failure<is_base_of<system_error, ios_base::failure>::value> (
+      ec, m != nullptr ? m : ec.message ().c_str ());
   }
 
   // fdbuf
