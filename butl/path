@@ -135,13 +135,20 @@ namespace butl
       else
         pos++;
 
-      for (; pos > 0; --pos)
+      const C* r (rfind_separator (s.c_str (), pos));
+      return r != nullptr ? r - s.c_str () : string_type::npos;
+    }
+
+    static const C*
+    rfind_separator (const C* s, size_type n)
+    {
+      for (; n != 0; --n)
       {
-        if (is_separator (s[pos - 1]))
-          return pos - 1;
+        if (is_separator (s[n - 1]))
+          return s + n - 1;
       }
 
-      return string_type::npos;
+      return nullptr;
     }
 
     // Return the position of '.' or npos if there is no extension.
