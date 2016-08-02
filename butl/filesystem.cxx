@@ -248,7 +248,11 @@ namespace butl
 
     // Throws ios::failure on fdbuf read/write failures.
     //
-    ofs << ifs.rdbuf ();
+    // Note that the eos check is important: if the stream is at eos (empty
+    // file) then this write will fail.
+    //
+    if (ifs.peek () != ifdstream::traits_type::eof ())
+      ofs << ifs.rdbuf ();
 
     ifs.close (); // Throws ios::failure on failure.
     ofs.close (); // Throws ios::failure on flush/close failure.
