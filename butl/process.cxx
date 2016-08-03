@@ -12,6 +12,7 @@
 
 #  include <io.h>        // _open_osfhandle(), _get_osfhandle(), _close()
 #  include <fcntl.h>     // _O_TEXT
+#  include <string.h>    // _stricmp() @@ CASE
 #  include <stdlib.h>    // _MAX_PATH, getenv()
 #  include <sys/types.h> // stat
 #  include <sys/stat.h>  // stat(), S_IS*
@@ -281,20 +282,20 @@ namespace butl
       s += f.string ();
       r = path (move (s)); // Move back into result.
 
-      // Check that the file exist without checking for permissions, etc.
+      // Unless there is already the .exe extension, add it. Note that running
+      // .bat files requires starting cmd.exe and passing the batch file as an
+      // argument (see CreateProcess() for deails). So if/when we decide to
+      // support those, it will have to be handled differently.
       //
-      struct stat info;
-      if (stat (r.string ().c_str (), &info) == 0 && S_ISREG (info.st_mode))
-        return true;
+      const char* e (r.extension ());
+      if (e == nullptr || _stricmp (e, "exe") != 0) // @@ CASE
+        r += ".exe";
 
-      // Also try the path with the .exe extension.
+      // Only check that the file exists since the executable mode is set
+      // according to the file extension.
       //
-      r += ".exe";
-
-      if (stat (r.string ().c_str (), &info) == 0 && S_ISREG (info.st_mode))
-        return true;
-
-      return false;
+      struct stat si;
+      return stat (r.string ().c_str (), &si) == 0 && S_ISREG (si.st_mode);
     };
 
     // The search order is documented in CreateProcess(). First we look in
