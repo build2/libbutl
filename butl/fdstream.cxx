@@ -21,6 +21,7 @@
 #include <errno.h> // errno, E*
 
 #include <ios>          // ios_base::openmode, ios_base::failure
+#include <new>          // bad_alloc
 #include <limits>       // numeric_limits
 #include <cassert>
 #include <exception>    // uncaught_exception()
@@ -542,9 +543,38 @@ namespace butl
   }
 
   int
-  fdnull () noexcept
+  fdnull (bool temp) noexcept
   {
-    return _sopen ("nul", _O_RDWR, _SH_DENYNO);
+    // No need to translate /r/n before sending it to void.
+    //
+    if (!temp)
+      return _sopen ("nul", _O_RDWR | _O_BINARY, _SH_DENYNO);
+
+    try
+    {
+      // We could probably implement a Windows-specific version of getting
+      // the temporary file that avoid any allocations and exceptions.
+      //
+      path p (path::temp_path ("null")); // Can throw.
+      return _sopen (p.string ().c_str (),
+                     (_O_CREAT      |
+                      _O_RDWR       |
+                      _O_BINARY     |  // Don't translate.
+                      _O_TEMPORARY  |  // Remove on close.
+                      _O_SHORT_LIVED), // Don't flush to disk.
+                     _SH_DENYNO,
+                     _S_IREAD | _S_IWRITE);
+    }
+    catch (const bad_alloc&)
+    {
+      errno = ENOMEM;
+      return -1;
+    }
+    catch (const system_error& e)
+    {
+      errno = e.code ().value ();
+      return -1;
+    }
   }
 
   fdstream_mode

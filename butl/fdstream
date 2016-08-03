@@ -414,8 +414,26 @@ namespace butl
   // Note that it's the caller's responsibility to close the returned file
   // descriptor.
   //
+  // On Windows the null device is NUL and writing anything substantial to it
+  // (like redirecting a process' output) is extremely slow, as in, an order
+  // of magnitude slower than writing to disk. If you are using the descriptor
+  // yourself this can be mitigated by setting the binary mode (already done
+  // by fdopen()) and using a buffer of around 64K. However, sometimes you
+  // have no control of how the descriptor will be used. For instance, it can
+  // be used to redirect a child's stdout and the way the child sets up its
+  // stdout is out of your control (on Windows). For such cases, there is an
+  // emulation via a temporary file. Mostly it functions as a proper null
+  // device with the file automatically removed once the descriptor is
+  // closed. One difference, however, would be if you were to both write to
+  // and read from the descriptor.
+  //
+#ifndef _WIN32
   LIBBUTL_EXPORT int
   fdnull () noexcept;
+#else
+  LIBBUTL_EXPORT int
+  fdnull (bool temp = false) noexcept;
+#endif
 }
 
 #include <butl/fdstream.ixx>

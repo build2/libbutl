@@ -451,7 +451,11 @@ namespace butl
 
     auto create_null = [&get_osfhandle, &fail](auto_handle& n)
     {
-      auto_fd fd (fdnull ());
+      // Note that we are using a faster, temporary file-based emulation of
+      // NUL since we have no way of making sure the child buffers things
+      // properly (and by default they seem no to).
+      //
+      auto_fd fd (fdnull (true));
       if (fd.get () == -1)
         fail ();
 
