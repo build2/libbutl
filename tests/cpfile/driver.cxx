@@ -22,9 +22,14 @@ static string
 from_file (const path& f)
 {
   ifdstream ifs (f, ios::binary);
-
   string s;
-  getline (ifs, s, '\0');
+
+  // Note that the eof check is important: if the stream is at eof (empty
+  // file) then getline() will fail.
+  //
+  if (ifs.peek () != ifdstream::traits_type::eof ())
+    getline (ifs, s, '\0');
+
   ifs.close (); // Not to miss failed close of the underlying file descriptor.
   return s;
 }
@@ -50,15 +55,23 @@ main ()
   assert (try_mkdir (td) == mkdir_status::success);
 
   path from (td / path ("from"));
+  path to (td / path ("to"));
+
+  // Copy empty file.
+  //
+  to_file (from, "");
+  cpfile (from, to);
+  assert (from_file (to) == "");
+  assert (try_rmfile (to) == rmfile_status::success);
+
+  // Check that content and permissions of newly created destination file are
+  // the same as that ones of the source file.
+  //
   to_file (from, text1);
 
   permissions p (path_permissions (from));
   path_permissions (from, permissions::ru | permissions::xu);
 
-  // Check that content and permissions of newly created destination file are
-  // the same as that ones of the source file.
-  //
-  path to (td / path ("to"));
   cpfile (from, to, cpflags::none);
   assert (from_file (to) == text1);
   assert (path_permissions (to) == path_permissions (from));
