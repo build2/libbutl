@@ -14,6 +14,8 @@
 
 #include <butl/export>
 
+#include <butl/utility>
+
 namespace butl
 {
   // Wish list/ideas for improvements.
@@ -195,7 +197,7 @@ namespace butl
       for (size_type i (0), n (ln < rn ? ln : rn); i != n; ++i)
       {
 #ifdef _WIN32
-        C lc (tolower (l[i])), rc (tolower (r[i]));
+        C lc (lcase (l[i])), rc (lcase (r[i]));
 #else
         C lc (l[i]), rc (r[i]);
 #endif

@@ -5,14 +5,73 @@
 #ifndef BUTL_UTILITY
 #define BUTL_UTILITY
 
-#include <cstddef> // std::size_t
+#include <string>
+#include <cstddef> // size_t
 #include <utility> // forward()
-#include <cstring> // strcmp
+#include <cstring> // strcmp(), strlen()
 
 #include <butl/export>
 
 namespace butl
 {
+  // Convert ASCII character/string case. If there is no upper/lower case
+  // counterpart, leave the character unchanged. The POSIX locale (also known
+  // as C locale) must be the current application locale. Otherwise the
+  // behavior is undefined.
+  //
+  // Note that the POSIX locale specifies behaviour on data consisting
+  // entirely of characters from the portable character set (subset of ASCII
+  // including 103 non-negative characters and English alphabet letters in
+  // particular) and the control character set (more about them at
+  // http://pubs.opengroup.org/onlinepubs/009696899/basedefs/xbd_chap06.html).
+  //
+  // Also note that according to the POSIX locale definition the case
+  // conversion can be applied only to [A-Z] and [a-z] character ranges being
+  // translated to each other (more about that at
+  // http://pubs.opengroup.org/onlinepubs/009695399/basedefs/xbd_chap07.html#tag_07_02)
+  //
+  char ucase (char);
+  std::string ucase (const char*, std::size_t = std::string::npos);
+  std::string ucase (const std::string&);
+  std::string& ucase (std::string&);
+  LIBBUTL_EXPORT void ucase (char*, std::size_t);
+
+  char lcase (char);
+  std::string lcase (const char*, std::size_t = std::string::npos);
+  std::string lcase (const std::string&);
+  std::string& lcase (std::string&);
+  LIBBUTL_EXPORT void lcase (char*, std::size_t);
+
+  // Compare ASCII characters/strings ignoring case. Behave as if characters
+  // had been converted to the lower case and then byte-compared. Return a
+  // negative, zero or positive value if the left hand side is less, equal or
+  // greater than the right hand side, respectivelly. The POSIX locale (also
+  // known as C locale) must be the current application locale. Otherwise the
+  // behavior is undefined.
+  //
+  // The optional size argument specifies the maximum number of characters
+  // to compare.
+  //
+  int casecmp (char, char);
+
+  int casecmp (const std::string&, const std::string&,
+               std::size_t = std::string::npos);
+
+  int casecmp (const std::string&, const char*,
+               std::size_t = std::string::npos);
+
+  LIBBUTL_EXPORT int casecmp (const char*, const char*,
+                              std::size_t = std::string::npos);
+
+  bool
+  alpha (char);
+
+  bool
+  digit (char);
+
+  bool
+  alnum (char);
+
   // Key comparators (i.e., to be used in sets, maps, etc).
   //
   struct compare_c_string
@@ -66,5 +125,7 @@ namespace butl
   inline reverse_range<T>
   reverse_iterate (T&& x) {return reverse_range<T> (std::forward<T> (x));}
 }
+
+#include <butl/utility.ixx>
 
 #endif // BUTL_UTILITY

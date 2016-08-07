@@ -3,7 +3,7 @@
 # license   : MIT; see accompanying LICENSE file
 
 d = base64/ cpfile/ dir-iterator/ fdstream/ link/ pager/ path/ prefix-map/ \
-    process/ sha256/ timestamp/ triplet/
+    process/ sha256/ strcase/ timestamp/ triplet/
 
 ./: $d
 include $d

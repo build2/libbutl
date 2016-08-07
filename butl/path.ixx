@@ -3,7 +3,6 @@
 // license   : MIT; see accompanying LICENSE file
 
 #ifdef _WIN32
-#  include <cctype>  // tolower(), toupper()
 #  include <cwctype> // towlower(), towupper()
 #endif
 
@@ -14,7 +13,7 @@ namespace butl
   inline char path_traits<char>::
   tolower (char c)
   {
-    return std::tolower (c);
+    return lcase (c);
   }
 
   template <>
@@ -28,7 +27,7 @@ namespace butl
   inline char path_traits<char>::
   toupper (char c)
   {
-    return std::toupper (c);
+    return ucase (c);
   }
 
   template <>

@@ -9,8 +9,10 @@
 #include <stdint.h>
 #include <stddef.h> // size_t
 
-#include <cctype>    // isxdigit(), toupper(), tolower()
+#include <cctype>    // isxdigit()
 #include <stdexcept> // invalid_argument
+
+#include <butl/utility> // ucase(), lcase()
 
 using SHA256_CTX = butl::sha256::context;
 
@@ -101,7 +103,7 @@ namespace butl
       if (i > 0 && i % 2 == 0)
         f += ":";
 
-      f += toupper (c);
+      f += ucase (c);
     }
 
     return f;
@@ -131,7 +133,7 @@ namespace butl
         if (!isxdigit (c))
           bad ();
 
-        s += tolower (c);
+        s += lcase (c);
       }
     }
 

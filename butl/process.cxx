@@ -12,7 +12,6 @@
 
 #  include <io.h>        // _open_osfhandle(), _get_osfhandle(), _close()
 #  include <fcntl.h>     // _O_TEXT
-#  include <string.h>    // _stricmp() @@ CASE
 #  include <stdlib.h>    // _MAX_PATH, getenv()
 #  include <sys/types.h> // stat
 #  include <sys/stat.h>  // stat(), S_IS*
@@ -25,6 +24,7 @@
 
 #include <cassert>
 
+#include <butl/utility>  // casecmp()
 #include <butl/fdstream> // fdnull(), fdclose()
 
 using namespace std;
@@ -288,7 +288,7 @@ namespace butl
       // support those, it will have to be handled differently.
       //
       const char* e (r.extension ());
-      if (e == nullptr || _stricmp (e, "exe") != 0) // @@ CASE
+      if (e == nullptr || casecmp (e, "exe") != 0)
         r += ".exe";
 
       // Only check that the file exists since the executable mode is set

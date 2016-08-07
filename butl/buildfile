@@ -20,7 +20,7 @@ lib{butl}:                         \
 {hxx     txx    }{ string-table  } \
 {hxx         cxx}{ timestamp     } \
 {hxx         cxx}{ triplet       } \
-{hxx            }{ utility       } \
+{hxx ixx        }{ utility       } \
 {hxx            }{ vector-view   } \
 {hxx            }{ version       } \
 {hxx         cxx}{ win32-utility }
