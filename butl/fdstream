@@ -245,7 +245,7 @@ namespace butl
     open (const path&, fdopen_mode);
 
     void
-    open (int fd) {buf_.open (fd); clear();}
+    open (int fd) {buf_.open (fd); clear ();}
 
     void close ();
     bool is_open () const {return buf_.is_open ();}

@@ -320,7 +320,7 @@ main (int argc, const char* argv[])
   // operation fails.
   //
   process pr;
-  pr.handle = reinterpret_cast<process::handle_type>(-1);
+  pr.handle = reinterpret_cast<process::handle_type> (-1);
   assert (!pr.wait (true) && !pr.wait (false));
 #endif
 }
