@@ -6,7 +6,7 @@ lib{butl}:                         \
 {hxx         cxx}{ base64        } \
 {hxx         cxx}{ char-scanner  } \
 {hxx            }{ export        } \
-{hxx         cxx}{ fdstream      } \
+{hxx ixx     cxx}{ fdstream      } \
 {hxx ixx     cxx}{ filesystem    } \
 {hxx            }{ multi-index   } \
 {hxx            }{ optional      } \
@@ -29,6 +29,11 @@ lib{butl}:                         \
 # from the compilation.
 #
 lib{butl}: file{sha256c.c}
+
+# These ones are included into timestamp.cxx so treat them as files to exclude
+# from the compilation.
+#
+lib{butl}: file{strptime.c timelocal.h timelocal.c}
 
 cxx.poptions =+ -I$src_root
 
