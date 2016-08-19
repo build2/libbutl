@@ -35,26 +35,6 @@ using namespace std;
 namespace butl
 {
   bool
-  dir_exists (const path& p)
-  {
-#ifndef _WIN32
-    struct stat s;
-    if (stat (p.string ().c_str (), &s) != 0)
-#else
-    struct _stat s;
-    if (_stat (p.string ().c_str (), &s) != 0)
-#endif
-    {
-      if (errno == ENOENT || errno == ENOTDIR)
-        return false;
-      else
-        throw system_error (errno, system_category ());
-    }
-
-    return S_ISDIR (s.st_mode);
-  }
-
-  bool
   file_exists (const path& p)
   {
 #ifndef _WIN32
@@ -72,6 +52,26 @@ namespace butl
     }
 
     return S_ISREG (s.st_mode);
+  }
+
+  bool
+  dir_exists (const path& p)
+  {
+#ifndef _WIN32
+    struct stat s;
+    if (stat (p.string ().c_str (), &s) != 0)
+#else
+    struct _stat s;
+    if (_stat (p.string ().c_str (), &s) != 0)
+#endif
+    {
+      if (errno == ENOENT || errno == ENOTDIR)
+        return false;
+      else
+        throw system_error (errno, system_category ());
+    }
+
+    return S_ISDIR (s.st_mode);
   }
 
   mkdir_status

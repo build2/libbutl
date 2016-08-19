@@ -32,17 +32,23 @@
 
 namespace butl
 {
+  // Return true if the path is to an existing regular file. Note that
+  // this function resolves symlinks.
+  //
+  LIBBUTL_EXPORT bool
+  file_exists (const path&);
+
   // Return true if the path is to an existing directory. Note that
   // this function resolves symlinks.
   //
   LIBBUTL_EXPORT bool
   dir_exists (const path&);
 
-  // Return true if the path is to an existing regular file. Note that
-  // this function resolves symlinks.
+  // Return true if the directory is empty. Note that the path must exist
+  // and be a directory.
   //
   LIBBUTL_EXPORT bool
-  file_exists (const path&);
+  dir_empty (const dir_path&);
 
   // Try to create a directory unless it already exists. If you expect
   // the directory to exist and performance is important, then you

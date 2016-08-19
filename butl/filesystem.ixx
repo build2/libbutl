@@ -4,6 +4,12 @@
 
 namespace butl
 {
+  inline bool
+  dir_empty (const dir_path& d)
+  {
+    return dir_iterator (d) == dir_iterator ();
+  }
+
   inline rmdir_status
   try_rmdir_r (const dir_path& p, bool ignore_error)
   {
