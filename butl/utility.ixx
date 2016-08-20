@@ -18,17 +18,11 @@ namespace butl
     return std::toupper (c);
   }
 
-  inline std::string
-  ucase (const char* s, std::size_t n)
+  inline void
+  ucase (char* s, std::size_t n)
   {
-    std::string r (s, n == std::string::npos ? std::strlen (s) : n);
-    return ucase (r);
-  }
-
-  inline std::string
-  ucase (const std::string& s)
-  {
-    return ucase (s.c_str (), s.size ());
+    for (const char* e (s + n); s != e; ++s)
+      *s = ucase (*s);
   }
 
   inline std::string&
@@ -42,17 +36,41 @@ namespace butl
     return s;
   }
 
-  inline void
-  ucase (char* s, std::size_t n)
+  inline std::string
+  ucase (const char* s, std::size_t n)
   {
-    for (const char* e (s + n); s != e; ++s)
-      *s = ucase (*s);
+    std::string r (s, n == std::string::npos ? std::strlen (s) : n);
+    return ucase (r);
+  }
+
+  inline std::string
+  ucase (const std::string& s)
+  {
+    return ucase (s.c_str (), s.size ());
   }
 
   inline char
   lcase (char c)
   {
     return std::tolower (c);
+  }
+
+  inline void
+  lcase (char* s, std::size_t n)
+  {
+    for (const char* e (s + n); s != e; ++s)
+      *s = lcase (*s);
+  }
+
+  inline std::string&
+  lcase (std::string& s)
+  {
+    if (size_t n = s.size ())
+    {
+      s.front () = s.front (); // Force copy in CoW.
+      lcase (const_cast<char*> (s.data ()), n);
+    }
+    return s;
   }
 
   inline std::string
@@ -68,30 +86,22 @@ namespace butl
     return lcase (s.c_str (), s.size ());
   }
 
-  inline std::string&
-  lcase (std::string& s)
-  {
-    if (size_t n = s.size ())
-    {
-      s.front () = s.front (); // Force copy in CoW.
-      lcase (const_cast<char*> (s.data ()), n);
-    }
-    return s;
-  }
-
-  inline void
-  lcase (char* s, std::size_t n)
-  {
-    for (const char* e (s + n); s != e; ++s)
-      *s = lcase (*s);
-  }
-
   inline int
   casecmp (char l, char r)
   {
     l = lcase (l);
     r = lcase (r);
     return l < r ? -1 : (l > r ? 1 : 0);
+  }
+
+  inline int
+  casecmp (const char* l, const char* r, std::size_t n)
+  {
+#ifndef _WIN32
+    return n == std::string::npos ? strcasecmp (l, r) : strncasecmp (l, r, n);
+#else
+    return n == std::string::npos ? _stricmp (l, r) : _strnicmp (l, r, n);
+#endif
   }
 
   inline int
@@ -104,16 +114,6 @@ namespace butl
   casecmp (const std::string& l, const char* r, std::size_t n)
   {
     return casecmp (l.c_str (), r, n);
-  }
-
-  inline int
-  casecmp (const char* l, const char* r, std::size_t n)
-  {
-#ifndef _WIN32
-    return n == std::string::npos ? strcasecmp (l, r) : strncasecmp (l, r, n);
-#else
-    return n == std::string::npos ? _stricmp (l, r) : _strnicmp (l, r, n);
-#endif
   }
 
   inline bool
