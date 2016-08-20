@@ -486,10 +486,21 @@ namespace butl
     // Do PATH search.
     //
     if (file.simple ())
+    {
       file = path_search (file);
 
-    if (file.empty ())
-      fail ("file not found");
+      if (file.empty ())
+        fail ("file not found");
+    }
+    else
+    {
+      // Unless there is already the .exe extension, add it. See path_search()
+      // for details.
+      //
+      const char* e (file.extension ());
+      if (e == nullptr || casecmp (e, "exe") != 0)
+        file += ".exe";
+    }
 
     // Serialize the arguments to string.
     //
