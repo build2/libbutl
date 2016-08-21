@@ -208,8 +208,12 @@ namespace butl
     //
     // process p (pp, args);
     //
-    process_path
-    path_search (const char*& args0);
+    // You can also specify the fallback directory which will be tried last.
+    // This, for example, can be used to implement the Windows "search in the
+    // parent executable's directory" semantics across platforms.
+    //
+    static process_path
+    path_search (const char*& args0, const dir_path& fallback = dir_path ());
 
   public:
 #ifndef _WIN32

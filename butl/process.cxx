@@ -93,7 +93,7 @@ namespace butl
 #ifndef _WIN32
 
   process_path process::
-  path_search (const char*& args0)
+  path_search (const char*& args0, const dir_path& fb)
   {
     // Note that there is a similar version for Win32.
 
@@ -159,6 +159,20 @@ namespace butl
 
         if (b != nullptr)
           break;
+      }
+
+      // If we were given a fallback, try that.
+      //
+      if (!fb.empty ())
+      {
+        if (search (fb.string ().c_str (), fb.string ().size ()))
+        {
+          // In this case we have to set the recall path.
+          //
+          rp = fb;
+          rp /= f;
+          break;
+        }
       }
 
       // Did not find anything.
@@ -347,7 +361,7 @@ namespace butl
 #else // _WIN32
 
   process_path process::
-  path_search (const char*& args0)
+  path_search (const char*& args0, const dir_path& fb)
   {
     // Note that there is a similar version for Win32.
 
@@ -460,7 +474,7 @@ namespace butl
       if (search ("", 0))
         break;
 
-      // Finally, search in PATH. Recall is unchanged.
+      // Now search in PATH. Recall is unchanged.
       //
       {
         const char* b (getenv ("PATH"));
@@ -478,6 +492,26 @@ namespace butl
 
         if (b != nullptr)
           break;
+      }
+
+      // Finally, if we were given a fallback, try that. This case is similar
+      // to searching in the parent executable's directory.
+      //
+      if (!fb.empty ())
+      {
+        // I would have been nice to preserve trailing slash (by using
+        // representation() instead of string()), but that would involve
+        // a copy. Oh, well, can't always win.
+        //
+        if (search (fb.string ().c_str (), fb.string ().size ()))
+        {
+          // In this case we have to set the recall path. At least here we
+          // got to keep the original slash.
+          //
+          rp = fb;
+          rp /= f;
+          break;
+        }
       }
 
       // Did not find anything.
