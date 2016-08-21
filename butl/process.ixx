@@ -2,8 +2,39 @@
 // copyright : Copyright (c) 2014-2016 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
+#include <utility> // move()
+
 namespace butl
 {
+  inline process_path::
+  process_path (process_path&& p)
+      : initial (p.initial),
+        recall (std::move (p.recall)),
+        effect (std::move (p.effect)),
+        args0_ (p.args0_)
+  {
+    p.args0_ = nullptr;
+  }
+
+  inline process_path& process_path::
+  operator= (process_path&& p)
+  {
+    if (this != &p)
+    {
+      if (args0_ != nullptr)
+        *args0_ = initial;
+
+      initial = p.initial;
+      recall = std::move (p.recall);
+      effect = std::move (p.effect);
+      args0_ = p.args0_;
+
+      p.args0_ = nullptr;
+    }
+
+    return *this;
+  }
+
   inline process::
   process ()
       : handle (0),
@@ -15,12 +46,30 @@ namespace butl
   }
 
   inline process::
-  process (char const* const args[], int in, int out, int err)
-      : process (nullptr, args, in, out, err) {}
+  process (const char* args[], int in, int out, int err)
+      : process (nullptr, path_search (args[0]), args, in, out, err) {}
 
   inline process::
-  process (char const* const args[], process& in, int out, int err)
-      : process (nullptr, args, in, out, err) {}
+  process (const process_path& pp, const char* args[],
+           int in, int out, int err)
+      : process (nullptr, pp, args, in, out, err) {}
+
+  inline process::
+  process (const char* args[], process& in, int out, int err)
+      : process (nullptr, path_search (args[0]), args, in, out, err) {}
+
+  inline process::
+  process (const process_path& pp, const char* args[],
+           process& in, int out, int err)
+      : process (nullptr, pp, args, in, out, err) {}
+
+  inline process::
+  process (const char* cwd, const char* args[], int in, int out, int err)
+      : process (cwd, path_search (args[0]), args, in, out, err) {}
+
+  inline process::
+  process (const char* cwd, const char* args[], process& in, int out, int err)
+      : process (cwd, path_search (args[0]), args, in, out, err) {}
 
   inline process::
   process (process&& p)

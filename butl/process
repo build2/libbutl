@@ -13,6 +13,7 @@
 #include <cstdint> // uint32_t
 #include <system_error>
 
+#include <butl/path>
 #include <butl/export>
 
 namespace butl
@@ -28,12 +29,66 @@ namespace butl
     process_error (int e, bool child)
         : system_error (e, std::system_category ()), child_ (child) {}
 #else
-    process_error (const std::string& d)
-        : system_error (ECHILD, std::system_category (), d), child_ (false) {}
+    process_error (int e)
+        : system_error (e, std::system_category ()), child_ (false) {}
+
+    process_error (const std::string& d, int e = ECHILD)
+        : system_error (e, std::system_category (), d), child_ (false) {}
 #endif
 
   private:
     bool child_;
+  };
+
+  // A process executable has three paths: initial, recall, and effective.
+  // Initial is the original "command" that you specify in argv[0] and on
+  // POSIX that's what ends up in the child's argv[0]. But not on Windows. On
+  // Windows the command is first searched for in the parent executable's
+  // directory and if found then that's what should end up in child's argv[0].
+  // So this is the recall path. It is called recall because this is what the
+  // caller of the parent process will be able to execute if you printed the
+  // command line. Finally, effective is the actual path to the executable
+  // that will include the directory part if found in PATH, the .exe extension
+  // if one is missing, etc.
+  //
+  // As an example, let's say we run foo\foo.exe that itself spawns bar which
+  // is found as foo\bar.exe. The paths will then be:
+  //
+  // initial:   bar
+  // recall:    foo\bar
+  // effective: foo\bar.exe
+  //
+  // In most cases, at least on POSIX, all three paths will be the same. As an
+  // optimization, if the recall path is empty, then it means it is the same
+  // as initial. Similarly, if the effective path is empty then, it is the
+  // same as recall (and if that is empty, as initial).
+  //
+  // Note that the call to path_search() below adjust args[0] to point to the
+  // recall path which brings up lifetime issues. To address this this class
+  // also implements an RAII-based auto-restore of args[0] to its initial
+  // value.
+  //
+  class process_path
+  {
+  public:
+    const char* initial = nullptr;
+    path recall;
+    path effect;
+
+    // Moveable-only type.
+    //
+    process_path (process_path&&);
+    process_path& operator= (process_path&&);
+
+    process_path (const process_path&) = delete;
+    process_path& operator= (const process_path&) = delete;
+
+    process_path () = default;
+    process_path (const char* i, const char** a0): initial (i), args0_ (a0) {}
+    ~process_path () {if (args0_ != nullptr) *args0_ = initial;}
+
+  private:
+    const char** args0_ = nullptr;
   };
 
   class LIBBUTL_EXPORT process
@@ -70,7 +125,13 @@ namespace butl
     // exceptions (e.g., if exec() failed) can be thrown in the child
     // version of us.
     //
-    process (char const* const args[], int in = 0, int out = 1, int err = 2);
+    // Note that the versions without the the process_path argument may
+    // temporarily change args[0] (see path_search() for details).
+    //
+    process (const char* args[], int in = 0, int out = 1, int err = 2);
+
+    process (const process_path&, const char* args[],
+             int in = 0, int out = 1, int err = 2);
 
     // The "piping" constructor, for example:
     //
@@ -80,14 +141,26 @@ namespace butl
     // rhs.wait (); // Wait for last first.
     // lhs.wait ();
     //
-    process (char const* const args[], process& in, int out = 1, int err = 2);
+    process (const char* args[], process& in, int out = 1, int err = 2);
+
+    process (const process_path&, const char* args[],
+             process& in, int out = 1, int err = 2);
 
     // Versions of the above constructors that allow us to change the
     // current working directory of the child process. NULL and empty
     // cwd arguments are ignored.
     //
-    process (const char* cwd, char const* const[], int = 0, int = 1, int = 2);
-    process (const char* cwd, char const* const[], process&, int = 1, int = 2);
+    process (const char* cwd, const char* [], int = 0, int = 1, int = 2);
+
+    process (const char* cwd,
+             const process_path&, const char* [],
+             int = 0, int = 1, int = 2);
+
+    process (const char* cwd, const char* [], process&, int = 1, int = 2);
+
+    process (const char* cwd,
+             const process_path&, const char* [],
+             process&, int = 1, int = 2);
 
     // Wait for the process to terminate. Return true if the process
     // terminated normally and with the zero exit status. Unless ignore_error
@@ -121,6 +194,22 @@ namespace butl
     // and exit status is 0.
     //
     process ();
+
+    // Resolve process' paths based on the initial path in args0. If recall
+    // differs from initial, adjust args0 to point to the recall path. If
+    // resolution fails, throw process_error. Normally, you will use this
+    // function like this:
+    //
+    // const char* args[] = {"foo", ..., nullptr};
+    //
+    // process_path pp (process::path_search (args[0]))
+    //
+    // ... // E.g., print args[0].
+    //
+    // process p (pp, args);
+    //
+    process_path
+    path_search (const char*& args0);
 
   public:
 #ifndef _WIN32
