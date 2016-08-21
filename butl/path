@@ -158,7 +158,14 @@ namespace butl
     static size_type
     find_extension (string_type const& s)
     {
-      size_type i (s.size ());
+      const C* r (find_extension (s.c_str (), s.size ()));
+      return r != nullptr ? r - s.c_str () : string_type::npos;
+    }
+
+    static const C*
+    find_extension (const C* s, size_type n)
+    {
+      size_type i (n);
 
       for (; i > 0; --i)
       {
@@ -176,10 +183,10 @@ namespace butl
 
       // Weed out paths like ".txt" (and "/.txt") and "txt.".
       //
-      if (i > 1 && !is_separator (s[i - 2]) && i != s.size ())
-        return i - 1;
+      if (i > 1 && !is_separator (s[i - 2]) && i != n)
+        return s + i - 1;
       else
-        return string_type::npos;
+        return nullptr;
     }
 
     static int
