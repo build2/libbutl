@@ -16,6 +16,11 @@
 #  include <direct.h>    // _mkdir(), _rmdir()
 #  include <sys/types.h> // _stat
 #  include <sys/stat.h>  // _stat(), S_I*
+
+#  ifdef _MSC_VER // Unlikely to be fixed in newer versions.
+#    define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#    define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#  endif
 #endif
 
 #include <errno.h> // errno, E*
@@ -26,11 +31,6 @@
 #include <butl/fdstream>
 
 using namespace std;
-
-#ifdef _MSC_VER // Unlikely to be fixed in newer versions.
-#  define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
-#  define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
-#endif
 
 namespace butl
 {
