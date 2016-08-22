@@ -75,6 +75,16 @@ namespace butl
     path recall;
     path effect;
 
+    // Handle empty recall/effect.
+    //
+    const char* recall_string () const;
+    const char* effect_string () const;
+
+    bool empty () const
+    {
+      return initial == nullptr && recall.empty () && effect.empty ();
+    }
+
     // Moveable-only type.
     //
     process_path (process_path&&);
@@ -84,10 +94,11 @@ namespace butl
     process_path& operator= (const process_path&) = delete;
 
     process_path () = default;
-    process_path (const char* i, const char** a0): initial (i), args0_ (a0) {}
-    ~process_path () {if (args0_ != nullptr) *args0_ = initial;}
+    process_path (const char* i, path&& r, path&& e);
+    ~process_path ();
 
   private:
+    friend class process;
     const char** args0_ = nullptr;
   };
 
@@ -214,6 +225,34 @@ namespace butl
     //
     static process_path
     path_search (const char*& args0, const dir_path& fallback = dir_path ());
+
+    // This version is primarily useful when you want to pre-search the
+    // executable before creating the args[] array. In this case you will
+    // use the recall path for args[0].
+    //
+    // The init argument determines whether to initialize the initial path to
+    // the shallow copy of file. If it is true, then initial is the same as
+    // file and recall is either empty or contain a different path. If it is
+    // false then initial contains a shallow copy of recall, and recall is
+    // either a different path or a deep copy of file. Normally you don't care
+    // about initial once you got recall and the main reason to pass true to
+    // this argument is to save a copy (since initial and recall are usually
+    // the same).
+    //
+    static process_path
+    path_search (const char* file, bool init, const dir_path& = dir_path ());
+
+    static process_path
+    path_search (const std::string& f, bool i, const dir_path& fb = dir_path ())
+    {
+      return path_search (f.c_str (), i, fb);
+    }
+
+    static process_path
+    path_search (const path& f, bool i, const dir_path& fb = dir_path ())
+    {
+      return path_search (f.string ().c_str (), i, fb);
+    }
 
   public:
 #ifndef _WIN32

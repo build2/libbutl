@@ -90,19 +90,37 @@ namespace butl
     int fd_;
   };
 
-#ifndef _WIN32
+  static process_path
+  path_search (const char*, const dir_path&);
 
   process_path process::
-  path_search (const char*& args0, const dir_path& fb)
+  path_search (const char* f, bool init, const dir_path& fb)
+  {
+    process_path r (butl::path_search (f, fb));
+
+    path& rp (r.recall);
+    r.initial = init
+      ? f
+      : (rp.empty () ? (rp = path (f)) : rp).string ().c_str ();
+
+    return r;
+  }
+
+#ifndef _WIN32
+
+  static process_path
+  path_search (const char* f, const dir_path& fb)
   {
     // Note that there is a similar version for Win32.
 
     typedef path::traits traits;
 
-    const char* f (args0);
     size_t fn (strlen (f));
 
-    path rp, ep; // recall & effective
+    process_path r (nullptr, path (), path ());
+    path& rp (r.recall);
+    path& ep (r.effect);
+
     auto search = [&ep, f, fn] (const char* d, size_t dn) -> bool
     {
       string s (move (ep).string ()); // Reuse buffer.
@@ -128,68 +146,51 @@ namespace butl
               (si.st_mode & (S_IEXEC | S_IXGRP | S_IXOTH)) != 0);
     };
 
-    for (;;) // The "goto end" loop.
+    // If there is a directory component in the file, then search does not
+    // apply.
+    //
+    if (traits::find_separator (f, fn) != nullptr)
+      return r;
+
+    // The search order is documented in exec(3). Some of the differences
+    // compared to exec*p() functions:
+    //
+    // 1. If there no PATH, we don't default to current directory/_CS_PATH.
+    // 2. We do not continue searching on EACCES from execve().
+    // 3. We do not execute via default shell on ENOEXEC from execve().
+    //
+    for (const char* b (getenv ("PATH")), *e;
+         b != nullptr;
+         b = (e != nullptr ? e + 1 : e))
     {
-      // If there is a directory component in the file, then search does not
-      // apply.
+      e = strchr (b, traits::path_separator);
+
+      // Empty path (i.e., a double colon or a colon at the beginning or end
+      // of PATH) means search in the current dirrectory.
       //
-      if (traits::find_separator (f, fn) != nullptr)
-        break;
-
-      // The search order is documented in exec(3). Some of the differences
-      // compared to exec*p() functions:
-      //
-      // 1. If there no PATH, we don't default to current directory/_CS_PATH.
-      // 2. We do not continue searching on EACCES from execve().
-      // 3. We do not execute via default shell on ENOEXEC from execve().
-      //
-      {
-        const char* b (getenv ("PATH"));
-
-        for (const char* e; b != nullptr; b = (e != nullptr ? e + 1 : e))
-        {
-          e = strchr (b, traits::path_separator);
-
-          // Empty path (i.e., a double colon or a colon at the beginning or
-          // end of PATH) means search in the current dirrectory.
-          //
-          if (search (b, e != nullptr ? e - b : strlen (b)))
-            break;
-        }
-
-        if (b != nullptr)
-          break;
-      }
-
-      // If we were given a fallback, try that.
-      //
-      if (!fb.empty ())
-      {
-        if (search (fb.string ().c_str (), fb.string ().size ()))
-        {
-          // In this case we have to set the recall path.
-          //
-          rp = fb;
-          rp /= f;
-          break;
-        }
-      }
-
-      // Did not find anything.
-      //
-      throw process_error (ENOENT, false);
+      if (search (b, e != nullptr ? e - b : strlen (b)))
+        return r;
     }
 
-    // Found the file and the result is in rp and ep, both of which can be
-    // empty.
+    // If we were given a fallback, try that.
     //
-    process_path r (f,
-                    rp.empty () ? nullptr : &(args0 = rp.string ().c_str ()));
+    if (!fb.empty ())
+    {
+      if (search (fb.string ().c_str (), fb.string ().size ()))
+      {
+        // In this case we have to set the recall path. And we know from
+        // search() implementation that it will be the same as effective.
+        // Which means we can just move effective to recall.
+        //
+        rp.swap (ep);
 
-    r.recall = move (rp);
-    r.effect = move (ep);
+        return r;
+      }
+    }
 
-    return r;
+    // Did not find anything.
+    //
+    throw process_error (ENOENT, false);
   }
 
   process::
@@ -281,11 +282,7 @@ namespace butl
       if (cwd != nullptr && *cwd != '\0' && chdir (cwd) != 0)
         fail (true);
 
-      const char* file (pp.effect.empty ()
-                        ? args[0]
-                        : pp.effect.string ().c_str ());
-
-      if (execv (file, const_cast<char**> (&args[0])) == -1)
+      if (execv (pp.effect_string (), const_cast<char**> (&args[0])) == -1)
         fail (true);
     }
 
@@ -360,14 +357,13 @@ namespace butl
 
 #else // _WIN32
 
-  process_path process::
-  path_search (const char*& args0, const dir_path& fb)
+  static process_path
+  path_search (const char* f, const dir_path& fb)
   {
     // Note that there is a similar version for Win32.
 
     typedef path::traits traits;
 
-    const char* f (args0);
     size_t fn (strlen (f));
 
     // Unless there is already the .exe extension, then we will need to add
@@ -382,7 +378,10 @@ namespace butl
       ext = (e == nullptr || casecmp (e, ".exe") != 0);
     }
 
-    path rp, ep; // recall & effective
+    process_path r (nullptr, path (), path ());
+    path& rp (r.recall);
+    path& ep (r.effect);
+
     auto search = [&ep, f, fn, ext] (const char* d, size_t dn) -> bool
     {
       string s (move (ep).string ()); // Reuse buffer.
@@ -410,125 +409,117 @@ namespace butl
       return _stat (ep.string ().c_str (), &si) == 0 && S_ISREG (si.st_mode);
     };
 
-    for (;;) // The "goto end" loop.
+    // If there is a directory component in the file, then search does not
+    // apply. But we may still need to append the extension.
+    //
+    if (traits::find_separator (f, fn) != nullptr)
     {
-      // If there is a directory component in the file, then search does not
-      // apply. But we may still need to append the extension.
-      //
-      if (traits::find_separator (f, fn) != nullptr)
+      if (ext)
       {
-        if (ext)
-        {
-          ep = path (f, fn);
-          ep += ".exe";
-        }
-
-        break;
+        ep = path (f, fn);
+        ep += ".exe";
       }
 
-      // The search order is documented in CreateProcess(). First we look in
-      // the directory of the parent executable.
-      //
-      {
-        char d[_MAX_PATH + 1];
-        DWORD n (GetModuleFileName (NULL, d, _MAX_PATH + 1));
-
-        if (n == 0 || n == _MAX_PATH + 1) // Failed or truncated.
-          throw process_error (last_error_msg ());
-
-        const char* p (traits::rfind_separator (d, n));
-        assert (p != nullptr);
-
-        if (search (d, p - d + 1)) // Include trailing slash.
-        {
-          // In this case we have to set the recall path.
-          //
-          // Note that the directory we have extracted is always absolute but
-          // the parent's recall path (argv[0]) might be relative. It seems,
-          // ideally, we would want to use parent's argv[0] dir (if any) to
-          // form the recall path. In particular, if the parent has no
-          // directory, then it means it was found via the standard search
-          // (e.g., PATH) and then so should the child.
-          //
-          // How do we get the parent's argv[0]? Luckily, here is __argv on
-          // Windows.
-          //
-          const char* d (__argv[0]);
-          size_t n (strlen (d));
-          if (const char* p = traits::rfind_separator (d, n))
-          {
-            string s (d, p - d + 1); // Include trailing slash.
-            s.append (f, fn);
-            rp = path (move (s));
-          }
-
-          break;
-        }
-      }
-
-      // Next look in the current working directory. Crazy, I know.
-      //
-      // The recall path is the same as initial, though it might not be a bad
-      // idea to prepend .\ for clarity.
-      //
-      if (search ("", 0))
-        break;
-
-      // Now search in PATH. Recall is unchanged.
-      //
-      {
-        const char* b (getenv ("PATH"));
-
-        for (const char* e; b != nullptr; b = (e != nullptr ? e + 1 : e))
-        {
-          e = strchr (b, traits::path_separator);
-
-          // Empty path (i.e., a double colon or a colon at the beginning or
-          // end of PATH) means search in the current dirrectory.
-          //
-          if (search (b, e != nullptr ? e - b : strlen (b)))
-            break;
-        }
-
-        if (b != nullptr)
-          break;
-      }
-
-      // Finally, if we were given a fallback, try that. This case is similar
-      // to searching in the parent executable's directory.
-      //
-      if (!fb.empty ())
-      {
-        // I would have been nice to preserve trailing slash (by using
-        // representation() instead of string()), but that would involve
-        // a copy. Oh, well, can't always win.
-        //
-        if (search (fb.string ().c_str (), fb.string ().size ()))
-        {
-          // In this case we have to set the recall path. At least here we
-          // got to keep the original slash.
-          //
-          rp = fb;
-          rp /= f;
-          break;
-        }
-      }
-
-      // Did not find anything.
-      //
-      throw process_error (ENOENT);
+      return r;
     }
 
-    // Found the file and the result is in rp and ep, both of which can be
-    // empty.
+    // The search order is documented in CreateProcess(). First we look in the
+    // directory of the parent executable.
     //
-    process_path r (f,
-                    rp.empty () ? nullptr : &(args0 = rp.string ().c_str ()));
+    {
+      char d[_MAX_PATH + 1];
+      DWORD n (GetModuleFileName (NULL, d, _MAX_PATH + 1));
 
-    r.recall = move (rp);
-    r.effect = move (ep);
+      if (n == 0 || n == _MAX_PATH + 1) // Failed or truncated.
+        throw process_error (last_error_msg ());
 
-    return r;
+      const char* p (traits::rfind_separator (d, n));
+      assert (p != nullptr);
+
+      if (search (d, p - d + 1)) // Include trailing slash.
+      {
+        // In this case we have to set the recall path.
+        //
+        // Note that the directory we have extracted is always absolute but
+        // the parent's recall path (argv[0]) might be relative. It seems,
+        // ideally, we would want to use parent's argv[0] dir (if any) to form
+        // the recall path. In particular, if the parent has no directory,
+        // then it means it was found via the standard search (e.g., PATH) and
+        // then so should the child.
+        //
+        // How do we get the parent's argv[0]? Luckily, here is __argv on
+        // Windows.
+        //
+        const char* d (__argv[0]);
+        size_t n (strlen (d));
+        if (const char* p = traits::rfind_separator (d, n))
+        {
+          string s (d, p - d + 1); // Include trailing slash.
+          s.append (f, fn);
+          rp = path (move (s));
+
+          // If recall is the same as effective, then set effective to empty.
+          //
+          if (rp == ep)
+            ep.clear ();
+        }
+
+        return r;
+      }
+    }
+
+    // Next look in the current working directory. Crazy, I know.
+    //
+    // The recall path is the same as initial, though it might not be a bad
+    // idea to prepend .\ for clarity.
+    //
+    if (search ("", 0))
+      return r;
+
+    // Now search in PATH. Recall is unchanged.
+    //
+    for (const char* b (getenv ("PATH")), *e;
+         b != nullptr;
+         b = (e != nullptr ? e + 1 : e))
+    {
+      e = strchr (b, traits::path_separator);
+
+      // Empty path (i.e., a double colon or a colon at the beginning or end
+      // of PATH) means search in the current dirrectory.
+      //
+      if (search (b, e != nullptr ? e - b : strlen (b)))
+        return r;
+    }
+
+    // Finally, if we were given a fallback, try that. This case is similar to
+    // searching in the parent executable's directory.
+    //
+    if (!fb.empty ())
+    {
+      // I would have been nice to preserve trailing slash (by using
+      // representation() instead of string()), but that would involve a
+      // copy. Oh, well, can't always win.
+      //
+      if (search (fb.string ().c_str (), fb.string ().size ()))
+      {
+        // In this case we have to set the recall path. At least here we got
+        // to keep the original slash.
+        //
+        rp = fb;
+        rp /= f;
+
+        // If recall is the same as effective, then set effective to empty.
+        //
+        if (rp == ep)
+          ep.clear ();
+
+        return r;
+      }
+    }
+
+    // Did not find anything.
+    //
+    throw process_error (ENOENT);
   }
 
   class auto_handle
@@ -666,9 +657,6 @@ namespace butl
 
     // Create the process.
     //
-    const char* file (pp.effect.empty ()
-                      ? args[0]
-                      : pp.effect.string ().c_str ());
 
     // Serialize the arguments to string.
     //
@@ -743,7 +731,7 @@ namespace butl
       fail ("invalid file descriptor");
 
     if (!CreateProcess (
-          file,
+          pp.effect_string (),
           const_cast<char*> (cmd_line.c_str ()),
           0,    // Process security attributes.
           0,    // Primary thread security attributes.

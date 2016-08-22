@@ -7,6 +7,20 @@
 namespace butl
 {
   inline process_path::
+  ~process_path ()
+  {
+    if (args0_ != nullptr)
+      *args0_ = initial;
+  }
+
+  inline process_path::
+  process_path (const char* i, path&& r, path&& e)
+      : initial (i),
+        recall (std::move (r)),
+        effect (std::move (e)),
+        args0_ (nullptr) {}
+
+  inline process_path::
   process_path (process_path&& p)
       : initial (p.initial),
         recall (std::move (p.recall)),
@@ -33,6 +47,32 @@ namespace butl
     }
 
     return *this;
+  }
+
+  inline const char* process_path::
+  recall_string () const
+  {
+    return recall.empty () ? initial : recall.string ().c_str ();
+  }
+
+  inline const char* process_path::
+  effect_string () const
+  {
+    return effect.empty () ? recall_string () : effect.string ().c_str ();
+  }
+
+  inline process_path process::
+  path_search (const char*& a0, const dir_path& fb)
+  {
+    process_path r (path_search (a0, true, fb));
+
+    if (!r.recall.empty ())
+    {
+      r.args0_ = &a0;
+      a0 = r.recall.string ().c_str ();
+    }
+
+    return r;
   }
 
   inline process::
