@@ -43,7 +43,7 @@ namespace butl
   path_cast_impl (const basic_path<C, K2>& p, basic_path<C, K1>*)
   {
     typename basic_path<C, K1>::data_type d (
-      typename basic_path<C, K1>::string_type (p.path_), p.diff_);
+      typename basic_path<C, K1>::string_type (p.path_), p.tsep_);
     K1::cast (d);
     return basic_path<C, K1> (std::move (d));
   }
@@ -52,7 +52,7 @@ namespace butl
   inline basic_path<C, K1>
   path_cast_impl (basic_path<C, K2>&& p, basic_path<C, K1>*)
   {
-    typename basic_path<C, K1>::data_type d (std::move (p.path_), p.diff_);
+    typename basic_path<C, K1>::data_type d (std::move (p.path_), p.tsep_);
     K1::cast (d);
     return basic_path<C, K1> (std::move (d));
   }
@@ -166,7 +166,7 @@ namespace butl
                  : string_type::npos);
 
     return p != string_type::npos
-      ? basic_path (data_type (string_type (s, p + 1), this->diff_))
+      ? basic_path (data_type (string_type (s, p + 1), this->tsep_))
       : *this;
   }
 
@@ -216,7 +216,7 @@ namespace butl
         //
         : (e.b_ != string_type::npos
            ? data_type (string_type (b.p_->path_, b.b_, e.b_ - b.b_))
-           : data_type (string_type (b.p_->path_, b.b_), b.p_->diff_)))
+           : data_type (string_type (b.p_->path_, b.b_), b.p_->tsep_)))
   {
     //assert (b.p_ == e.p_);
   }
@@ -261,7 +261,7 @@ namespace butl
       ? dir_type (
         s.size () > 2
         ? data_type (string_type (s, 0, 3))
-        : data_type (string_type (s), this->diff_ != 0 ? this->diff_ : 1))
+        : data_type (string_type (s), this->tsep_ != 0 ? this->tsep_ : 1))
       : dir_type ();
 #else
     return absolute ()
@@ -279,7 +279,7 @@ namespace butl
     size_type p (traits::find_extension (s));
 
     return p != string_type::npos
-      ? basic_path (data_type (string_type (s, 0, p), this->diff_))
+      ? basic_path (data_type (string_type (s, 0, p), this->tsep_))
       : *this;
   }
 
@@ -324,24 +324,24 @@ namespace butl
 
   template <typename C, typename K>
   inline void basic_path<C, K>::
-  combine (const C* r, size_type rn, difference_type rd)
+  combine (const C* r, size_type rn, difference_type rts)
   {
     //assert (rn != 0);
 
     string_type& l (this->path_);
-    difference_type& d (this->diff_);
+    difference_type& ts (this->tsep_);
 
     // Handle the separator. LHS should be empty or already have one.
     //
-    switch (d)
+    switch (ts)
     {
     case  0: if (!l.empty ()) throw invalid_basic_path<C> (l); break;
     case -1: break; // Already in the string.
-    default: l += path_traits<C>::directory_separators[d - 1];
+    default: l += path_traits<C>::directory_separators[ts - 1];
     }
 
     l.append (r, rn);
-    d = rd; // New trailing separator from RHS.
+    ts = rts; // New trailing separator from RHS.
   }
 
   template <typename C, typename K>
@@ -372,7 +372,7 @@ namespace butl
       throw invalid_basic_path<C> (r.path_);
 
     if (!r.empty ())
-      combine (r.path_.c_str (), r.path_.size (), r.diff_);
+      combine (r.path_.c_str (), r.path_.size (), r.tsep_);
 
     return *this;
   }
@@ -401,7 +401,7 @@ namespace butl
   inline void basic_path<C, K>::
   append (const C* r, size_type rn)
   {
-    //assert (this->diff_ != -1); // Append to root?
+    //assert (this->tsep_ != -1); // Append to root?
     this->path_.append (r, rn);
   }
 
@@ -435,8 +435,8 @@ namespace butl
   {
     string_type r (this->path_);
 
-    if (this->diff_ > 0)
-      r += path_traits<C>::directory_separators[this->diff_ - 1];
+    if (this->tsep_ > 0)
+      r += path_traits<C>::directory_separators[this->tsep_ - 1];
 
     return r;
   }
@@ -448,8 +448,8 @@ namespace butl
     string_type r;
     r.swap (this->path_);
 
-    if (this->diff_ > 0)
-      r += path_traits<C>::directory_separators[this->diff_ - 1];
+    if (this->tsep_ > 0)
+      r += path_traits<C>::directory_separators[this->tsep_ - 1];
 
     return r;
   }
@@ -458,9 +458,9 @@ namespace butl
   inline C basic_path<C, K>::
   separator () const
   {
-    return (this->diff_ ==  0 ? 0 :
-            this->diff_ == -1 ? this->path_[0] :
-            path_traits<C>::directory_separators[this->diff_ - 1]);
+    return (this->tsep_ ==  0 ? 0 :
+            this->tsep_ == -1 ? this->path_[0] :
+            path_traits<C>::directory_separators[this->tsep_ - 1]);
   }
 
   template <typename C, typename K>
@@ -477,7 +477,7 @@ namespace butl
   {
     // Add trailing slash if one isn't already there.
     //
-    if (!d.path_.empty () && d.diff_ == 0)
-      d.diff_ = 1; // Canonical separator is always first.
+    if (!d.path_.empty () && d.tsep_ == 0)
+      d.tsep_ = 1; // Canonical separator is always first.
   }
 }

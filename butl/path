@@ -321,52 +321,53 @@ namespace butl
     // is, "/" for the root directory and "/tmp" (no trailing slash) for the
     // rest. This means we can return/store references to path_.
     //
-    // Then we have diff_ which is the size difference between path_ and its
-    // "pure" part, that is, without any trailing slashes, even for "/". So:
+    // Then we have tsep_ ("trailing separator") which is the size difference
+    // between path_ and its "pure" part, that is, without any trailing
+    // slashes, even for "/". So:
     //
-    // diff_ == -1  -- trailing slash in path_ (the "/" case)
-    // diff_ ==  0  -- no trailing slash
+    // tsep_ == -1  -- trailing slash in path_ (the "/" case)
+    // tsep_ ==  0  -- no trailing slash
     //
     // Finally, to represent non-root ("/") trailing slashes we use positive
-    // diff_ values. In this case diff_ is interpreted as a 1-based index in
+    // tsep_ values. In this case tsep_ is interpreted as a 1-based index in
     // the path_traits::directory_separators string.
     //
     // Notes:
-    //  - If path_ is empty, then diff_ can only be 0.
-    //  - We could have used a much narrower integer for diff_.
+    //  - If path_ is empty, then tsep_ can only be 0.
+    //  - We could have used a much narrower integer for tsep_.
     //
     string_type path_;
-    difference_type diff_;
+    difference_type tsep_;
 
     size_type
-    _size () const {return path_.size () + (diff_ < 0 ? -1 : 0);}
+    _size () const {return path_.size () + (tsep_ < 0 ? -1 : 0);}
 
     void
-    _swap (path_data& d) {path_.swap (d.path_); std::swap (diff_, d.diff_);}
+    _swap (path_data& d) {path_.swap (d.path_); std::swap (tsep_, d.tsep_);}
 
     void
-    _clear () {path_.clear (); diff_ = 0;}
+    _clear () {path_.clear (); tsep_ = 0;}
 
     // Constructors.
     //
-    path_data (): diff_ (0) {}
+    path_data (): tsep_ (0) {}
 
-    path_data (string_type&& p, difference_type d)
-        : path_ (std::move (p)), diff_ (path_.empty () ? 0 : d) {}
+    path_data (string_type&& p, difference_type ts)
+        : path_ (std::move (p)), tsep_ (path_.empty () ? 0 : ts) {}
 
     explicit
     path_data (string_type&& p)
-        : path_ (std::move (p)), diff_ (0)
+        : path_ (std::move (p)), tsep_ (0)
     {
       size_type n (path_.size ()), i;
 
       if (n != 0 && (i = path_traits<C>::separator_index (path_[n - 1])) != 0)
       {
         if (n == 1) // The "/" case.
-          diff_ = -1;
+          tsep_ = -1;
         else
         {
-          diff_ = i;
+          tsep_ = i;
           path_.pop_back ();
         }
       }
@@ -702,8 +703,8 @@ namespace butl
       {
         return e_ != string_type::npos
           ? p_->path_[e_]
-          : (p_->diff_ > 0
-             ? path_traits<C>::directory_separators[p_->diff_ - 1]
+          : (p_->tsep_ > 0
+             ? path_traits<C>::directory_separators[p_->tsep_ - 1]
              : 0);
       }
 

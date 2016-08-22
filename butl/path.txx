@@ -28,13 +28,13 @@ namespace butl
     // If there is implied trailing slash, add it to count. Unless it is
     // "matched" by the implied slash on the other side.
     //
-    if (d.diff_ > 0 && dn < s.size ())
+    if (d.tsep_ > 0 && dn < s.size ())
       dn++;
 
     // Preserve trailing slash.
     //
     return basic_path (data_type (string_type (s, dn, s.size () - dn),
-                                  this->diff_));
+                                  this->tsep_));
   }
 
   template <typename C, typename K>
@@ -47,10 +47,10 @@ namespace butl
 
     if (ln == 0)
     {
-      if (this->diff_ == 0) // Must be a directory.
+      if (this->tsep_ == 0) // Must be a directory.
         throw invalid_basic_path<C> (s);
 
-      return dir_type (data_type (string_type (s), this->diff_));
+      return dir_type (data_type (string_type (s), this->tsep_));
     }
 
     if (!sup (l))
@@ -156,12 +156,12 @@ namespace butl
     assert (!actual || abs); // Only absolue can be actualized.
 
     string_type& s (this->path_);
-    difference_type& d (this->diff_);
+    difference_type& ts (this->tsep_);
 
     typedef std::vector<string_type> paths;
     paths ps;
 
-    bool tsep (d != 0); // Trailing directory separator.
+    bool tsep (ts != 0); // Trailing directory separator.
     {
       size_type n (_size ());
 
@@ -278,13 +278,13 @@ namespace butl
       if (p.empty ())
       {
         p += traits::directory_separator;
-        d = -1;
+        ts = -1;
       }
       else
-        d = 1; // Canonical separator is always first.
+        ts = 1; // Canonical separator is always first.
     }
     else
-      d = 0;
+      ts = 0;
 
     s.swap (p);
     return *this;
@@ -333,7 +333,7 @@ namespace butl
          m != 0 && (i = path_traits<C>::separator_index (s[m - 1])) != 0;
          --m) di = i;
 
-    difference_type d (0);
+    difference_type ts (0);
     if (size_t k = n - m)
     {
       // We can only accomodate one trailing slash in the exact mode.
@@ -344,15 +344,15 @@ namespace butl
       if (m == 0) // The "/" case.
       {
         ++m; // Keep one slash in the string.
-        d = -1;
+        ts = -1;
       }
       else
-        d = di;
+        ts = di;
 
       s.resize (m);
     }
 
-    return data_type (std::move (s), d);
+    return data_type (std::move (s), ts);
   }
 
   template <typename C>
@@ -369,8 +369,8 @@ namespace butl
 
     // Unless the result is empty, make sure we have the trailing slash.
     //
-    if (!r.path_.empty () && r.diff_ == 0)
-      r.diff_ = 1; // Canonical separator is always first.
+    if (!r.path_.empty () && r.tsep_ == 0)
+      r.tsep_ = 1; // Canonical separator is always first.
 
     return r;
   }
