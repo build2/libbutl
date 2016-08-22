@@ -36,14 +36,12 @@ lib{butl}: file{sha256c.c}
 lib{butl}: file{strptime.c timelocal.h timelocal.c}
 
 cxx.poptions =+ -I$src_root
-
-lib{butl}: cxx.export.poptions = -I$src_root
-
-liba{butl}: cxx.export.poptions += -DLIBBUTL_STATIC
-libs{butl}: cxx.export.poptions += -DLIBBUTL_SHARED
-
 obja{*}: cxx.poptions += -DLIBBUTL_STATIC_BUILD
 objs{*}: cxx.poptions += -DLIBBUTL_SHARED_BUILD
+
+lib{butl}: cxx.export.poptions = -I$src_root
+liba{butl}: cxx.export.poptions += -DLIBBUTL_STATIC
+libs{butl}: cxx.export.poptions += -DLIBBUTL_SHARED
 
 # Install into the butl/ subdirectory of, say, /usr/include/.
 #
