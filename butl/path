@@ -549,6 +549,12 @@ namespace butl
     bool
     root () const;
 
+    // Test, based on the presence/absence of the trailing separator, if the
+    // path is to a directory.
+    //
+    bool
+    to_directory () const {return this->tsep_ != 0;}
+
     // Return true if *this is a sub-path of the specified path (i.e.,
     // the specified path is a prefix). Expects both paths to be
     // normalized. Note that this function returns true if the paths
