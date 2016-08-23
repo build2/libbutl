@@ -10,8 +10,6 @@
 #include <utility> // forward()
 #include <cstring> // strcmp(), strlen()
 
-#include <butl/export>
-
 namespace butl
 {
   // Convert ASCII character/string case. If there is no upper/lower case
@@ -34,13 +32,13 @@ namespace butl
   std::string ucase (const char*, std::size_t = std::string::npos);
   std::string ucase (const std::string&);
   std::string& ucase (std::string&);
-  LIBBUTL_EXPORT void ucase (char*, std::size_t);
+  void ucase (char*, std::size_t);
 
   char lcase (char);
   std::string lcase (const char*, std::size_t = std::string::npos);
   std::string lcase (const std::string&);
   std::string& lcase (std::string&);
-  LIBBUTL_EXPORT void lcase (char*, std::size_t);
+  void lcase (char*, std::size_t);
 
   // Compare ASCII characters/strings ignoring case. Behave as if characters
   // had been converted to the lower case and then byte-compared. Return a
@@ -60,8 +58,7 @@ namespace butl
   int casecmp (const std::string&, const char*,
                std::size_t = std::string::npos);
 
-  LIBBUTL_EXPORT int casecmp (const char*, const char*,
-                              std::size_t = std::string::npos);
+  int casecmp (const char*, const char*, std::size_t = std::string::npos);
 
   bool
   alpha (char);
