@@ -75,6 +75,30 @@ namespace butl
     return r;
   }
 
+  inline process_path process::
+  path_search (const std::string& f, bool i, const dir_path& fb)
+  {
+    return path_search (f.c_str (), i, fb);
+  }
+
+  inline process_path process::
+  path_search (const path& f, bool i, const dir_path& fb)
+  {
+    return path_search (f.string ().c_str (), i, fb);
+  }
+
+  inline process_path process::
+  try_path_search (const std::string& f, bool i, const dir_path& fb)
+  {
+    return try_path_search (f.c_str (), i, fb);
+  }
+
+  inline process_path process::
+  try_path_search (const path& f, bool i, const dir_path& fb)
+  {
+    return try_path_search (f.string ().c_str (), i, fb);
+  }
+
   inline process::
   process ()
       : handle (0),

@@ -32,6 +32,8 @@
 #  include <butl/win32-utility>
 #endif
 
+#include <errno.h>
+
 #include <cassert>
 #include <cstddef> // size_t
 #include <cstring> // strlen(), strchr()
@@ -96,12 +98,24 @@ namespace butl
   process_path process::
   path_search (const char* f, bool init, const dir_path& fb)
   {
+    process_path r (try_path_search (f, init, fb));
+
+    if (r.empty ())
+      throw process_error (ENOENT, false);
+
+    return r;
+  }
+
+  process_path process::
+  try_path_search (const char* f, bool init, const dir_path& fb)
+  {
     process_path r (butl::path_search (f, fb));
 
-    path& rp (r.recall);
-    r.initial = init
-      ? f
-      : (rp.empty () ? (rp = path (f)) : rp).string ().c_str ();
+    if (!init && !r.empty ())
+    {
+      path& rp (r.recall);
+      r.initial = (rp.empty () ? (rp = path (f)) : rp).string ().c_str ();
+    }
 
     return r;
   }
@@ -117,7 +131,7 @@ namespace butl
 
     size_t fn (strlen (f));
 
-    process_path r (nullptr, path (), path ());
+    process_path r (f, path (), path ()); // Make sure it is not empty.
     path& rp (r.recall);
     path& ep (r.effect);
 
@@ -190,7 +204,7 @@ namespace butl
 
     // Did not find anything.
     //
-    throw process_error (ENOENT, false);
+    return process_path ();
   }
 
   process::
@@ -378,7 +392,7 @@ namespace butl
       ext = (e == nullptr || casecmp (e, ".exe") != 0);
     }
 
-    process_path r (nullptr, path (), path ());
+    process_path r (f, path (), path ()); // Make sure it is not empty.
     path& rp (r.recall);
     path& ep (r.effect);
 
@@ -519,7 +533,7 @@ namespace butl
 
     // Did not find anything.
     //
-    throw process_error (ENOENT);
+    return process_path ();
   }
 
   class auto_handle

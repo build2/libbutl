@@ -29,8 +29,8 @@ namespace butl
     process_error (int e, bool child)
         : system_error (e, std::system_category ()), child_ (child) {}
 #else
-    process_error (int e)
-        : system_error (e, std::system_category ()), child_ (false) {}
+    process_error (int e, bool child = false)
+        : system_error (e, std::system_category ()), child_ (child) {}
 
     process_error (const std::string& d, int e = ECHILD)
         : system_error (e, std::system_category (), d), child_ (false) {}
@@ -243,16 +243,22 @@ namespace butl
     path_search (const char* file, bool init, const dir_path& = dir_path ());
 
     static process_path
-    path_search (const std::string& f, bool i, const dir_path& fb = dir_path ())
-    {
-      return path_search (f.c_str (), i, fb);
-    }
+    path_search (const std::string&, bool, const dir_path& = dir_path ());
 
     static process_path
-    path_search (const path& f, bool i, const dir_path& fb = dir_path ())
-    {
-      return path_search (f.string ().c_str (), i, fb);
-    }
+    path_search (const path&, bool, const dir_path& = dir_path ());
+
+    // As above but if not found return empty process_path instead of
+    // throwing.
+    //
+    static process_path
+    try_path_search (const char*, bool, const dir_path& = dir_path ());
+
+    static process_path
+    try_path_search (const std::string&, bool, const dir_path& = dir_path ());
+
+    static process_path
+    try_path_search (const path&, bool, const dir_path& = dir_path ());
 
   public:
 #ifndef _WIN32
