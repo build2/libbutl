@@ -135,7 +135,19 @@ namespace butl
     path& rp (r.recall);
     path& ep (r.effect);
 
-    auto search = [&ep, f, fn] (const char* d, size_t dn) -> bool
+    // Check that the file exists and has at least one executable bit set.
+    // This way we get a bit closer to the "continue search on EACCES"
+    // semantics (see below).
+    //
+    auto exists = [] (const char* f) -> bool
+    {
+      struct stat si;
+      return (stat (f, &si) == 0 &&
+              S_ISREG (si.st_mode) &&
+              (si.st_mode & (S_IEXEC | S_IXGRP | S_IXOTH)) != 0);
+    };
+
+    auto search = [&ep, f, fn, &exists] (const char* d, size_t dn) -> bool
     {
       string s (move (ep).string ()); // Reuse buffer.
 
@@ -149,22 +161,19 @@ namespace butl
 
       s.append (f, fn);
       ep = path (move (s)); // Move back into result.
-
-      // Check that the file exists and has at least one executable bit set.
-      // This way we get a bit closer to the "continue search on EACCES"
-      // semantics (see below).
-      //
-      struct stat si;
-      return (stat (ep.string ().c_str (), &si) == 0 &&
-              S_ISREG (si.st_mode) &&
-              (si.st_mode & (S_IEXEC | S_IXGRP | S_IXOTH)) != 0);
+      return exists (ep.string ().c_str ());
     };
 
     // If there is a directory component in the file, then search does not
-    // apply.
+    // apply. But make sure the file actually exists.
     //
     if (traits::find_separator (f, fn) != nullptr)
-      return r;
+    {
+      if (exists (f)) // ?: calls deleted copy ctor.
+        return r;
+      else
+        return process_path ();
+    }
 
     // The search order is documented in exec(3). Some of the differences
     // compared to exec*p() functions:
@@ -396,7 +405,16 @@ namespace butl
     path& rp (r.recall);
     path& ep (r.effect);
 
-    auto search = [&ep, f, fn, ext] (const char* d, size_t dn) -> bool
+    // Check that the file exists. Since the executable mode is set according
+    // to the file extension, we don't check for that.
+    //
+    auto exists = [] (const char* f) -> bool
+    {
+      struct _stat si;
+      return _stat (f, &si) == 0 && S_ISREG (si.st_mode);
+    };
+
+    auto search = [&ep, f, fn, ext, &exists] (const char* d, size_t dn) -> bool
     {
       string s (move (ep).string ()); // Reuse buffer.
 
@@ -416,15 +434,12 @@ namespace butl
       if (ext)
         ep += ".exe";
 
-      // Only check that the file exists since the executable mode is set
-      // according to the file extension.
-      //
-      struct _stat si;
-      return _stat (ep.string ().c_str (), &si) == 0 && S_ISREG (si.st_mode);
+      return exists (ep.string ().c_str ());
     };
 
     // If there is a directory component in the file, then search does not
-    // apply. But we may still need to append the extension.
+    // apply. But we may still need to append the extension and make sure the
+    // file actually exists.
     //
     if (traits::find_separator (f, fn) != nullptr)
     {
@@ -434,7 +449,10 @@ namespace butl
         ep += ".exe";
       }
 
-      return r;
+      if (exists (r.effect_string ())) // ?: calls deleted copy ctor.
+        return r;
+      else
+        return process_path ();
     }
 
     // The search order is documented in CreateProcess(). First we look in the
