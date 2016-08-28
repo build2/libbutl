@@ -105,6 +105,16 @@ namespace butl
 #endif
     }
 
+    static bool
+    absolute (const string_type& s)
+    {
+#ifdef _WIN32
+      return s.size () >  1 && s[1] == ':';
+#else
+      return s.size () != 0 && is_separator (s[0]);
+#endif
+    }
+
     static size_type
     find_separator (string_type const& s,
                     size_type pos = 0,

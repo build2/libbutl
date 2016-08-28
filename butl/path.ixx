@@ -83,13 +83,7 @@ namespace butl
   inline bool basic_path<C, K>::
   absolute () const
   {
-    const string_type& s (this->path_);
-
-#ifdef _WIN32
-    return s.size () >  1 && s[1] == ':';
-#else
-    return s.size () != 0 && traits::is_separator (s[0]);
-#endif
+    return traits::absolute (this->path_);
   }
 
   template <typename C, typename K>
