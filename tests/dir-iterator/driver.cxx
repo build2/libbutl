@@ -30,24 +30,34 @@ operator<< (ostream& os, entry_type e)
 int
 main (int argc, const char* argv[])
 {
-  if (argc != 2)
+  if (!(argc == 2 || (argc == 3 && argv[1] == string ("-v"))))
   {
-    cerr << "usage: " << argv[0] << " <dir>" << endl;
+    cerr << "usage: " << argv[0] << " [-v] <dir>" << endl;
     return 1;
   }
 
+  bool v (argc == 3);
+  const char* d (argv[argc - 1]);
+
   try
   {
-    for (const dir_entry& de: dir_iterator (dir_path (argv[1])))
+    for (const dir_entry& de: dir_iterator (dir_path (d)))
     {
-      cerr << de.ltype () << " ";
+      entry_type lt (de.ltype ());
+      entry_type t (lt == entry_type::symlink ? de.ltype () : lt);
+      const path& p (de.path ());
 
-      if (de.ltype () == entry_type::symlink)
-        cerr << de.type ();
-      else
-        cerr << "   ";
+      if (v)
+      {
+        cerr << lt << " ";
 
-      cerr << " " << de.path () << endl;
+        if (lt == entry_type::symlink)
+          cerr << t;
+        else
+          cerr << "   ";
+
+        cerr << " " << p << endl;
+      }
     }
   }
   catch (const exception& e)
