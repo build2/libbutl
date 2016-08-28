@@ -60,6 +60,24 @@ namespace butl
 
   int casecmp (const char*, const char*, std::size_t = std::string::npos);
 
+  // Case-insensitive key comparators (i.e., to be used in sets, maps, etc).
+  //
+  struct case_compare_string
+  {
+    bool operator() (const std::string& x, const std::string& y) const
+    {
+      return casecmp (x, y) < 0;
+    }
+  };
+
+  struct case_compare_c_string
+  {
+    bool operator() (const char* x, const char* y) const
+    {
+      return casecmp (x, y) < 0;
+    }
+  };
+
   bool
   alpha (char);
 
