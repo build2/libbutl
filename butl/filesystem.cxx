@@ -35,14 +35,14 @@ using namespace std;
 namespace butl
 {
   bool
-  file_exists (const path& p)
+  file_exists (const char* p)
   {
 #ifndef _WIN32
     struct stat s;
-    if (stat (p.string ().c_str (), &s) != 0)
+    if (stat (p, &s) != 0)
 #else
     struct _stat s;
-    if (_stat (p.string ().c_str (), &s) != 0)
+    if (_stat (p, &s) != 0)
 #endif
     {
       if (errno == ENOENT || errno == ENOTDIR)
@@ -55,14 +55,14 @@ namespace butl
   }
 
   bool
-  dir_exists (const path& p)
+  dir_exists (const char* p)
   {
 #ifndef _WIN32
     struct stat s;
-    if (stat (p.string ().c_str (), &s) != 0)
+    if (stat (p, &s) != 0)
 #else
     struct _stat s;
-    if (_stat (p.string ().c_str (), &s) != 0)
+    if (_stat (p, &s) != 0)
 #endif
     {
       if (errno == ENOENT || errno == ENOTDIR)
@@ -294,14 +294,14 @@ namespace butl
   nsec (...) {return 0;}
 
   timestamp
-  file_mtime (const path& p)
+  file_mtime (const char* p)
   {
 #ifndef _WIN32
     struct stat s;
-    if (stat (p.string ().c_str (), &s) != 0)
+    if (stat (p, &s) != 0)
 #else
     struct _stat s;
-    if (_stat (p.string ().c_str (), &s) != 0)
+    if (_stat (p, &s) != 0)
 #endif
     {
       if (errno == ENOENT || errno == ENOTDIR)

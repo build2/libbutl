@@ -36,13 +36,19 @@ namespace butl
   // this function resolves symlinks.
   //
   LIBBUTL_EXPORT bool
-  file_exists (const path&);
+  file_exists (const char*);
+
+  inline bool
+  file_exists (const path& p) {return file_exists (p.string ().c_str ());}
 
   // Return true if the path is to an existing directory. Note that
   // this function resolves symlinks.
   //
   LIBBUTL_EXPORT bool
-  dir_exists (const path&);
+  dir_exists (const char*);
+
+  inline bool
+  dir_exists (const path& p) {return dir_exists (p.string ().c_str ());}
 
   // Return true if the directory is empty. Note that the path must exist
   // and be a directory.
@@ -217,7 +223,10 @@ namespace butl
   // symlinks.
   //
   LIBBUTL_EXPORT timestamp
-  file_mtime (const path&);
+  file_mtime (const char*);
+
+  inline timestamp
+  file_mtime (const path& p) {return file_mtime (p.string ().c_str ());}
 
   // Path permissions.
   //
