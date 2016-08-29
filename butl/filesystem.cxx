@@ -34,16 +34,27 @@ using namespace std;
 
 namespace butl
 {
-  bool
-  file_exists (const char* p)
-  {
 #ifndef _WIN32
+  bool
+  file_exists (const char* p, bool fl)
+  {
     struct stat s;
-    if (stat (p, &s) != 0)
+    if ((fl ? stat (p, &s) : lstat (p, &s)) != 0)
+    {
+      if (errno == ENOENT || errno == ENOTDIR)
+        return false;
+      else
+        throw system_error (errno, system_category ());
+    }
+
+    return S_ISREG (s.st_mode) || (!fl && S_ISLNK (s.st_mode));
+  }
 #else
+  bool
+  file_exists (const char* p, bool)
+  {
     struct _stat s;
     if (_stat (p, &s) != 0)
-#endif
     {
       if (errno == ENOENT || errno == ENOTDIR)
         return false;
@@ -53,6 +64,7 @@ namespace butl
 
     return S_ISREG (s.st_mode);
   }
+#endif
 
   bool
   dir_exists (const char* p)
@@ -172,6 +184,9 @@ namespace butl
     if (_unlink (p.string ().c_str ()) != 0)
 #endif
     {
+      // Strangely on Linux unlink() removes a dangling symlink but returns
+      // ENOENT.
+      //
       if (errno == ENOENT || errno == ENOTDIR)
         r = rmfile_status::not_exist;
       else if (!ignore_error)
