@@ -199,6 +199,26 @@ namespace butl
         return nullptr;
     }
 
+    // Return the start of the leaf (last path component) in the path. Note
+    // that the leaf will include the trailing separator, if any (i.e., the
+    // leaf of /tmp/bar/ is bar/).
+    //
+    static size_type
+    find_leaf (string_type const& s)
+    {
+      const C* r (find_leaf (s.c_str (), s.size ()));
+      return r != nullptr ? r - s.c_str () : string_type::npos;
+    }
+
+    static const C*
+    find_leaf (const C* s, size_type n)
+    {
+      const C* p;
+      return n == 0
+        ? nullptr
+        : (p = rfind_separator (s, n - 1)) == nullptr ? s : ++p;
+    }
+
     static int
     compare (string_type const& l, string_type const& r)
     {
@@ -806,6 +826,9 @@ namespace butl
     basic_path&
     operator+= (C);
 
+    void
+    append (const C*, size_type);
+
     // Note that comparison is case-insensitive if the filesystem is not
     // case-sensitive (e.g., Windows). And it ignored trailing slashes
     // except for the root case.
@@ -886,9 +909,6 @@ namespace butl
 
     void
     combine (const C*, size_type);
-
-    void
-    append (const C*, size_type);
 
     // Friends.
     //
