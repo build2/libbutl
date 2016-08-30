@@ -8,5 +8,5 @@ description-file: README
 changes-file: NEWS
 url: https://build2.org
 email: users@build2.org
-requires: c++11
+requires: c++14
 requires: build2 >= 0.4.0
