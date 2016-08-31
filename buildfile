@@ -3,7 +3,7 @@
 # license   : MIT; see accompanying LICENSE file
 
 d = butl/ tests/
-./: $d doc{LICENSE NEWS README version} file{manifest}
+./: $d doc{INSTALL LICENSE NEWS README version} file{manifest}
 include $d
 
 # Don't install tests or the INSTALL file.
