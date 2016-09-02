@@ -4,6 +4,9 @@
 
 #include <butl/win32-utility>
 
+// Note that while we exclude it from the buildfile-based builds, we still
+// need these guards for build2 bootstrap.
+//
 #ifdef _WIN32
 
 #include <memory> // unique_ptr

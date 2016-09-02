@@ -22,8 +22,14 @@ lib{butl}:                         \
 {hxx         cxx}{ triplet       } \
 {hxx ixx        }{ utility       } \
 {hxx            }{ vector-view   } \
-{hxx            }{ version       } \
-{hxx         cxx}{ win32-utility }
+{hxx            }{ version       }
+
+# Exclude these from compilation on non-Windows targets.
+#
+if ($cxx.target.class == "windows")
+  lib{butl}: {hxx         cxx}{ win32-utility }
+else
+  lib{butl}: file{ win32-utility win32-utility.cxx }
 
 # This one is included into sha256.cxx so treat it as file to exclude
 # from the compilation.
