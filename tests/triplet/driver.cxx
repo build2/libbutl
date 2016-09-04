@@ -94,11 +94,11 @@ main ()
 
   assert (test ("x86_64-unknown-freebsd10.2",
                 "x86_64-freebsd10.2",
-                "x86_64", "", "freebsd", "10.2", "freebsd"));
+                "x86_64", "", "freebsd", "10.2", "bsd"));
 
   assert (test ("x86_64-pc-openbsd5.6",
                 "x86_64-openbsd5.6",
-                "x86_64", "", "openbsd", "5.6"));
+                "x86_64", "", "openbsd", "5.6", "bsd"));
 
   assert (test ("sparc-sun-solaris2.9",
                 "sparc-sun-solaris2.9",

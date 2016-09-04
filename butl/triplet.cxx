@@ -125,8 +125,8 @@ namespace butl
       class_ = "linux";
     else if (vendor == "apple" && system == "darwin")
       class_ = "macosx";
-    else if (system == "freebsd")
-      class_ = "freebsd";
+    else if (system == "freebsd" || system == "openbsd" || system == "netbsd")
+      class_ = "bsd";
     else if (system.compare (0, 5, "win32") == 0 || system == "mingw32")
       class_ = "windows";
     else

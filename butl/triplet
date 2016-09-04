@@ -85,7 +85,7 @@ namespace butl
   //
   // linux     *-*-linux-*
   // macosx    *-apple-darwin*
-  // freebsd   *-*-freebsd*
+  // bsd       *-*-(freebsd|openbsd|netbsd)*
   // windows   *-*-win32-* | *-*-mingw32
   //
   // References:
