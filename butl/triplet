@@ -109,6 +109,7 @@ namespace butl
     explicit
     triplet (const std::string&, std::string* canon = nullptr);
     triplet (const std::string& s, std::string& canon): triplet (s, &canon) {}
+    triplet () = default;
   };
 };
 
