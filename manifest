@@ -9,4 +9,5 @@ changes-file: NEWS
 url: https://build2.org
 email: users@build2.org
 requires: c++14
-requires: build2 >= 0.4.0
+depends: * build2 >= 0.4.0-a1
+depends: * bpkg >= 0.4.0-a1
