@@ -1,10 +1,21 @@
 Version 0.4.0
 
-  * Add process::current_id().
+  * The process class has been redesigned and extended.
 
-  * Add temp_directory(), temp_path() utility functions.
+  * The basic_path class template has been redesigned and extended. The path
+    representation now stores the directory trailing slash, if present.
+
+  * The fdstream classes have been redesigned and extended.
+
+  * A number of new filesystem manipulation functions have been added.
+
+  * Add path::temp_directory(), path::temp_path() utility functions.
 
   * Add base64_encode(), base64_decode() utility functions.
+
+  * Add portable ucase(), lcase(), casecmp(), alpha(), digit(), alnum().
+
+  * The 'freebsd' target triplet class has been changed to 'bsd'.
 
 Version 0.3.0
 
