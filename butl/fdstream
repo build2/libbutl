@@ -182,6 +182,64 @@ namespace butl
   // Note that ifdstream destructor will close an open file descriptor but
   // will ignore any errors. To detect such errors, call close() explicitly.
   //
+  // This is a sample usage of iofdstreams with process. Note that here it is
+  // expected that the child process reads from STDIN first and writes to
+  // STDOUT afterwards.
+  //
+  // try
+  // {
+  //   process pr (args, -1, -1);
+  //
+  //   try
+  //   {
+  //     // In case of exception, skip and close input after output.
+  //     //
+  //     ifdstream is (pr.in_ofd, fdstream_mode::skip);
+  //     ofdstream os (pr.out_fd);
+  //
+  //     // Write.
+  //
+  //     os.close (); // Don't block the other end.
+  //
+  //     // Read.
+  //
+  //     is.close (); // Skip till end and close.
+  //
+  //     if (pr.wait ())
+  //     {
+  //       return ...; // Good.
+  //     }
+  //
+  //     // Non-zero exit, diagnostics presumably issued, fall through.
+  //   }
+  //   catch (const failure&)
+  //   {
+  //     // IO failure, child exit status doesn't matter. Just wait for the
+  //     // process completion and fall through.
+  //     //
+  //     // Note that this is optional if the process_error handler simply
+  //     // falls through since process destructor will wait (but will ignore
+  //     // any errors).
+  //     //
+  //     pr.wait ();
+  //   }
+  //
+  //   error <<  .... ;
+  //
+  //   // Fall through.
+  // }
+  // catch (const process_error& e)
+  // {
+  //   error << ... << e.what ();
+  //
+  //   if (e.child ())
+  //     exit (1);
+  //
+  //   // Fall through.
+  // }
+  //
+  // throw failed ();
+  //
   class LIBBUTL_EXPORT ifdstream: fdstream_base, public std::istream
   {
   public:
