@@ -4,12 +4,17 @@
 
 #include <ios>
 #include <string>
+#include <vector>
+#include <iomanip>
 #include <cassert>
 #include <sstream>
+#include <fstream>
+#include <iostream>
 #include <exception>
 
 #include <butl/path>
 #include <butl/fdstream>
+#include <butl/timestamp>
 #include <butl/filesystem>
 
 using namespace std;
@@ -38,9 +43,60 @@ to_file (const path& f, const string& s, fdopen_mode m = fdopen_mode::none)
   ofs.close ();
 }
 
-int
-main ()
+template <typename S, typename T>
+static duration
+write_time (const path& p, const T& s, size_t n)
 {
+  timestamp t (timestamp::clock::now ());
+  S os (p.string (), ofstream::out);
+  os.exceptions (S::failbit | S::badbit);
+
+  for (size_t i (0); i < n; ++i)
+  {
+    if (i > 0)
+      os << '\n'; // Important not to use endl as it syncs a stream.
+
+    os << s;
+  }
+
+  os.close ();
+  return timestamp::clock::now () - t;
+}
+
+template <typename S, typename T>
+static duration
+read_time (const path& p, const T& s, size_t n)
+{
+  vector<T> v (n);
+
+  timestamp t (timestamp::clock::now ());
+  S is (p.string (), ofstream::in);
+  is.exceptions (S::failbit | S::badbit);
+
+  for (auto& ve: v)
+    is >> ve;
+
+  assert (is.eof ());
+
+  is.close ();
+  duration d (timestamp::clock::now () - t);
+
+  for (const auto& ve: v)
+    assert (ve == s);
+
+  return d;
+}
+
+int
+main (int argc, const char* argv[])
+{
+  if (!(argc == 1 || (argc == 2 && argv[1] == string ("-v"))))
+  {
+    cerr << "usage: " << argv[0] << " [-v]" << endl;
+    return 1;
+  }
+
+  bool v (argc == 2);
   dir_path td (dir_path::temp_directory () / dir_path ("butl-fdstream"));
 
   // Recreate the temporary directory (that possibly exists from the previous
@@ -306,6 +362,85 @@ main ()
   assert (from_file (f) == text1);
 
 #endif
+
+  // Compare fdstream and fstream operations performance.
+  //
+  duration fwd (0);
+  duration dwd (0);
+  duration frd (0);
+  duration drd (0);
+
+  path ff (td / path ("fstream"));
+  path fd (td / path ("fdstream"));
+
+  // Make several measurements with different ordering for each benchmark to
+  // level fluctuations.
+  //
+  // Write/read ~10M-size files by 100, 1000, 10 000, 100 000 byte-length
+  // strings.
+  //
+  size_t sz (100);
+  for (size_t i (0); i < 4; ++i)
+  {
+    string s;
+    s.reserve (sz);
+
+    // Fill string with characters from '0' to 'z'.
+    //
+    for (size_t i (0); i < sz; ++i)
+      s.push_back ('0' + i % (123 - 48));
+
+    size_t n (10 * 1024 * 1024 / sz);
+
+    for (size_t i (0); i < 4; ++i)
+    {
+      if (i % 2 == 0)
+      {
+        fwd += write_time<ofstream>  (ff, s, n);
+        dwd += write_time<ofdstream> (fd, s, n);
+        frd += read_time<ifstream>   (ff, s, n);
+        drd += read_time<ifdstream>  (fd, s, n);
+      }
+      else
+      {
+        dwd += write_time<ofdstream> (fd, s, n);
+        fwd += write_time<ofstream>  (ff, s, n);
+        drd += read_time<ifdstream>  (fd, s, n);
+        frd += read_time<ifstream>   (ff, s, n);
+      }
+    }
+
+    sz *= 10;
+  }
+
+  // Write/read ~10M-size files by 64-bit integers.
+  //
+  uint64_t u (0x1234567890123456);
+  size_t n (10 * 1024 * 1024 / sizeof (u));
+
+  for (size_t i (0); i < 4; ++i)
+  {
+    if (i % 2 == 0)
+    {
+      fwd += write_time<ofstream>  (ff, u, n);
+      dwd += write_time<ofdstream> (fd, u, n);
+      frd += read_time<ifstream>   (ff, u, n);
+      drd += read_time<ifdstream>  (fd, u, n);
+    }
+    else
+    {
+      dwd += write_time<ofdstream> (fd, u, n);
+      fwd += write_time<ofstream>  (ff, u, n);
+      drd += read_time<ifdstream>  (fd, u, n);
+      frd += read_time<ifstream>   (ff, u, n);
+    }
+  }
+
+  if (v)
+    cerr << "fdstream/fstream write and read duration ratios are "
+         << fixed << setprecision (2)
+         << static_cast<double> (dwd.count ()) / fwd.count () << " and "
+         << static_cast<double> (drd.count ()) / frd.count () << endl;
 
   rmdir_r (td);
 }

@@ -86,13 +86,16 @@ namespace butl
     virtual int
     sync ();
 
+    virtual std::streamsize
+    xsputn (const char_type*, std::streamsize);
+
   private:
     bool
     save ();
 
   private:
     int fd_ = -1;
-    char buf_[4096];
+    char buf_[8192];
   };
 
   // File stream mode.

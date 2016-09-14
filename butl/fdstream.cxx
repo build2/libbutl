@@ -6,7 +6,8 @@
 
 #ifndef _WIN32
 #  include <fcntl.h>     // open(), O_*
-#  include <unistd.h>    // close(), read(), write(), lseek()
+#  include <unistd.h>    // close(), read(), write(), lseek(), ssize_t
+#  include <sys/uio.h>   // writev(), iovec
 #  include <sys/stat.h>  // S_I*
 #  include <sys/types.h> // off_t
 #else
@@ -24,6 +25,7 @@
 #include <new>          // bad_alloc
 #include <limits>       // numeric_limits
 #include <cassert>
+#include <cstring>      // memcpy(), memmove()
 #include <exception>    // uncaught_exception()
 #include <stdexcept>    // invalid_argument
 #include <type_traits>
@@ -176,6 +178,124 @@ namespace butl
     }
 
     return true;
+  }
+
+  streamsize fdbuf::
+  xsputn (const char_type* s, streamsize sn)
+  {
+    // To avoid futher 'signed/unsigned comparison' compiler warnings.
+    //
+    size_t n (static_cast<size_t> (sn));
+
+    // Buffer the data if there is enough space.
+    //
+    size_t an (epptr () - pptr ()); // Amount of free space in the buffer.
+    if (n <= an)
+    {
+      memcpy (pptr (), s, n);
+      pbump (n);
+      return n;
+    }
+
+    size_t bn (pptr () - pbase ()); // Buffered data size.
+
+#ifndef _WIN32
+
+    ssize_t r;
+    if (bn > 0)
+    {
+      // Write both buffered and new data with a single system call.
+      //
+      iovec iov[2] = {{pbase (), bn}, {const_cast<char*> (s), n}};
+      r = writev (fd_, iov, 2);
+    }
+    else
+      r = write (fd_, s, n);
+
+    if (r == -1)
+      throw_ios_failure (errno);
+
+    size_t m (static_cast<size_t> (r));
+
+    // If the buffered data wasn't fully written then move the unwritten part
+    // to the beginning of the buffer.
+    //
+    if (m < bn)
+    {
+      memmove (pbase (), pbase () + m, bn - m);
+      pbump (-m); // Note that pbump() accepts negatives.
+      return 0;
+    }
+
+    setp (buf_, buf_ + sizeof (buf_) - 1);
+    return m - bn;
+
+#else
+
+    // On Windows there is no writev() available so sometimes we will make two
+    // system calls. Fill and flush the buffer, then try to fit the data tail
+    // into the empty buffer. If the data tail is too long then just write it
+    // to the file and keep the buffer empty.
+    //
+    // We will end up with two _write() calls if the total data size to be
+    // written exceeds double the buffer size. In this case the buffer filling
+    // is redundant so let's pretend there is no free space in the buffer, and
+    // so buffered and new data will be written separatelly.
+    //
+    if (bn + n > 2 * (bn + an))
+      an = 0;
+    else
+    {
+      memcpy (pptr (), s, an);
+      pbump (an);
+    }
+
+    // Flush the buffer.
+    //
+    size_t wn (bn + an);
+    int r (wn > 0 ? _write (fd_, buf_, wn) : 0);
+
+    if (r == -1)
+      throw_ios_failure (errno);
+
+    size_t m (static_cast<size_t> (r));
+
+    // If the buffered data wasn't fully written then move the unwritten part
+    // to the beginning of the buffer.
+    //
+    if (m < wn)
+    {
+      memmove (pbase (), pbase () + m, wn - m);
+      pbump (-m); // Note that pbump() accepts negatives.
+      return m < bn ? 0 : m - bn;
+    }
+
+    setp (buf_, buf_ + sizeof (buf_) - 1);
+
+    // Now 'an' holds the size of the data portion written as a part of the
+    // buffer flush.
+    //
+    s += an;
+    n -= an;
+
+    // Buffer the data tail if it fits the buffer.
+    //
+    if (n <= static_cast<size_t> (epptr () - pbase ()))
+    {
+      memcpy (pbase (), s, n);
+      pbump (n);
+      return sn;
+    }
+
+    // The data tail doesn't fit the buffer so write it to the file.
+    //
+    r = _write (fd_, s, n);
+
+    if (r == -1)
+      throw_ios_failure (errno);
+
+    return an + r;
+#endif
   }
 
   // fdstream_base
@@ -477,9 +597,9 @@ namespace butl
     if (mode (fdopen_mode::at_end))
     {
 #ifndef _WIN32
-      bool r (lseek(fd, 0, SEEK_END) != static_cast<off_t>(-1));
+      bool r (lseek (fd, 0, SEEK_END) != static_cast<off_t> (-1));
 #else
-      bool r (_lseek(fd, 0, SEEK_END) != -1);
+      bool r (_lseek (fd, 0, SEEK_END) != -1);
 #endif
 
       // Note that in the case of an error we don't delete the newly created
