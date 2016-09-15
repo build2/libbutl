@@ -37,6 +37,7 @@
 #include <cassert>
 #include <cstddef> // size_t
 #include <cstring> // strlen(), strchr()
+#include <ostream>
 
 #include <butl/utility>  // casecmp()
 #include <butl/fdstream> // fdnull(), fdclose()
@@ -118,6 +119,43 @@ namespace butl
     }
 
     return r;
+  }
+
+  void process::
+  print (ostream& o, const char* const args[], size_t n)
+  {
+    size_t m (0);
+    const char* const* p (args);
+    do
+    {
+      if (m != 0)
+        o << " |"; // Trailing space will be added inside the loop.
+
+      for (m++; *p != nullptr; p++, m++)
+      {
+        if (p != args)
+          o << ' ';
+
+        // Quote if empty or contains spaces.
+        //
+        bool q (**p == '\0' || strchr (*p, ' ') != nullptr);
+
+        if (q)
+          o << '"';
+
+        o << *p;
+
+        if (q)
+          o << '"';
+      }
+
+      if (m < n) // Can we examine the next element?
+      {
+        p++;
+        m++;
+      }
+
+    } while (*p != nullptr);
   }
 
 #ifndef _WIN32
