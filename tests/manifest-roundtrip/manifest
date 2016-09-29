@@ -1,0 +1,32 @@
+: 1
+name: libbpkg
+version: 1.0.1
+summary: build2 package manager library
+license: MIT
+tags: c++, package, manager, bpkg
+description: A very very very very very very very very very very very very\
+ very very very very very very very very very very very very very very very\
+ very very long description.
+changes: \
+1.0.1
+  - Fixed a  very very very very very very very very very very very very very\
+  very annoying bug.
+1.0.0
+  - Firts public release
+  - Lots of really cool features
+\
+url: http://www.codesynthesis.com/projects/libstudxml/
+email: build-users@codesynthesis.com; Public mailing list, posts by\
+ non-members are allowed but moderated.
+package-email: boris@codesynthesis.com; Direct email to the author.
+depends: libbutl
+depends: * build2
+depends: ?* bpkg
+requires: ?* linux | windows
+requires: c++11
+:
+path: c:\windows\\
+path: \
+
+c:\windows\\
+\

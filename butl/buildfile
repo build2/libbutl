@@ -2,27 +2,30 @@
 # copyright : Copyright (c) 2014-2016 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
-lib{butl}:                         \
-{hxx         cxx}{ base64        } \
-{hxx         cxx}{ char-scanner  } \
-{hxx            }{ export        } \
-{hxx ixx     cxx}{ fdstream      } \
-{hxx ixx     cxx}{ filesystem    } \
-{hxx            }{ multi-index   } \
-{hxx            }{ optional      } \
-{hxx         cxx}{ pager         } \
-{hxx ixx txx cxx}{ path          } \
-{hxx            }{ path-io       } \
-{hxx            }{ path-map      } \
-{hxx     txx    }{ prefix-map    } \
-{hxx ixx     cxx}{ process       } \
-{hxx         cxx}{ sha256        } \
-{hxx     txx    }{ string-table  } \
-{hxx         cxx}{ timestamp     } \
-{hxx         cxx}{ triplet       } \
-{hxx ixx        }{ utility       } \
-{hxx            }{ vector-view   } \
-{hxx            }{ version       }
+lib{butl}:                               \
+{hxx         cxx}{ base64              } \
+{hxx         cxx}{ char-scanner        } \
+{hxx            }{ export              } \
+{hxx ixx     cxx}{ fdstream            } \
+{hxx ixx     cxx}{ filesystem          } \
+{hxx            }{ manifest-forward    } \
+{hxx         cxx}{ manifest-parser     } \
+{hxx         cxx}{ manifest-serializer } \
+{hxx            }{ multi-index         } \
+{hxx            }{ optional            } \
+{hxx         cxx}{ pager               } \
+{hxx ixx txx cxx}{ path                } \
+{hxx            }{ path-io             } \
+{hxx            }{ path-map            } \
+{hxx     txx    }{ prefix-map          } \
+{hxx ixx     cxx}{ process             } \
+{hxx         cxx}{ sha256              } \
+{hxx     txx    }{ string-table        } \
+{hxx         cxx}{ timestamp           } \
+{hxx         cxx}{ triplet             } \
+{hxx ixx        }{ utility             } \
+{hxx            }{ vector-view         } \
+{hxx            }{ version             }
 
 # Exclude these from compilation on non-Windows targets.
 #
