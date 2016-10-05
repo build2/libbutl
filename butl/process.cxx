@@ -332,11 +332,27 @@ namespace butl
       if (in != STDIN_FILENO)
         duplicate (STDIN_FILENO, in, out_fd);
 
-      if (out != STDOUT_FILENO)
-        duplicate (STDOUT_FILENO, out, in_ofd);
+      // If stdout is redirected to stderr (out == 2) we need to duplicate it
+      // after duplicating stderr to pickup the proper fd. Otherwise keep the
+      // "natual" order of duplicate() calls, so if stderr is redirected to
+      // stdout it picks up the proper fd as well.
+      //
+      if (out == STDERR_FILENO)
+      {
+        if (err != STDERR_FILENO)
+          duplicate (STDERR_FILENO, err, in_efd);
 
-      if (err != STDERR_FILENO)
-        duplicate (STDERR_FILENO, err, in_efd);
+        if (out != STDOUT_FILENO)
+          duplicate (STDOUT_FILENO, out, in_ofd);
+      }
+      else
+      {
+        if (out != STDOUT_FILENO)
+          duplicate (STDOUT_FILENO, out, in_ofd);
+
+        if (err != STDERR_FILENO)
+          duplicate (STDERR_FILENO, err, in_efd);
+      }
 
       // Change current working directory if requested.
       //
