@@ -5,8 +5,9 @@
 #include <butl/fdstream>
 
 #ifndef _WIN32
-#  include <fcntl.h>     // open(), O_*
-#  include <unistd.h>    // close(), read(), write(), lseek(), ssize_t
+#  include <fcntl.h>     // open(), O_*, fcntl()
+#  include <unistd.h>    // close(), read(), write(), lseek(), ssize_t,
+                         // STD*_FILENO
 #  include <sys/uio.h>   // writev(), iovec
 #  include <sys/stat.h>  // S_I*
 #  include <sys/types.h> // off_t
@@ -72,6 +73,16 @@ namespace butl
   open (int fd)
   {
     close ();
+
+#ifndef _WIN32
+    int flags (fcntl (fd, F_GETFL));
+
+    if (flags == -1)
+      throw_ios_failure (errno);
+
+    non_blocking_ = (flags & O_NONBLOCK) == O_NONBLOCK;
+#endif
+
     fd_ = fd;
     setg (buf_, buf_, buf_);
     setp (buf_, buf_ + sizeof (buf_) - 1); // Keep space for overflow's char.
@@ -92,7 +103,36 @@ namespace butl
   streamsize fdbuf::
   showmanyc ()
   {
-    return is_open () ? static_cast<streamsize> (egptr () - gptr ()) : -1;
+    if (!is_open ())
+      return -1;
+
+    streamsize n (egptr () - gptr ());
+
+    if (n > 0)
+      return n;
+
+#ifndef _WIN32
+    if (non_blocking_)
+    {
+      ssize_t n (read (fd_, buf_, sizeof (buf_)));
+
+      if (n == -1)
+      {
+        if (errno == EAGAIN || errno == EINTR)
+          return 0;
+
+        throw_ios_failure (errno);
+      }
+
+      if (n == 0) // EOF.
+        return -1;
+
+      setg (buf_, buf_, buf_ + n);
+      return n;
+    }
+#endif
+
+    return 0;
   }
 
   fdbuf::int_type fdbuf::
@@ -102,6 +142,14 @@ namespace butl
 
     if (is_open ())
     {
+      // The underflow() function interface doesn't support the non-blocking
+      // semantics as it must return either the next character or EOF. In the
+      // future we may implement the blocking behavior for a non-blocking file
+      // descriptor.
+      //
+      if (non_blocking_)
+        throw_ios_failure (ENOTSUP);
+
       if (gptr () < egptr () || load ())
         r = traits_type::to_int_type (*gptr ());
     }
@@ -112,6 +160,10 @@ namespace butl
   bool fdbuf::
   load ()
   {
+    // Doesn't handle blocking mode and so should not be called.
+    //
+    assert (!non_blocking_);
+
 #ifndef _WIN32
     ssize_t n (read (fd_, buf_, sizeof (buf_)));
 #else
@@ -132,6 +184,14 @@ namespace butl
 
     if (is_open () && c != traits_type::eof ())
     {
+      // The overflow() function interface doesn't support the non-blocking
+      // semantics since being unable to serialize the character is supposed
+      // to be an error. In the future we may implement the blocking behavior
+      // for a non-blocking file descriptor.
+      //
+      if (non_blocking_)
+        throw_ios_failure (ENOTSUP);
+
       // Store last character in the space we reserved in open(). Note
       // that pbump() doesn't do any checks.
       //
@@ -148,7 +208,18 @@ namespace butl
   int fdbuf::
   sync ()
   {
-    return is_open () && save () ? 0 : -1;
+    if (!is_open ())
+      return -1;
+
+    // The sync() function interface doesn't support the non-blocking
+    // semantics since it should either completely sync the data or fail. In
+    // the future we may implement the blocking behavior for a non-blocking
+    // file descriptor.
+    //
+    if (non_blocking_)
+      throw_ios_failure (ENOTSUP);
+
+    return save () ? 0 : -1;
   }
 
   bool fdbuf::
@@ -183,6 +254,16 @@ namespace butl
   streamsize fdbuf::
   xsputn (const char_type* s, streamsize sn)
   {
+    // The xsputn() function interface doesn't support the non-blocking
+    // semantics since the only excuse not to fully serialize the data is
+    // encountering EOF (the default behaviour is defined as a sequence of
+    // sputc() calls which stops when either sn characters are written or a
+    // call would have returned EOF). In the future we may implement the
+    // blocking behavior for a non-blocking file descriptor.
+    //
+    if (non_blocking_)
+      throw_ios_failure (ENOTSUP);
+
     // To avoid futher 'signed/unsigned comparison' compiler warnings.
     //
     size_t n (static_cast<size_t> (sn));
@@ -298,19 +379,31 @@ namespace butl
 #endif
   }
 
+  inline static bool
+  flag (fdstream_mode m, fdstream_mode flag)
+  {
+    return (m & flag) == flag;
+  }
+
+  inline static int
+  mode (int fd, fdstream_mode m)
+  {
+    if (fd != -1 &&
+        (flag (m, fdstream_mode::text) ||
+         flag (m, fdstream_mode::binary) ||
+         flag (m, fdstream_mode::blocking) ||
+         flag (m, fdstream_mode::non_blocking)))
+      fdmode (fd, m);
+
+    return fd;
+  }
+
   // fdstream_base
   //
   fdstream_base::
   fdstream_base (int fd, fdstream_mode m)
-      : fdstream_base (fd) // Delegate.
+      : fdstream_base (mode (fd, m)) // Delegate.
   {
-    // Note that here we rely on fdstream_base() (and fdbuf() which it calls)
-    // to not read from the file.
-    //
-    if (fd != -1 &&
-        ((m & fdstream_mode::text) == fdstream_mode::text ||
-         (m & fdstream_mode::binary) == fdstream_mode::binary))
-      fdmode (fd, m);
   }
 
   static fdopen_mode
@@ -631,27 +724,54 @@ namespace butl
   }
 
   fdstream_mode
-  fdmode (int, fdstream_mode)
+  fdmode (int fd, fdstream_mode m)
   {
-    return fdstream_mode::binary;
+    int flags (fcntl (fd, F_GETFL));
+
+    if (flags == -1)
+      throw_ios_failure (errno);
+
+    if (flag (m, fdstream_mode::blocking) ||
+        flag (m, fdstream_mode::non_blocking))
+    {
+      m &= fdstream_mode::blocking | fdstream_mode::non_blocking;
+
+      // Should be exactly one blocking mode flag specified.
+      //
+      if (m != fdstream_mode::blocking && m != fdstream_mode::non_blocking)
+        throw invalid_argument ("invalid blocking mode");
+
+      int new_flags (
+        m == fdstream_mode::non_blocking
+        ? flags | O_NONBLOCK
+        : flags & ~O_NONBLOCK);
+
+      if (fcntl (fd, F_SETFL, new_flags) == -1)
+        throw_ios_failure (errno);
+    }
+
+    return fdstream_mode::binary |
+      ((flags & O_NONBLOCK) == O_NONBLOCK
+       ? fdstream_mode::non_blocking
+       : fdstream_mode::blocking);
   }
 
   fdstream_mode
-  stdin_fdmode (fdstream_mode)
+  stdin_fdmode (fdstream_mode m)
   {
-    return fdstream_mode::binary;
+    return fdmode (STDIN_FILENO, m);
   }
 
   fdstream_mode
-  stdout_fdmode (fdstream_mode)
+  stdout_fdmode (fdstream_mode m)
   {
-    return fdstream_mode::binary;
+    return fdmode (STDOUT_FILENO, m);
   }
 
   fdstream_mode
-  stderr_fdmode (fdstream_mode)
+  stderr_fdmode (fdstream_mode m)
   {
-    return fdstream_mode::binary;
+    return fdmode (STDERR_FILENO, m);
   }
 
 #else
@@ -704,6 +824,11 @@ namespace butl
 
     // Should be exactly one translation flag specified.
     //
+    // It would have been natural not to change translation mode if none of
+    // text or binary flags are passed. Unfortunatelly there is no (easy) way
+    // to obtain the current mode for the file descriptor without setting a
+    // new one. This is why not specifying one of the modes is an error.
+    //
     if (m != fdstream_mode::binary && m != fdstream_mode::text)
       throw invalid_argument ("invalid translation mode");
 
@@ -711,9 +836,10 @@ namespace butl
     if (r == -1)
       throw_ios_failure (errno);
 
-    return (r & _O_BINARY) == _O_BINARY
-      ? fdstream_mode::binary
-      : fdstream_mode::text;
+    return fdstream_mode::blocking |
+      ((r & _O_BINARY) == _O_BINARY
+       ? fdstream_mode::binary
+       : fdstream_mode::text);
   }
 
   fdstream_mode

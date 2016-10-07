@@ -2,6 +2,11 @@
 // copyright : Copyright (c) 2014-2016 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
+#ifndef _WIN32
+#  include <chrono>
+#  include <thread> // this_thread::sleep_for()
+#endif
+
 #include <ios>
 #include <string>
 #include <vector>
@@ -13,6 +18,7 @@
 #include <exception>
 
 #include <butl/path>
+#include <butl/process>
 #include <butl/fdstream>
 #include <butl/timestamp>
 #include <butl/filesystem>
@@ -90,13 +96,55 @@ read_time (const path& p, const T& s, size_t n)
 int
 main (int argc, const char* argv[])
 {
-  if (!(argc == 1 || (argc == 2 && argv[1] == string ("-v"))))
+  bool v (false);
+  bool child (false);
+
+  int i (1);
+  for (; i != argc; ++i)
   {
-    cerr << "usage: " << argv[0] << " [-v]" << endl;
-    return 1;
+    string a (argv[i]);
+    if (a == "-c")
+      child = true;
+    else if (a == "-v")
+      v = true;
+    else
+    {
+      cerr << "usage: " << argv[0] << " [-v] [-c]" << endl;
+      return 1;
+    }
   }
 
-  bool v (argc == 2);
+  // To test non-blocking reading from ifdstream the test program launches
+  // itself as a child process with -c option and roundtrips a string through
+  // it. The child must write the string in chunks with some delays to make
+  // sure the parent reads in chunks as well.
+  //
+  if (child)
+  {
+    cin.exceptions (ios_base::badbit);
+    cout.exceptions (ios_base::failbit | ios_base::badbit | ios_base::eofbit);
+
+    string s;
+    getline (cin, s, '\0');
+
+    size_t n (10);
+    for (size_t i (0); i < s.size (); i += n)
+    {
+      cout.write (s.c_str () + i, min (n, s.size () - i));
+      cout.flush ();
+
+      // @@ MINGW GCC 4.9 doesn't implement this_thread. If ifdstream
+      //    non-blocking read will ever be implemented use Win32 Sleep()
+      //    instead.
+      //
+#ifndef _WIN32
+      this_thread::sleep_for (chrono::milliseconds (50));
+#endif
+    }
+
+    return 0;
+  }
+
   dir_path td (dir_path::temp_directory () / dir_path ("butl-fdstream"));
 
   // Recreate the temporary directory (that possibly exists from the previous
@@ -349,6 +397,43 @@ main (int argc, const char* argv[])
   }
   catch (const ios::failure&)
   {
+  }
+
+  // Test non-blocking reading.
+  //
+  try
+  {
+    const char* args[] = {argv[0], "-c", nullptr};
+    process pr (args, -1, -1);
+
+    ofdstream os (pr.out_fd);
+    ifdstream is (pr.in_ofd, fdstream_mode::non_blocking);
+
+    const string s (
+      "0123456789\nABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz");
+
+    os << s;
+    os.close ();
+
+    string r;
+    char buf[3];
+    while (!is.eof ())
+    {
+      streamsize n (is.readsome (buf, sizeof (buf)));
+      r.append (buf, n);
+    }
+
+    is.close ();
+
+    assert (r == s);
+  }
+  catch (const ios::failure&)
+  {
+    assert (false);
+  }
+  catch (const process_error&)
+  {
+    assert (false);
   }
 
 #else
