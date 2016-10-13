@@ -6,9 +6,10 @@
 #define BUTL_UTILITY
 
 #include <string>
-#include <cstddef> // size_t
-#include <utility> // forward()
-#include <cstring> // strcmp(), strlen()
+#include <cstddef>    // size_t
+#include <utility>    // forward()
+#include <cstring>    // strcmp(), strlen()
+//#include <functional> // hash
 
 namespace butl
 {
@@ -91,7 +92,7 @@ namespace butl
   //
   struct compare_c_string
   {
-    bool operator() (const char* x, const char* y) const
+    bool operator() (const char* x, const char* y) const noexcept
     {
       return std::strcmp (x, y) < 0;
     }
@@ -102,6 +103,12 @@ namespace butl
     template <typename P>
     bool operator() (const P& x, const P& y) const {return *x < *y;}
   };
+
+  //struct hash_pointer_target
+  //{
+  //  template <typename P>
+  //  std::size_t operator() (const P& x) const {return std::hash (*x);}
+  //};
 
   // Combine one or more hash values.
   //
