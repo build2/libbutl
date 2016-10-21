@@ -42,14 +42,22 @@ namespace butl
   static inline void
   throw_ios_failure (error_code e, typename enable_if<v, const char*>::type m)
   {
-    throw ios_base::failure (m, e);
+    // The idea here is to make an error code to be saved into failure
+    // exception and to make a string returned by what() to contain the error
+    // description plus an optional custom message if provided. Unfortunatelly
+    // there is no way to say that the custom message is absent. Passing an
+    // empty string results for GCC (as of version 5.3.1) with a description
+    // like this (note the ugly ": " prefix): ": No such file or directory".
+    //
+    throw ios_base::failure (m != nullptr ? m : "", e);
   }
 
   template <bool v>
   static inline void
-  throw_ios_failure (error_code, typename enable_if<!v, const char*>::type m)
+  throw_ios_failure (error_code ec,
+                     typename enable_if<!v, const char*>::type m)
   {
-    throw ios_base::failure (m);
+    throw ios_base::failure (m != nullptr ? m : ec.message ().c_str ());
   }
 
   inline void
@@ -57,7 +65,7 @@ namespace butl
   {
     error_code ec (ev, system_category ());
     throw_ios_failure<is_base_of<system_error, ios_base::failure>::value> (
-      ec, m != nullptr ? m : ec.message ().c_str ());
+      ec, m);
   }
 
   // fdbuf
