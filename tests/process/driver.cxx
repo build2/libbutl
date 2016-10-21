@@ -255,6 +255,26 @@ main (int argc, const char* argv[])
     return 0;
   }
 
+  // Test processes created as "already terminated".
+  //
+  {
+    process p;
+    assert (!p.wait ()); // "Terminated" abnormally.
+  }
+
+  {
+    // Note that if to create as just process(0) then the
+    // process(const char* args[], int=0, int=1, int=2) ctor is being called.
+    //
+    process p (optional<process::status_type> (0));
+    assert (p.wait ()); // "Exited" successfully.
+  }
+
+  {
+    process p (optional<process::status_type> (1));
+    assert (!p.wait ()); // "Exited" with an error.
+  }
+
   const char* s ("ABC\nXYZ");
 
   assert (exec (p));

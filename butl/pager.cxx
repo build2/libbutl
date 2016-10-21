@@ -28,6 +28,10 @@ namespace butl
          bool verbose,
          const string* pager,
          const vector<string>* pager_options)
+      // Create successfully exited process. Will "wait" for it if fallback to
+      // non-interactive execution path.
+      //
+      : p_ (optional<process::status_type> (0))
   {
     // If we are using the default pager, try to get the terminal width
     // so that we can center the output.

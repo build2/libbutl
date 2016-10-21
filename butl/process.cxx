@@ -385,25 +385,23 @@ namespace butl
   {
     if (handle != 0)
     {
-      int r (waitpid (handle, &status, 0));
+      status_type es;
+      int r (waitpid (handle, &es, 0));
       handle = 0; // We have tried.
 
       if (r == -1)
       {
+        // If ignore errors then just leave status nullopt, so it has the same
+        // semantics as for abnormally terminated process.
+        //
         if (!ie)
           throw process_error (errno, false);
-        else
-          // Fold into status, so this and subsequent wait() calls return
-          // false. There is no portable way to update the status bits
-          // representing a process exit code specifically. So we set all bits
-          // to 1 and recon on getting non-zero exit status wherever the exact
-          // bits are.
-          //
-          status = ~0;
       }
+      else if (WIFEXITED (es))
+        status = WEXITSTATUS (es);
     }
 
-    return WIFEXITED (status) && WEXITSTATUS (status) == 0;
+    return status && *status == 0;
   }
 
   bool process::
@@ -411,7 +409,8 @@ namespace butl
   {
     if (handle != 0)
     {
-      int r (waitpid (handle, &status, WNOHANG));
+      status_type es;
+      int r (waitpid (handle, &es, WNOHANG));
 
       if (r == 0) // Not exited yet.
         return false;
@@ -420,9 +419,12 @@ namespace butl
 
       if (r == -1)
         throw process_error (errno, false);
+
+      if (WIFEXITED (es))
+        status = WEXITSTATUS (es);
     }
 
-    s =  WIFEXITED (status) && WEXITSTATUS (status) == 0;
+    s = status && *status == 0;
     return true;
   }
 
@@ -890,14 +892,15 @@ namespace butl
         status = s;
       else
       {
+        // If ignore errors then just leave status nullopt, so it has the same
+        // semantics as for abnormally terminated process.
+        //
         if (!ie)
           throw process_error (error_msg (e));
-        else
-          status = 1; // Fold into status.
       }
     }
 
-    return status == 0;
+    return status && *status == 0;
   }
 
   bool process::
@@ -923,7 +926,7 @@ namespace butl
       status = s;
     }
 
-    s = status == 0;
+    s = status && *status == 0;
     return true;
   }
 

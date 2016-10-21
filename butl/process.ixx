@@ -100,9 +100,9 @@ namespace butl
   }
 
   inline process::
-  process ()
+  process (optional<status_type> s)
       : handle (0),
-        status (0), // This is a bit of an assumption.
+        status (s),
         out_fd (-1),
         in_ofd (-1),
         in_efd (-1)
@@ -155,7 +155,7 @@ namespace butl
         wait ();
 
       handle = p.handle;
-      status = p.status;
+      status = std::move (p.status);
       out_fd = p.out_fd;
       in_ofd = p.in_ofd;
       in_efd = p.in_efd;

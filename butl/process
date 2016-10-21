@@ -16,6 +16,7 @@
 
 #include <butl/path>
 #include <butl/export>
+#include <butl/optional>
 
 namespace butl
 {
@@ -106,6 +107,16 @@ namespace butl
   class LIBBUTL_EXPORT process
   {
   public:
+#ifndef _WIN32
+    using handle_type = pid_t;
+    using id_type = pid_t;
+    using status_type = int;
+#else
+    using handle_type = void*;         // Win32 HANDLE
+    using id_type = std::uint32_t;     // Win32 DWORD
+    using status_type = std::uint32_t; // Win32 DWORD
+#endif
+
     // Start another process using the specified command line. The default
     // values to the in, out and err arguments indicate that the child process
     // should inherit the parent process stdin, stdout, and stderr,
@@ -202,10 +213,13 @@ namespace butl
     process (const process&) = delete;
     process& operator= (const process&) = delete;
 
-    // Create an empty or "already terminated" process. That is, handle is 0
-    // and exit status is 0.
+    // Create an empty or "already terminated" process. By default the
+    // termination status is abnormal but you can change that.
     //
-    process ();
+    // @@ Need to audit all calls (__attribute__((deprecated))).
+    //
+    explicit
+    process (optional<status_type> status = nullopt);
 
     // Resolve process' paths based on the initial path in args0. If recall
     // differs from initial, adjust args0 to point to the recall path. If
@@ -274,22 +288,12 @@ namespace butl
     print (std::ostream&, const char* const args[], size_t n = 0);
 
   public:
-#ifndef _WIN32
-    using handle_type = pid_t;
-    using id_type = pid_t;
-    using status_type = int;
-#else
-    using handle_type = void*;         // Win32 HANDLE
-    using id_type = std::uint32_t;     // Win32 DWORD
-    using status_type = std::uint32_t; // Win32 DWORD
-#endif
-
     static id_type
     current_id ();
 
   public:
     handle_type handle;
-    status_type status;
+    optional<status_type> status; // Absence means terminated abnormally.
 
     int out_fd; // Write to this fd to send to the new process' stdin.
     int in_ofd; // Read from this fd to receive from the new process' stdout.
