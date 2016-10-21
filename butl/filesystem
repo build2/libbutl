@@ -124,7 +124,7 @@ namespace butl
     cancel () {path_ = P ();}
 
     const P&
-    path () {return path_;}
+    path () const {return path_;}
 
     // Movable-only type. Move-assignment cancels the lhs object.
     //
