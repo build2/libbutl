@@ -66,6 +66,27 @@ namespace butl
   }
 #endif
 
+#ifndef _WIN32
+  bool
+  entry_exists (const char* p, bool fl)
+  {
+    struct stat s;
+    if ((fl ? stat (p, &s) : lstat (p, &s)) == 0)
+#else
+  bool
+  entry_exists (const char* p, bool)
+  {
+    struct _stat s;
+    if (_stat (p, &s) == 0)
+#endif
+      return true;
+
+    if (errno == ENOENT || errno == ENOTDIR)
+      return false;
+
+    throw system_error (errno, system_category ());
+  }
+
   bool
   dir_exists (const char* p)
   {

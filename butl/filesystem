@@ -51,6 +51,16 @@ namespace butl
   inline bool
   dir_exists (const path& p) {return dir_exists (p.string ().c_str ());}
 
+  // Return true if the path is to an existing file system entry. Note that by
+  // default this function doesn't follow symlinks.
+  //
+  LIBBUTL_EXPORT bool
+  entry_exists (const char*, bool follow_symlinks = false);
+
+  inline bool
+  entry_exists (const path& p, bool fs = false) {
+    return entry_exists (p.string ().c_str (), fs);}
+
   // Return true if the directory is empty. Note that the path must exist
   // and be a directory.
   //
