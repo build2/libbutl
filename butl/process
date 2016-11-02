@@ -17,6 +17,7 @@
 #include <butl/path>
 #include <butl/export>
 #include <butl/optional>
+#include <butl/fdstream> // auto_fd
 
 namespace butl
 {
@@ -134,7 +135,7 @@ namespace butl
     // the child process. When reading in the text mode the sequence of 0xD,
     // 0xA characters is translated into the single OxA character and 0x1A is
     // interpreted as EOF. When writing in the text mode the OxA character is
-    // translated into the 0xD, 0xA sequence. Use the _setmode() function to
+    // translated into the 0xD, 0xA sequence. Use the fdmode() function to
     // change the mode, if required.
     //
     // Instead of passing -1, -2 or the default value, you can also pass your
@@ -216,8 +217,6 @@ namespace butl
     // Create an empty or "already terminated" process. By default the
     // termination status is abnormal but you can change that.
     //
-    // @@ Need to audit all calls (__attribute__((deprecated))).
-    //
     explicit
     process (optional<status_type> status = nullopt);
 
@@ -295,9 +294,12 @@ namespace butl
     handle_type handle;
     optional<status_type> status; // Absence means terminated abnormally.
 
-    int out_fd; // Write to this fd to send to the new process' stdin.
-    int in_ofd; // Read from this fd to receive from the new process' stdout.
-    int in_efd; // Read from this fd to receive from the new process' stderr.
+    // Use the following file descriptors to communicate with the new process's
+    // standard streams.
+    //
+    auto_fd out_fd; // Write to it to send to stdin.
+    auto_fd in_ofd; // Read from it to receive from stdout.
+    auto_fd in_efd; // Read from it to receive from stderr.
   };
 }
 

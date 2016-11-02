@@ -14,6 +14,7 @@
 #include <cassert>
 #include <sstream>
 #include <fstream>
+#include <utility>   // move()
 #include <iostream>
 #include <exception>
 
@@ -134,8 +135,8 @@ main (int argc, const char* argv[])
       cout.flush ();
 
       // @@ MINGW GCC 4.9 doesn't implement this_thread. If ifdstream
-      //    non-blocking read will ever be implemented use Win32 Sleep()
-      //    instead.
+      //    non-blocking read will ever be implemented on Windows use Win32
+      //    Sleep() instead.
       //
 #ifndef _WIN32
       this_thread::sleep_for (chrono::milliseconds (50));
@@ -250,7 +251,7 @@ main (int argc, const char* argv[])
   to_file (f, "", fdopen_mode::truncate);
 
   {
-    ifdstream ifs (-1, ifdstream::badbit);
+    ifdstream ifs (ifdstream::badbit);
     ifs.open (f);
 
     string s;
@@ -258,7 +259,7 @@ main (int argc, const char* argv[])
   }
 
   {
-    ifdstream ifs (-1, fdstream_mode::text, ifdstream::badbit);
+    ifdstream ifs (nullfd, fdstream_mode::text, ifdstream::badbit);
     ifs.open (f);
 
     string s;
@@ -268,7 +269,7 @@ main (int argc, const char* argv[])
   // Check creating unopened ofdstream with a non-default exception mask.
   //
   {
-    ofdstream ofs (-1, ifdstream::badbit);
+    ofdstream ofs (ifdstream::badbit);
     ofs.open (f);
 
     istringstream is;
@@ -277,7 +278,7 @@ main (int argc, const char* argv[])
   }
 
   {
-    ofdstream ofs (-1, fdstream_mode::binary, ifdstream::badbit);
+    ofdstream ofs (nullfd, fdstream_mode::binary, ifdstream::badbit);
     ofs.open (f);
 
     istringstream is;
@@ -406,8 +407,8 @@ main (int argc, const char* argv[])
     const char* args[] = {argv[0], "-c", nullptr};
     process pr (args, -1, -1);
 
-    ofdstream os (pr.out_fd);
-    ifdstream is (pr.in_ofd, fdstream_mode::non_blocking);
+    ofdstream os (move (pr.out_fd));
+    ifdstream is (move (pr.in_ofd), fdstream_mode::non_blocking);
 
     const string s (
       "0123456789\nABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz");

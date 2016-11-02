@@ -65,15 +65,15 @@ exec (const path& p,
         bool s;
         r = !pr.try_wait (s); // Couldn't exit as waiting for the input.
 
-        auto bin_mode = [bin](int fd) -> int
-          {
-            if (bin)
-              fdmode (fd, fdstream_mode::binary);
+        auto bin_mode = [bin](auto_fd fd) -> auto_fd
+        {
+          if (bin)
+            fdmode (fd.get (), fdstream_mode::binary);
 
-            return fd;
-          };
+          return fd;
+        };
 
-        ofdstream os (bin_mode (pr.out_fd));
+        ofdstream os (bin_mode (move (pr.out_fd)));
         copy (in.begin (), in.end (), ostream_iterator<char> (os));
         os.close ();
 
@@ -89,12 +89,11 @@ exec (const path& p,
             // overall pipeline looks like 'os -> pr -> pr2 -> pr3 -> is'.
             //
             process pr3 (cwd, args.data (), -1, -1, -2);
-            process pr2 (cwd, args.data (), pr, bin_mode (pr3.out_fd), -2);
 
-            bool cr (fdclose (pr3.out_fd));
-            assert (cr);
+            process pr2 (
+              cwd, args.data (), pr, bin_mode (move (pr3.out_fd)).get (), -2);
 
-            ifdstream is (bin_mode (pr3.in_ofd));
+            ifdstream is (bin_mode (move (pr3.in_ofd)));
 
             o = vector<char> (
               (istreambuf_iterator<char> (is)), istreambuf_iterator<char> ());
@@ -104,7 +103,7 @@ exec (const path& p,
           }
           else
           {
-            ifdstream is (bin_mode (pr.in_ofd));
+            ifdstream is (bin_mode (move (pr.in_ofd)));
 
             o = vector<char> (
               (istreambuf_iterator<char> (is)), istreambuf_iterator<char> ());
@@ -125,7 +124,7 @@ exec (const path& p,
 
         if (err && !out)
         {
-          ifdstream is (bin_mode (pr.in_efd));
+          ifdstream is (bin_mode (move (pr.in_efd)));
 
           vector<char> e
             ((istreambuf_iterator<char> (is)), istreambuf_iterator<char> ());

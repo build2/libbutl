@@ -8,6 +8,7 @@
 #include <string>
 #include <istream>
 #include <ostream>
+#include <utility> // move()
 #include <cstdint> // uint16_t
 
 #include <butl/export>
@@ -17,6 +18,45 @@
 
 namespace butl
 {
+  // RAII type for file descriptors. Note that failure to close the descriptor
+  // is silently ignored by both the destructor and reset() (thought we could
+  // probably provide the close() function that throws).
+  //
+  // The descriptor can be negative. Such a descriptor is treated as unopened
+  // and is not closed.
+  //
+  struct nullfd_t {constexpr explicit nullfd_t (int) {}};
+  constexpr const nullfd_t nullfd (-1);
+
+  class auto_fd
+  {
+  public:
+    auto_fd (nullfd_t = nullfd): fd_ (-1) {}
+
+    explicit
+    auto_fd (int fd) noexcept: fd_ (fd) {}
+
+    auto_fd (auto_fd&& fd) noexcept: fd_ (fd.release ()) {}
+    auto_fd& operator= (auto_fd&&) noexcept;
+
+    auto_fd (const auto_fd&) = delete;
+    auto_fd& operator= (const auto_fd&) = delete;
+
+    ~auto_fd () noexcept {reset ();}
+
+    int
+    get () const noexcept {return fd_;}
+
+    int
+    release () noexcept;
+
+    void
+    reset (int fd = -1) noexcept;
+
+  private:
+    int fd_;
+  };
+
   // An [io]fstream that can be initialized with a file descriptor in addition
   // to a file name and that also by default enables exceptions on badbit and
   // failbit. So instead of a dance like this:
@@ -41,31 +81,26 @@ namespace butl
   // - after catching an exception caused by badbit the stream is no longer
   //   used
   // - not movable, though can be easily supported
-  // - passing to constructor -1 file descriptor is valid and results in the
-  //   creation of an unopened object
+  // - passing to constructor auto_fd with a negative file descriptor is valid
+  //   and results in the creation of an unopened object
   //
   class LIBBUTL_EXPORT fdbuf: public std::basic_streambuf<char>
   {
   public:
-    virtual
-    ~fdbuf ();
     fdbuf () = default;
-    fdbuf (int fd) {if (fd != -1) open (fd);}
-
-    fdbuf (const fdbuf&) = delete;
-    fdbuf& operator= (const fdbuf&) = delete;
+    fdbuf (auto_fd&&);
 
     void
     close ();
 
     void
-    open (int fd);
+    open (auto_fd&&);
 
     bool
-    is_open () const {return fd_ != -1;}
+    is_open () const {return fd_.get () >= 0;}
 
     int
-    fd () const {return fd_;}
+    fd () const {return fd_.get ();}
 
   public:
     using int_type = std::basic_streambuf<char>::int_type;
@@ -101,7 +136,7 @@ namespace butl
     save ();
 
   private:
-    int fd_ = -1;
+    auto_fd fd_;
     char buf_[8192];
     bool non_blocking_ = false;
   };
@@ -164,8 +199,8 @@ namespace butl
   {
   protected:
     fdstream_base () = default;
-    fdstream_base (int fd): buf_ (fd) {}
-    fdstream_base (int, fdstream_mode);
+    fdstream_base (auto_fd&& fd): buf_ (std::move (fd)) {}
+    fdstream_base (auto_fd&&, fdstream_mode);
 
   public:
     int
@@ -191,18 +226,13 @@ namespace butl
   // iofdstream constructors and open() functions that take file path as a
   // const std::string& or const char* may throw the invalid_path exception.
   //
-  // Passing -1 as a file descriptor is valid and results in the creation of
-  // an unopened object.
+  // Passing auto_fd with a negative file descriptor is valid and results in
+  // the creation of an unopened object.
   //
   // Also note that open() and close() functions can be successfully called
   // for an opened and unopened objects respectively. That is in contrast with
   // iofstream that sets failbit in such cases.
   //
-  // @@ Need to make sure performance is on par with fstream on both
-  //    Linux and Windows.
-  //
-  // @@ Do we need to increase default buffer size? Make it customizable?
-  //    Wonder what it is in libstdc++ and MSVC?
 
   // Note that ifdstream destructor will close an open file descriptor but
   // will ignore any errors. To detect such errors, call close() explicitly.
@@ -219,8 +249,8 @@ namespace butl
   //   {
   //     // In case of exception, skip and close input after output.
   //     //
-  //     ifdstream is (pr.in_ofd, fdstream_mode::skip);
-  //     ofdstream os (pr.out_fd);
+  //     ifdstream is (move (pr.in_ofd), fdstream_mode::skip);
+  //     ofdstream os (move (pr.out_fd));
   //
   //     // Write.
   //
@@ -268,17 +298,14 @@ namespace butl
   class LIBBUTL_EXPORT ifdstream: public fdstream_base, public std::istream
   {
   public:
-    // Create an unopened object with iostate = badbit | failbit (we cannot
-    // have the iostate as an argument since it clashes with int fd) To create
-    // an unopened object with non-default exception mask one can do:
+    // Create an unopened object.
     //
-    // ifdstream (-1, ...);
-    //
-    ifdstream ();
+    explicit
+    ifdstream (iostate e = badbit | failbit);
 
     explicit
-    ifdstream (int fd, iostate e = badbit | failbit);
-    ifdstream (int fd, fdstream_mode m, iostate e = badbit | failbit);
+    ifdstream (auto_fd&&, iostate e = badbit | failbit);
+    ifdstream (auto_fd&&, fdstream_mode m, iostate e = badbit | failbit);
 
     explicit
     ifdstream (const char*,
@@ -328,7 +355,7 @@ namespace butl
     open (const path&, fdopen_mode);
 
     void
-    open (int fd) {buf_.open (fd); clear ();}
+    open (auto_fd&& fd) {buf_.open (std::move (fd)); clear ();}
 
     void close ();
     bool is_open () const {return buf_.is_open ();}
@@ -348,17 +375,14 @@ namespace butl
   class LIBBUTL_EXPORT ofdstream: public fdstream_base, public std::ostream
   {
   public:
-    // Create an unopened object with iostate = badbit | failbit (we cannot
-    // have the iostate as an argument since it clashes with int fd). To create
-    // an unopened object with non-default exception mask one can do:
+    // Create an unopened object.
     //
-    // ofdstream (-1, ...);
-    //
-    ofdstream ();
+    explicit
+    ofdstream (iostate e = badbit | failbit);
 
     explicit
-    ofdstream (int fd, iostate e = badbit | failbit);
-    ofdstream (int fd, fdstream_mode m, iostate e = badbit | failbit);
+    ofdstream (auto_fd&&, iostate e = badbit | failbit);
+    ofdstream (auto_fd&&, fdstream_mode m, iostate e = badbit | failbit);
 
     explicit
     ofdstream (const char*,
@@ -408,7 +432,7 @@ namespace butl
     open (const path&, fdopen_mode);
 
     void
-    open (int fd) {buf_.open (fd); clear ();}
+    open (auto_fd&& fd) {buf_.open (std::move (fd)); clear ();}
 
     void close () {if (is_open ()) flush (); buf_.close ();}
     bool is_open () const {return buf_.is_open ();}
@@ -432,8 +456,8 @@ namespace butl
   LIBBUTL_EXPORT ifdstream&
   getline (ifdstream&, std::string&, char delim = '\n');
 
-  // Open a file returning the file descriptor on success and throwing
-  // ios:failure otherwise.
+  // Open a file returning an auto_fd that holds its file descriptor on
+  // success and throwing ios::failure otherwise.
   //
   // The mode argument should have at least one of the in or out flags set.
   // The append and truncate flags are meaningless in the absense of the out
@@ -448,21 +472,21 @@ namespace butl
   // process' umask, so effective permissions are permissions & ~umask. On
   // Windows permissions other than ru and wu are unlikelly to have effect.
   //
-  LIBBUTL_EXPORT int
+  LIBBUTL_EXPORT auto_fd
   fdopen (const char*,
           fdopen_mode,
           permissions = permissions::ru | permissions::wu |
                         permissions::rg | permissions::wg |
                         permissions::ro | permissions::wo);
 
-  LIBBUTL_EXPORT int
+  LIBBUTL_EXPORT auto_fd
   fdopen (const std::string&,
           fdopen_mode,
           permissions = permissions::ru | permissions::wu |
                         permissions::rg | permissions::wg |
                         permissions::ro | permissions::wo);
 
-  LIBBUTL_EXPORT int
+  LIBBUTL_EXPORT auto_fd
   fdopen (const path&,
           fdopen_mode,
           permissions = permissions::ru | permissions::wu |
@@ -509,6 +533,11 @@ namespace butl
   // device with the file automatically removed once the descriptor is
   // closed. One difference, however, would be if you were to both write to
   // and read from the descriptor.
+  //
+  // @@ You may have noticed that this interface doesn't match fdopen() (it
+  //    does not throw and return int instead of auto_fd). The reason for this
+  //    is process and its need to translate everything to process_error).
+  //    Once we solve that we can clean this up as well.
   //
 #ifndef _WIN32
   LIBBUTL_EXPORT int

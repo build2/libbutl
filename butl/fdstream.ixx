@@ -6,26 +6,51 @@
 
 namespace butl
 {
+  // auto_fd
+  //
+  inline auto_fd& auto_fd::
+  operator= (auto_fd&& fd) noexcept
+  {
+    reset (fd.release ());
+    return *this;
+  }
+
+  inline int auto_fd::
+  release () noexcept
+  {
+    int r (fd_);
+    fd_ = -1;
+    return r;
+  }
+
+  inline void auto_fd::
+  reset (int fd) noexcept
+  {
+    if (fd_ >= 0)
+      fdclose (fd_); // Don't check for an error as not much we can do here.
+
+    fd_ = fd;
+  }
+
   // ifdstream
   //
   inline ifdstream::
-  ifdstream ()
-      : std::istream (&buf_)
-  {
-    exceptions (badbit | failbit);
-  }
-
-  inline ifdstream::
-  ifdstream (int fd, iostate e)
-      : fdstream_base (fd), std::istream (&buf_)
+  ifdstream (auto_fd&& fd, iostate e)
+      : fdstream_base (std::move (fd)), std::istream (&buf_)
   {
     assert (e & badbit);
     exceptions (e);
   }
 
   inline ifdstream::
-  ifdstream (int fd, fdstream_mode m, iostate e)
-      : fdstream_base (fd, m),
+  ifdstream (iostate e)
+      : ifdstream (auto_fd (), e) // Delegate.
+  {
+  }
+
+  inline ifdstream::
+  ifdstream (auto_fd&& fd, fdstream_mode m, iostate e)
+      : fdstream_base (std::move (fd), m),
         std::istream (&buf_),
         skip_ ((m & fdstream_mode::skip) == fdstream_mode::skip)
   {
@@ -84,23 +109,22 @@ namespace butl
   // ofdstream
   //
   inline ofdstream::
-  ofdstream ()
-      : std::ostream (&buf_)
-  {
-    exceptions (badbit | failbit);
-  }
-
-  inline ofdstream::
-  ofdstream (int fd, iostate e)
-      : fdstream_base (fd), std::ostream (&buf_)
+  ofdstream (auto_fd&& fd, iostate e)
+      : fdstream_base (std::move (fd)), std::ostream (&buf_)
   {
     assert (e & badbit);
     exceptions (e);
   }
 
   inline ofdstream::
-  ofdstream (int fd, fdstream_mode m, iostate e)
-      : fdstream_base (fd, m), std::ostream (&buf_)
+  ofdstream (iostate e)
+      : ofdstream (auto_fd (), e) // Delegate.
+  {
+  }
+
+  inline ofdstream::
+  ofdstream (auto_fd&& fd, fdstream_mode m, iostate e)
+      : fdstream_base (std::move (fd), m), std::ostream (&buf_)
   {
     assert (e & badbit);
     exceptions (e);
@@ -156,13 +180,13 @@ namespace butl
 
   // fdopen()
   //
-  inline int
+  inline auto_fd
   fdopen (const std::string& f, fdopen_mode m, permissions p)
   {
     return fdopen (f.c_str (), m, p);
   }
 
-  inline int
+  inline auto_fd
   fdopen (const path& f, fdopen_mode m, permissions p)
   {
     return fdopen (f.string (), m, p);

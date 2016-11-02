@@ -37,10 +37,11 @@
 #include <cassert>
 #include <cstddef> // size_t
 #include <cstring> // strlen(), strchr()
+#include <utility> // move()
 #include <ostream>
 
 #include <butl/utility>  // casecmp()
-#include <butl/fdstream> // fdnull(), fdclose()
+#include <butl/fdstream> // fdnull()
 
 using namespace std;
 
@@ -50,49 +51,6 @@ using namespace butl::win32;
 
 namespace butl
 {
-  class auto_fd
-  {
-  public:
-    explicit
-    auto_fd (int fd = -1) noexcept: fd_ (fd) {}
-
-    auto_fd (const auto_fd&) = delete;
-    auto_fd& operator= (const auto_fd&) = delete;
-
-    ~auto_fd () noexcept {reset ();}
-
-    int
-    get () const noexcept {return fd_;}
-
-    int
-    release () noexcept
-    {
-      int r (fd_);
-      fd_ = -1;
-      return r;
-    }
-
-    void
-    reset (int fd = -1) noexcept
-    {
-      if (fd_ != -1)
-      {
-        bool r (fdclose (fd_));
-
-        // The valid file descriptor that has no IO operations being
-        // performed on it should close successfully, unless something is
-        // severely damaged.
-        //
-        assert (r);
-      }
-
-      fd_ = fd;
-    }
-
-  private:
-    int fd_;
-  };
-
   static process_path
   path_search (const char*, const dir_path&);
 
@@ -156,6 +114,16 @@ namespace butl
       }
 
     } while (*p != nullptr);
+  }
+
+  process::
+  process (const char* cwd,
+           const process_path& pp, const char* args[],
+           process& in, int out, int err)
+      : process (cwd, pp, args, in.in_ofd.get (), out, err)
+  {
+    assert (in.in_ofd.get () != -1); // Should be a pipe.
+    in.in_ofd.reset (); // Close it on our side.
   }
 
 #ifndef _WIN32
@@ -365,19 +333,9 @@ namespace butl
 
     assert (handle != 0); // Shouldn't get here unless in the parent process.
 
-    this->out_fd = out_fd[1].release ();
-    this->in_ofd = in_ofd[0].release ();
-    this->in_efd = in_efd[0].release ();
-  }
-
-  process::
-  process (const char* cwd,
-           const process_path& pp, const char* args[],
-           process& in, int out, int err)
-      : process (cwd, pp, args, in.in_ofd, out, err)
-  {
-    assert (in.in_ofd != -1); // Should be a pipe.
-    close (in.in_ofd); // Close it on our side.
+    this->out_fd = move (out_fd[1]);
+    this->in_ofd = move (in_ofd[0]);
+    this->in_efd = move (in_efd[0]);
   }
 
   bool process::
@@ -849,29 +807,15 @@ namespace butl
       return fd;
     };
 
-    auto_fd out_fd (in == -1 ? open_osfhandle (out_h[1]) : -1);
-    auto_fd in_ofd (out == -1 ? open_osfhandle (in_oh[0]) : -1);
-    auto_fd in_efd (err == -1 ? open_osfhandle (in_eh[0]) : -1);
-
-    this->out_fd = out_fd.release ();
-    this->in_ofd = in_ofd.release ();
-    this->in_efd = in_efd.release ();
+    this->out_fd.reset (in  == -1 ? open_osfhandle (out_h[1]) : -1);
+    this->in_ofd.reset (out == -1 ? open_osfhandle (in_oh[0]) : -1);
+    this->in_efd.reset (err == -1 ? open_osfhandle (in_eh[0]) : -1);
 
     this->handle = process.release ();
 
     // 0 has a special meaning denoting a terminated process handle.
     //
     assert (this->handle != 0 && this->handle != INVALID_HANDLE_VALUE);
-  }
-
-  process::
-  process (const char* cwd,
-           const process_path& pp, const char* args[],
-           process& in, int out, int err)
-      : process (cwd, pp, args, in.in_ofd, out, err)
-  {
-    assert (in.in_ofd != -1); // Should be a pipe.
-    _close (in.in_ofd); // Close it on our side.
   }
 
   bool process::

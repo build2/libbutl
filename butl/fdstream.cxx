@@ -71,19 +71,19 @@ namespace butl
   // fdbuf
   //
   fdbuf::
-  ~fdbuf ()
+  fdbuf (auto_fd&& fd)
   {
-    if (is_open ())
-      fdclose (fd_); // Don't check for an error as not much we can do here.
+    if (fd.get () >= 0)
+      open (move (fd));
   }
 
   void fdbuf::
-  open (int fd)
+  open (auto_fd&& fd)
   {
     close ();
 
 #ifndef _WIN32
-    int flags (fcntl (fd, F_GETFL));
+    int flags (fcntl (fd.get (), F_GETFL));
 
     if (flags == -1)
       throw_ios_failure (errno);
@@ -91,21 +91,22 @@ namespace butl
     non_blocking_ = (flags & O_NONBLOCK) == O_NONBLOCK;
 #endif
 
-    fd_ = fd;
     setg (buf_, buf_, buf_);
     setp (buf_, buf_ + sizeof (buf_) - 1); // Keep space for overflow's char.
+
+    fd_ = move (fd);
   }
 
   void fdbuf::
   close ()
   {
-    if (is_open ())
-    {
-      if (!fdclose (fd_))
-        throw_ios_failure (errno);
-
-      fd_ = -1;
-    }
+    // Before we invented auto_fd into fdstreams we keept fdbuf opened on
+    // faulty close attempt. Now fdbuf is always closed by close() function.
+    // This semantics change seems to be the right one as there is no reason to
+    // expect fdclose() to succeed after it has already failed once.
+    //
+    if (is_open () && !fdclose (fd_.release ()))
+      throw_ios_failure (errno);
   }
 
   streamsize fdbuf::
@@ -122,7 +123,7 @@ namespace butl
 #ifndef _WIN32
     if (non_blocking_)
     {
-      ssize_t n (read (fd_, buf_, sizeof (buf_)));
+      ssize_t n (read (fd_.get (), buf_, sizeof (buf_)));
 
       if (n == -1)
       {
@@ -173,9 +174,9 @@ namespace butl
     assert (!non_blocking_);
 
 #ifndef _WIN32
-    ssize_t n (read (fd_, buf_, sizeof (buf_)));
+    ssize_t n (read (fd_.get (), buf_, sizeof (buf_)));
 #else
-    int n (_read (fd_, buf_, sizeof (buf_)));
+    int n (_read (fd_.get (), buf_, sizeof (buf_)));
 #endif
 
     if (n == -1)
@@ -242,9 +243,9 @@ namespace butl
       // expected). This is in contrast with VC's _write() and POSIX's write().
       //
 #ifndef _WIN32
-      ssize_t m (write (fd_, buf_, n));
+      ssize_t m (write (fd_.get (), buf_, n));
 #else
-      int m (_write (fd_, buf_, n));
+      int m (_write (fd_.get (), buf_, n));
 #endif
 
       if (m == -1)
@@ -296,10 +297,10 @@ namespace butl
       // Write both buffered and new data with a single system call.
       //
       iovec iov[2] = {{pbase (), bn}, {const_cast<char*> (s), n}};
-      r = writev (fd_, iov, 2);
+      r = writev (fd_.get (), iov, 2);
     }
     else
-      r = write (fd_, s, n);
+      r = write (fd_.get (), s, n);
 
     if (r == -1)
       throw_ios_failure (errno);
@@ -342,7 +343,7 @@ namespace butl
     // Flush the buffer.
     //
     size_t wn (bn + an);
-    int r (wn > 0 ? _write (fd_, buf_, wn) : 0);
+    int r (wn > 0 ? _write (fd_.get (), buf_, wn) : 0);
 
     if (r == -1)
       throw_ios_failure (errno);
@@ -378,7 +379,7 @@ namespace butl
 
     // The data tail doesn't fit the buffer so write it to the file.
     //
-    r = _write (fd_, s, n);
+    r = _write (fd_.get (), s, n);
 
     if (r == -1)
       throw_ios_failure (errno);
@@ -393,15 +394,15 @@ namespace butl
     return (m & flag) == flag;
   }
 
-  inline static int
-  mode (int fd, fdstream_mode m)
+  inline static auto_fd
+  mode (auto_fd fd, fdstream_mode m)
   {
-    if (fd != -1 &&
+    if (fd.get () >= 0 &&
         (flag (m, fdstream_mode::text) ||
          flag (m, fdstream_mode::binary) ||
          flag (m, fdstream_mode::blocking) ||
          flag (m, fdstream_mode::non_blocking)))
-      fdmode (fd, m);
+      fdmode (fd.get (), m);
 
     return fd;
   }
@@ -409,8 +410,8 @@ namespace butl
   // fdstream_base
   //
   fdstream_base::
-  fdstream_base (int fd, fdstream_mode m)
-      : fdstream_base (mode (fd, m)) // Delegate.
+  fdstream_base (auto_fd&& fd, fdstream_mode m)
+      : fdstream_base (mode (move (fd), m)) // Delegate.
   {
   }
 
@@ -582,7 +583,7 @@ namespace butl
 
   // Utility functions
   //
-  int
+  auto_fd
   fdopen (const char* f, fdopen_mode m, permissions p)
   {
     mode_t pf (S_IREAD | S_IWRITE | S_IEXEC);
@@ -714,7 +715,7 @@ namespace butl
       }
     }
 
-    return fd;
+    return auto_fd (fd);
   }
 
 #ifndef _WIN32
@@ -793,7 +794,7 @@ namespace butl
   int
   fdnull (bool temp) noexcept
   {
-    // No need to translate /r/n before sending it to void.
+    // No need to translate \r\n before sending it to void.
     //
     if (!temp)
       return _sopen ("nul", _O_RDWR | _O_BINARY, _SH_DENYNO);

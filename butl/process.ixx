@@ -139,9 +139,9 @@ namespace butl
   process (process&& p)
       : handle (p.handle),
         status (p.status),
-        out_fd (p.out_fd),
-        in_ofd (p.in_ofd),
-        in_efd (p.in_efd)
+        out_fd (std::move (p.out_fd)),
+        in_ofd (std::move (p.in_ofd)),
+        in_efd (std::move (p.in_efd))
   {
     p.handle = 0;
   }
@@ -156,9 +156,9 @@ namespace butl
 
       handle = p.handle;
       status = std::move (p.status);
-      out_fd = p.out_fd;
-      in_ofd = p.in_ofd;
-      in_efd = p.in_efd;
+      out_fd = std::move (p.out_fd);
+      in_ofd = std::move (p.in_ofd);
+      in_efd = std::move (p.in_efd);
 
       p.handle = 0;
     }

@@ -15,6 +15,7 @@
 #endif
 
 #include <cstring>      // strchr()
+#include <utility>      // move()
 #include <system_error>
 
 #include <butl/fdstream> // fdclose()
@@ -134,13 +135,13 @@ namespace butl
       bool r;
       if (p_.try_wait (r))
       {
-        fdclose (p_.out_fd);
+        p_.out_fd.reset ();
 
         if (pager != nullptr)
           throw system_error (ECHILD, system_category ());
       }
       else
-        os_.open (p_.out_fd);
+        os_.open (move (p_.out_fd));
     }
     catch (const process_error& e)
     {
