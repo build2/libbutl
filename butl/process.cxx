@@ -717,7 +717,7 @@ namespace butl
       // there could be actual quotes in the value, we need to escape them.
       //
       string a (*p);
-      bool quote (a.find (' ') != string::npos);
+      bool quote (a.empty () || a.find (' ') != string::npos);
 
       if (quote)
         cmd_line += '"';
