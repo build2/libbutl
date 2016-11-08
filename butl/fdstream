@@ -53,7 +53,7 @@ namespace butl
     reset (int fd = -1) noexcept;
 
     // Close an open file descriptor. Throw ios::failure on the underlying OS
-    // error. Reset the descriptor to -1 whenever the exception is thrown or
+    // error. Reset the descriptor to -1 whether the exception is thrown or
     // not.
     //
     void
