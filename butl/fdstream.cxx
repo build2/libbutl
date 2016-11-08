@@ -6,14 +6,14 @@
 
 #ifndef _WIN32
 #  include <fcntl.h>     // open(), O_*, fcntl()
-#  include <unistd.h>    // close(), read(), write(), lseek(), ssize_t,
+#  include <unistd.h>    // close(), read(), write(), lseek(), dup(), ssize_t,
                          // STD*_FILENO
 #  include <sys/uio.h>   // writev(), iovec
 #  include <sys/stat.h>  // S_I*
 #  include <sys/types.h> // off_t
 #else
 #  include <io.h>       // _close(), _read(), _write(), _setmode(), _sopen(),
-                        // _lseek()
+                        // _lseek(), _dup()
 #  include <share.h>    // _SH_DENYNO
 #  include <stdio.h>    // _fileno(), stdin, stdout, stderr
 #  include <fcntl.h>    // _O_*
@@ -86,7 +86,6 @@ namespace butl
         throw_ios_failure (errno);
     }
   }
-
 
   // fdbuf
   //
@@ -735,6 +734,21 @@ namespace butl
     }
 
     return auto_fd (fd);
+  }
+
+  auto_fd
+  fddup (int fd)
+  {
+#ifndef _WIN32
+    int nfd (dup (fd));
+#else
+    int nfd (_dup (fd));
+#endif
+
+    if (nfd == -1)
+      throw_ios_failure (errno);
+
+    return auto_fd (nfd);
   }
 
 #ifndef _WIN32

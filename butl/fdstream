@@ -52,8 +52,9 @@ namespace butl
     void
     reset (int fd = -1) noexcept;
 
-    // Close an open file descriptor. Throw ios::failure on failure. The object
-    // become unopened whenever the exception is thrown or not.
+    // Close an open file descriptor. Throw ios::failure on the underlying OS
+    // error. Reset the descriptor to -1 whenever the exception is thrown or
+    // not.
     //
     void
     close ();
@@ -497,6 +498,12 @@ namespace butl
           permissions = permissions::ru | permissions::wu |
                         permissions::rg | permissions::wg |
                         permissions::ro | permissions::wo);
+
+  // Duplicate an open file descriptor. Throw ios::failure on the underlying
+  // OS error.
+  //
+  LIBBUTL_EXPORT auto_fd
+  fddup (int fd);
 
   // Set the translation mode for the file descriptor. Return the previous
   // mode on success, throw ios::failure otherwise.
