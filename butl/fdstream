@@ -19,8 +19,7 @@
 namespace butl
 {
   // RAII type for file descriptors. Note that failure to close the descriptor
-  // is silently ignored by both the destructor and reset() (thought we could
-  // probably provide the close() function that throws).
+  // is silently ignored by both the destructor and reset().
   //
   // The descriptor can be negative. Such a descriptor is treated as unopened
   // and is not closed.
@@ -28,7 +27,7 @@ namespace butl
   struct nullfd_t {constexpr explicit nullfd_t (int) {}};
   constexpr const nullfd_t nullfd (-1);
 
-  class auto_fd
+  class LIBBUTL_EXPORT auto_fd
   {
   public:
     auto_fd (nullfd_t = nullfd): fd_ (-1) {}
@@ -52,6 +51,12 @@ namespace butl
 
     void
     reset (int fd = -1) noexcept;
+
+    // Close an open file descriptor. Throw ios::failure on failure. The object
+    // become unopened whenever the exception is thrown or not.
+    //
+    void
+    close ();
 
   private:
     int fd_;

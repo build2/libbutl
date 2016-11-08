@@ -68,6 +68,26 @@ namespace butl
       ec, m);
   }
 
+  // auto_fd
+  //
+  void auto_fd::
+  close ()
+  {
+    if (fd_ >= 0)
+    {
+      bool r (fdclose (fd_));
+
+      // If fdclose() failed then no reason to expect it to succeed the next
+      // time.
+      //
+      fd_ = -1;
+
+      if (!r)
+        throw_ios_failure (errno);
+    }
+  }
+
+
   // fdbuf
   //
   fdbuf::
@@ -105,8 +125,7 @@ namespace butl
     // This semantics change seems to be the right one as there is no reason to
     // expect fdclose() to succeed after it has already failed once.
     //
-    if (is_open () && !fdclose (fd_.release ()))
-      throw_ios_failure (errno);
+    fd_.close ();
   }
 
   streamsize fdbuf::
