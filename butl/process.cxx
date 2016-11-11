@@ -12,8 +12,7 @@
 #else
 #  include <butl/win32-utility>
 
-#  include <io.h>        // _open_osfhandle(), _get_osfhandle(), _close()
-#  include <fcntl.h>     // _O_TEXT
+#  include <io.h>        // _get_osfhandle(), _close()
 #  include <stdlib.h>    // _MAX_PATH, getenv()
 #  include <sys/types.h> // stat
 #  include <sys/stat.h>  // stat(), S_IS*
@@ -34,6 +33,7 @@
 
 #include <errno.h>
 
+#include <ios>     // ios_base::failure
 #include <cassert>
 #include <cstddef> // size_t
 #include <cstring> // strlen(), strchr()
@@ -227,49 +227,56 @@ namespace butl
            const process_path& pp, const char* args[],
            int in, int out, int err)
   {
-    using pipe = auto_fd[2];
-
-    pipe out_fd;
-    pipe in_ofd;
-    pipe in_efd;
+    fdpipe out_fd;
+    fdpipe in_ofd;
+    fdpipe in_efd;
 
     auto fail = [](bool child) {throw process_error (errno, child);};
 
-    auto create_pipe = [&fail](pipe& p)
+    auto open_pipe = [] () -> fdpipe
     {
-      int pd[2];
-      if (::pipe (pd) == -1)
-        fail (false);
-
-      p[0].reset (pd[0]);
-      p[1].reset (pd[1]);
+      try
+      {
+        return fdopen_pipe ();
+      }
+      catch (const ios_base::failure&)
+      {
+        // Translate to process_error.
+        //
+        // For old versions of g++ (as of 4.9) ios_base::failure is not derived
+        // from system_error and so we cannot recover the errno value. On the
+        // other hand the only possible values are EMFILE and ENFILE. Lets use
+        // EMFILE as the more probable. This is a temporary code after all.
+        //
+        throw process_error (EMFILE, false);
+      }
     };
 
-    auto create_null = [&fail](auto_fd& n)
+    auto open_null = [&fail] () -> auto_fd
     {
-      int fd (fdnull ());
-      if (fd == -1)
+      auto_fd fd (fdnull ());
+      if (fd.get () == -1)
         fail (false);
 
-      n.reset (fd);
+      return fd;
     };
 
     // If we are asked to open null (-2) then open "half-pipe".
     //
     if (in == -1)
-      create_pipe (out_fd);
+      out_fd = open_pipe ();
     else if (in == -2)
-      create_null (out_fd[0]);
+      out_fd.in = open_null ();
 
     if (out == -1)
-      create_pipe (in_ofd);
+      in_ofd = open_pipe ();
     else if (out == -2)
-      create_null (in_ofd[1]);
+      in_ofd.out = open_null ();
 
     if (err == -1)
-      create_pipe (in_efd);
+      in_efd = open_pipe ();
     else if (err == -2)
-      create_null (in_efd[1]);
+      in_efd.out = open_null ();
 
     handle = fork ();
 
@@ -284,17 +291,17 @@ namespace butl
       // to the standard stream descriptor (read end for STDIN_FILENO, write
       // end otherwise). Close the the pipe afterwards.
       //
-      auto duplicate = [&fail](int sd, int fd, pipe& pd)
+      auto duplicate = [&fail](int sd, int fd, fdpipe& pd)
       {
         if (fd == -1 || fd == -2)
-          fd = pd[sd == STDIN_FILENO ? 0 : 1].get ();
+          fd = (sd == STDIN_FILENO ? pd.in : pd.out).get ();
 
         assert (fd > -1);
         if (dup2 (fd, sd) == -1)
           fail (true);
 
-        pd[0].reset (); // Close.
-        pd[1].reset (); // Close.
+        pd.in.reset ();  // Silently close.
+        pd.out.reset (); // Silently close.
       };
 
       if (in != STDIN_FILENO)
@@ -333,9 +340,9 @@ namespace butl
 
     assert (handle != 0); // Shouldn't get here unless in the parent process.
 
-    this->out_fd = move (out_fd[1]);
-    this->in_ofd = move (in_ofd[0]);
-    this->in_efd = move (in_efd[0]);
+    this->out_fd = move (out_fd.out);
+    this->in_ofd = move (in_ofd.in);
+    this->in_efd = move (in_efd.in);
   }
 
   bool process::
@@ -616,36 +623,64 @@ namespace butl
            const process_path& pp, const char* args[],
            int in, int out, int err)
   {
-    using pipe = auto_handle[2];
+    fdpipe out_fd;
+    fdpipe in_ofd;
+    fdpipe in_efd;
 
-    pipe out_h;
-    pipe in_oh;
-    pipe in_eh;
-
-    SECURITY_ATTRIBUTES sa;
-    sa.nLength = sizeof (SECURITY_ATTRIBUTES);
-    sa.bInheritHandle = true;
-    sa.lpSecurityDescriptor = 0;
+    auto open_pipe = [] () -> fdpipe
+    {
+      try
+      {
+        return fdopen_pipe ();
+      }
+      catch (const ios_base::failure&)
+      {
+        // Translate to process_error.
+        //
+        // For old versions of g++ (as of 4.9) ios_base::failure is not derived
+        // from system_error and so we cannot recover the errno value. On the
+        // other hand the only possible values are EMFILE and ENFILE. Lets use
+        // EMFILE as the more probable. Also let's make no distinction for VC.
+        // This is a temporary code after all.
+        //
+        throw process_error (EMFILE);
+      }
+    };
 
     auto fail = [](const char* m = nullptr)
     {
       throw process_error (m == nullptr ? last_error_msg () : m);
     };
 
-    // Create a pipe and clear the inherit flag on the parent side.
-    //
-    auto create_pipe = [&sa, &fail](pipe& p, int parent)
+    auto open_null = [&fail] () -> auto_fd
     {
-      HANDLE ph[2];
-      if (!CreatePipe (&ph[0], &ph[1], &sa, 0))
+      // Note that we are using a faster, temporary file-based emulation of
+      // NUL since we have no way of making sure the child buffers things
+      // properly (and by default they seem no to).
+      //
+      auto_fd fd (fdnull (true));
+      if (fd.get () == -1)
         fail ();
 
-      p[0].reset (ph[0]);
-      p[1].reset (ph[1]);
-
-      if (!SetHandleInformation (p[parent].get (), HANDLE_FLAG_INHERIT, 0))
-        fail ();
+      return fd;
     };
+
+    // If we are asked to open null (-2) then open "half-pipe".
+    //
+    if (in == -1)
+      out_fd = open_pipe ();
+    else if (in == -2)
+      out_fd.in = open_null ();
+
+    if (out == -1)
+      in_ofd = open_pipe ();
+    else if (out == -2)
+      in_ofd.out = open_null ();
+
+    if (err == -1)
+      in_efd = open_pipe ();
+    else if (err == -2)
+      in_efd.out = open_null ();
 
     // Resolve file descriptor to HANDLE and make sure it is inherited. Note
     // that the handle is closed either when CloseHandle() is called for it or
@@ -671,35 +706,6 @@ namespace butl
 
       return h;
     };
-
-    auto create_null = [&get_osfhandle, &fail](auto_handle& n)
-    {
-      // Note that we are using a faster, temporary file-based emulation of
-      // NUL since we have no way of making sure the child buffers things
-      // properly (and by default they seem no to).
-      //
-      auto_fd fd (fdnull (true));
-      if (fd.get () == -1)
-        fail ();
-
-      n.reset (get_osfhandle (fd.get ()));
-      fd.release (); // Not to close the handle twice.
-    };
-
-    if (in == -1)
-      create_pipe (out_h, 1);
-    else if (in == -2)
-      create_null (out_h[0]);
-
-    if (out == -1)
-      create_pipe (in_oh, 0);
-    else if (out == -2)
-      create_null (in_oh[1]);
-
-    if (err == -1)
-      create_pipe (in_eh, 0);
-    else if (err == -2)
-      create_null (in_eh[1]);
 
     // Create the process.
     //
@@ -738,7 +744,6 @@ namespace butl
     //
     STARTUPINFO si;
     PROCESS_INFORMATION pi;
-
     memset (&si, 0, sizeof (STARTUPINFO));
     memset (&pi, 0, sizeof (PROCESS_INFORMATION));
 
@@ -746,19 +751,19 @@ namespace butl
     si.dwFlags |= STARTF_USESTDHANDLES;
 
     si.hStdInput = in == -1 || in == -2
-      ? out_h[0].get ()
+      ? get_osfhandle (out_fd.in.get ())
       : in == STDIN_FILENO
         ? GetStdHandle (STD_INPUT_HANDLE)
         : get_osfhandle (in);
 
     si.hStdOutput = out == -1 || out == -2
-      ? in_oh[1].get ()
+      ? get_osfhandle (in_ofd.out.get ())
       : out == STDOUT_FILENO
         ? GetStdHandle (STD_OUTPUT_HANDLE)
         : get_osfhandle (out);
 
     si.hStdError = err == -1 || err == -2
-      ? in_eh[1].get ()
+      ? get_osfhandle (in_efd.out.get ())
       : err == STDERR_FILENO
         ? GetStdHandle (STD_ERROR_HANDLE)
         : get_osfhandle (err);
@@ -792,24 +797,9 @@ namespace butl
     auto_handle (pi.hThread).reset (); // Close.
     auto_handle process (pi.hProcess);
 
-    // Convert file handles to file descriptors. Note that the handle is
-    // closed when _close() is called for the returned file descriptor.
-    //
-    auto open_osfhandle = [&fail](auto_handle& h) -> int
-    {
-      int fd (
-        _open_osfhandle (reinterpret_cast<intptr_t> (h.get ()), _O_TEXT));
-
-      if (fd == -1)
-        fail ("unable to convert file handle to file descriptor");
-
-      h.release ();
-      return fd;
-    };
-
-    this->out_fd.reset (in  == -1 ? open_osfhandle (out_h[1]) : -1);
-    this->in_ofd.reset (out == -1 ? open_osfhandle (in_oh[0]) : -1);
-    this->in_efd.reset (err == -1 ? open_osfhandle (in_eh[0]) : -1);
+    this->out_fd = move (out_fd.out);
+    this->in_ofd = move (in_ofd.in);
+    this->in_efd = move (in_efd.in);
 
     this->handle = process.release ();
 

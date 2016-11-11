@@ -29,25 +29,39 @@ using namespace butl;
 
 static const string text1 ("ABCDEF\nXYZ");
 static const string text2 ("12");            // Keep shorter than text1.
+
+// Windows text mode write-translated form of text1.
+//
 static const string text3 ("ABCDEF\r\nXYZ");
+
+static string
+from_stream (ifdstream& is)
+{
+  string s;
+  getline (is, s, '\0');
+  is.close (); // Not to miss failed close of the underlying file descriptor.
+  return s;
+}
 
 static string
 from_file (const path& f, fdopen_mode m = fdopen_mode::none)
 {
   ifdstream ifs (f, m, ifdstream::badbit);
+  return from_stream (ifs);
+}
 
-  string s;
-  getline (ifs, s, '\0');
-  ifs.close (); // Not to miss failed close of the underlying file descriptor.
-  return s;
+static void
+to_stream (ofdstream& os, const string& s)
+{
+  os << s;
+  os.close ();
 }
 
 static void
 to_file (const path& f, const string& s, fdopen_mode m = fdopen_mode::none)
 {
   ofdstream ofs (f, m);
-  ofs << s;
-  ofs.close ();
+  to_stream (ofs, s);
 }
 
 template <typename S, typename T>
@@ -449,6 +463,41 @@ main (int argc, const char* argv[])
 
 #endif
 
+  // Test pipes.
+  //
+  // Here we rely on buffering being always enabled for pipes.
+  //
+  {
+    fdpipe pipe (fdopen_pipe ());
+    ofdstream os (move (pipe.out));
+    ifdstream is (move (pipe.in));
+    to_stream (os, text1);
+    assert (from_stream (is) == text1);
+  }
+
+#ifdef _WIN32
+
+  // Test opening a pipe in the text mode.
+  //
+  {
+    fdpipe pipe (fdopen_pipe ());
+    ofdstream os (move (pipe.out));
+    ifdstream is (move (pipe.in), fdstream_mode::binary);
+    to_stream (os, text1);
+    assert (from_stream (is) == text3);
+  }
+
+  // Test opening a pipe in the binary mode.
+  //
+  {
+    fdpipe pipe (fdopen_pipe (fdopen_mode::binary));
+    ofdstream os (move (pipe.out), fdstream_mode::text);
+    ifdstream is (move (pipe.in));
+    to_stream (os, text1);
+    assert (from_stream (is) == text3);
+  }
+
+#endif
   // Compare fdstream and fstream operations performance.
   //
   duration fwd (0);

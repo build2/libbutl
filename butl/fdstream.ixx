@@ -8,21 +8,6 @@ namespace butl
 {
   // auto_fd
   //
-  inline auto_fd& auto_fd::
-  operator= (auto_fd&& fd) noexcept
-  {
-    reset (fd.release ());
-    return *this;
-  }
-
-  inline int auto_fd::
-  release () noexcept
-  {
-    int r (fd_);
-    fd_ = -1;
-    return r;
-  }
-
   inline void auto_fd::
   reset (int fd) noexcept
   {
@@ -30,6 +15,19 @@ namespace butl
       fdclose (fd_); // Don't check for an error as not much we can do here.
 
     fd_ = fd;
+  }
+
+  inline auto_fd& auto_fd::
+  operator= (auto_fd&& fd) noexcept
+  {
+    reset (fd.release ());
+    return *this;
+  }
+
+  inline auto_fd::
+  ~auto_fd () noexcept
+  {
+    reset ();
   }
 
   // ifdstream

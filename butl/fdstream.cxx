@@ -6,14 +6,14 @@
 
 #ifndef _WIN32
 #  include <fcntl.h>     // open(), O_*, fcntl()
-#  include <unistd.h>    // close(), read(), write(), lseek(), dup(), ssize_t,
-                         // STD*_FILENO
+#  include <unistd.h>    // close(), read(), write(), lseek(), dup(), pipe(),
+                         // ssize_t, STD*_FILENO
 #  include <sys/uio.h>   // writev(), iovec
 #  include <sys/stat.h>  // S_I*
 #  include <sys/types.h> // off_t
 #else
 #  include <io.h>       // _close(), _read(), _write(), _setmode(), _sopen(),
-                        // _lseek(), _dup()
+                        // _lseek(), _dup(), _pipe()
 #  include <share.h>    // _SH_DENYNO
 #  include <stdio.h>    // _fileno(), stdin, stdout, stderr
 #  include <fcntl.h>    // _O_*
@@ -816,6 +816,18 @@ namespace butl
     return fdmode (STDERR_FILENO, m);
   }
 
+  fdpipe
+  fdopen_pipe (fdopen_mode m)
+  {
+    assert (m == fdopen_mode::none || m == fdopen_mode::binary);
+
+    int pd[2];
+    if (pipe (pd) == -1)
+      throw_ios_failure (errno);
+
+    return {auto_fd (pd[0]), auto_fd (pd[1])};
+  }
+
 #else
 
   bool
@@ -914,5 +926,19 @@ namespace butl
     return fdmode (fd, m);
   }
 
+  fdpipe
+  fdopen_pipe (fdopen_mode m)
+  {
+    assert (m == fdopen_mode::none || m == fdopen_mode::binary);
+
+    int pd[2];
+    if (_pipe (
+          pd,
+          64 * 1024, // Set buffer size to 64K.
+          _O_NOINHERIT | (m == fdopen_mode::none ? _O_TEXT : _O_BINARY)) == -1)
+      throw_ios_failure (errno);
+
+    return {auto_fd (pd[0]), auto_fd (pd[1])};
+  }
 #endif
 }

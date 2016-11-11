@@ -30,7 +30,7 @@ namespace butl
   class LIBBUTL_EXPORT auto_fd
   {
   public:
-    auto_fd (nullfd_t = nullfd): fd_ (-1) {}
+    auto_fd (nullfd_t = nullfd) noexcept: fd_ (-1) {}
 
     explicit
     auto_fd (int fd) noexcept: fd_ (fd) {}
@@ -41,16 +41,21 @@ namespace butl
     auto_fd (const auto_fd&) = delete;
     auto_fd& operator= (const auto_fd&) = delete;
 
-    ~auto_fd () noexcept {reset ();}
+    ~auto_fd () noexcept;
 
     int
     get () const noexcept {return fd_;}
 
-    int
-    release () noexcept;
-
     void
     reset (int fd = -1) noexcept;
+
+    int
+    release () noexcept
+    {
+      int r (fd_);
+      fd_ = -1;
+      return r;
+    }
 
     // Close an open file descriptor. Throw ios::failure on the underlying OS
     // error. Reset the descriptor to -1 whether the exception is thrown or
@@ -151,7 +156,10 @@ namespace butl
   //
   // The text/binary flags have the same semantics as those in std::fstream.
   // Specifically, this is a noop for POSIX systems where the two modes are
-  // the same.
+  // the same. On Windows, when reading in the text mode the sequence of 0xD,
+  // 0xA characters is translated into the single OxA character and 0x1A is
+  // interpreted as EOF. When writing in the text mode the OxA character is
+  // translated into the 0xD, 0xA sequence.
   //
   // The skip flag instructs the stream to skip to the end before closing the
   // file descriptor. This is primarily useful when working with pipes where
@@ -505,8 +513,17 @@ namespace butl
   LIBBUTL_EXPORT auto_fd
   fddup (int fd);
 
-  // Set the translation mode for the file descriptor. Return the previous
-  // mode on success, throw ios::failure otherwise.
+  // Set the translation mode for the file descriptor. Throw invalid_argument
+  // for an invalid combination of flags. Return the previous mode on success,
+  // throw ios::failure otherwise.
+  //
+  // The text and binary flags are mutually exclusive on Windows. Due to
+  // implementation details at least one of them should be specified. On POSIX
+  // system the two modes are the same and so no check is performed.
+  //
+  // The blocking and non-blocking flags are mutually exclusive on POSIX
+  // system. Non-blocking mode is not supported on Windows and so the blocking
+  // mode is assumed regardless of the flags.
   //
   LIBBUTL_EXPORT fdstream_mode
   fdmode (int, fdstream_mode);
@@ -558,6 +575,24 @@ namespace butl
   LIBBUTL_EXPORT int
   fdnull (bool temp = false) noexcept;
 #endif
+
+  struct fdpipe
+  {
+    auto_fd in;
+    auto_fd out;
+  };
+
+  // Create a pipe. Throw ios::failure on the underlying OS error. By default
+  // both ends of the pipe are opened in the text mode. Pass the binary flag
+  // to instead open them in the binary mode. Passing a mode other than none
+  // or binary is illegal.
+  //
+  // Note that on Windows both ends of the created pipe are not inheritable.
+  // In particular, the process class that uses fdpipe underneath makes the
+  // appropriate end of pipe (the one being passed to the child) inheritable.
+  //
+  LIBBUTL_EXPORT fdpipe
+  fdopen_pipe (fdopen_mode = fdopen_mode::none);
 }
 
 #include <butl/fdstream.ixx>
