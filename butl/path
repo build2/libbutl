@@ -108,10 +108,16 @@ namespace butl
     static bool
     absolute (const string_type& s)
     {
+      return absolute (s.c_str (), s.size ());
+    }
+
+    static bool
+    absolute (const C* s, size_type n)
+    {
 #ifdef _WIN32
-      return s.size () >  1 && s[1] == ':';
+      return n > 1 && s[1] == ':';
 #else
-      return s.size () != 0 && is_separator (s[0]);
+      return n != 0 && is_separator (s[0]);
 #endif
     }
 

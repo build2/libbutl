@@ -153,7 +153,9 @@ namespace butl
               (si.st_mode & (S_IEXEC | S_IXGRP | S_IXOTH)) != 0);
     };
 
-    auto search = [&ep, f, fn, &exists] (const char* d, size_t dn) -> bool
+    auto search = [&ep, f, fn, &exists] (const char* d,
+                                         size_t dn,
+                                         bool norm = false) -> bool
     {
       string s (move (ep).string ()); // Reuse buffer.
 
@@ -167,18 +169,33 @@ namespace butl
 
       s.append (f, fn);
       ep = path (move (s)); // Move back into result.
+
+      if (norm)
+        ep.normalize ();
+
       return exists (ep.string ().c_str ());
     };
 
-    // If there is a directory component in the file, then search does not
-    // apply. But make sure the file actually exists.
+    // If there is a directory component in the file, then the PATH search
+    // does not apply. If the path is relative, then prepend CWD. In both
+    // cases make sure the file actually exists.
     //
     if (traits::find_separator (f, fn) != nullptr)
     {
-      if (exists (f)) // ?: calls deleted copy ctor.
-        return r;
+      if (traits::absolute (f, fn))
+      {
+        if (exists (f))
+          return r;
+      }
       else
-        return process_path ();
+      {
+        const string& d (traits::current ());
+
+        if (search (d.c_str (), d.size (), true))
+          return r;
+      }
+
+      return process_path ();
     }
 
     // The search order is documented in exec(3). Some of the differences
@@ -435,7 +452,9 @@ namespace butl
       return _stat (f, &si) == 0 && S_ISREG (si.st_mode);
     };
 
-    auto search = [&ep, f, fn, ext, &exists] (const char* d, size_t dn) -> bool
+    auto search = [&ep, f, fn, ext, &exists] (const char* d,
+                                              size_t dn,
+                                              bool norm = false) -> bool
     {
       string s (move (ep).string ()); // Reuse buffer.
 
@@ -450,6 +469,9 @@ namespace butl
       s.append (f, fn);
       ep = path (move (s)); // Move back into result.
 
+      if (norm)
+        ep.normalize ();
+
       // Add the .exe extension if necessary.
       //
       if (ext)
@@ -458,22 +480,33 @@ namespace butl
       return exists (ep.string ().c_str ());
     };
 
-    // If there is a directory component in the file, then search does not
-    // apply. But we may still need to append the extension and make sure the
-    // file actually exists.
+    // If there is a directory component in the file, then the PATH search
+    // does not apply. If the path is relative, then prepend CWD. In both
+    // cases we may still need to append the extension and make sure the file
+    // actually exists.
     //
     if (traits::find_separator (f, fn) != nullptr)
     {
-      if (ext)
+      if (traits::absolute (f, fn))
       {
-        ep = path (f, fn);
-        ep += ".exe";
+        if (ext)
+        {
+          ep = path (f, fn);
+          ep += ".exe";
+        }
+
+        if (exists (r.effect_string ()))
+          return r;
+      }
+      else
+      {
+        const string& d (traits::current ());
+
+        if (search (d.c_str (), d.size (), true)) // Appends extension.
+          return r;
       }
 
-      if (exists (r.effect_string ())) // ?: calls deleted copy ctor.
-        return r;
-      else
-        return process_path ();
+      return process_path ();
     }
 
     // The search order is documented in CreateProcess(). First we look in the
@@ -526,8 +559,12 @@ namespace butl
     // The recall path is the same as initial, though it might not be a bad
     // idea to prepend .\ for clarity.
     //
-    if (search ("", 0))
-      return r;
+    {
+      const string& d (traits::current ());
+
+      if (search (d.c_str (), d.size ()))
+        return r;
+    }
 
     // Now search in PATH. Recall is unchanged.
     //
