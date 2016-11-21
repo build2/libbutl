@@ -20,10 +20,10 @@ namespace butl
   public:
     typedef T value_type;
 
-    optional (): null_ (true) {}
-    optional (nullopt_t): null_ (true) {}
-    optional (const T& v): value_ (v), null_ (false) {}
-    optional (T&& v): value_ (std::move (v)), null_ (false) {}
+    constexpr optional (): value_ (), null_ (true) {} // VC14 needs value_().
+    constexpr optional (nullopt_t): value_ (), null_ (true) {}
+    constexpr optional (const T& v): value_ (v), null_ (false) {}
+    constexpr optional (T&& v): value_ (std::move (v)), null_ (false) {}
 
     optional& operator= (nullopt_t) {value_ = T (); null_ = true; return *this;}
     optional& operator= (const T& v) {value_ = v; null_ = false; return *this;}
