@@ -12,6 +12,8 @@
 #include <exception>    // uncaught_exception()
 //#include <functional> // hash
 
+#include <butl/export>
+
 namespace butl
 {
   // Convert ASCII character/string case. If there is no upper/lower case
@@ -158,7 +160,7 @@ namespace butl
   //
   // @@ MT: will have to be TLS.
   //
-  extern bool exception_unwinding_dtor;
+  LIBBUTL_EXPORT extern bool exception_unwinding_dtor;
 
   template <typename F>
   struct exception_guard;

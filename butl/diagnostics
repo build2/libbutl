@@ -11,13 +11,14 @@
 #include <utility>   // move(), forward()
 #include <exception> // uncaught_exception()
 
+#include <butl/export>
 #include <butl/utility>
 
 namespace butl
 {
   // Diagnostic facility base infrastructure.
   //
-  extern std::ostream* diag_stream; // std::cerr by default.
+  LIBBUTL_EXPORT extern std::ostream* diag_stream; // std::cerr by default.
 
   struct diag_record;
   template <typename> struct diag_prologue;
@@ -25,7 +26,7 @@ namespace butl
 
   using diag_epilogue = void (const diag_record&);
 
-  struct diag_record
+  struct LIBBUTL_EXPORT diag_record
   {
     template <typename T>
     friend const diag_record&
