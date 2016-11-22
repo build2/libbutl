@@ -5,6 +5,7 @@
 lib{butl}:                               \
 {hxx         cxx}{ base64              } \
 {hxx         cxx}{ char-scanner        } \
+{hxx         cxx}{ diagnostics         } \
 {hxx            }{ export              } \
 {hxx ixx     cxx}{ fdstream            } \
 {hxx ixx     cxx}{ filesystem          } \
@@ -23,7 +24,7 @@ lib{butl}:                               \
 {hxx     txx    }{ string-table        } \
 {hxx         cxx}{ timestamp           } \
 {hxx         cxx}{ triplet             } \
-{hxx ixx        }{ utility             } \
+{hxx ixx     cxx}{ utility             } \
 {hxx            }{ vector-view         } \
 {hxx            }{ version             }
 

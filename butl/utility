@@ -6,9 +6,10 @@
 #define BUTL_UTILITY
 
 #include <string>
-#include <cstddef>    // size_t
-#include <utility>    // forward()
-#include <cstring>    // strcmp(), strlen()
+#include <cstddef>      // size_t
+#include <utility>      // move(), forward()
+#include <cstring>      // strcmp(), strlen()
+#include <exception>    // uncaught_exception()
 //#include <functional> // hash
 
 namespace butl
@@ -146,6 +147,46 @@ namespace butl
   template <typename T>
   inline reverse_range<T>
   reverse_iterate (T&& x) {return reverse_range<T> (std::forward<T> (x));}
+
+  // Call a function if there is an exception.
+  //
+
+  // True means we are in the body of a destructor that is being called as
+  // part of the exception stack unwindining. Used to compensate for the
+  // deficiencies of uncaught_exception() until C++17 uncaught_exceptions()
+  // becomes available.
+  //
+  // @@ MT: will have to be TLS.
+  //
+  extern bool exception_unwinding_dtor;
+
+  template <typename F>
+  struct exception_guard;
+
+  template <typename F>
+  inline exception_guard<F>
+  make_exception_guard (F f)
+  {
+    return exception_guard<F> (std::move (f));
+  }
+
+  template <typename F>
+  struct exception_guard
+  {
+    exception_guard (F f): f_ (std::move (f)) {}
+    ~exception_guard ()
+    {
+      if (std::uncaught_exception ())
+      {
+        exception_unwinding_dtor = true;
+        f_ ();
+        exception_unwinding_dtor = false;
+      }
+    }
+
+  private:
+    F f_;
+  };
 }
 
 #include <butl/utility.ixx>
