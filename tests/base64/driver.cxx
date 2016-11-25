@@ -24,9 +24,9 @@ encode (const string& i, const string& o)
   {
     is.seekg (0);
 
-    // VC 19 seekg() doesn't clear eofbit.
+    // VC15 seekg() doesn't clear eofbit.
     //
-#if defined(_MSC_VER) && _MSC_VER <= 1900
+#if defined(_MSC_VER) && _MSC_VER <= 1910
     is.clear ();
 #endif
 
