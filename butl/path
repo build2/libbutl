@@ -254,6 +254,24 @@ namespace butl
       return ln < rn ? -1 : (ln > rn ? 1 : 0);
     }
 
+    static void
+    canonicalize (string_type& s)
+    {
+      //canonicalize (s.data (), s.size ()); // C++17
+
+      for (size_t i (0), n (s.size ()); i != n; ++i)
+        if (is_separator (s[i]) && s[i] != directory_separator)
+          s[i] = directory_separator;
+    }
+
+    static void
+    canonicalize (C* s, size_type n)
+    {
+      for (const C* e (s + n); s != e; ++s)
+        if (is_separator (*s) && *s != directory_separator)
+          *s = directory_separator;
+    }
+
     // Get/set current working directory. Throw std::system_error to report
     // the underlying OS errors.
     //
@@ -780,7 +798,14 @@ namespace butl
     reverse_iterator rend () const {return reverse_iterator (begin ());}
 
   public:
-    // Normalize the path and return*this. Normalization involves collapsing
+    // Canonicalize the path and return *this. Canonicalization involves
+    // converting all directory separators to the canonical form. Note that
+    // multiple directory separators are not collapsed.
+    //
+    basic_path&
+    canonicalize ();
+
+    // Normalize the path and return *this. Normalization involves collapsing
     // the '.' and '..'  directories if possible, collapsing multiple
     // directory separators, and converting all directory separators to the
     // canonical form.

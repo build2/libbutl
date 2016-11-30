@@ -217,6 +217,18 @@ namespace butl
 
   template <typename C, typename K>
   inline basic_path<C, K>& basic_path<C, K>::
+  canonicalize ()
+  {
+    traits::canonicalize (this->path_);
+
+    if (this->tsep_ > 1) // Non-canonical trailing separator.
+      this->tsep_ = 1;
+
+    return *this;
+  }
+
+  template <typename C, typename K>
+  inline basic_path<C, K>& basic_path<C, K>::
   complete ()
   {
     if (relative ())

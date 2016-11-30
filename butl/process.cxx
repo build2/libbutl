@@ -171,7 +171,7 @@ namespace butl
       ep = path (move (s)); // Move back into result.
 
       if (norm)
-        ep.normalize ();
+        ep.normalize (); //@@ NORM
 
       return exists (ep.string ().c_str ());
     };
