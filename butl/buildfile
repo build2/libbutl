@@ -21,6 +21,7 @@ lib{butl}:                               \
 {hxx     txx    }{ prefix-map          } \
 {hxx ixx     cxx}{ process             } \
 {hxx         cxx}{ sha256              } \
+{hxx            }{ small-vector        } \
 {hxx     txx    }{ string-table        } \
 {hxx         cxx}{ timestamp           } \
 {hxx         cxx}{ triplet             } \

@@ -1,0 +1,16 @@
+# file      : tests/dir-iterator/testscript
+# copyright : Copyright (c) 2014-2016 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+test.options = -v
+
+: file
+:
+mkdir a;
+touch a/b;
+$* a 2>"reg     b"
+
+: dir
+:
+mkdir -p a/b;
+$* a 2>"dir     b"

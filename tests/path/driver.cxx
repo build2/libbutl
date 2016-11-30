@@ -42,28 +42,24 @@ main ()
     return x.string () == s && x.representation () == r;
   };
 
+#ifndef _WIN32
   assert (test ("/", "/", "/"));
   assert (test ("//", "/", "/"));
   assert (test ("/tmp/foo", "/tmp/foo", "/tmp/foo"));
   assert (test ("/tmp/foo/", "/tmp/foo", "/tmp/foo/"));
   assert (test ("/tmp/foo//", "/tmp/foo", "/tmp/foo/"));
 
-#ifdef _WIN32
-  assert (test ("/\\", "/", "/"));
+  assert (dir_test ("/", "/", "/"));
+  assert (dir_test ("/tmp/foo/", "/tmp/foo", "/tmp/foo/"));
+  assert (dir_test ("tmp/foo", "tmp/foo", "tmp/foo/"));
+#else
   assert (test ("C:", "C:", "C:"));
   assert (test ("C:\\", "C:", "C:\\"));
   assert (test ("c:/", "c:", "c:/"));
   assert (test ("C:\\tmp\\foo\\", "C:\\tmp\\foo", "C:\\tmp\\foo\\"));
   assert (test ("C:\\tmp\\foo\\/\\", "C:\\tmp\\foo", "C:\\tmp\\foo\\"));
-#endif
 
-  assert (dir_test ("/", "/", "/"));
-  assert (dir_test ("/tmp/foo/", "/tmp/foo", "/tmp/foo/"));
-#ifndef _WIN32
-  assert (dir_test ("tmp/foo", "tmp/foo", "tmp/foo/"));
-#else
   assert (dir_test ("tmp\\foo", "tmp\\foo", "tmp\\foo\\"));
-
   assert (dir_test ("C:\\", "C:", "C:\\"));
   assert (dir_test ("C:\\tmp/foo\\", "C:\\tmp/foo", "C:\\tmp/foo\\"));
   assert (dir_test ("c:/tmp\\foo", "c:/tmp\\foo", "c:/tmp\\foo\\"));
@@ -131,13 +127,15 @@ main ()
 
   // base
   //
+  assert (path (".txt").base ().representation () == ".txt");
+  assert (path ("foo.txt.orig").base ().representation () == "foo.txt");
+
+#ifndef _WIN32
   assert (path ("/").base ().representation () == "/");
   assert (path ("/foo.txt").base ().representation () == "/foo");
   assert (path ("/foo.txt/").base ().representation () == "/foo/");
-  assert (path (".txt").base ().representation () == ".txt");
   assert (path ("/.txt").base ().representation () == "/.txt");
-  assert (path ("foo.txt.orig").base ().representation () == "foo.txt");
-#ifdef _WIN32
+#else
   assert (path ("C:").base ().representation () == "C:");
   assert (path ("C:\\foo.txt").base ().representation () == "C:\\foo");
   assert (path ("C:\\foo.txt\\").base ().representation () == "C:\\foo\\");
@@ -186,6 +184,7 @@ main ()
     assert (++i != p.rend () && *i == "foo");
     assert (++i == p.rend ());
   }
+#ifndef _WIN32
   {
     path p ("/foo/bar");
     path::iterator i (p.begin ());
@@ -202,7 +201,6 @@ main ()
     assert (++i != p.rend () && *i == "");
     assert (++i == p.rend ());
   }
-#ifndef _WIN32
   {
     path p ("/");
     path::iterator i (p.begin ());
@@ -244,16 +242,14 @@ main ()
       assert (test (++p.begin (), p.end ()) == "bar");
       assert (test (p.begin (), ++p.begin ()) == "foo/");
     }
+#ifndef _WIN32
     {
       path p ("/foo/bar");
       assert (test (p.begin (), p.end ()) == "/foo/bar");
       assert (test (++p.begin (), p.end ()) == "foo/bar");
       assert (test (++(++p.begin ()), p.end ()) == "bar");
 
-#ifndef _WIN32
       assert (test (p.begin (), ++p.begin ()) == "/");
-#endif
-
       assert (test (++p.begin (), ++(++p.begin ())) == "foo/");
       assert (test (++(++p.begin ()), ++(++(++p.begin ()))) == "bar");
     }
@@ -263,14 +259,10 @@ main ()
       assert (test (++p.begin (), p.end ()) == "foo/bar/");
       assert (test (++(++p.begin ()), p.end ()) == "bar/");
 
-#ifndef _WIN32
       assert (test (p.begin (), ++p.begin ()) == "/");
-#endif
-
       assert (test (++p.begin (), ++(++p.begin ())) == "foo/");
       assert (test (++(++p.begin ()), ++(++(++p.begin ()))) == "bar/");
     }
-#ifndef _WIN32
     {
       path p ("/");
       assert (test (p.begin (), p.end ()) == "/");
@@ -287,7 +279,6 @@ main ()
   assert ((path ("foo/") / path ("bar/")).representation () == "foo/bar/");
   assert ((path ("foo/") / path ()).representation () == "foo/");
 #else
-  assert ((path ("\\") / path ("tmp")).representation () == "\\tmp");
   assert ((path ("C:\\") / path ("tmp")).representation () == "C:\\tmp");
   assert ((path ("foo\\") / path ("bar")).representation () == "foo\\bar");
   assert ((path ("foo\\") / path ("bar\\")).representation () == "foo\\bar\\");
@@ -303,13 +294,16 @@ main ()
   assert (path ("..///foo").normalize ().representation () == "../foo");
   assert (path ("../../foo").normalize ().representation () == "../../foo");
   assert (path (".././foo").normalize ().representation () == "../foo");
-  assert (path (".").normalize ().representation () == "");
-  assert (path ("././").normalize ().representation () == "");
+  assert (path (".").normalize ().representation () == "./");
+  assert (path (".").normalize (false, true).representation () == "");
+  assert (path ("././").normalize ().representation () == "./");
+  assert (path ("././").normalize (false, true).representation () == "");
   assert (path ("./..").normalize ().representation () == "../");
   assert (path ("./../").normalize ().representation () == "../");
   assert (path ("../.").normalize ().representation () == "../");
   assert (path (".././").normalize ().representation () == "../");
-  assert (path ("foo/./..").normalize ().representation () == "");
+  assert (path ("foo/./..").normalize ().representation () == "./");
+  assert (path ("foo/./..").normalize (false, true).representation () == "");
   assert (path ("/foo/./..").normalize ().representation () == "/");
   assert (path ("/foo/./../").normalize ().representation () == "/");
   assert (path ("./foo").normalize ().representation () == "foo");
@@ -319,27 +313,34 @@ main ()
   assert (path ("..///foo").normalize ().representation () == "..\\foo");
   assert (path ("..\\../foo").normalize ().representation () == "..\\..\\foo");
   assert (path (".././foo").normalize ().representation () == "..\\foo");
-  assert (path (".").normalize ().representation () == "");
-  assert (path (".\\.\\").normalize ().representation () == "");
+  assert (path (".").normalize ().representation () == ".\\");
+  assert (path (".").normalize (false, true).representation () == "");
+  assert (path (".\\.\\").normalize ().representation () == ".\\");
+  assert (path (".\\.\\").normalize (false, true).representation () == "");
   assert (path ("./..").normalize ().representation () == "..\\");
   assert (path ("../.").normalize ().representation () == "..\\");
-  assert (path ("foo/./..").normalize ().representation () == "");
+  assert (path ("foo/./..").normalize ().representation () == ".\\");
+  assert (path ("foo/./..").normalize (false, true).representation () == "");
   assert (path ("C:/foo/./..").normalize ().representation () == "C:\\");
   assert (path ("C:/foo/./../").normalize ().representation () == "C:\\");
   assert (path ("./foo").normalize ().representation () == "foo");
   assert (path ("./foo\\").normalize ().representation () == "foo\\");
 
   assert (path ("C:\\").normalize ().representation () == "C:\\");
-  assert (path ("C:\\Foo12//Bar").normalize ().representation () == "C:\\Foo12\\Bar");
+
+  assert (path ("C:\\Foo12//Bar").normalize ().representation () ==
+          "C:\\Foo12\\Bar");
 #endif
 
   // comparison
   //
-  assert (path ("/") == path ("/"));
   assert (path ("./foo") == path ("./foo"));
   assert (path ("./foo/") == path ("./foo"));
   assert (path ("./boo") < path ("./foo"));
-#ifdef _WIN32
+
+#ifndef _WIN32
+  assert (path ("/") == path ("/"));
+#else
   assert (path (".\\foo") == path ("./FoO"));
   assert (path (".\\foo") == path ("./foo\\"));
   assert (path (".\\boo") < path (".\\Foo"));
@@ -371,19 +372,20 @@ main ()
     assert (test ("foo/bar", "foo"));
     assert (test ("foo/bar", "foo/"));
     assert (!test ("foo/bar", "bar"));
+
+#ifndef _WIN32
     assert (!test ("/foo-bar", "/foo"));
     assert (test ("/foo/bar", "/foo"));
     assert (test ("/foo/bar/baz", "/foo/bar"));
     assert (!test ("/foo/bar/baz", "/foo/baz"));
-#ifdef _WIN32
+    assert (test ("/", "/"));
+    assert (test ("/foo/bar/baz", "/"));
+#else
     assert (test ("c:", "c:"));
     assert (test ("c:", "c:\\"));
     assert (!test ("c:", "d:"));
     assert (test ("c:\\foo", "c:"));
     assert (test ("c:\\foo", "c:\\"));
-#else
-    assert (test ("/", "/"));
-    assert (test ("/foo/bar/baz", "/"));
 #endif
   }
 
@@ -400,19 +402,19 @@ main ()
     assert (test ("foo/bar", "bar"));
     assert (test ("foo/bar/", "bar/"));
     assert (!test ("foo/bar", "foo"));
+
+#ifndef _WIN32
+    assert (test ("/", "/"));
     assert (!test ("/foo-bar", "bar"));
     assert (test ("/foo/bar", "bar"));
     assert (test ("/foo/bar/baz", "bar/baz"));
     assert (!test ("/foo/bar/baz", "bar"));
-
-#ifdef _WIN32
+#else
     assert (test ("c:", "c:"));
     assert (test ("c:\\", "c:"));
     assert (!test ("d:", "c:"));
     assert (test ("c:\\foo", "foo"));
     assert (test ("c:\\foo\\", "foo\\"));
-#else
-    assert (test ("/", "/"));
 #endif
   }
 
@@ -424,11 +426,14 @@ main ()
       return path (p).leaf (path (d)).representation ();
     };
 
+#ifndef _WIN32
     assert (test ("/foo", "/") == "foo");
+    assert (test ("/foo/bar", "/foo/") == "bar");
+#endif
+
     //assert (test ("foo/bar", "foo") == "bar");
     assert (test ("foo/bar", "foo/") == "bar");
     assert (test ("foo/bar/", "foo/") == "bar/");
-    assert (test ("/foo/bar", "/foo/") == "bar");
   }
 
   // directory(path)
@@ -439,12 +444,15 @@ main ()
       return path (p).directory (path (l)).representation ();
     };
 
+#ifndef _WIN32
     assert (test ("/foo", "foo") == "/");
+    assert (test ("/foo/bar/baz", "bar/baz") == "/foo/");
+#endif
+
     assert (test ("foo/bar", "bar") == "foo/");
     assert (test ("foo/bar/", "bar/") == "foo/");
     assert (test ("foo/bar/", "bar") == "foo/");
     assert (test ("foo/bar/baz", "bar/baz") == "foo/");
-    assert (test ("/foo/bar/baz", "bar/baz") == "/foo/");
   }
 
   // relative

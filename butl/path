@@ -808,7 +808,11 @@ namespace butl
     // Normalize the path and return *this. Normalization involves collapsing
     // the '.' and '..'  directories if possible, collapsing multiple
     // directory separators, and converting all directory separators to the
-    // canonical form.
+    // canonical form. If cur_empty is true then collapse relative paths
+    // representing the current directory (for example, '.', './', 'foo/..')
+    // to an empty path. Otherwise convert it to the canonical form (./ on
+    // POSIX systems). Note that a non-empty path cannot become an empty one
+    // in the latter case.
     //
     // If actual is true, then for case-insensitive filesystems obtain the
     // actual spelling of the path. Only an absolute path can be actualized.
@@ -818,7 +822,7 @@ namespace butl
     // etc.) are returned in their actual spelling.
     //
     basic_path&
-    normalize (bool actual = false);
+    normalize (bool actual = false, bool cur_empty = false);
 
     // Make the path absolute using the current directory unless it is already
     // absolute. Return *this.

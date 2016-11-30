@@ -147,7 +147,7 @@ namespace butl
 
   template <typename C, typename K>
   basic_path<C, K>& basic_path<C, K>::
-  normalize (bool actual)
+  normalize (bool actual, bool cur_empty)
   {
     if (empty ())
       return *this;
@@ -273,12 +273,24 @@ namespace butl
         p += traits::directory_separator;
     }
 
-    if (tsep && (!p.empty () || abs)) // Distinguish "/"-empty and "."-empty.
+    if (tsep)
     {
       if (p.empty ())
       {
-        p += traits::directory_separator;
-        ts = -1;
+        // Distinguish "/"-empty and "."-empty.
+        //
+        if (abs)
+        {
+          p += traits::directory_separator;
+          ts = -1;
+        }
+        else if (!cur_empty) // Collapse to canonical current directory.
+        {
+          p = ".";
+          ts = 1; // Canonical separator is always first.
+        }
+        else // Collapse to empty path.
+          ts = 0;
       }
       else
         ts = 1; // Canonical separator is always first.
@@ -313,11 +325,11 @@ namespace butl
 
 #ifdef _WIN32
     // We do not support any special Windows path name notations like in C:abc,
-    // \\?\c:\abc, \\server\abc and \\?\UNC\server\abc (more about them at
-    // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247.aspx).
+    // /, \, /abc, \abc, \\?\c:\abc, \\server\abc and \\?\UNC\server\abc (more
+    // about them in "Naming Files, Paths, and Namespaces" MSDN article).
     //
     if ((n > 2 && s[1] == ':' && s[2] != '\\' && s[2] != '/') ||
-        (n > 1 && s[0] == '\\' && s[1] == '\\'))
+        (n > 0 && (s[0] == '\\' || s[0] == '/')))
     {
       if (exact)
         return data_type ();

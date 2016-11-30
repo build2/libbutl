@@ -171,7 +171,7 @@ namespace butl
       ep = path (move (s)); // Move back into result.
 
       if (norm)
-        ep.normalize (); //@@ NORM
+        ep.normalize ();
 
       return exists (ep.string ().c_str ());
     };
@@ -212,10 +212,17 @@ namespace butl
       e = strchr (b, traits::path_separator);
 
       // Empty path (i.e., a double colon or a colon at the beginning or end
-      // of PATH) means search in the current dirrectory.
+      // of PATH) means search in the current dirrectory. Silently skip
+      // invalid paths.
       //
-      if (search (b, e != nullptr ? e - b : strlen (b)))
-        return r;
+      try
+      {
+        if (search (b, e != nullptr ? e - b : strlen (b)))
+          return r;
+      }
+      catch (const invalid_path&)
+      {
+      }
     }
 
     // If we were given a fallback, try that.
@@ -575,10 +582,17 @@ namespace butl
       e = strchr (b, traits::path_separator);
 
       // Empty path (i.e., a double colon or a colon at the beginning or end
-      // of PATH) means search in the current dirrectory.
+      // of PATH) means search in the current dirrectory. Silently skip
+      // invalid paths.
       //
-      if (search (b, e != nullptr ? e - b : strlen (b)))
-        return r;
+      try
+      {
+        if (search (b, e != nullptr ? e - b : strlen (b)))
+          return r;
+      }
+      catch (const invalid_path&)
+      {
+      }
     }
 
     // Finally, if we were given a fallback, try that. This case is similar to
