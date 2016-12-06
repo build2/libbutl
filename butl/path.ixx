@@ -88,6 +88,20 @@ namespace butl
 
   template <typename C, typename K>
   inline bool basic_path<C, K>::
+  current () const
+  {
+    return traits::current (this->path_);
+  }
+
+  template <typename C, typename K>
+  inline bool basic_path<C, K>::
+  parent () const
+  {
+    return traits::parent (this->path_);
+  }
+
+  template <typename C, typename K>
+  inline bool basic_path<C, K>::
   root () const
   {
     const string_type& s (this->path_);
@@ -232,7 +246,7 @@ namespace butl
   complete ()
   {
     if (relative ())
-      *this = current () / *this;
+      *this = current_directory () / *this;
 
     return *this;
   }

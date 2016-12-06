@@ -60,7 +60,7 @@ namespace butl
 
   template <>
   LIBBUTL_EXPORT path_traits<char>::string_type path_traits<char>::
-  current ()
+  current_directory ()
   {
 #ifdef _WIN32
     char cwd[_MAX_PATH];
@@ -78,7 +78,7 @@ namespace butl
 
   template <>
   LIBBUTL_EXPORT void path_traits<char>::
-  current (string_type const& s)
+  current_directory (string_type const& s)
   {
 #ifdef _WIN32
     if (_chdir (s.c_str ()) != 0)
@@ -173,10 +173,10 @@ namespace butl
 
   template <>
   LIBBUTL_EXPORT path_traits<char>::string_type path_traits<char>::
-  home ()
+  home_directory ()
   {
 #ifndef _WIN32
-    return butl::home ();
+    return home ();
 #else
     // Could be set by, e.g., MSYS and Cygwin shells.
     //
@@ -223,7 +223,7 @@ namespace butl
 
   template <>
   LIBBUTL_EXPORT path_traits<wchar_t>::string_type path_traits<wchar_t>::
-  current ()
+  current_directory ()
   {
 #ifdef _WIN32
     wchar_t wcwd[_MAX_PATH];
@@ -245,7 +245,7 @@ namespace butl
 
   template <>
   LIBBUTL_EXPORT void path_traits<wchar_t>::
-  current (string_type const& s)
+  current_directory (string_type const& s)
   {
 #ifdef _WIN32
     if (_wchdir (s.c_str ()) != 0)
@@ -305,11 +305,11 @@ namespace butl
 
   template <>
   LIBBUTL_EXPORT path_traits<wchar_t>::string_type path_traits<wchar_t>::
-  home ()
+  home_directory ()
   {
 #ifndef _WIN32
     wchar_t d[PATH_MAX];
-    size_t r (mbstowcs (d, butl::home ().c_str (), PATH_MAX));
+    size_t r (mbstowcs (d, home ().c_str (), PATH_MAX));
 
     if (r == size_t (-1))
       throw system_error (EINVAL, system_category ());

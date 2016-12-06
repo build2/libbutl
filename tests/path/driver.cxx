@@ -141,6 +141,15 @@ main ()
   assert (path ("C:\\foo.txt\\").base ().representation () == "C:\\foo\\");
 #endif
 
+  // current/parent
+  //
+  assert (path (".").current ());
+  assert (path ("./").current ());
+  assert (!path (".abc").current ());
+  assert (path ("..").parent ());
+  assert (path ("../").parent ());
+  assert (!path ("..abc").parent ());
+
   // iteration
   //
   {
@@ -483,8 +492,8 @@ main ()
   assert (path::temp_directory ().absolute ());
   //assert (wpath::temp_directory ().absolute ());
 
-  assert (path::home ().absolute ());
-  //assert (wpath::home ().absolute ());
+  assert (path::home_directory ().absolute ());
+  //assert (wpath::home_directory ().absolute ());
 
   // normalize and actualize
   //
@@ -503,7 +512,7 @@ main ()
     assert (test ("c:\\pROGRAM fILES/NonSense\\sTUFF/") ==
             "C:\\Program Files\\NonSense\\sTUFF\\");
 
-    dir_path cwd (path::current ());
+    dir_path cwd (path::current_directory ());
     assert (cwd.normalize (true).representation () == cwd.representation ());
   }
 #endif
@@ -512,7 +521,7 @@ main ()
   path p ("../foo");
   p.complete ();
 
-  cerr << path::current () << endl;
+  cerr << path::current_directory () << endl;
   cerr << p << endl;
   p.normalize ();
   cerr << p << endl;

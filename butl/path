@@ -121,6 +121,30 @@ namespace butl
 #endif
     }
 
+    static bool
+    current (const string_type& s)
+    {
+      return current (s.c_str (), s.size ());
+    }
+
+    static bool
+    current (const C* s, size_type n)
+    {
+      return n == 1 && s[0] == '.';
+    }
+
+    static bool
+    parent (const string_type& s)
+    {
+      return parent (s.c_str (), s.size ());
+    }
+
+    static bool
+    parent (const C* s, size_type n)
+    {
+      return n == 2 && s[0] == '.' && s[1] == '.';
+    }
+
     static size_type
     find_separator (string_type const& s,
                     size_type pos = 0,
@@ -276,16 +300,16 @@ namespace butl
     // the underlying OS errors.
     //
     static string_type
-    current ();
+    current_directory ();
 
     static void
-    current (string_type const&);
+    current_directory (string_type const&);
 
     // Return the user home directory. Throw std::system_error to report the
     // underlying OS errors.
     //
     static string_type
-    home ();
+    home_directory ();
 
     // Return the temporary directory. Throw std::system_error to report the
     // underlying OS errors.
@@ -548,16 +572,16 @@ namespace butl
     // the underlying OS errors.
     //
     static dir_type
-    current () {return dir_type (traits::current ());}
+    current_directory () {return dir_type (traits::current_directory ());}
 
     static void
-    current (basic_path const&);
+    current_directory (basic_path const&);
 
     // Return the user home directory. Throw std::system_error to report the
     // underlying OS errors.
     //
     static dir_type
-    home () {return dir_type (traits::home ());}
+    home_directory () {return dir_type (traits::home_directory ());}
 
     // Return the temporary directory. Throw std::system_error to report the
     // underlying OS errors.
@@ -602,6 +626,20 @@ namespace butl
 
     bool
     root () const;
+
+    // The following predicates return true for the "." and ".." paths,
+    // respectively. Note that the result doesn't depend on the presence or
+    // spelling of the trailing directory separator.
+    //
+    // Also note that the path must literally match the specified values rather
+    // than be semantically current or parent. For example for paths "foo/.."
+    // or "bar/../.." the predicates return false.
+    //
+    bool
+    current () const;
+
+    bool
+    parent () const;
 
     // Test, based on the presence/absence of the trailing separator, if the
     // path is to a directory.

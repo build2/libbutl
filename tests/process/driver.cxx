@@ -225,7 +225,7 @@ main (int argc, const char* argv[])
     // write it to cout and/or cerr.
     //
 
-    if (!wd.empty () && wd.realize () != dir_path::current ())
+    if (!wd.empty () && wd.realize () != dir_path::current_directory ())
       return 1;
 
     try
@@ -305,7 +305,7 @@ main (int argc, const char* argv[])
 
   // Execute the child using the relative path.
   //
-  dir_path::current (fp.directory ());
+  dir_path::current_directory (fp.directory ());
 
   assert (exec (dir_path (".") / fp.leaf ()));
 
@@ -326,7 +326,7 @@ main (int argc, const char* argv[])
   assert (_putenv (("PATH=" + paths).c_str ()) == 0);
 #endif
 
-  dir_path::current (fp.directory () / dir_path (".."));
+  dir_path::current_directory (fp.directory () / dir_path (".."));
 
   assert (exec (fp.leaf ()));
 

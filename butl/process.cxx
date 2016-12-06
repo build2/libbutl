@@ -189,7 +189,7 @@ namespace butl
       }
       else
       {
-        const string& d (traits::current ());
+        const string& d (traits::current_directory ());
 
         if (search (d.c_str (), d.size (), true))
           return r;
@@ -507,7 +507,7 @@ namespace butl
       }
       else
       {
-        const string& d (traits::current ());
+        const string& d (traits::current_directory ());
 
         if (search (d.c_str (), d.size (), true)) // Appends extension.
           return r;
@@ -567,7 +567,7 @@ namespace butl
     // idea to prepend .\ for clarity.
     //
     {
-      const string& d (traits::current ());
+      const string& d (traits::current_directory ());
 
       if (search (d.c_str (), d.size ()))
         return r;
@@ -582,8 +582,8 @@ namespace butl
       e = strchr (b, traits::path_separator);
 
       // Empty path (i.e., a double colon or a colon at the beginning or end
-      // of PATH) means search in the current dirrectory. Silently skip
-      // invalid paths.
+      // of PATH) means search in the current directory. Silently skip invalid
+      // paths.
       //
       try
       {

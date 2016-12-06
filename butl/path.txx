@@ -193,10 +193,7 @@ namespace butl
       if (!tsep)
       {
         const string_type& l (ps.back ());
-        size_type ln (l.size ());
-
-        if ((ln == 1 && l[0] == '.') ||
-            (ln == 2 && l[0] == '.' && l[1] == '.'))
+        if (traits::current (l) || traits::parent (l))
           tsep = true;
       }
     }
@@ -208,30 +205,21 @@ namespace butl
     for (typename paths::iterator i (ps.begin ()), e (ps.end ()); i != e; ++i)
     {
       string_type& s (*i);
-      size_type n (s.size ());
 
-      if (n == 1 && s[0] == '.')
+      if (traits::current (s))
         continue;
 
-      if (n == 2 && s[0] == '.' && s[1] == '.')
+      // If '..' then pop the last directory from r unless it is '..'.
+      //
+      if (traits::parent (s) && !r.empty () && !traits::parent (r.back ()))
       {
-        // Pop the last directory from r unless it is '..'.
+        // Cannot go past the root directory.
         //
-        if (!r.empty ())
-        {
-          string_type const& s1 (r.back ());
+        if (abs && r.size () == 1)
+          throw invalid_basic_path<C> (this->path_);
 
-          if (!(s1.size () == 2 && s1[0] == '.' && s1[1] == '.'))
-          {
-            // Cannot go past the root directory.
-            //
-            if (abs && r.size () == 1)
-              throw invalid_basic_path<C> (this->path_);
-
-            r.pop_back ();
-            continue;
-          }
-        }
+          r.pop_back ();
+          continue;
       }
 
       r.push_back (std::move (s));
@@ -286,7 +274,7 @@ namespace butl
         }
         else if (!cur_empty) // Collapse to canonical current directory.
         {
-          p = ".";
+          p.assign (1, '.');
           ts = 1; // Canonical separator is always first.
         }
         else // Collapse to empty path.
@@ -304,14 +292,14 @@ namespace butl
 
   template <typename C, typename K>
   void basic_path<C, K>::
-  current (basic_path const& p)
+  current_directory (basic_path const& p)
   {
     const string_type& s (p.string ());
 
     if (s.empty ())
       throw invalid_basic_path<char> (s);
 
-    traits::current (s);
+    traits::current_directory (s);
   }
 
   template <typename C>

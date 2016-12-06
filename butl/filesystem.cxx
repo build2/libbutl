@@ -531,14 +531,17 @@ namespace butl
       errno = 0;
       if (struct dirent* de = readdir (h_))
       {
-        const char* n (de->d_name);
+        // We can accept some overhead for '.' and '..' (relying on short
+        // string optimization) in favor of a more compact code.
+        //
+        path p (de->d_name);
 
         // Skip '.' and '..'.
         //
-        if (n[0] == '.' && (n[1] == '\0' || (n[1] == '.' && n[2] == '\0')))
+       if (p.current () || p.parent ())
           continue;
 
-        e_.p_ = path (n);
+        e_.p_ = move (p);
         e_.t_ = d_type<struct dirent> (de, nullptr);
         e_.lt_ = entry_type::unknown;
       }
@@ -665,14 +668,17 @@ namespace butl
 
       if (r)
       {
-        const char* n (fi.name);
+        // We can accept some overhead for '.' and '..' (relying on short
+        // string optimization) in favor of a more compact code.
+        //
+        path p (fi.name);
 
         // Skip '.' and '..'.
         //
-        if (n[0] == '.' && (n[1] == '\0' || (n[1] == '.' && n[2] == '\0')))
+        if (p.current () || p.parent ())
           continue;
 
-        e_.p_ = path (n);
+        e_.p_ = move (p);
 
         // We do not support symlinks at the moment.
         //
