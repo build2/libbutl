@@ -218,8 +218,8 @@ namespace butl
         if (abs && r.size () == 1)
           throw invalid_basic_path<C> (this->path_);
 
-          r.pop_back ();
-          continue;
+        r.pop_back ();
+        continue;
       }
 
       r.push_back (std::move (s));
