@@ -9,10 +9,11 @@
 #include <cstddef>      // size_t
 #include <utility>      // move(), forward()
 #include <cstring>      // strcmp(), strlen()
-#include <exception>    // uncaught_exception()
+#include <exception>    // uncaught_exception(s)()
 //#include <functional> // hash
 
 #include <butl/export>
+#include <butl/config>
 
 namespace butl
 {
@@ -153,15 +154,6 @@ namespace butl
   // Call a function if there is an exception.
   //
 
-  // True means we are in the body of a destructor that is being called as
-  // part of the exception stack unwindining. Used to compensate for the
-  // deficiencies of uncaught_exception() until C++17 uncaught_exceptions()
-  // becomes available.
-  //
-  // @@ MT: will have to be TLS.
-  //
-  LIBBUTL_EXPORT extern bool exception_unwinding_dtor;
-
   template <typename F>
   struct exception_guard;
 
@@ -171,6 +163,39 @@ namespace butl
   {
     return exception_guard<F> (std::move (f));
   }
+
+#ifdef BUTL_CXX17_UNCAUGHT_EXCEPTIONS
+  template <typename F>
+  struct exception_guard
+  {
+    exception_guard (F f)
+        : f_ (std::move (f)),
+          u_ (std::uncaught_exceptions ()) {}
+
+    ~exception_guard ()
+    {
+      if (u_ != std::uncaught_exceptions ())
+        f_ ();
+    }
+
+  private:
+    F f_;
+    int u_;
+  };
+#else
+  // Fallback implementation using a TLS flag.
+  //
+  // True means we are in the body of a destructor that is being called as
+  // part of the exception stack unwindining.
+  //
+  LIBBUTL_EXPORT
+  extern
+#ifdef BUTL_CXX11_THREAD_LOCAL
+  thread_local
+#else
+  __thread
+#endif
+  bool exception_unwinding_dtor;
 
   template <typename F>
   struct exception_guard
@@ -189,6 +214,7 @@ namespace butl
   private:
     F f_;
   };
+#endif
 }
 
 #include <butl/utility.ixx>

@@ -9,7 +9,7 @@
 #include <ostream>
 #include <sstream>
 #include <utility>   // move(), forward()
-#include <exception> // uncaught_exception()
+#include <exception> // uncaught_exception(s)()
 
 #include <butl/export>
 #include <butl/utility>
@@ -36,17 +36,21 @@ namespace butl
       return r;
     }
 
-    diag_record (): empty_ (true), epilogue_ (nullptr) {}
+    diag_record ()
+        :
+#ifdef BUTL_CXX17_UNCAUGHT_EXCEPTIONS
+        uncaught_ (std::uncaught_exceptions ()),
+#endif
+        empty_ (true),
+        epilogue_ (nullptr) {}
 
     template <typename B>
     explicit
-    diag_record (const diag_prologue<B>& p)
-        : empty_ (true), epilogue_ (nullptr) { *this << p;}
+    diag_record (const diag_prologue<B>& p): diag_record () { *this << p;}
 
     template <typename B>
     explicit
-    diag_record (const diag_mark<B>& m)
-        : empty_ (true), epilogue_ (nullptr) { *this << m;}
+    diag_record (const diag_mark<B>& m): diag_record () { *this << m;}
 
     ~diag_record () noexcept (false);
 
@@ -85,19 +89,16 @@ namespace butl
     diag_record (diag_record&&);
 #else
     diag_record (diag_record&& r)
-#ifndef __GLIBCXX__
-        : os (std::move (r.os))
+        :
+#ifdef BUTL_CXX17_UNCAUGHT_EXCEPTIONS
+        uncaught_ (r.uncaught_),
 #endif
+        empty_ (r.empty_),
+        epilogue_ (r.epilogue_),
+        os (std::move (r.os))
     {
-      empty_ = r.empty_;
-      epilogue_ = r.epilogue_;
-
       if (!empty_)
       {
-#ifdef __GLIBCXX__
-        // os << r.os.str ();
-        assert (false); // No way to copy extra stream data?
-#endif
         r.empty_ = true;
         r.epilogue_ = nullptr;
       }
@@ -109,12 +110,15 @@ namespace butl
     diag_record (const diag_record&) = delete;
     diag_record& operator= (const diag_record&) = delete;
 
-  public:
-    mutable std::ostringstream os;
-
   protected:
+#ifdef BUTL_CXX17_UNCAUGHT_EXCEPTIONS
+    const int uncaught_;
+#endif
     mutable bool empty_;
     mutable diag_epilogue* epilogue_;
+
+  public:
+    mutable std::ostringstream os;
   };
 
   template <typename B>
