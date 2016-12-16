@@ -39,7 +39,7 @@ namespace butl
     // mechanism in destructors, which is not a big deal, except for one
     // place: exception_guard. Thus the ugly special check.
     //
-    if (!std::uncaught_exception () || exception_unwinding_dtor)
+    if (!std::uncaught_exception () || exception_unwinding_dtor ())
       flush ();
 #endif
   }

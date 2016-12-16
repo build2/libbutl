@@ -12,6 +12,11 @@ namespace butl
 #else
   __thread
 #endif
-  bool exception_unwinding_dtor = false;
+  bool exception_unwinding_dtor_ = false;
+#endif
+
+#ifdef _WIN32
+  bool&
+  exception_unwinding_dtor () {return exception_unwinding_dtor_;}
 #endif
 }
