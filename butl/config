@@ -31,10 +31,10 @@
 #if defined(_MSC_VER)
 #  define BUTL_CXX17_UNCAUGHT_EXCEPTIONS
 //
-// Clang's libc++ seems to have it for a while so we assume it's there (it
-// doesn't define a feature test macros).
+// Clang's libc++ seems to have it for a while (but not before 1200) so we
+// assume it's there from 1200 (it doesn't define a feature test macros).
 //
-#elif defined(_LIBCPP_VERSION)
+#elif _LIBCPP_VERSION >= 1200
 #  define BUTL_CXX17_UNCAUGHT_EXCEPTIONS
 //
 // GCC libstdc++ has it since GCC 6 and it defines the feature test macro.
