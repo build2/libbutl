@@ -304,8 +304,19 @@ namespace butl
   }
 
   template <typename C, typename K>
-  inline const C* basic_path<C, K>::
+  inline typename basic_path<C, K>::string_type basic_path<C, K>::
   extension () const
+  {
+    const string_type& s (this->path_);
+    size_type p (traits::find_extension (s));
+    return p != string_type::npos
+      ? string_type (s.c_str () + p + 1)
+      : string_type ();
+  }
+
+  template <typename C, typename K>
+  inline const C* basic_path<C, K>::
+  extension_cstring () const
   {
     const string_type& s (this->path_);
     size_type p (traits::find_extension (s));

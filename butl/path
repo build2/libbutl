@@ -702,12 +702,18 @@ namespace butl
     basic_path
     base () const;
 
-    // Return the extension or NULL if not present. If not NULL, then
-    // the result points to the character past the dot but it is legal
-    // to decrement it once to obtain the value with the dot.
+    // Return the extension or NULL if not present. If not empty, then the
+    // result starts with the character past the dot.
+    //
+    string_type
+    extension () const;
+
+    // Return the in-place pointer to extension or NULL if not present. If not
+    // NULL, then the result points to the character past the dot but it is
+    // legal to decrement it once to obtain the value with the dot.
     //
     const C*
-    extension () const;
+    extension_cstring () const;
 
     // Return a path relative to the specified path that is equivalent
     // to *this. Throws invalid_path if a relative path cannot be derived
