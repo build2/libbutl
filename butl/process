@@ -105,17 +105,74 @@ namespace butl
     const char** args0_ = nullptr;
   };
 
+  // Process exit information.
+  //
+  struct LIBBUTL_EXPORT process_exit
+  {
+    // Status type is the raw exit value as returned by GetExitCodeProcess()
+    // (NTSTATUS value that represents exit or error codes; MSDN refers to the
+    // error code as "value of the exception that caused the termination") or
+    // waitpid(1). Code type is the return value if the process exited
+    // normally.
+    //
+#ifndef _WIN32
+    using status_type = int;
+    using code_type = std::uint8_t;
+#else
+    using status_type = std::uint32_t; // Win32 DWORD
+    using code_type = std::uint16_t;   // Win32 WORD
+#endif
+
+    status_type status;
+
+    process_exit () = default;
+
+    explicit
+    process_exit (code_type);
+
+    enum as_status_type {as_status};
+    process_exit (status_type s, as_status_type): status (s) {}
+
+    // Return false if the process exited abnormally.
+    //
+    bool
+    normal () const;
+
+    code_type
+    code () const;
+
+    // Abnormal termination information.
+    //
+#ifndef _WIN32
+    // Return the signal number that caused the termination or 0 if no such
+    // information is available.
+    //
+    int
+    signal () const;
+
+    // Return true if the core file was generated.
+    //
+    bool
+    core () const;
+#endif
+
+    // Return a description of the reason that caused the process to terminate
+    // abnormally. On POSIX this is the signal name, on Windows -- the summary
+    // produced from the corresponding error identifier defined in ntstatus.h.
+    //
+    std::string
+    description () const;
+  };
+
   class LIBBUTL_EXPORT process
   {
   public:
 #ifndef _WIN32
     using handle_type = pid_t;
     using id_type = pid_t;
-    using status_type = int;
 #else
-    using handle_type = void*;         // Win32 HANDLE
-    using id_type = std::uint32_t;     // Win32 DWORD
-    using status_type = std::uint32_t; // Win32 DWORD
+    using handle_type = void*;     // Win32 HANDLE
+    using id_type = std::uint32_t; // Win32 DWORD
 #endif
 
     // Start another process using the specified command line. The default
@@ -187,7 +244,7 @@ namespace butl
              process&, int = 1, int = 2);
 
     // Wait for the process to terminate. Return true if the process
-    // terminated normally and with the zero exit status. Unless ignore_error
+    // terminated normally and with the zero exit code. Unless ignore_error
     // is true, throw process_error if anything goes wrong. This function can
     // be called multiple times with subsequent calls simply returning the
     // status.
@@ -215,10 +272,10 @@ namespace butl
     process& operator= (const process&) = delete;
 
     // Create an empty or "already terminated" process. By default the
-    // termination status is abnormal but you can change that.
+    // termination status is unknown but you can change that.
     //
     explicit
-    process (optional<status_type> status = nullopt);
+    process (optional<process_exit> = nullopt);
 
     // Resolve process' paths based on the initial path in args0. If recall
     // differs from initial, adjust args0 to point to the recall path. If
@@ -292,7 +349,11 @@ namespace butl
 
   public:
     handle_type handle;
-    optional<status_type> status; // Absence means terminated abnormally.
+
+    // Absence means that the exit information is not (yet) known. This can be
+    // because you haven't called wait() yet or because wait() failed.
+    //
+    optional<process_exit> exit;
 
     // Use the following file descriptors to communicate with the new process's
     // standard streams.

@@ -33,7 +33,7 @@
 //
 // Clang's libc++ seems to have it for a while (but not before 1200) so we
 // assume it's there from 1200 (it doesn't define a feature test macros). But
-// not for Mac OS X, where it is explicitly marked unavailable until version
+// not for MacOS, where it is explicitly marked as unavailable until MacOS
 // 10.12.
 //
 #elif defined(_LIBCPP_VERSION) && _LIBCPP_VERSION >= 1200

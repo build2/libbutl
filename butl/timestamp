@@ -122,7 +122,7 @@ namespace butl
   //
   // Note that internally from_string() calls strptime(), which behaves
   // according to the process' C locale (set with std::setlocale()) and not
-  // the C++ locale (set with std::locale::global()). Meanwhile the behaviour
+  // the C++ locale (set with std::locale::global()). However the behaviour
   // can be affected by std::locale::global() as well, as it itself calls
   // std::setlocale() for the locale with a name.
   //

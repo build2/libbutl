@@ -32,7 +32,7 @@ namespace butl
       // Create successfully exited process. Will "wait" for it if fallback to
       // non-interactive execution path.
       //
-      : p_ (optional<process::status_type> (0))
+      : p_ (process_exit (0))
   {
     // If we are using the default pager, try to get the terminal width
     // so that we can center the output.

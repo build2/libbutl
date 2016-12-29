@@ -685,7 +685,7 @@ namespace butl
     of |= mode (fdopen_mode::binary) ? _O_BINARY : _O_TEXT;
 
     // According to Microsoft _sopen() should not change the permissions of an
-    // existing file. Meanwhile it does if we pass them (reproduced on Windows
+    // existing file. However it does if we pass them (reproduced on Windows
     // XP, 7, and 8). And we must pass them if we have _O_CREATE. So we need
     // to take care of preserving the permissions ourselves. Note that Wine's
     // implementation of _sopen() works properly.
