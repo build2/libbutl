@@ -32,10 +32,15 @@
 #  define BUTL_CXX17_UNCAUGHT_EXCEPTIONS
 //
 // Clang's libc++ seems to have it for a while (but not before 1200) so we
-// assume it's there from 1200 (it doesn't define a feature test macros).
+// assume it's there from 1200 (it doesn't define a feature test macros). But
+// not for Mac OS X, where it is explicitly marked unavailable until version
+// 10.12.
 //
-#elif _LIBCPP_VERSION >= 1200
-#  define BUTL_CXX17_UNCAUGHT_EXCEPTIONS
+#elif defined(_LIBCPP_VERSION) && _LIBCPP_VERSION >= 1200
+#  if !defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__) || \
+               __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 101200
+#    define BUTL_CXX17_UNCAUGHT_EXCEPTIONS
+#  endif
 //
 // GCC libstdc++ has it since GCC 6 and it defines the feature test macro.
 // We will also use this for any other runtime.
