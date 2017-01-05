@@ -1,6 +1,6 @@
 /*-
  * Copyright 2005 Colin Percival
- * Copyright 2016 Code Synthesis Ltd
+ * Copyright (c) 2017 Code Synthesis Ltd
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
