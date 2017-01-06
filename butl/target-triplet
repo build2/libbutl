@@ -1,11 +1,12 @@
-// file      : butl/triplet -*- C++ -*-
+// file      : butl/target-triplet -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef BUTL_TRIPLET
-#define BUTL_TRIPLET
+#ifndef BUTL_TARGET_TRIPLET
+#define BUTL_TARGET_TRIPLET
 
 #include <string>
+#include <ostream>
 
 #include <butl/export>
 
@@ -15,7 +16,7 @@ namespace butl
   // form which, these days, quite often takes the CPU-VENDOR-OS-ABI form. Plus
   // some fields can sometimes be omitted. This looseness makes it hard to base
   // any kind of decisions on the triplet without canonicalizing it and then
-  // splitting it into components. the way we are going to split it is like
+  // splitting it into components. The way we are going to split it is like
   // this:
   //
   // CPU
@@ -95,7 +96,7 @@ namespace butl
   //
   // 2. LLVM has the Triple class with similar goals.
   //
-  struct LIBBUTL_EXPORT triplet
+  struct LIBBUTL_EXPORT target_triplet
   {
     std::string cpu;
     std::string vendor;
@@ -103,14 +104,52 @@ namespace butl
     std::string version;
     std::string class_;
 
-    // Parse the triplet optionally returning the canonicalized string. Throw
-    // std::invalid_argument if the triplet is not recognizable.
+    // Assemble and returning the canonical (i.e., the one we round-trip)
+    // target triplet string.
+    //
+    std::string
+    string () const;
+
+    bool
+    empty () const {return cpu.empty ();}
+
+    int
+    compare (const target_triplet& y) const
+    {
+      int r;
+      return
+        (r =    cpu.compare (y.cpu))    != 0 ? r :
+        (r = vendor.compare (y.vendor)) != 0 ? r :
+        (r = system.compare (y.system)) != 0 ? r :
+        (   version.compare (y.version));
+    }
+
+    // Parse the triplet throw std::invalid_argument if the triplet is not
+    // recognizable.
     //
     explicit
-    triplet (const std::string&, std::string* canon = nullptr);
-    triplet (const std::string& s, std::string& canon): triplet (s, &canon) {}
-    triplet () = default;
+    target_triplet (const std::string&);
+
+    target_triplet () = default;
   };
+
+  inline bool
+  operator== (const target_triplet& x, const target_triplet& y)
+  {
+    return x.compare (y) == 0;
+  }
+
+  inline bool
+  operator!= (const target_triplet& x, const target_triplet& y)
+  {
+    return !(x == y);
+  }
+
+  inline std::ostream&
+  operator<< (std::ostream& o, const target_triplet& x)
+  {
+    return o << x.string ();
+  }
 };
 
-#endif // BUTL_TRIPLET
+#endif // BUTL_TARGET_TRIPLET

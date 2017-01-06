@@ -24,8 +24,8 @@ lib{butl}:                               \
 {hxx         cxx}{ sha256              } \
 {hxx            }{ small-vector        } \
 {hxx     txx    }{ string-table        } \
+{hxx         cxx}{ target-triplet      } \
 {hxx         cxx}{ timestamp           } \
-{hxx         cxx}{ triplet             } \
 {hxx ixx     cxx}{ utility             } \
 {hxx            }{ vector-view         } \
 {hxx            }{ version             }

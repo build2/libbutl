@@ -1,8 +1,8 @@
-// file      : butl/triplet.cxx -*- C++ -*-
+// file      : butl/target-triplet.cxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <butl/triplet>
+#include <butl/target-triplet>
 
 #include <stdexcept> // invalid_argument
 
@@ -10,9 +10,11 @@ using namespace std;
 
 namespace butl
 {
-  triplet::
-  triplet (const string& s, string* c)
+  target_triplet::
+  target_triplet (const std::string& s)
   {
+    using std::string;
+
     auto bad = [](const char* m) {throw invalid_argument (m);};
 
     // Find the first and the last components. The first is CPU and the last is
@@ -24,9 +26,6 @@ namespace butl
       bad ("missing cpu");
 
     cpu.assign (s, 0, f);
-
-    if (c != nullptr)
-      *c = cpu;
 
     // If we have something in between, then the first component after CPU is
     // VENDOR. Unless it is a first component of two-component system, as in
@@ -75,15 +74,7 @@ namespace butl
         if (s.compare (f, n, "pc") != 0 &&
             s.compare (f, n, "none") != 0 &&
             s.compare (f, n, "unknown") != 0)
-        {
           vendor.assign (s, f, n);
-
-          if (c != nullptr)
-          {
-            *c += '-';
-            *c += vendor;
-          }
-        }
       }
     }
 
@@ -96,12 +87,6 @@ namespace butl
 
     if (system.front () == '-' || system.back () == '-')
       bad ("invalid os/kernel/abi");
-
-    if (c != nullptr)
-    {
-      *c += '-';
-      *c += system;
-    }
 
     // Extract VERSION for some recognized systems.
     //
@@ -131,5 +116,30 @@ namespace butl
       class_ = "windows";
     else
       class_ = "other";
+  }
+
+  std::string target_triplet::
+  string () const
+  {
+    std::string r (cpu);
+
+    if (!vendor.empty ())
+    {
+      if (!r.empty ()) r += '-';
+      r += vendor;
+    }
+
+    if (!system.empty ())
+    {
+      if (!r.empty ()) r += '-';
+      r += system;
+    }
+
+    if (!version.empty ())
+    {
+      r += version;
+    }
+
+    return r;
   }
 }

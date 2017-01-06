@@ -1,4 +1,4 @@
-// file      : tests/triplet/driver.cxx -*- C++ -*-
+// file      : tests/target-triplet/driver.cxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
@@ -6,7 +6,7 @@
 #include <iostream>
 #include <stdexcept> // invalid_argument
 
-#include <butl/triplet>
+#include <butl/target-triplet>
 
 using namespace std;
 using namespace butl;
@@ -118,21 +118,21 @@ test (const char* s,
       const char* version,
       const char* class_)
 {
-  string c;
-  triplet t (s, c);
+  target_triplet t (s);
+  string c (t.string ());
 
   auto cmp = [] (const string& a, const char* e, const char* n) -> bool
+  {
+    if (a != e)
     {
-      if (a != e)
-      {
-        cerr << n << " actual: " << a << endl
-             << n << " expect: " << e << endl;
+      cerr << n << " actual: " << a << endl
+           << n << " expect: " << e << endl;
 
-        return false;
-      }
+      return false;
+    }
 
-      return true;
-    };
+    return true;
+  };
 
   return
     cmp (c, canon, "canonical") &&
@@ -148,7 +148,7 @@ fail (const char* s)
 {
   try
   {
-    triplet t (s);
+    target_triplet t (s);
     cerr << "nofail: " << s << endl;
     return false;
   }
