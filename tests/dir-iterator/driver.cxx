@@ -8,6 +8,7 @@
 
 #include <butl/path>
 #include <butl/path-io>
+#include <butl/utility>    // operator<<(ostream, exception)
 #include <butl/filesystem>
 
 using namespace std;
@@ -62,7 +63,7 @@ main (int argc, const char* argv[])
   }
   catch (const exception& e)
   {
-    cerr << argv[1] << ": " << e.what () << endl;
+    cerr << argv[1] << ": " << e << endl;
     return 1;
   }
 }

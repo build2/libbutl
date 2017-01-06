@@ -238,7 +238,7 @@ fail (const pairs& m)
   }
   catch (const manifest_serialization& e)
   {
-    //cerr << e.what () << endl;
+    //cerr << e << endl;
   }
 
   return true;

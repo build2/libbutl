@@ -5,6 +5,7 @@
 #include <cassert>
 #include <iostream>
 
+#include <butl/utility>             // operator<<(ostream, exception)
 #include <butl/fdstream>
 #include <butl/manifest-parser>
 #include <butl/manifest-serializer>
@@ -46,7 +47,7 @@ main (int argc, char* argv[])
   }
   catch (const exception& e)
   {
-    cerr << e.what () << endl;
+    cerr << e << endl;
     return 1;
   }
 }

@@ -41,7 +41,7 @@ namespace butl
   // }
   // catch (const std::system_error& e)
   // {
-  //   cerr << "pager error: " << e.what () << endl;
+  //   cerr << "pager error: " << e << endl;
   // }
   //
   class LIBBUTL_EXPORT pager: protected std::streambuf

@@ -46,18 +46,22 @@ namespace butl
     // exception and to make a string returned by what() to contain the error
     // description plus an optional custom message if provided. Unfortunatelly
     // there is no way to say that the custom message is absent. Passing an
-    // empty string results for GCC (as of version 5.3.1) with a description
-    // like this (note the ugly ": " prefix): ": No such file or directory".
+    // empty string results for libstdc++ (as of version 5.3.1) with a
+    // description like this (note the ': ' prefix):
+    //
+    // : No such file or directory
+    //
+    // Note that our custom operator<<(ostream, exception) strips this prefix.
     //
     throw ios_base::failure (m != nullptr ? m : "", e);
   }
 
   template <bool v>
   static inline void
-  throw_ios_failure (error_code ec,
+  throw_ios_failure (error_code e,
                      typename enable_if<!v, const char*>::type m)
   {
-    throw ios_base::failure (m != nullptr ? m : ec.message ().c_str ());
+    throw ios_base::failure (m != nullptr ? m : e.message ().c_str ());
   }
 
   inline void

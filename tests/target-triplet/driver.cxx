@@ -154,7 +154,7 @@ fail (const char* s)
   }
   catch (invalid_argument& e)
   {
-    //cerr << e.what () << endl;
+    //cerr << e << endl;
   }
 
   return true;

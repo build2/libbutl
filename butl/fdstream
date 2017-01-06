@@ -299,7 +299,7 @@ namespace butl
   // }
   // catch (const process_error& e)
   // {
-  //   error << ... << e.what ();
+  //   error << ... << e;
   //
   //   if (e.child ())
   //     exit (1);

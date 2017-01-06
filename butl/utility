@@ -6,10 +6,11 @@
 #define BUTL_UTILITY
 
 #include <string>
+#include <iosfwd>       // ostream
 #include <cstddef>      // size_t
 #include <utility>      // move(), forward()
 #include <cstring>      // strcmp(), strlen()
-#include <exception>    // uncaught_exception(s)()
+#include <exception>    // exception, uncaught_exception(s)()
 //#include <functional> // hash
 
 #include <butl/export>
@@ -225,6 +226,18 @@ namespace butl
     F f_;
   };
 #endif
+}
+
+namespace std
+{
+  // Sanitize the exception description before printing. This includes:
+  //
+  // - stripping leading colons and spaces (see fdstream.cxx)
+  // - stripping trailing newlines, periods, and spaces
+  // - lower-case the first letter if the beginning looks like a word
+  //
+  LIBBUTL_EXPORT ostream&
+  operator<< (ostream&, const exception&);
 }
 
 #include <butl/utility.ixx>

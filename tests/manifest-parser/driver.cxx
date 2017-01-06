@@ -200,7 +200,7 @@ fail (const char* m)
   }
   catch (const manifest_parsing& e)
   {
-    //cerr << e.what () << endl;
+    //cerr << e << endl;
   }
 
   return true;

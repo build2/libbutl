@@ -146,7 +146,7 @@ exec (const path& p,
     if (e.child ())
       exit (1);
 
-    //cerr << args[0] << ": " << e.what () << endl;
+    //cerr << args[0] << ": " << e << endl;
     return false;
   }
 }

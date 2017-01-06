@@ -57,7 +57,7 @@ link_dir (const dir_path& target,
   }
   catch (const system_error& e)
   {
-    //cerr << e.what () << endl;
+    //cerr << e << endl;
     return false;
   }
 

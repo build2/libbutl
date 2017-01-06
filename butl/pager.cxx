@@ -18,6 +18,7 @@
 #include <utility>      // move()
 #include <system_error>
 
+#include <butl/utility>  // operator<<(ostream, exception)
 #include <butl/fdstream> // fdclose()
 
 using namespace std;
@@ -147,7 +148,7 @@ namespace butl
     {
       if (e.child ())
       {
-        cerr << args[0] << ": unable to execute: " << e.what () << endl;
+        cerr << args[0] << ": unable to execute: " << e << endl;
         exit (1);
       }
 
