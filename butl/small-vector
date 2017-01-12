@@ -55,9 +55,10 @@ namespace butl
     T*
     allocate(std::size_t n)
     {
+      assert (n >= N); // We should never be asked for less than N.
+
       if (n <= N)
       {
-        assert (buf_->free_); // Why would we need another small buffer?
         buf_->free_ = false;
         return reinterpret_cast<T*> (buf_->data_);
       }
@@ -198,15 +199,6 @@ namespace butl
       static_cast<base_type&> (*this) = v;
     }
 
-    small_vector (small_vector&& v)
-      : base_type (allocator_type (this))
-    {
-      if (v.size () <= N)
-        reserve ();
-
-      static_cast<base_type&> (*this) = std::move (v);
-    }
-
     small_vector&
     operator= (const small_vector& v)
     {
@@ -216,12 +208,38 @@ namespace butl
       return *this;
     }
 
+    small_vector (small_vector&& v)
+      : base_type (allocator_type (this))
+    {
+      if (v.size () <= N)
+        reserve ();
+
+      *this = std::move (v); // Delegate to operator=(&&).
+    }
+
     small_vector&
     operator= (small_vector&& v)
     {
+      // VC's implementation of operator=(&&) (both 14 and 15) frees the
+      // memory and then reallocated with capacity equal to v.size(). This is
+      // clearly sub-optimal (the existing buffer could be reused) so we hope
+      // this will be fixed eventually.
+      //
+#if defined(_MSC_VER) && _MSC_VER <= 1910
+      if (v.size () < N)
+      {
+        clear ();
+        for (T& x: v)
+          push_back (std::move (x));
+        v.clear ();
+      }
+      else
+#endif
+
       // Note: propagate_on_container_move_assignment = false
       //
       static_cast<base_type&> (*this) = std::move (v);
+
       return *this;
     }
 
