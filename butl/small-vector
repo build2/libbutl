@@ -7,8 +7,9 @@
 
 #include <vector>
 #include <cassert>
-#include <cstddef> // size_t
-#include <utility> // more(), forward()
+#include <cstddef>     // size_t
+#include <utility>     // more(), forward()
+#include <type_traits> // true_type
 
 namespace butl
 {
@@ -108,7 +109,13 @@ namespace butl
 
     // propagate_on_container_copy_assignment = false
     // propagate_on_container_move_assignment = false
-    // propagate_on_container_swap = false
+
+    // Swap is not supported (see explanation in small_vector::swap()).
+    //
+    using propagate_on_container_swap = std::true_type;
+
+    void
+    swap (small_vector_allocator&) = delete;
 
     // Shouldn't be needed except to satisfy some static_assert's.
     //
@@ -223,7 +230,7 @@ namespace butl
       // VC's implementation of operator=(&&) (both 14 and 15) frees the
       // memory and then reallocated with capacity equal to v.size(). This is
       // clearly sub-optimal (the existing buffer could be reused) so we hope
-      // this will be fixed eventually.
+      // this will be fixed eventually (VSO#367146).
       //
 #if defined(_MSC_VER) && _MSC_VER <= 1910
       if (v.size () < N)
