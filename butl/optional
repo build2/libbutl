@@ -5,7 +5,8 @@
 #ifndef BUTL_OPTIONAL
 #define BUTL_OPTIONAL
 
-#include <utility> // move()
+#include <utility>    // move()
+#include <functional> // hash
 
 namespace butl
 {
@@ -38,6 +39,7 @@ namespace butl
     T&       operator* () {return value_;}
     const T& operator* () const {return value_;}
 
+    bool         has_value () const {return !null_;}
     explicit operator bool () const {return !null_;}
 
   private:
@@ -58,6 +60,37 @@ namespace butl
   {
     return !(x == y);
   }
+
+  template <typename T>
+  inline auto
+  operator< (const optional<T>& x, const optional<T>& y) -> decltype (*x < *y)
+  {
+    bool px (x), py (y);
+    return px < py || (px && py && *x < *y);
+  }
+
+  template <typename T>
+  inline auto
+  operator> (const optional<T>& x, const optional<T>& y) -> decltype (*x > *y)
+  {
+    return y < x;
+  }
+}
+
+namespace std
+{
+  template <typename T>
+  struct hash<butl::optional<T>>: hash<T>
+  {
+    using argument_type = butl::optional<T>;
+
+    size_t
+    operator() (const butl::optional<T>& o) const
+      noexcept (noexcept (hash<T> {} (*o)))
+    {
+      return o ? hash<T>::operator() (*o) : static_cast<size_t> (-3333);
+    }
+  };
 }
 
 #endif // BUTL_OPTIONAL
