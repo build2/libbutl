@@ -1104,6 +1104,8 @@ namespace std
   template <typename C, typename K>
   struct hash<butl::basic_path<C, K>>: hash<basic_string<C>>
   {
+    using argument_type = butl::basic_path<C, K>;
+
     size_t
     operator() (const butl::basic_path<C, K>& p) const noexcept
     {
