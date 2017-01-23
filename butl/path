@@ -319,8 +319,8 @@ namespace butl
 
     // Return a temporary name. The name is constructed by starting with the
     // prefix followed by the process id following by a unique counter value
-    // inside the process. Throw std::system_error to report the underlying OS
-    // errors.
+    // inside the process (MT-safe). Throw std::system_error to report the
+    // underlying OS errors.
     //
     static string_type
     temp_name (string_type const& prefix);

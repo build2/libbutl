@@ -14,7 +14,7 @@ using namespace std;
 
 namespace butl
 {
-  static const char* codes =
+  static const char codes[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
   // base64-encode the data in the iterator range [i, e). Write the encoded

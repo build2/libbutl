@@ -18,7 +18,11 @@ namespace butl
 {
   // Diagnostic facility base infrastructure.
   //
-  LIBBUTL_EXPORT extern std::ostream* diag_stream; // std::cerr by default.
+
+  // Diagnostics destination stream (std::cerr by default). Note that its
+  // modification is not MT-safe.
+  //
+  LIBBUTL_EXPORT extern std::ostream* diag_stream;
 
   struct diag_record;
   template <typename> struct diag_prologue;

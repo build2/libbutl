@@ -230,7 +230,8 @@ namespace butl
       // VC's implementation of operator=(&&) (both 14 and 15) frees the
       // memory and then reallocated with capacity equal to v.size(). This is
       // clearly sub-optimal (the existing buffer could be reused) so we hope
-      // this will be fixed eventually (VSO#367146).
+      // this will be fixed eventually (VSO#367146; reportedly fixed for
+      // VC15U1).
       //
 #if defined(_MSC_VER) && _MSC_VER <= 1910
       if (v.size () < N)
