@@ -6,15 +6,17 @@
 #define BUTL_UTILITY
 
 #include <string>
-#include <iosfwd>       // ostream
-#include <cstddef>      // size_t
-#include <utility>      // move(), forward()
-#include <cstring>      // strcmp(), strlen()
-#include <exception>    // exception, uncaught_exception(s)()
+#include <iosfwd>            // ostream
+#include <cstddef>           // size_t
+#include <utility>           // move(), forward()
+#include <cstring>           // strcmp(), strlen()
+#include <butl/ft/exception> // uncaught_exceptions
+#include <exception>         // exception, uncaught_exception(s)()
+#include <butl/ft/lang>      // thread_local
+
 //#include <functional> // hash
 
 #include <butl/export>
-#include <butl/config>
 
 namespace butl
 {
@@ -165,7 +167,7 @@ namespace butl
     return exception_guard<F> (std::move (f));
   }
 
-#ifdef BUTL_CXX17_UNCAUGHT_EXCEPTIONS
+#ifdef __cpp_lib_uncaught_exceptions
   template <typename F>
   struct exception_guard
   {
@@ -190,7 +192,7 @@ namespace butl
   // part of the exception stack unwindining.
   //
   extern
-#ifdef BUTL_CXX11_THREAD_LOCAL
+#ifdef __cpp_thread_local
   thread_local
 #else
   __thread

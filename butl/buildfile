@@ -3,32 +3,34 @@
 # license   : MIT; see accompanying LICENSE file
 
 lib{butl}:                               \
-{hxx         cxx}{ base64              } \
-{hxx         cxx}{ char-scanner        } \
-{hxx            }{ config              } \
-{hxx         cxx}{ diagnostics         } \
-{hxx            }{ export              } \
-{hxx ixx     cxx}{ fdstream            } \
-{hxx ixx     cxx}{ filesystem          } \
-{hxx            }{ manifest-forward    } \
-{hxx         cxx}{ manifest-parser     } \
-{hxx         cxx}{ manifest-serializer } \
-{hxx            }{ multi-index         } \
-{hxx            }{ optional            } \
-{hxx         cxx}{ pager               } \
-{hxx ixx txx cxx}{ path                } \
-{hxx            }{ path-io             } \
-{hxx            }{ path-map            } \
-{hxx     txx    }{ prefix-map          } \
-{hxx ixx     cxx}{ process             } \
-{hxx         cxx}{ sha256              } \
-{hxx            }{ small-vector        } \
-{hxx     txx    }{ string-table        } \
-{hxx         cxx}{ target-triplet      } \
-{hxx         cxx}{ timestamp           } \
-{hxx ixx     cxx}{ utility             } \
-{hxx            }{ vector-view         } \
-{hxx            }{ version             }
+   {hxx         cxx}{ base64              } \
+   {hxx         cxx}{ char-scanner        } \
+   {hxx         cxx}{ diagnostics         } \
+   {hxx            }{ export              } \
+   {hxx ixx     cxx}{ fdstream            } \
+   {hxx ixx     cxx}{ filesystem          } \
+   {hxx            }{ manifest-forward    } \
+   {hxx         cxx}{ manifest-parser     } \
+   {hxx         cxx}{ manifest-serializer } \
+   {hxx            }{ multi-index         } \
+   {hxx            }{ optional            } \
+   {hxx         cxx}{ pager               } \
+   {hxx ixx txx cxx}{ path                } \
+   {hxx            }{ path-io             } \
+   {hxx            }{ path-map            } \
+   {hxx     txx    }{ prefix-map          } \
+   {hxx ixx     cxx}{ process             } \
+   {hxx         cxx}{ sha256              } \
+   {hxx            }{ small-vector        } \
+   {hxx     txx    }{ string-table        } \
+   {hxx         cxx}{ target-triplet      } \
+   {hxx         cxx}{ timestamp           } \
+   {hxx ixx     cxx}{ utility             } \
+   {hxx            }{ vector-view         } \
+   {hxx            }{ version             } \
+ft/{hxx            }{ exception           } \
+ft/{hxx            }{ lang                } \
+ft/{hxx            }{ shared_mutex        }
 
 # Exclude these from compilation on non-Windows targets.
 #
@@ -66,3 +68,4 @@ libs{butl}: cxx.export.poptions += -DLIBBUTL_SHARED
 # Install into the butl/ subdirectory of, say, /usr/include/.
 #
 install.include = $install.include/butl/
+install.include.subdirs = true # Recreate subdirectories.

@@ -8,8 +8,9 @@
 #include <cassert>
 #include <ostream>
 #include <sstream>
-#include <utility>   // move(), forward()
-#include <exception> // uncaught_exception(s)()
+#include <utility>           // move(), forward()
+#include <butl/ft/exception> // uncaught_exceptions
+#include <exception>         // uncaught_exception(s)()
 
 #include <butl/export>
 #include <butl/utility>
@@ -42,7 +43,7 @@ namespace butl
 
     diag_record ()
         :
-#ifdef BUTL_CXX17_UNCAUGHT_EXCEPTIONS
+#ifdef __cpp_lib_uncaught_exceptions
         uncaught_ (std::uncaught_exceptions ()),
 #endif
         empty_ (true),
@@ -94,7 +95,7 @@ namespace butl
 #else
     diag_record (diag_record&& r)
         :
-#ifdef BUTL_CXX17_UNCAUGHT_EXCEPTIONS
+#ifdef __cpp_lib_uncaught_exceptions
         uncaught_ (r.uncaught_),
 #endif
         empty_ (r.empty_),
@@ -115,7 +116,7 @@ namespace butl
     diag_record& operator= (const diag_record&) = delete;
 
   protected:
-#ifdef BUTL_CXX17_UNCAUGHT_EXCEPTIONS
+#ifdef __cpp_lib_uncaught_exceptions
     const int uncaught_;
 #endif
     mutable bool empty_;

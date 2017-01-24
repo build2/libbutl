@@ -31,7 +31,7 @@ namespace butl
     // Don't flush the record if this destructor was called as part of the
     // stack unwinding.
     //
-#ifdef BUTL_CXX17_UNCAUGHT_EXCEPTIONS
+#ifdef __cpp_lib_uncaught_exceptions
     if (uncaught_ == std::uncaught_exceptions ())
       flush ();
 #else

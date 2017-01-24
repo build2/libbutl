@@ -1,0 +1,29 @@
+// file      : butl/ft/lang -*- C++ -*-
+// copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+// license   : MIT; see accompanying LICENSE file
+
+#ifndef BUTL_FT_LANG
+#define BUTL_FT_LANG
+
+// __cpp_thread_local (extension)
+//
+// If this macro is undefined then one may choose to fallback to __thread.
+// Note, however, that it only for values that do not require dynamic
+// (runtime) initialization.
+//
+#ifndef __cpp_thread_local
+   //
+   // Apparently Apple's Clang "temporarily disabled" C++11 thread_local until
+   // they can implement a "fast" version, which reportedly happened in XCode
+   // 8.
+   //
+#  if defined(__apple_build_version__)
+#    if __apple_build_version__ >= 8000000
+#      define __cpp_thread_local 201103
+#    endif
+#  else
+#    define __cpp_thread_local 201103
+#  endif
+#endif
+
+#endif // BUTL_FT_LANG

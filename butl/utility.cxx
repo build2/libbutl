@@ -8,9 +8,9 @@
 
 namespace butl
 {
-#ifndef BUTL_CXX17_UNCAUGHT_EXCEPTIONS
+#ifndef __cpp_lib_uncaught_exceptions
 
-#ifdef BUTL_CXX11_THREAD_LOCAL
+#ifdef __cpp_thread_local
   thread_local
 #else
   __thread
