@@ -17,7 +17,10 @@ namespace butl
   {
     if (!empty_)
     {
-      *diag_stream << os.str () << endl;
+      os.put ('\n');
+      *diag_stream << os.str ();
+      diag_stream->flush ();
+
       empty_ = true;
 
       if (epilogue_ != nullptr)
