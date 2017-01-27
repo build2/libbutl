@@ -874,15 +874,19 @@ namespace butl
       if (h == INVALID_HANDLE_VALUE)
         fail ("unable to obtain file handle");
 
-      // SetHandleInformation() fails for standard handles. We assume they are
-      // inherited by default.
+      // Make the handle inheritable by the child unless it is already
+      // inheritable.
       //
-      if (fd != STDIN_FILENO && fd != STDOUT_FILENO && fd != STDERR_FILENO)
-      {
-        if (!SetHandleInformation (
-              h, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT))
-          fail ();
-      }
+      DWORD f;
+      if (!GetHandleInformation (h, &f))
+	fail ();
+
+      // Note that the flag check is essential as SetHandleInformation() fails
+      // for standard handles and their duplicates.
+      //
+      if ((f & HANDLE_FLAG_INHERIT) == 0 &&
+          !SetHandleInformation (h, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT))
+        fail ();
 
       return h;
     };
