@@ -658,7 +658,7 @@ namespace butl
     of |= O_LARGEFILE;
 #endif
 
-    int fd (open (f, of, pf));
+    int fd (open (f, of | O_CLOEXEC, pf));
 
 #else
 
@@ -745,6 +745,18 @@ namespace butl
   {
 #ifndef _WIN32
     int nfd (dup (fd));
+
+    int f (fcntl (fd, F_GETFD));
+    if (f == -1)
+      throw_ios_failure (errno);
+
+    if ((f & FD_CLOEXEC) != 0)
+    {
+      f = fcntl (nfd, F_GETFD);
+      if (f == -1 || fcntl (nfd, F_SETFD, f | FD_CLOEXEC) == -1)
+        throw_ios_failure (errno);
+    }
+
 #else
     int nfd (_dup (fd));
 #endif
@@ -766,7 +778,7 @@ namespace butl
   int
   fdnull () noexcept
   {
-    return open ("/dev/null", O_RDWR);
+    return open ("/dev/null", O_RDWR | O_CLOEXEC);
   }
 
   fdstream_mode
@@ -828,6 +840,13 @@ namespace butl
     int pd[2];
     if (pipe (pd) == -1)
       throw_ios_failure (errno);
+
+    for (size_t i (0); i < 2; ++i)
+    {
+      int f (fcntl (pd[i], F_GETFD));
+      if (f == -1 || fcntl (pd[i], F_SETFD, f | FD_CLOEXEC) == -1)
+        throw_ios_failure (errno);
+    }
 
     return {auto_fd (pd[0]), auto_fd (pd[1])};
   }

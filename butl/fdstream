@@ -486,6 +486,9 @@ namespace butl
   // process' umask, so effective permissions are permissions & ~umask. On
   // Windows permissions other than ru and wu are unlikelly to have effect.
   //
+  // Also note that on POSIX the FD_CLOEXEC flag is set for the file descriptor
+  // to prevent its leakage into child processes.
+  //
   LIBBUTL_EXPORT auto_fd
   fdopen (const char*,
           fdopen_mode,
@@ -509,6 +512,13 @@ namespace butl
 
   // Duplicate an open file descriptor. Throw ios::failure on the underlying
   // OS error.
+  //
+  // Note that on POSIX the FD_CLOEXEC flag is set for the new descriptor if it
+  // is present for the source one. That's in contrast to POSIX dup() that
+  // doesn't copy file descriptor flags. Also note that duplicating descriptor
+  // and setting the flag is not an atomic operation.
+  //
+  // @@ Should we copy HANDLE_FLAG_INHERIT flag on Windows as well?
   //
   LIBBUTL_EXPORT auto_fd
   fddup (int fd);
@@ -563,6 +573,9 @@ namespace butl
   // closed. One difference, however, would be if you were to both write to
   // and read from the descriptor.
   //
+  // Note that on POSIX the FD_CLOEXEC flag is set for the file descriptor to
+  // prevent its leakage into child processes.
+  //
   // @@ You may have noticed that this interface doesn't match fdopen() (it
   //    does not throw and return int instead of auto_fd). The reason for this
   //    is process and its need to translate everything to process_error).
@@ -590,6 +603,13 @@ namespace butl
   // Note that on Windows both ends of the created pipe are not inheritable.
   // In particular, the process class that uses fdpipe underneath makes the
   // appropriate end of pipe (the one being passed to the child) inheritable.
+  //
+  // Note that on POSIX the FD_CLOEXEC flag is set for both ends, so they get
+  // automatically closed by the child process to prevent undesired behaviors
+  // (such as child deadlock on read from a pipe due to the write-end leakage
+  // into the child process). Opening pipe and setting the flag is not an
+  // atomic operation. Also note that you don't need to reset the flag for a
+  // pipe end being passed to the process class ctor.
   //
   LIBBUTL_EXPORT fdpipe
   fdopen_pipe (fdopen_mode = fdopen_mode::none);

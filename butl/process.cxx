@@ -865,7 +865,7 @@ namespace butl
     // Resolve file descriptor to HANDLE and make sure it is inherited. Note
     // that the handle is closed either when CloseHandle() is called for it or
     // when _close() is called for the associated file descriptor. Make sure
-    // that either the original file descriptor or the resulted HANDLE is
+    // that either the original file descriptor or the resulting HANDLE is
     // closed but not both of them.
     //
     auto get_osfhandle = [&fail](int fd) -> HANDLE

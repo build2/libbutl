@@ -17,7 +17,7 @@
 using namespace std;
 using namespace butl;
 
-// Parse the input using the format string. Print the resulted time with the
+// Parse the input using the format string. Print the resulting time with the
 // same format string, ensure the output matches the input.
 //
 static bool
