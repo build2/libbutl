@@ -38,10 +38,21 @@
 #  endif
 #endif
 
-// __cpp_lib_shared_mutex
+// __cpp_lib_shared_timed_mutex
 //
 #ifndef __cpp_lib_shared_timed_mutex
-#  define __cpp_lib_shared_timed_mutex 201402
+   //
+   // On MacOS shared_timed_mutex is marked as unavailable until MacOS
+   // 10.12.
+   //
+#  if defined(_LIBCPP_VERSION)
+#    if !defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__) ||      \
+  __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 101200
+#      define __cpp_lib_shared_timed_mutex 201402
+#    endif
+#  else
+#    define __cpp_lib_shared_timed_mutex 201402
+#  endif
 #endif
 
 #endif // BUTL_FT_SHARED_MUTEX
