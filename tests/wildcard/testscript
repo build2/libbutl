@@ -1,0 +1,378 @@
+# file      : tests/wildcard/testscript
+# copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+: path-match
+:
+{
+  test.options = -m
+
+  $* foo/ foo  == 1 : dir-vs-file
+  $* foo  foo/ == 1 : file-vs-dir
+
+  : no-star
+  :
+  {
+    : match
+    :
+    {
+      $* foo/ foo/ : dir
+      $* foo  foo  : file
+      $* f?o  foo  : qmark
+      $* ''   ''   : empty
+    }
+
+    : no-match
+    :
+    {
+      $* oo  foo == 1 : name-char
+      $* foo oo  == 1 : pattern-char
+    }
+  }
+
+  : with-star
+  :
+  {
+    : no-backtracking
+    :
+    {
+      : match
+      :
+      {
+        $* *      ''      : empty
+        $* *.txt  foo.txt : suffix-only
+        $* foo*   foo.txt : prefix-only
+        $* f*.txt foo.txt : prefix-suffix
+      }
+
+      : no-match
+      :
+      {
+        $* fox* foo.txt == 1 : pattern-prefix-char
+        $* foo* fo      == 1 : short-name
+      }
+    }
+
+    : backtracking
+    :
+    {
+      : match
+      :
+      {
+        $* **    ''      : empty1
+        $* ***   ''      : empty2
+        $* f*.*  f.txt   : empty3
+        $* f**.* f.txt   : empty4
+        $* f*.*  foo.txt : non-empty
+        $* f*?*  foo-txt : qmark
+      }
+
+      : no-match
+      :
+      {
+        $* f*.* foo-txt == 1
+      }
+    }
+  }
+}
+
+: path-search
+:
+{
+  test.options = -s
+
+  : start
+  :
+  {
+    : empty
+    :
+    $* * >>/EOO
+    stderr
+    stdout
+    EOO
+
+    : relative
+    :
+    mkdir -p foo/fox/bar;
+    $* ba*/ foo/fox >>/EOO
+    bar/
+    EOO
+
+    : absolute
+    :
+    : When cross-testing we can't guarantee that host absolute paths are
+    : recognized by the target process.
+    :
+    if ($test.target == $build.host)
+    {
+      wd = $~
+      +mkdir -p foo/bar
+
+      : dir
+      :
+      $* ba*/ "$wd/foo" >>/EOO
+      bar/
+      EOO
+
+      : pattern
+      :
+      $* "$wd/foo/ba*/" >>/"EOO"
+      $wd/foo/bar/
+      EOO
+    }
+  }
+
+  : pattern
+  :
+  {
+    : simple
+    :
+    {
+      : file
+      :
+      {
+        +mkdir -p foo/bar
+        +touch foo/baz foo/box foo/bar/bar foo/bar/fox
+
+        : immediate
+        :
+        $* b* ../foo >>EOO
+        baz
+        box
+        EOO
+
+        : recursive
+        :
+        $* ba** ../foo >>/EOO
+        bar/bar
+        baz
+        EOO
+
+        : self-recursive
+        :
+	{
+	  : start
+	  :
+          $* f*** ../../foo >>/EOO
+          bar/fox
+          EOO
+
+          : current
+          :
+	  mkdir -p bar/fox;
+	  touch bar/fox/cox;
+          $* c*** >>/EOO
+          bar/fox/cox
+          EOO
+        }
+      }
+
+      : dir
+      :
+      {
+        +mkdir -p foo/bar/bar foo/bar/fox/
+        +touch foo/baz
+
+        : immediate
+        :
+        $* b*/ ../foo >>/EOO
+        bar/
+        EOO
+
+        : recursive
+        :
+        $* -n b**/ ../foo >>/EOO
+        bar/bar/
+        bar/
+        EOO
+
+        : self-recursive
+        :
+	{
+	  : start
+	  :
+	  : Note that the start dir is represented as an empty path being
+	  : found.
+	  :
+          $* f***/ ../../foo >>/EOO
+
+          bar/fox/
+          EOO
+
+          : current
+          :
+	  mkdir -p bar/cox/box/;
+          $* c***/ >>/EOO
+
+          bar/cox/
+          EOO
+        }
+      }
+    }
+
+    : compound
+    :
+    {
+      : file
+      :
+      {
+        +mkdir -p foo fox fix/bar baz/foo/zab baz/foo/zab/baz
+        +touch foo/bar foo/fox fox/baz baz/foo/zab/bar
+
+        : immediate
+        :
+        $* f*/b* .. >>/EOO
+        foo/bar
+        fox/baz
+        EOO
+
+        : recursive
+        :
+        $* f**/b** .. >>/EOO
+        baz/foo/zab/bar
+        foo/bar
+        fox/baz
+        EOO
+
+        : self-recursive
+        :
+	{
+	  : pattern
+	  :
+          $* foo/f*** ../.. >>/EOO
+          foo/fox
+          EOO
+
+          : start
+          :
+          $* f*** ../../foo >>/EOO
+          fox
+          EOO
+
+          : current
+          :
+	  mkdir -p bar;
+	  touch bar/cox;
+          $* c*** >>/EOO
+          bar/cox
+          EOO
+	}
+      }
+
+      : dir
+      :
+      {
+        +mkdir -p foo/bar foo/fox/box fox/baz fix baz/foo/zab/baz
+        +touch fix/bar baz/foo/zab/bar
+
+        : immediate
+        :
+        $* f*/b*/ .. >>/EOO
+        foo/bar/
+        fox/baz/
+        EOO
+
+        : recursive
+        :
+        $* f**/b**/ .. >>/EOO
+        baz/foo/zab/baz/
+        foo/bar/
+        foo/fox/box/
+        foo/fox/box/
+        fox/baz/
+        EOO
+
+        : self-recursive
+        :
+	{
+	  : pattern
+	  :
+          $* foo/f***/b**/ ../.. >>/EOO
+          foo/bar/
+          foo/fox/box/
+          foo/fox/box/
+          EOO
+
+          : start
+          :
+          $* f***/b**/ ../../foo >>/EOO
+          bar/
+          fox/box/
+          fox/box/
+          EOO
+
+          : current
+          :
+	  mkdir -p bar/cox/box/;
+          $* c***/b**/ >>/EOO
+          bar/
+          bar/cox/box/
+          bar/cox/box/
+          EOO
+	}
+      }
+    }
+
+    : fast-forward
+    :
+    {
+      +mkdir -p foo/bar/baz foo/box
+      +touch foo/bar/baz/fox
+
+      : partial
+      :
+      {
+        wd = ../..
+
+        : file
+        :
+        $* foo/ba*/baz/f* $wd >>/EOO
+        foo/bar/baz/fox
+        EOO
+
+        : dir
+        :
+        $* foo/b*/baz/ $wd >>/EOO
+        foo/bar/baz/
+        EOO
+      }
+
+      : reduce
+      :
+      {
+        wd = ../../..
+
+        : exists
+        :
+        {
+          : file
+          :
+          $* fo?/bar/baz/fox $wd >>/EOO
+          foo/bar/baz/fox
+          EOO
+
+          : dir
+          :
+          $* fo?/bar/baz/ $wd >>/EOO
+          foo/bar/baz/
+          EOO
+
+          : parent
+          :
+          $* fo?/box/../bar/baz/fox $wd >>/EOO
+          foo/box/../bar/baz/fox
+          EOO
+        }
+
+        : not-exists
+        :
+        {
+          $* fo?/bar/baz/foz        $wd == 1 : file
+          $* fo?/bar/bax/           $wd == 1 : dir
+          $* fo?/bar/baz/fox/       $wd == 1 : not-dir
+          $* fo?/bix/../bar/baz/foz $wd == 1 : parent
+        }
+      }
+    }
+  }
+}

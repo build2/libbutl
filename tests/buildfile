@@ -4,7 +4,8 @@
 
 d = base64/ cpfile/ dir-iterator/ fdstream/ link/ manifest-parser/ \
     manifest-serializer/ manifest-roundtrip/ pager/ path/ prefix-map/ \
-    process/ sha256/ small-vector/ strcase/ timestamp/ target-triplet/
+    process/ sha256/ small-vector/ strcase/ timestamp/ target-triplet/ \
+    wildcard/
 
 ./: $d
 include $d

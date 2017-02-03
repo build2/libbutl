@@ -25,10 +25,16 @@
 
 #include <errno.h> // errno, E*
 
+#include <string>
+#include <vector>
 #include <memory>       // unique_ptr
+#include <utility>      // pair
+#include <iterator>     // reverse_iterator
 #include <system_error>
 
+#include <butl/path>
 #include <butl/fdstream>
+#include <butl/small-vector>
 
 using namespace std;
 
@@ -728,4 +734,367 @@ namespace butl
     }
   }
 #endif
+
+  // Match the name [ni, ne) to the pattern [pi, pe). Ranges can be empty.
+  //
+  static bool
+  match (string::const_iterator pi, string::const_iterator pe,
+         string::const_iterator ni, string::const_iterator ne)
+  {
+    using reverse_iterator = std::reverse_iterator<string::const_iterator>;
+
+    reverse_iterator rpi (pe);
+    reverse_iterator rpe (pi);
+
+    reverse_iterator rni (ne);
+    reverse_iterator rne (ni);
+
+    // Match the pattern suffix (follows the last *) to the name trailing
+    // characters.
+    //
+    char pc;
+    for (; rpi != rpe && (pc = *rpi) != '*' && rni != rne; ++rpi, ++rni)
+    {
+      if (*rni != pc && pc != '?')
+        return false;
+    }
+
+    // If we got to the (reversed) end of the pattern (no * is encountered)
+    // than we are done. The success depends on if we got to the (reversed) end
+    // of the name as well.
+    //
+    if (rpi == rpe)
+      return rni == rne;
+
+    // If we didn't reach * in the pattern then we reached the (reversed) end
+    // of the name. That means we have unmatched non-star characters in the
+    // pattern, and so match failed.
+    //
+    if (pc != '*')
+    {
+      assert (rni == rne);
+      return false;
+    }
+
+    // Match the pattern prefix (ends with the first *) to the name leading
+    // characters. If they mismatch we failed. Otherwise if this is an only *
+    // in the pattern (matches whatever is left in the name) then we succeed,
+    // otherwise we perform backtracking (recursively).
+    //
+    pe = rpi.base ();
+    ne = rni.base ();
+
+    // Compare the pattern and the name char by char until the name suffix or
+    // * is encountered in the pattern (whichever happens first). Fail if a
+    // char mismatches.
+    //
+    for (; (pc = *pi) != '*' && ni != ne; ++pi, ++ni)
+    {
+      if (*ni != pc && pc != '?')
+        return false;
+    }
+
+    // If we didn't get to * in the pattern then we got to the name suffix.
+    // That means that the pattern has unmatched non-star characters, and so
+    // match failed.
+    //
+    if (pc != '*')
+    {
+      assert (ni == ne);
+      return false;
+    }
+
+    // If * that we have reached is the last one, then it matches whatever is
+    // left in the name (including an empty range).
+    //
+    if (++pi == pe)
+      return true;
+
+    // Perform backtracking.
+    //
+    // From now on, we will call the pattern not-yet-matched part (starting
+    // the leftmost * and ending the rightmost one inclusively) as pattern, and
+    // the name not-yet-matched part as name.
+    //
+    // Here we sequentially assume that * that starts the pattern matches the
+    // name leading part (staring from an empty one and iterating till the full
+    // name). So if, at some iteration, the pattern trailing part (that follows
+    // the leftmost *) matches the name trailing part, then the pattern matches
+    // the name.
+    //
+    bool r;
+    for (; !(r = match (pi, pe, ni, ne)) && ni != ne; ++ni) ;
+    return r;
+  }
+
+  bool
+  path_match (const string& pattern, const string& name)
+  {
+    // Implementation notes:
+    //
+    // - This has a good potential of becoming hairy quickly so need to strive
+    //   for an elegant way to implement this.
+    //
+    // - Most patterns will contains a single * wildcard with a prefix and/or
+    //   suffix (e.g., *.txt, foo*, f*.txt). Something like this is not very
+    //   common: *foo*.
+    //
+    //   So it would be nice to have a clever implementation that first
+    //   "anchors" itself with a literal prefix and/or suffix and only then
+    //   continue with backtracking. In other words, reduce:
+    //
+    //   *.txt  vs foo.txt -> * vs foo
+    //   foo*   vs foo.txt -> * vs .txt
+    //   f*.txt vs foo.txt -> * vs oo
+    //
+
+    auto pi (pattern.rbegin ());
+    auto pe (pattern.rend ());
+
+    auto ni (name.rbegin ());
+    auto ne (name.rend ());
+
+    // The name doesn't match the pattern if it is of a different type than the
+    // pattern is.
+    //
+    bool pd (pi != pe && path::traits::is_separator (*pi));
+    bool nd (ni != ne && path::traits::is_separator (*ni));
+
+    if (pd != nd)
+      return false;
+
+    // Skip trailing separators if present.
+    //
+    if (pd)
+    {
+      ++pi;
+      ++ni;
+    }
+
+    return match (pattern.begin (), pi.base (), name.begin (), ni.base ());
+  }
+
+  // Iterate over directory sub-entries, recursively and including itself if
+  // requested. Note that recursive iterating goes depth-first which make
+  // sense for the cleanup use cases (@@ maybe this should be controllable
+  // since for directory creation it won't make sense).
+  //
+  // Note that iterating over non-existent directory is not en error. The
+  // subsequent next() call returns false for such a directory.
+  //
+  class recursive_dir_iterator
+  {
+  public:
+    recursive_dir_iterator (dir_path p, bool recursive, bool self)
+        : recursive_ (recursive), self_ (self), start_ (p)
+    {
+      open (dir_path ());
+    }
+
+    // Non-copyable, non-movable type.
+    //
+    recursive_dir_iterator (const recursive_dir_iterator&) = delete;
+    recursive_dir_iterator& operator= (const recursive_dir_iterator&) = delete;
+
+    // Return false if no more entries left. Otherwise save the next entry path
+    // and return true. The path is relative against the directory being
+    // traversed and contains a trailing separator for sub-directories. Throw
+    // std::system_error in case of a failure (insufficient permissions,
+    // dangling symlink encountered, etc).
+    //
+    bool
+    next (path& p)
+    {
+      if (iters_.empty ())
+        return false;
+
+      auto& i (iters_.back ());
+
+      // If we got to the end of directory sub-entries, then go one level up
+      // and return this directory path.
+      //
+      if (i.first == dir_iterator ())
+      {
+        path d (move (i.second));
+        iters_.pop_back ();
+
+        // Return the path unless it is the last one (the directory we started
+        // to iterate from) and the self flag is not set.
+        //
+        if (iters_.empty () && !self_)
+          return false;
+
+        p = move (d);
+        return true;
+      }
+
+      const dir_entry& de (*i.first);
+
+      // Append separator if a directory. Note that dir_entry::type() can
+      // throw.
+      //
+      path pe (de.type () == entry_type::directory
+               ? path_cast<dir_path> (i.second / de.path ())
+               : i.second / de.path ());
+
+      ++i.first;
+
+      if (recursive_ && pe.to_directory ())
+      {
+        open (path_cast<dir_path> (move (pe)));
+        return next (p);
+      }
+
+      p = move (pe);
+      return true;
+    }
+
+  private:
+    void
+    open (dir_path p)
+    {
+      // We should consider a racing condition here. The directory can be
+      // removed before we create an iterator for it. In this case we just do
+      // nothing, so the directory is silently skipped.
+      //
+      try
+      {
+        dir_path d (start_ / p);
+        dir_iterator i (!d.empty () ? d : dir_path ("."));
+        iters_.emplace_back (move (i), move (p));
+      }
+      catch (const system_error& e)
+      {
+        // Ignore non-existent directory (ENOENT or ENOTDIR). Rethrow for any
+        // other error. We consider ENOTDIR as a variety of removal, with a
+        // new filesystem entry being created afterwards.
+        //
+        int ec (e.code ().value ());
+        if (ec != ENOENT && ec != ENOTDIR)
+          throw;
+      }
+    }
+
+  private:
+    bool recursive_;
+    bool self_;
+    dir_path start_;
+    small_vector<pair<dir_iterator, dir_path>, 1> iters_;
+  };
+
+  // Search for paths matching the pattern and call the specified function for
+  // each matching path. Return false if the underlying func() call returns
+  // false. Otherwise the function conforms to the path_search() description.
+  //
+  static bool
+  search (path pattern, dir_path pattern_dir, const dir_path start_dir,
+          const function<bool (path&&)>& func)
+  {
+    // Fast-forward the leftmost pattern non-wildcard components. So, for
+    // example, search for foo/f* in /bar/ becomes search for f* in /bar/foo/.
+    //
+    {
+      auto b (pattern.begin ());
+      auto e (pattern.end ());
+      auto i (b);
+      for (; i != e && (*i).find_first_of ("*?") == string::npos; ++i) ;
+
+      // If the pattern has no wildcards then we reduce to checking for the
+      // filesystem entry existence. It matches if exists and is of the proper
+      // type.
+      //
+      if (i == e)
+      {
+        path p (pattern_dir / pattern);
+        auto pe (path_entry (start_dir / p, true));
+
+        if (pe.first &&
+            ((pe.second == entry_type::directory) == p.to_directory ()))
+          return func (move (p));
+
+        return true;
+      }
+      else if (i != b) // There are non-wildcard components, so fast-forward.
+      {
+        path p (b, i);
+        pattern = pattern.leaf (p);
+        pattern_dir /= path_cast<dir_path> (move (p));
+      }
+    }
+
+    assert (!pattern.empty ());
+
+    // The pattern leftmost component. Will use it to match the start directory
+    // sub-entries.
+    //
+    path pc (pattern.begin (), ++pattern.begin ());
+    string pcr (pc.representation ());
+
+    // Note that if the pattern has multiple components (is not a simple path),
+    // then the leftmost one has a trailing separator, and so will match
+    // sub-directories only.
+    //
+    bool simple (pattern.simple ());
+
+    recursive_dir_iterator i (
+      start_dir / pattern_dir,
+      pcr.find ("**") != string::npos,   // Recursive.
+      pcr.find ("***") != string::npos); // Self-inclusive.
+
+    path p;
+    while (i.next (p))
+    {
+      // Skip sub-entry if its name doesn't match the pattern leftmost
+      // component.
+      //
+      // Matching the directory we are iterating through (as for a pattern
+      // component containing ***) is a bit tricky. This directory is
+      // represented by the iterator as an empty path, and so we need to
+      // compute it (the leaf would actually be enough) for matching. This
+      // leaf can be aquired from the pattern_dir / start_dir path except the
+      // case when both directories are empty. This is the case when we search
+      // in the current directory (start_dir is empty) with a pattern that
+      // starts with *** wildcard (for example f***/bar). All we can do here is
+      // to fallback to path::current_directory() call. Note that this will be
+      // the only call per path_search() as the next time pattern_dir will not
+      // be empty.
+      //
+      const path& se (!p.empty ()
+                      ? p
+                      : path_cast<path> (!pattern_dir.empty ()
+                                         ? pattern_dir
+                                         : !start_dir.empty ()
+                                           ? start_dir
+                                           : path::current_directory ()));
+
+      if (!path_match (pcr, se.leaf ().representation ()))
+        continue;
+
+      // If the pattern is a simple path then call func() for the sub-entry.
+      // Otherwise the sub-entry is a directory (read above), and we search in
+      // it using the trailing part of the pattern.
+      //
+      if (!(
+        simple
+        ? func (pattern_dir / p)
+        : search (pattern.leaf (pc),
+                  pattern_dir / path_cast<dir_path> (move (p)),
+                  start_dir,
+                  func)))
+        return false;
+    }
+
+    return true;
+  }
+
+  void
+  path_search (const path& pattern,
+               const function<bool (path&&)>& func,
+               const dir_path& start)
+  {
+    search (pattern,
+            dir_path (),
+            pattern.relative () ? start : dir_path (),
+            func);
+  }
 }

@@ -24,6 +24,7 @@
 #include <cstdint>    // uint16_t
 #include <utility>    // move(), pair
 #include <iterator>
+#include <functional>
 
 #include <butl/export>
 
@@ -396,6 +397,58 @@ namespace butl
   //
   inline dir_iterator begin (dir_iterator&);
   inline dir_iterator end (const dir_iterator&);
+
+  // Wildcard pattern match and search (aka glob).
+  //
+
+  // Return true if name matches pattern. Both must be single path components,
+  // possibly with a trailing directory separator to indicate a directory.
+  //
+  // If the pattern ends with a directory separator, then it only matches a
+  // directory name (i.e., ends with a directory separator, but potentially
+  // different). Otherwise, it only matches a non-directory name (no trailing
+  // directory separator).
+  //
+  // Currently the following wildcard characters are supported:
+  //
+  // * - match any number of characters (including zero)
+  // ? - match any single character
+  //
+  LIBBUTL_EXPORT bool
+  path_match (const std::string& pattern, const std::string& name);
+
+  // Search for paths matching the pattern calling the specified function for
+  // each matching path. Stop the search if the function returns false.
+  //
+  // If the pattern is relative, then search in the start directory. If the
+  // start directory is empty, then search in the current working directory.
+  // Searching in non-existent directories is not an error. Throw
+  // std::system_error in case of a failure (insufficient permissions, etc).
+  //
+  // The pattern may contain multiple components that include wildcards. On
+  // Windows the drive letter may not be a wildcard.
+  //
+  // In addition to the wildcard characters listed in path_match(),
+  // path_search() also recognizes the ** and *** wildcard sequences. If a
+  // path component contains **, then it is matched just like * but in all the
+  // subdirectories, recursively. The *** wildcard behaves like ** but also
+  // matches the start directory itself.
+  //
+  // So, for example, foo/bar-**.txt will return all the files matching the
+  // bar-*.txt pattern in all the subdirectoris of foo/. And foo/f***/ will
+  // return all the subdirectories matching the f*/ pattern plus foo/ itself.
+  //
+  // Note that having multiple recursive components in the pattern we can end
+  // up with calling func() multiple times (once per such a component) for the
+  // same path. For example the search with pattern f***/b**/ starting in
+  // directory foo, that has the foo/fox/box/ structure, will result in
+  // calling func(foo/fox/box/) twice: first time for being a child of fox/,
+  // second time for being a child of foo/.
+  //
+  LIBBUTL_EXPORT void
+  path_search (const path& pattern,
+               const std::function<bool (path&&)>&,
+               const dir_path& start = dir_path ());
 }
 
 #include <butl/filesystem.ixx>
