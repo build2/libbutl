@@ -5,6 +5,7 @@
 lib{butl}:                               \
    {hxx         cxx}{ base64              } \
    {hxx         cxx}{ char-scanner        } \
+   {hxx            }{ const-ptr           } \
    {hxx         cxx}{ diagnostics         } \
    {hxx            }{ export              } \
    {hxx ixx     cxx}{ fdstream            } \
