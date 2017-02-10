@@ -33,6 +33,9 @@ namespace butl
   // Note that due to this semantics, copy construction/assignment requires
   // a non-const instance of const_ptr.
   //
+  // Note that this type is standard layout (which means we can reinterpret
+  // it as a raw pointer).
+  //
   // Known drawbacks/issues:
   //
   // 1. Cannot do static_cast<mytree*> (x.left).
