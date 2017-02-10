@@ -81,7 +81,18 @@ namespace butl
   current_directory (string_type const& s)
   {
 #ifdef _WIN32
-    if (_chdir (s.c_str ()) != 0)
+    // A path like 'C:', while being a root path in our terminology, is not as
+    // such for Windows, that maintains current directory for each drive, and
+    // so "change current directory to C:" means "change the process current
+    // directory to current directory on the C drive". Changing it to the root
+    // one of the drive requires the trailing directory separator to be
+    // present.
+    //
+    string_type const& d (!root (s)
+                          ? s
+                          : string_type (s + directory_separator));
+
+    if (_chdir (d.c_str ()) != 0)
       throw system_error (errno, system_category ());
 #else
     if (chdir (s.c_str ()) != 0)
@@ -248,7 +259,15 @@ namespace butl
   current_directory (string_type const& s)
   {
 #ifdef _WIN32
-    if (_wchdir (s.c_str ()) != 0)
+    // Append the trailing directory separator for the root directory (read
+    // the comment in path_traits<char>::current_directory() for
+    // justification).
+    //
+    string_type const& d (!root (s)
+                          ? s
+                          : string_type (s + directory_separator));
+
+    if (_wchdir (d.c_str ()) != 0)
       throw system_error (errno, system_category ());
 #else
     char ns[PATH_MAX + 1];

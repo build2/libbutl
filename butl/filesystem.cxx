@@ -34,78 +34,101 @@ using namespace std;
 
 namespace butl
 {
-#ifndef _WIN32
   bool
   file_exists (const char* p, bool fl)
   {
-    struct stat s;
-    if ((fl ? stat (p, &s) : lstat (p, &s)) != 0)
-    {
-      if (errno == ENOENT || errno == ENOTDIR)
-        return false;
-      else
-        throw system_error (errno, system_category ());
-    }
-
-    return S_ISREG (s.st_mode) || (!fl && S_ISLNK (s.st_mode));
+    auto pe (path_entry (p, fl));
+    return pe.first && (pe.second == entry_type::regular ||
+                        (!fl && pe.second == entry_type::symlink));
   }
-#else
-  bool
-  file_exists (const char* p, bool)
-  {
-    struct _stat s;
-    if (_stat (p, &s) != 0)
-    {
-      if (errno == ENOENT || errno == ENOTDIR)
-        return false;
-      else
-        throw system_error (errno, system_category ());
-    }
 
-    return S_ISREG (s.st_mode);
-  }
-#endif
-
-#ifndef _WIN32
   bool
   entry_exists (const char* p, bool fl)
   {
-    struct stat s;
-    if ((fl ? stat (p, &s) : lstat (p, &s)) == 0)
-#else
-  bool
-  entry_exists (const char* p, bool)
-  {
-    struct _stat s;
-    if (_stat (p, &s) == 0)
-#endif
-      return true;
-
-    if (errno == ENOENT || errno == ENOTDIR)
-      return false;
-
-    throw system_error (errno, system_category ());
+    return path_entry (p, fl).first;
   }
 
   bool
   dir_exists (const char* p)
   {
+    auto pe (path_entry (p, true));
+    return pe.first && pe.second == entry_type::directory;
+  }
+
 #ifndef _WIN32
+  pair<bool, entry_type>
+  path_entry (const char* p, bool fl)
+  {
     struct stat s;
-    if (stat (p, &s) != 0)
-#else
-    struct _stat s;
-    if (_stat (p, &s) != 0)
-#endif
+    if ((fl ? stat (p, &s) : lstat (p, &s)) != 0)
     {
       if (errno == ENOENT || errno == ENOTDIR)
-        return false;
+        return make_pair (false, entry_type::unknown);
       else
         throw system_error (errno, system_category ());
     }
 
-    return S_ISDIR (s.st_mode);
+    auto m (s.st_mode);
+    entry_type t (entry_type::unknown);
+
+    if (S_ISREG (m))
+      t = entry_type::regular;
+    else if (S_ISDIR (m))
+      t = entry_type::directory;
+    else if (S_ISLNK (m))
+      t = entry_type::symlink;
+    else if (S_ISBLK (m) || S_ISCHR (m) || S_ISFIFO (m) || S_ISSOCK (m))
+      t = entry_type::other;
+
+    return make_pair (true, t);
   }
+#else
+  pair<bool, entry_type>
+  path_entry (const char* p, bool)
+  {
+    int r;
+    struct _stat s;
+
+    // A path like 'C:', while being a root path in our terminology, is not as
+    // such for Windows, that maintains current directory for each drive, and
+    // so C: means the current directory on the drive C. This is not what we
+    // mean here, so need to append the trailing directory separator in such a
+    // case.
+    //
+    if (!path::traits::root (p, string::traits_type::length (p)))
+      r = _stat (p, &s);
+    else
+    {
+      string d (p);
+      d += path::traits::directory_separator;
+      r = _stat (d.c_str (), &s);
+    }
+
+    if (r != 0)
+    {
+      if (errno == ENOENT || errno == ENOTDIR)
+        return make_pair (false, entry_type::unknown);
+      else
+        throw system_error (errno, system_category ());
+    }
+
+    auto m (s.st_mode);
+    entry_type t (entry_type::unknown);
+
+    if (S_ISREG (m))
+      t = entry_type::regular;
+    else if (S_ISDIR (m))
+      t = entry_type::directory;
+    //
+    // S_ISLNK/S_IFDIR are not defined for Win32 but it does have
+    // symlinks.
+    //
+    //else if (S_ISLNK (m))
+    //  t = entry_type::symlink;
+
+    return make_pair (true, t);
+  }
+#endif
 
   mkdir_status
 #ifndef _WIN32

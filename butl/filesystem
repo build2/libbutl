@@ -20,9 +20,9 @@
    typedef int mode_t;
 #endif
 
-#include <cstddef>  // ptrdiff_t
-#include <cstdint>  // uint16_t
-#include <utility>  // move()
+#include <cstddef>    // ptrdiff_t
+#include <cstdint>    // uint16_t
+#include <utility>    // move(), pair
 #include <iterator>
 
 #include <butl/export>
@@ -60,6 +60,28 @@ namespace butl
   inline bool
   entry_exists (const path& p, bool fs = false) {
     return entry_exists (p.string ().c_str (), fs);}
+
+  // Filesystem entry type.
+  //
+  enum class entry_type
+  {
+    unknown,
+    regular,
+    directory,
+    symlink,
+    other
+  };
+
+  // Return a flag indicating if the path is to an existing file system entry
+  // and its type if so. Note that by default this function doesn't follow
+  // symlinks.
+  //
+  LIBBUTL_EXPORT std::pair<bool, entry_type>
+  path_entry (const char*, bool follow_symlinks = false);
+
+  inline std::pair<bool, entry_type>
+  path_entry (const path& p, bool fs = false) {
+    return path_entry (p.string ().c_str (), fs);}
 
   // Return true if the directory is empty. Note that the path must exist
   // and be a directory.
@@ -279,15 +301,6 @@ namespace butl
 
   // Directory entry iteration.
   //
-  enum class entry_type
-  {
-    unknown,
-    regular,
-    directory,
-    symlink,
-    other
-  };
-
   class LIBBUTL_EXPORT dir_entry
   {
   public:

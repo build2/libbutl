@@ -145,6 +145,22 @@ namespace butl
       return n == 2 && s[0] == '.' && s[1] == '.';
     }
 
+    static bool
+    root (const string_type& s)
+    {
+      return root (s.c_str (), s.size ());
+    }
+
+    static bool
+    root (const C* s, size_type n)
+    {
+#ifdef _WIN32
+    return n == 2 && s[1] == ':';
+#else
+    return n == 1 && is_separator (s[0]);
+#endif
+    }
+
     static size_type
     find_separator (string_type const& s,
                     size_type pos = 0,
