@@ -16,6 +16,17 @@
 using namespace std;
 using namespace butl;
 
+// Disable arguments globbing that may be enabled by default for MinGW runtime.
+//
+// Note that if _CRT_glob symbol is not defined explicitly, then runtime will
+// be bound to the one defined in the implicitly linked libmingw32.a library.
+// Yet another (but more troublesome) way is to link CRT_noglob.o (from MinGW
+// libraries directory) that provides exactly the same symbol definition.
+//
+#ifdef __MINGW32__
+int _CRT_glob = 0;
+#endif
+
 // Usage: argv[0] (-m <pattern> <name> | -s [-n] <pattern> [<dir>])
 //
 // Execute actions specified by -m or -s options. Exit with code 0 if succeed,
