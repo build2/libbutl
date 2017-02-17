@@ -21,9 +21,10 @@ namespace butl
   // based on UNIX epoch.
   //
   // The underlying type for nanoseconds duration is signed integer type
-  // of at least 64 bits (currently int64_t). Because it is signed, we
-  // will overflow in year 2262 but by then the underlying type will
-  // most likely have changed to something larger than 64-bit.
+  // of at least 64 bits (currently int64_t, available as duration::rep).
+  // Because it is signed, we will overflow in year 2262 but by then the
+  // underlying type will most likely have changed to something larger
+  // than 64-bit.
   //
   // So to support other platforms that could possibly use a different
   // system_clock resolutions (e.g., microseconds), we actually not going
@@ -38,10 +39,13 @@ namespace butl
   using timestamp = system_clock::time_point;
   using duration = system_clock::duration;
 
-  // Generally-useful special values.
+  // Generally-useful special values. Note that unknown is less than
+  // nonexistent and is less than any non-special value.
   //
-  const timestamp timestamp_unknown = timestamp (duration (-1));
-  const timestamp timestamp_nonexistent = timestamp (duration (0));
+  const timestamp::rep timestamp_unknown_rep     = -1;
+  const timestamp      timestamp_unknown         = timestamp (duration (-1));
+  const timestamp::rep timestamp_nonexistent_rep = 0;
+  const timestamp      timestamp_nonexistent     = timestamp (duration (0));
 
   // Print human-readable representation of the timestamp.
   //
