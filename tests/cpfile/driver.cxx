@@ -101,7 +101,7 @@ main ()
     cpfile (from, to, cpflags::none);
     assert (false);
   }
-  catch (const ios::failure&)
+  catch (const system_error&)
   {
   }
 
@@ -174,7 +174,7 @@ main ()
     cpfile (from, tslink, cpflags::none);
     assert (false);
   }
-  catch (const ios::failure&)
+  catch (const system_error&)
   {
   }
 

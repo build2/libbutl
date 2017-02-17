@@ -39,8 +39,8 @@ namespace butl
   // throw_ios_failure
   //
   template <bool v>
-  static inline void
-  throw_ios_failure (error_code e, typename enable_if<v, const char*>::type m)
+  static inline typename enable_if<v>::type
+  throw_ios_failure (error_code e, const char* m)
   {
     // The idea here is to make an error code to be saved into failure
     // exception and to make a string returned by what() to contain the error
@@ -57,9 +57,8 @@ namespace butl
   }
 
   template <bool v>
-  static inline void
-  throw_ios_failure (error_code e,
-                     typename enable_if<!v, const char*>::type m)
+  static inline typename enable_if<!v>::type
+  throw_ios_failure (error_code e, const char* m)
   {
     throw ios_base::failure (m != nullptr ? m : e.message ().c_str ());
   }

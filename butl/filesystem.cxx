@@ -288,10 +288,18 @@ namespace butl
   }
 #endif
 
-  void
-  cpfile (const path& from, const path& to, cpflags fl)
+  // For I/O operations cpfile() can throw ios_base::failure exception that is
+  // not derived from system_error for old versions of g++ (as of 4.9). From
+  // the other hand cpfile() must throw system_error only. Let's catch
+  // ios_base::failure and rethrow as system_error in such a case.
+  //
+  template <bool v>
+  static inline typename enable_if<v>::type
+  cpfile (const path& from, const path& to,
+          cpflags fl,
+          permissions perm,
+          auto_rmfile& rm)
   {
-    permissions perm (path_permissions (from));
     ifdstream ifs (from, fdopen_mode::binary);
 
     fdopen_mode om (fdopen_mode::out      |
@@ -301,11 +309,6 @@ namespace butl
 
     if ((fl & cpflags::overwrite_content) != cpflags::overwrite_content)
       om |= fdopen_mode::exclusive;
-
-    // Create prior to the output file stream creation so that the file is
-    // removed after it is closed.
-    //
-    auto_rmfile rm;
 
     ofdstream ofs (fdopen (to, om, perm));
 
@@ -321,6 +324,45 @@ namespace butl
 
     ifs.close (); // Throws ios::failure on failure.
     ofs.close (); // Throws ios::failure on flush/close failure.
+  }
+
+  template <bool v>
+  static inline typename enable_if<!v>::type
+  cpfile (const path& from, const path& to,
+          cpflags fl,
+          permissions perm,
+          auto_rmfile& rm)
+  {
+    try
+    {
+      cpfile<true> (from, to, fl, perm, rm);
+    }
+    catch (const ios_base::failure& e)
+    {
+      // While we try to preserve the original error information, we can not
+      // make the description to be exactly the same, for example
+      //
+      // Is a directory
+      //
+      // becomes
+      //
+      // Is a directory: Input/output error
+      //
+      // Note that our custom operator<<(ostream, exception) doesn't strip this
+      // suffix. This is a temporary code after all.
+      //
+      throw system_error (EIO, system_category (), e.what ());
+    }
+  }
+
+  void
+  cpfile (const path& from, const path& to, cpflags fl)
+  {
+    permissions perm (path_permissions (from));
+    auto_rmfile rm;
+
+    cpfile<is_base_of<system_error, ios_base::failure>::value> (
+      from, to, fl, perm, rm);
 
     if ((fl & cpflags::overwrite_permissions) ==
         cpflags::overwrite_permissions)
