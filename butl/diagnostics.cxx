@@ -17,14 +17,23 @@ namespace butl
   {
     if (!empty_)
     {
-      os.put ('\n');
-      *diag_stream << os.str ();
-      diag_stream->flush ();
+      if (epilogue_ == nullptr)
+      {
+        os.put ('\n');
+        *diag_stream << os.str ();
+        diag_stream->flush ();
 
-      empty_ = true;
-
-      if (epilogue_ != nullptr)
-        epilogue_ (*this); // Can throw.
+        empty_ = true;
+      }
+      else
+      {
+        // Clear the epilogue in case it calls us back.
+        //
+        auto e (epilogue_);
+        epilogue_ = nullptr;
+        e (*this); // Can throw.
+        flush ();  // Call ourselves to write the data in case it returns.
+      }
     }
   }
 

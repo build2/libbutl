@@ -71,14 +71,13 @@ namespace butl
     void
     append (diag_epilogue* e) const
     {
-      if (e != nullptr)
-      {
-        assert (epilogue_ == nullptr); // No multiple epilogues support.
-        epilogue_ = e;
-      }
-
+      // Ignore subsequent epilogues (e.g., from nested marks, etc).
+      //
       if (empty_)
+      {
+        epilogue_ = e;
         empty_ = false;
+      }
       else
         os << "\n  ";
     }
