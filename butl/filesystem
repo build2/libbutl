@@ -243,12 +243,87 @@ namespace butl
   LIBBUTL_EXPORT void
   cpfile (const path& from, const path& to, cpflags = cpflags::none);
 
-  // Copy a regular file to an existing directory.
+  // Copy a regular file into (inside) an existing directory.
   //
   inline void
-  cpfile (const path& from, const dir_path& to, cpflags fl = cpflags::none)
+  cpfile_into (const path& from,
+               const dir_path& into,
+               cpflags fl = cpflags::none)
   {
-    cpfile (from, to / from.leaf (), fl);
+    cpfile (from, into / from.leaf (), fl);
+  }
+
+  // Rename a filesystem entry (file, symlink, or directory). Throw
+  // std::system_error on failure.
+  //
+  // If the source path refers to a directory, then the destination path must
+  // either not exist, or refer to an empty directory. If the source path
+  // refers to an entry that is not a directory, then the destination path must
+  // not exist or not refer to a directory.
+  //
+  // If the source path refers to a symlink, then the link is renamed. If the
+  // destination path refers to a symlink, then the link will be overwritten.
+  //
+  // If the source and destination paths are on different file systems (or
+  // different drives on Windows) and the underlying OS does not support move
+  // for the source entry, then fail unless the source paths refers to a file
+  // or a file symlink. In this case fall back to copying the source file
+  // (content, permissions, access and modification times) and removing the
+  // source entry afterwards.
+  //
+  // Note that the operation is atomic only on POSIX, only if source and
+  // destination paths are on the same file system, and only if the
+  // overwrite_content flag is specified.
+  //
+  LIBBUTL_EXPORT void
+  mventry (const path& from,
+           const path& to,
+           cpflags = cpflags::overwrite_permissions);
+
+  // Move a filesystem entry into (inside) an existing directory.
+  //
+  inline void
+  mventry_into (const path& from,
+                const dir_path& into,
+                cpflags f = cpflags::overwrite_permissions)
+  {
+    mventry (from, into / from.leaf (), f);
+  }
+
+  // Raname file or file symlink.
+  //
+  inline void
+  mvfile (const path& from,
+          const path& to,
+          cpflags f = cpflags::overwrite_permissions)
+  {
+    mventry (from, to, f);
+  }
+
+  inline void
+  mvfile_into (const path& from,
+               const dir_path& into,
+               cpflags f = cpflags::overwrite_permissions)
+  {
+    mventry_into (from, into, f);
+  }
+
+  // Raname directory or directory symlink.
+  //
+  inline void
+  mvdir (const dir_path& from,
+         const dir_path& to,
+         cpflags f = cpflags::overwrite_permissions)
+  {
+    mventry (from, to, f);
+  }
+
+  inline void
+  mvdir_into (const path& from,
+              const dir_path& into,
+              cpflags f = cpflags::overwrite_permissions)
+  {
+    mventry_into (from, into, f);
   }
 
   // Return timestamp_nonexistent if the entry at the specified path

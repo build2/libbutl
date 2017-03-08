@@ -110,7 +110,7 @@ main ()
   dir_path sd (td / dir_path ("sub"));
   assert (try_mkdir (sd) == mkdir_status::success);
 
-  cpfile (from, sd, cpflags::none);
+  cpfile_into (from, sd, cpflags::none);
 
   assert (from_file (sd / path ("from")) == text1);
 

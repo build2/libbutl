@@ -5,8 +5,10 @@
 #include <butl/filesystem>
 
 #ifndef _WIN32
+#  include <stdio.h>     // rename()
 #  include <dirent.h>    // struct dirent, *dir()
 #  include <unistd.h>    // symlink(), link(), stat(), rmdir(), unlink()
+#  include <sys/time.h>  // utimes()
 #  include <sys/types.h> // stat
 #  include <sys/stat.h>  // stat(), lstat(), S_I*, mkdir(), chmod()
 #else
@@ -386,28 +388,164 @@ namespace butl
   //
   template <typename S>
   inline constexpr auto
-  nsec (const S* s, bool) -> decltype(s->st_mtim.tv_nsec)
+  mnsec (const S* s, bool) -> decltype(s->st_mtim.tv_nsec)
   {
     return s->st_mtim.tv_nsec; // POSIX (GNU/Linux, Solaris).
   }
 
   template <typename S>
   inline constexpr auto
-  nsec (const S* s, int) -> decltype(s->st_mtimespec.tv_nsec)
+  mnsec (const S* s, int) -> decltype(s->st_mtimespec.tv_nsec)
   {
     return s->st_mtimespec.tv_nsec; // *BSD, MacOS.
   }
 
   template <typename S>
   inline constexpr auto
-  nsec (const S* s, float) -> decltype(s->st_mtime_n)
+  mnsec (const S* s, float) -> decltype(s->st_mtime_n)
   {
     return s->st_mtime_n; // AIX 5.2 and later.
   }
 
   template <typename S>
   inline constexpr int
-  nsec (...) {return 0;}
+  mnsec (...) {return 0;}
+
+  template <typename S>
+  inline constexpr auto
+  ansec (const S* s, bool) -> decltype(s->st_atim.tv_nsec)
+  {
+    return s->st_atim.tv_nsec; // POSIX (GNU/Linux, Solaris).
+  }
+
+  template <typename S>
+  inline constexpr auto
+  ansec (const S* s, int) -> decltype(s->st_atimespec.tv_nsec)
+  {
+    return s->st_atimespec.tv_nsec; // *BSD, MacOS.
+  }
+
+  template <typename S>
+  inline constexpr auto
+  ansec (const S* s, float) -> decltype(s->st_atime_n)
+  {
+    return s->st_atime_n; // AIX 5.2 and later.
+  }
+
+  template <typename S>
+  inline constexpr int
+  ansec (...) {return 0;}
+
+  void
+  mventry (const path& from, const path& to, cpflags fl)
+  {
+    assert ((fl & cpflags::overwrite_permissions) ==
+            cpflags::overwrite_permissions);
+
+    bool ovr ((fl & cpflags::overwrite_content) == cpflags::overwrite_content);
+
+    const char* f (from.string ().c_str ());
+    const char* t (to.string ().c_str ());
+
+#ifndef _WIN32
+
+    if (!ovr && path_entry (to).first)
+      throw system_error (EEXIST, system_category ());
+
+    if (::rename (f, t) == 0) // POSIX implementation.
+      return;
+
+    // If source and destination paths are on different file systems we need to
+    // move the file ourselves.
+    //
+    if (errno != EXDEV)
+      throw system_error (errno, system_category ());
+
+    // Note that cpfile() follows symlinks, so we need to remove destination if
+    // exists.
+    //
+    try_rmfile (to);
+
+    // Note that permissions are copied unconditionally to a new file.
+    //
+    cpfile (from, to, cpflags::none);
+
+    // Copy file access and modification times.
+    //
+    struct stat s;
+    if (stat (f, &s) != 0)
+      throw system_error (errno, system_category ());
+
+    timeval times[2];
+    times[0].tv_sec = s.st_atime;
+    times[0].tv_usec = ansec<struct stat> (&s, true) / 1000;
+    times[1].tv_sec = s.st_mtime;
+    times[1].tv_usec = mnsec<struct stat> (&s, true) / 1000;
+
+    if (utimes (t, times) != 0)
+      throw system_error (errno, system_category ());
+
+    // Finally, remove the source file.
+    //
+    try_rmfile (from);
+
+#else
+
+    // While ::rename() is present on Windows, it is not POSIX but ISO C
+    // implementation, that doesn't fit our needs well.
+    //
+    auto te (path_entry (to));
+
+    // Note that it would be nicer to just pass standard error codes to
+    // system_error ctors below, but their error descriptions horrifies for
+    // msvcrt. Actually they just don't match the semantics. The resulted error
+    // description is also not ideal (see below).
+    //
+    if (!ovr && te.first)
+      throw system_error (EEXIST, system_category (), "file exists");
+
+    bool td (te.first && te.second == entry_type::directory);
+
+    auto fe (path_entry (from));
+    bool fd (fe.first && fe.second == entry_type::directory);
+
+    // If source and destination filesystem entries exist, they both must be
+    // either directories or not directories.
+    //
+    if (fe.first && te.first && fd != td)
+      throw system_error (EIO, system_category (), "not a directory");
+
+    DWORD mfl (fd ? 0 : (MOVEFILE_COPY_ALLOWED | MOVEFILE_REPLACE_EXISTING));
+
+    if (MoveFileExA (f, t, mfl))
+      return;
+
+    // If the destination already exists, then MoveFileExA() succeeds only if
+    // it is a regular file or a symlink. Lets also support an empty directory
+    // special case to comply with POSIX. If the destination is an empty
+    // directory we will just remove it and retry the move operation.
+    //
+    // Note that under Wine we endup with ERROR_ACCESS_DENIED error code in
+    // that case, and with ERROR_ALREADY_EXISTS when run natively.
+    //
+    DWORD ec (GetLastError ());
+    if ((ec == ERROR_ALREADY_EXISTS || ec == ERROR_ACCESS_DENIED) && td &&
+	try_rmdir (path_cast<dir_path> (to)) != rmdir_status::not_empty &&
+	MoveFileExA (f, t, mfl))
+      return;
+
+    // @@ The exception description will look like:
+    //
+    //    file not found. : Access denied
+    //
+    //    Probably need to consider such discriptions for sanitizing in
+    //    operator<<(ostream,exception).
+    //
+    string e (win32::error_msg (ec));
+    throw system_error (EIO, system_category (), e);
+
+#endif
+  }
 
   timestamp
   file_mtime (const char* p)
@@ -429,7 +567,7 @@ namespace butl
     return S_ISREG (s.st_mode)
       ? system_clock::from_time_t (s.st_mtime) +
       chrono::duration_cast<duration> (
-        chrono::nanoseconds (nsec<struct stat> (&s, true)))
+        chrono::nanoseconds (mnsec<struct stat> (&s, true)))
       : timestamp_nonexistent;
   }
 

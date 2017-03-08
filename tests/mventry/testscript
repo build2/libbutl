@@ -1,0 +1,245 @@
+# file      : tests/mventry/testscript
+# copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+: file
+:
+{
+  : non-existing
+  :
+  $* a b 2>- == 1
+
+  : over
+  :
+  {
+    : non-existing
+    :
+    echo 'foo' >=a &!a;
+    $* a b &b;
+    cat b >'foo';
+    test -f a == 1
+
+    : existing-file
+    :
+    echo 'foo' >=a &!a;
+    echo 'bar' >=b;
+    $* a b;
+    cat b >'foo';
+    test -f a == 1
+
+    : existing-dir
+    :
+    echo 'foo' >=a;
+    mkdir b;
+    $* a b 2>- == 1
+  }
+
+  : to-dir
+  :
+  echo 'foo' >=a &!a;
+  mkdir b;
+  $* a b/ &b/a;
+  cat b/a >'foo';
+  test -f a == 1
+}
+
+: dir
+:
+{
+  : over
+  {
+    : non-existing
+    :
+    mkdir -p a/b &!a/b/ &!a/;
+    echo 'foo' >=a/c &!a/c;
+    $* a b &b/ &b/c &b/b/;
+    cat b/c >'foo';
+    test -d b/b;
+    test -d a == 1
+
+    : empty-dir
+    :
+    mkdir -p a/b &!a/b/ &!a/;
+    echo 'foo' >=a/c &!a/c;
+    mkdir b;
+    $* a b &b/c &b/b/;
+    cat b/c >'foo';
+    test -d b/b;
+    test -d a == 1
+
+    : non-empty-dir
+    :
+    mkdir -p a/b;
+    mkdir -p b/d;
+    $* a b 2>- == 1
+
+    : existing-file
+    :
+    mkdir a;
+    touch b;
+    $* a b 2>- == 1
+  }
+
+  : to-dir
+  :
+  mkdir a &!a/;
+  mkdir b;
+  $* a b/ &b/a/;
+  test -d b/a;
+  test -f a == 1
+}
+
+: symlink
+:
+: If we are not cross-testing let's test renaming symlynks from and over. On
+: Windows that involves mklink command usability test. If we fail to create a
+: trial link (say because we are running non-administrative console), then the
+: test group will be silently skipped.
+:
+if ($test.target == $build.host)
+{
+  +if ($cxx.target.class != 'windows')
+    lns = ln -s a b
+  else
+    echo 'yes' >=a
+    if cmd /C 'mklink b a' >- 2>- &?b && cat b >'yes'
+      lns = cmd /C 'mklink b a' >-
+    end
+  end
+
+  if! $empty($lns)
+  {
+    : file
+    :
+    {
+      : from
+      :
+      : Make sure that if source is a symlink it refers the same target after
+      : rename.
+      :
+      echo 'foo' >=a;
+      $lns;
+      $* b c &c;
+      test -f a;
+      test -f b == 1;
+      echo 'bar' >=a;
+      cat c >'bar'
+
+      : to
+      :
+      : Make sure that if destination is a symlink it is get overwritten and it's
+      : target stays intact.
+      :
+      echo 'foo' >=a;
+      $lns &b;
+      echo 'bar' >=c &!c;
+      $* c b;
+      cat a >'foo';
+      test -f c == 1;
+      echo 'baz' >=a;
+      cat b >'bar'
+
+      : over-existing-dir
+      :
+      echo 'foo' >=a;
+      $lns &b;
+      mkdir c;
+      $* b c 2>- == 1
+    }
+
+    : dir
+    :
+    {
+      : from
+      :
+      : Make sure that if source is a symlink it refers the same target after
+      : rename.
+      :
+      mkdir -p a;
+      $lns;
+      $* b c &c;
+      touch a/b;
+      test -f c/b;
+      test -d b == 1
+
+      : to
+      :
+      : Make sure that if destination is a symlink it is get overwritten and
+      : it's target stays intact.
+      :
+      mkdir -p a;
+      $lns;
+      echo 'foo' >=c &!c;
+      $* c b &b;
+      cat b >'foo';
+      test -d a;
+      test -f c == 1
+
+      : over-existing-dir
+      :
+      mkdir a;
+      $lns &b;
+      mkdir c;
+      $* b c 2>- == 1
+    }
+  }
+}
+
+: different-fs
+:
+: Note that nested tests may fail for cross-testing as the directory path will
+: unlikelly be usable on both host (build2 driver) and target (test driver)
+: platforms.
+:
+if! $empty($config.libbutl.test.rename.dir)
+{
+  wd = $config.libbutl.test.rename.dir/libbutl-rename
+  +rm -r -f $wd
+  +mkdir $wd
+
+  : file
+  :
+  {
+    : over-non-existing
+    :
+    {
+      wd = "$wd/$@";
+      mkdir -p $wd;
+      b = $wd/b;
+
+      echo 'foo' >=a &!a;
+      $* a $b;
+      cat $b >'foo';
+      test -f a == 1
+    }
+
+    : over-file
+    :
+    {
+      wd = "$wd/$@";
+      mkdir -p $wd;
+      b = $wd/b;
+
+      touch $b;
+      echo 'foo' >=a &!a;
+      $* a $b;
+      cat $b >'foo';
+      test -f a == 1
+    }
+  }
+
+  : dir
+  :
+  : Test that renaming directory to different fs/drive expectedly fails.
+  :
+  {
+    wd = "$wd/$@";
+    mkdir -p $wd;
+    b = $wd/b;
+
+    mkdir a;
+    $* a $b 2>- == 1
+  }
+
+  -rm -r -f $wd
+}
