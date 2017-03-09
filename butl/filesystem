@@ -418,7 +418,7 @@ namespace butl
   path_match (const std::string& pattern, const std::string& name);
 
   // Search for paths matching the pattern calling the specified function for
-  // each matching path. Stop the search if the function returns false.
+  // each matching path (see below for details).
   //
   // If the pattern is relative, then search in the start directory. If the
   // start directory is empty, then search in the current working directory.
@@ -445,10 +445,36 @@ namespace butl
   // calling func(foo/fox/box/) twice: first time for being a child of fox/,
   // second time for being a child of foo/.
   //
+  // The callback function is called for both intermediate matches (interm is
+  // true) and final matches (interm is false). Pattern is what matched the
+  // last component in the path and is empty if the last component is not a
+  // pattern (final match only; say as in */foo.txt).
+  //
+  // If the callback function returns false for an intermediate path, then no
+  // further search is performed at or below this path. If false is returned
+  // for a final match, then the entire search is stopped.
+  //
+  // The path can be moved for the final match or for an intermediate match
+  // but only if false is returned.
+  //
+  // As an example, consider pattern f*/bar/b*/*.txt and path
+  // foo/bar/baz/x.txt. The sequence of calls in this case will be:
+  //
+  // (foo/, f*/, true)
+  // (foo/bar/baz/, b*/, true)
+  // (foo/bar/baz/x.txt, *.txt, false)
+  //
   LIBBUTL_EXPORT void
   path_search (const path& pattern,
                const std::function<bool (path&&)>&,
                const dir_path& start = dir_path ());
+  /*
+  LIBBUTL_EXPORT void
+  path_search (
+    const path& pattern,
+    const std::function<bool (path&&, const string& pattern, bool interm)>&,
+    const dir_path& start = dir_path ());
+  */
 }
 
 #include <butl/filesystem.ixx>
