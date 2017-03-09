@@ -275,7 +275,7 @@ namespace butl
     // works properly only for ASCII.
     //
     static int
-    compare (const C* l, size_type ln, const C* r, size_t rn)
+    compare (const C* l, size_type ln, const C* r, size_type rn)
     {
       for (size_type i (0), n (ln < rn ? ln : rn); i != n; ++i)
       {
