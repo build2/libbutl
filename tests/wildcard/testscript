@@ -74,6 +74,19 @@
       }
     }
   }
+
+  : case-sensitivity
+  :
+  : Test that matching is case-insensitive on Windows and sensitive otherwise.
+  :
+  if ($cxx.target.class != 'windows')
+  {
+    $* F*O/ foo/ == 1
+  }
+  else
+  {
+    $* F*O/ foo/
+  }
 }
 
 : path-search

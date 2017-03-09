@@ -21,6 +21,8 @@
 #    define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
 #    define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
 #  endif
+
+#  include <butl/utility> // lcase()
 #endif
 
 #include <errno.h> // errno, E*
@@ -797,7 +799,11 @@ namespace butl
     char pc;
     for (; rpi != rpe && (pc = *rpi) != '*' && rni != rne; ++rpi, ++rni)
     {
+#ifndef _WIN32
       if (*rni != pc && pc != '?')
+#else
+      if (lcase (*rni) != lcase (pc) && pc != '?')
+#endif
         return false;
     }
 
@@ -832,7 +838,11 @@ namespace butl
     //
     for (; (pc = *pi) != '*' && ni != ne; ++pi, ++ni)
     {
+#ifndef _WIN32
       if (*ni != pc && pc != '?')
+#else
+        if (lcase (*ni) != lcase (pc) && pc != '?')
+#endif
         return false;
     }
 
