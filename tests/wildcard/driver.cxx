@@ -39,7 +39,10 @@ int _CRT_glob = 0;
 //    Search for paths matching the pattern in the directory specified (absent
 //    directory means the current one). Print the matching canonicalized paths
 //    to STDOUT in the ascending order. Succeed if at least one matching path
-//    is found. Note that this option must go first in the command line,
+//    is found. Note that this option must go first in the command line.
+//
+//    Also note that the driver excludes from search file system entries which
+//    names start from dot, unless the pattern explicitly matches them.
 //
 // -n
 //    Do not sort paths found.
@@ -87,9 +90,32 @@ try
     assert (i == argc); // All args parsed,
 
     vector<path> paths;
-    auto add = [&paths] (path&& p) -> bool
+    auto add =
+      [&paths, &start] (path&& p, const std::string& pt, bool interim) -> bool
     {
-      paths.emplace_back (move (p.canonicalize ()));
+      bool pd (!pt.empty () && pt[0] == '.'); // Dot-started pattern.
+
+      const path& fp (!p.empty ()
+                      ? p
+                      : path_cast<path> (!start.empty ()
+                                         ? start
+                                         : path::current_directory ()));
+
+      const string& s (fp.leaf ().string ());
+      assert (!s.empty ());
+
+      bool ld (s[0] == '.'); // Dot-started leaf.
+
+      // Skip dot-started names if pattern is not dot-started.
+      //
+      bool skip (ld && !pd);
+
+      if (interim)
+        return !skip;
+
+      if (!skip)
+        paths.emplace_back (move (p.canonicalize ()));
+
       return true;
     };
 

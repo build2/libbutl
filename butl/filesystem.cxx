@@ -931,16 +931,28 @@ namespace butl
   // sense for the cleanup use cases (@@ maybe this should be controllable
   // since for directory creation it won't make sense).
   //
+  // Prior to recursively opening a directory for iterating the preopen
+  // callback function is called. If false is returned, then the directory is
+  // not traversed but still returned by the next() call.
+  //
   // Note that iterating over non-existent directory is not en error. The
   // subsequent next() call returns false for such a directory.
   //
+  using preopen = std::function<bool (const dir_path&)>;
+
   class recursive_dir_iterator
   {
   public:
-    recursive_dir_iterator (dir_path p, bool recursive, bool self)
-        : recursive_ (recursive), self_ (self), start_ (p)
+    recursive_dir_iterator (dir_path p,
+                            bool recursive,
+                            bool self,
+                            preopen po)
+        : start_ (move (p)),
+          recursive_ (recursive),
+          self_ (self),
+          preopen_ (move (po))
     {
-      open (dir_path ());
+      open (dir_path (), self_);
     }
 
     // Non-copyable, non-movable type.
@@ -993,7 +1005,7 @@ namespace butl
 
       if (recursive_ && pe.to_directory ())
       {
-        open (path_cast<dir_path> (move (pe)));
+        open (path_cast<dir_path> (move (pe)), true);
         return next (p);
       }
 
@@ -1003,7 +1015,7 @@ namespace butl
 
   private:
     void
-    open (dir_path p)
+    open (dir_path p, bool preopen)
     {
       // We should consider a racing condition here. The directory can be
       // removed before we create an iterator for it. In this case we just do
@@ -1011,8 +1023,17 @@ namespace butl
       //
       try
       {
-        dir_path d (start_ / p);
-        dir_iterator i (!d.empty () ? d : dir_path ("."));
+        // If preopen_() returns false, then the directory will not be
+        // traversed (as we leave iterator with end semantics) but still be
+        // returned by the next() call as a sub-entry.
+        //
+        dir_iterator i;
+        if (!preopen || preopen_ (p))
+        {
+          dir_path d (start_ / p);
+          i = dir_iterator (!d.empty () ? d : dir_path ("."));
+        }
+
         iters_.emplace_back (move (i), move (p));
       }
       catch (const system_error& e)
@@ -1028,9 +1049,10 @@ namespace butl
     }
 
   private:
+    dir_path start_;
     bool recursive_;
     bool self_;
-    dir_path start_;
+    preopen preopen_;
     small_vector<pair<dir_iterator, dir_path>, 1> iters_;
   };
 
@@ -1038,9 +1060,14 @@ namespace butl
   // each matching path. Return false if the underlying func() call returns
   // false. Otherwise the function conforms to the path_search() description.
   //
+  static const string any_dir ("*/");
+
   static bool
-  search (path pattern, dir_path pattern_dir, const dir_path start_dir,
-          const function<bool (path&&)>& func)
+  search (
+    path pattern,
+    dir_path pattern_dir,
+    const dir_path start_dir,
+    const function<bool (path&&, const string& pattern, bool interm)>& func)
   {
     // Fast-forward the leftmost pattern non-wildcard components. So, for
     // example, search for foo/f* in /bar/ becomes search for f* in /bar/foo/.
@@ -1062,7 +1089,7 @@ namespace butl
 
         if (pe.first &&
             ((pe.second == entry_type::directory) == p.to_directory ()))
-          return func (move (p));
+          return func (move (p), string (), false);
 
         return true;
       }
@@ -1088,11 +1115,37 @@ namespace butl
     //
     bool simple (pattern.simple ());
 
+    // Note that we rely on "small function object" optimization here.
+    //
     recursive_dir_iterator i (
       start_dir / pattern_dir,
-      pcr.find ("**") != string::npos,   // Recursive.
-      pcr.find ("***") != string::npos); // Self-inclusive.
+      pcr.find ("**") != string::npos,                  // Recursive.
+      pcr.find ("***") != string::npos,                 // Self-inclusive.
+      [&pattern_dir, &func] (const dir_path& p) -> bool // Preopen.
+      {
+        return func (pattern_dir / p, any_dir, true);
+      });
 
+    // Canonicalize the pattern component collapsing consecutive stars (used to
+    // express that it is recursive) into a single one.
+    //
+    size_t j (0);
+    size_t n (pcr.size ());
+    for (size_t i (0); i < n; ++i)
+    {
+      char c (pcr[i]);
+      if (!(c == '*' && i > 0 && pcr[i - 1] == '*'))
+        pcr[j++] = c;
+    }
+
+    if (j != n)
+      pcr.resize (j);
+
+    // Note that the callback function can be called for the same directory
+    // twice: first time as intermediate match from iterator's preopen() call,
+    // and then, if the first call succeed, from the iterating loop (possibly
+    // as the final match).
+    //
     path p;
     while (i.next (p))
     {
@@ -1122,17 +1175,26 @@ namespace butl
       if (!path_match (pcr, se.leaf ().representation ()))
         continue;
 
-      // If the pattern is a simple path then call func() for the sub-entry.
-      // Otherwise the sub-entry is a directory (read above), and we search in
-      // it using the trailing part of the pattern.
+      // If the callback function returns false, then we stop the entire search
+      // for the final match, or do not search below the path for the
+      // intermediate one.
       //
-      if (!(
-        simple
-        ? func (pattern_dir / p)
-        : search (pattern.leaf (pc),
-                  pattern_dir / path_cast<dir_path> (move (p)),
-                  start_dir,
-                  func)))
+      if (!func (pattern_dir / p, pcr, !simple))
+      {
+        if (simple) // Final match.
+          return false;
+        else
+          continue;
+      }
+
+      // If the pattern is not a simple one, and it's leftmost component
+      // matches the sub-entry, then the sub-entry is a directory (see the note
+      // above), and we search in it using the trailing part of the pattern.
+      //
+      if (!simple && !search (pattern.leaf (pc),
+                              pattern_dir / path_cast<dir_path> (move (p)),
+                              start_dir,
+                              func))
         return false;
     }
 
@@ -1140,9 +1202,10 @@ namespace butl
   }
 
   void
-  path_search (const path& pattern,
-               const function<bool (path&&)>& func,
-               const dir_path& start)
+  path_search (
+    const path& pattern,
+    const function<bool (path&&, const string& pattern, bool interm)>& func,
+    const dir_path& start)
   {
     search (pattern,
             dir_path (),

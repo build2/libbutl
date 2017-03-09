@@ -460,21 +460,30 @@ namespace butl
   // As an example, consider pattern f*/bar/b*/*.txt and path
   // foo/bar/baz/x.txt. The sequence of calls in this case will be:
   //
-  // (foo/, f*/, true)
-  // (foo/bar/baz/, b*/, true)
+  // (foo/,              f*/,   true)
+  // (foo/bar/baz/,      b*/,   true)
   // (foo/bar/baz/x.txt, *.txt, false)
+  //
+  // If the pattern contains a recursive wildcard, then the callback function
+  // can be called for the same directory twice: first time as an intermediate
+  // match with */ pattern to decide if to recursively traverse the directory,
+  // and the second time if the directory matches the pattern component (either
+  // as an intermediate or a final match). As an example, consider pattern
+  // b**/c* and directory tree a/b/c/. The sequence of calls in this case will
+  // be:
+  //
+  // (a/,     */,  true)
+  // (a/b/,   */   true)
+  // (a/b/c/, */,  true)
+  // (a/b/,   b*/, true)
+  // (a/b/c/, c*/, false)
   //
   LIBBUTL_EXPORT void
   path_search (const path& pattern,
-               const std::function<bool (path&&)>&,
+               const std::function<bool (path&&,
+                                         const std::string& pattern,
+                                         bool interm)>&,
                const dir_path& start = dir_path ());
-  /*
-  LIBBUTL_EXPORT void
-  path_search (
-    const path& pattern,
-    const std::function<bool (path&&, const string& pattern, bool interm)>&,
-    const dir_path& start = dir_path ());
-  */
 }
 
 #include <butl/filesystem.ixx>

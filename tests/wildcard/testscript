@@ -388,4 +388,182 @@
       }
     }
   }
+
+  : dot-started
+  :
+  {
+    +mkdir -p z/.z/.z z/z a/.z .a/.z
+    +touch z/.z.cxx z/z.cxx z/.z/.z.cxx z/.z/z.cxx z/z/.z.cxx z/z/z.cxx \
+           a/z.cxx a/.z.cxx .a/z.cxx .a/.z.cxx
+
+    wd=../../..
+
+    : recursive
+    :
+    {
+      : simple
+      :
+      {
+        : file
+        :
+        $* *z**.cxx $wd >>/EOO
+        a/z.cxx
+        z/z.cxx
+        z/z/z.cxx
+        EOO
+
+        : dot-leading-file
+        :
+        $* .z**.cxx $wd >>/EOO
+        a/.z.cxx
+        z/.z.cxx
+        z/z/.z.cxx
+        EOO
+
+        : dir
+        :
+        $* **z/ $wd >>/EOO
+        z/
+        z/z/
+        EOO
+
+        : dot-leading-dir
+        :
+        $* .**z/ $wd >>/EOO
+        a/.z/
+        z/.z/
+        EOO
+      }
+
+      : z-compound
+      :
+      {
+        : not-dot-leading
+        :
+        $* **z/*z.cxx $wd >>/EOO
+        z/z.cxx
+        z/z/z.cxx
+        EOO
+
+        : dot-leading
+        :
+        $* .z**/*z.cxx $wd >>/EOO
+        z/.z/z.cxx
+        EOO
+      }
+
+      : compound
+      :
+      {
+        : not-dot-leading
+        :
+        $* **/*z.cxx $wd >>/EOO
+        a/z.cxx
+        z/z.cxx
+        z/z/z.cxx
+        EOO
+
+        : dot-leading
+        :
+        $* .**/*z.cxx $wd >>/EOO
+        .a/z.cxx
+        z/.z/z.cxx
+        EOO
+      }
+
+      : self
+      :
+      {
+        : not-dot-leading
+        :
+        $* *z***/*z.cxx $wd/z >>/EOO
+        z.cxx
+        z/z.cxx
+        EOO
+
+        : dot-leading
+        :
+        $* .z***/*z.cxx $wd/z >>/EOO
+        .z/z.cxx
+        EOO
+      }
+    }
+
+    : immediate
+    :
+    {
+      : simple
+      :
+      {
+        : file
+        :
+        $* *z*.cxx $wd/z >>/EOO
+        z.cxx
+        EOO
+
+        : dot-leading-file
+        :
+        $* .z*.cxx $wd/z >>/EOO
+        .z.cxx
+        EOO
+
+        : file-dot-leading-start
+        :
+        $* *z*.cxx $wd/z/.z >>/EOO
+        z.cxx
+        EOO
+
+        : dot-leading-file-dot-leading-start
+        :
+        $* .z*.cxx $wd/z/.z >>/EOO
+        .z.cxx
+        EOO
+
+        : dir
+        :
+        $* *z/ $wd/ >>/EOO
+        z/
+        EOO
+
+        : dot-leading-dir
+        :
+        $* .*z/ $wd/z >>/EOO
+        .z/
+        EOO
+      }
+
+      : z-compound
+      :
+      {
+        : not-dot-leading
+        :
+        $* *z/*z.cxx $wd/z >>/EOO
+        z/z.cxx
+        EOO
+
+        : dot-leading
+        :
+        $* .z*/*z.cxx $wd/z >>/EOO
+        .z/z.cxx
+        EOO
+      }
+
+      : compound
+      :
+      {
+        : not-dot-leading
+        :
+        $* */*z.cxx $wd >>/EOO
+        a/z.cxx
+        z/z.cxx
+        EOO
+
+        : dot-leading
+        :
+        $* .*/*z.cxx $wd >>/EOO
+        .a/z.cxx
+        EOO
+      }
+    }
+  }
 }
