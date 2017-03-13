@@ -94,45 +94,52 @@ namespace butl
   pair<bool, entry_type>
   path_entry (const char* p, bool)
   {
-    int r;
-    struct _stat s;
-
     // A path like 'C:', while being a root path in our terminology, is not as
     // such for Windows, that maintains current directory for each drive, and
     // so C: means the current directory on the drive C. This is not what we
     // mean here, so need to append the trailing directory separator in such a
     // case.
     //
-    if (!path::traits::root (p, string::traits_type::length (p)))
-      r = _stat (p, &s);
-    else
+    string d;
+    if (path::traits::root (p, string::traits_type::length (p)))
     {
-      string d (p);
+      d = p;
       d += path::traits::directory_separator;
-      r = _stat (d.c_str (), &s);
+      p = d.c_str ();
     }
 
-    if (r != 0)
-    {
-      if (errno == ENOENT || errno == ENOTDIR)
-        return make_pair (false, entry_type::unknown);
-      else
-        throw system_error (errno, system_category ());
-    }
+    DWORD attr (GetFileAttributesA (p));
+    if (attr == INVALID_FILE_ATTRIBUTES) // Presumably not exists.
+      return make_pair (false, entry_type::unknown);
 
-    auto m (s.st_mode);
     entry_type t (entry_type::unknown);
 
-    if (S_ISREG (m))
-      t = entry_type::regular;
-    else if (S_ISDIR (m))
-      t = entry_type::directory;
+    // S_ISLNK/S_IFDIR are not defined for Win32 but it does have symlinks.
+    // We will consider symlink entry to be of the unknown type. Note that
+    // S_ISREG() and S_ISDIR() return as they would do for a symlink target.
     //
-    // S_ISLNK/S_IFDIR are not defined for Win32 but it does have
-    // symlinks.
-    //
-    //else if (S_ISLNK (m))
-    //  t = entry_type::symlink;
+    if ((attr & FILE_ATTRIBUTE_REPARSE_POINT) == 0)
+    {
+      struct _stat s;
+
+      if (_stat (p, &s) != 0)
+      {
+        if (errno == ENOENT || errno == ENOTDIR)
+          return make_pair (false, entry_type::unknown);
+        else
+          throw system_error (errno, system_category ());
+      }
+
+      auto m (s.st_mode);
+
+      if (S_ISREG (m))
+        t = entry_type::regular;
+      else if (S_ISDIR (m))
+        t = entry_type::directory;
+      //
+      //else if (S_ISLNK (m))
+      //  t = entry_type::symlink;
+    }
 
     return make_pair (true, t);
   }
@@ -667,8 +674,8 @@ namespace butl
     //
     path_type p (b_ / p_);
 
-    struct stat s;
-    if (stat (p.string ().c_str (), &s) != 0)
+    struct _stat s;
+    if (_stat (p.string ().c_str (), &s) != 0)
       throw system_error (errno, system_category ());
 
     entry_type r;
