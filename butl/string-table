@@ -34,8 +34,15 @@ namespace butl
     const std::string d;
   };
 
+  // For custom data the options are to call the data member 'key' or to
+  // specialize this traits.
+  //
   template <typename D>
-  struct string_table_traits;
+  struct string_table_traits
+  {
+    static const std::string&
+    key (const D& d) {return d.key;}
+  };
 
   template <>
   struct string_table_traits<std::string>
