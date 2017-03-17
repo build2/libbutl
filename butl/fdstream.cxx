@@ -12,8 +12,10 @@
 #  include <sys/stat.h>  // S_I*
 #  include <sys/types.h> // off_t
 #else
+#  include <butl/win32-utility>
+
 #  include <io.h>       // _close(), _read(), _write(), _setmode(), _sopen(),
-                        // _lseek(), _dup(), _pipe()
+                        // _lseek(), _dup(), _pipe(), _get_osfhandle()
 #  include <share.h>    // _SH_DENYNO
 #  include <stdio.h>    // _fileno(), stdin, stdout, stderr
 #  include <fcntl.h>    // _O_*
@@ -32,7 +34,13 @@
 #include <type_traits>
 #include <system_error>
 
+#include <butl/process-details>
+
 using namespace std;
+
+#ifdef _WIN32
+using namespace butl::win32;
+#endif
 
 namespace butl
 {
@@ -63,7 +71,7 @@ namespace butl
     throw ios_base::failure (m != nullptr ? m : e.message ().c_str ());
   }
 
-  inline void
+  static inline void
   throw_ios_failure (int ev, const char* m = nullptr)
   {
     error_code ec (ev, system_category ());
@@ -708,6 +716,10 @@ namespace butl
       pass_perm = false;
     }
 
+    // Make sure the file descriptor is not inheritable by default.
+    //
+    of |= _O_NOINHERIT;
+
     int fd (pass_perm
             ? _sopen (f, of, _SH_DENYNO, pf)
             : _sopen (f, of, _SH_DENYNO));
@@ -739,34 +751,47 @@ namespace butl
     return auto_fd (fd);
   }
 
+#ifndef _WIN32
+
   auto_fd
   fddup (int fd)
   {
-#ifndef _WIN32
-    int nfd (dup (fd));
+    // dup() doesn't copy FD_CLOEXEC flag, so we need to do it ourselves. Note
+    // that the new descriptor can leak into child processes before we copy the
+    // flag. To prevent this we will acquire the process_spawn_mutex (see
+    // process-details header) prior to duplicating the descriptor. Also note
+    // there is dup3() (available on Linux and FreeBSD but not on Max OS) that
+    // takes flags, but it's usage tends to be hairy (need to preopen a dummy
+    // file descriptor to pass as a second argument).
+    //
+    auto dup = [fd] () -> auto_fd
+    {
+      auto_fd nfd (::dup (fd));
+      if (nfd.get () == -1)
+        throw_ios_failure (errno);
+
+      return nfd;
+    };
 
     int f (fcntl (fd, F_GETFD));
     if (f == -1)
       throw_ios_failure (errno);
 
-    if ((f & FD_CLOEXEC) != 0)
-    {
-      f = fcntl (nfd, F_GETFD);
-      if (f == -1 || fcntl (nfd, F_SETFD, f | FD_CLOEXEC) == -1)
-        throw_ios_failure (errno);
-    }
+    // If the source descriptor has no FD_CLOEXEC flag set then no flag copy is
+    // required (as the duplicate will have no flag by default).
+    //
+    if ((f & FD_CLOEXEC) == 0)
+      return dup ();
 
-#else
-    int nfd (_dup (fd));
-#endif
+    slock l (process_spawn_mutex);
+    auto_fd nfd (dup ());
 
-    if (nfd == -1)
+    f = fcntl (nfd.get (), F_GETFD);
+    if (f == -1 || fcntl (nfd.get (), F_SETFD, f | FD_CLOEXEC) == -1)
       throw_ios_failure (errno);
 
-    return auto_fd (nfd);
+    return nfd;
   }
-
-#ifndef _WIN32
 
   bool
   fdclose (int fd) noexcept
@@ -836,9 +861,19 @@ namespace butl
   {
     assert (m == fdopen_mode::none || m == fdopen_mode::binary);
 
+    // Note that the pipe file descriptors can leak into child processes before
+    // we set FD_CLOEXEC flag for them. To prevent this we will acquire the
+    // process_spawn_mutex (see process-details header) prior to creating the
+    // pipe. Also note there is pipe2() (available on Linux and FreeBSD but not
+    // on Max OS) that takes flags.
+    //
+    slock l (process_spawn_mutex);
+
     int pd[2];
     if (pipe (pd) == -1)
       throw_ios_failure (errno);
+
+    fdpipe r {auto_fd (pd[0]), auto_fd (pd[1])};
 
     for (size_t i (0); i < 2; ++i)
     {
@@ -847,10 +882,61 @@ namespace butl
         throw_ios_failure (errno);
     }
 
-    return {auto_fd (pd[0]), auto_fd (pd[1])};
+    return r;
   }
 
 #else
+
+  auto_fd
+  fddup (int fd)
+  {
+    // _dup() doesn't copy _O_NOINHERIT flag, so we need to do it ourselves.
+    // Note that the new descriptor can leak into child processes before we
+    // copy the flag. To prevent this we will acquire the process_spawn_mutex
+    // (see process-details header) prior to duplicating the descriptor.
+    //
+    // We can not ammend file descriptors directly (nor obtain the flag value),
+    // so need to resolve them to Windows HANDLE first. Such handles are closed
+    // either when CloseHandle() is called for them or when _close() is called
+    // for the associated file descriptors. Make sure that either the original
+    // file descriptor or the resulting HANDLE is closed but not both of them.
+    //
+    auto handle = [] (int fd) -> HANDLE
+    {
+      HANDLE h (reinterpret_cast<HANDLE> (_get_osfhandle (fd)));
+      if (h == INVALID_HANDLE_VALUE)
+        throw_ios_failure (EIO, "unable to obtain file handle");
+
+      return h;
+    };
+
+    auto dup = [fd] () -> auto_fd
+    {
+      auto_fd nfd (_dup (fd));
+      if (nfd.get () == -1)
+        throw_ios_failure (errno);
+
+      return nfd;
+    };
+
+    DWORD f;
+    if (!GetHandleInformation (handle (fd), &f))
+      throw_ios_failure (EIO, last_error_msg ().c_str ());
+
+    // If the source handle is inheritable then no flag copy is required (as
+    // the duplicate handle will be inheritable by default).
+    //
+    if (f & HANDLE_FLAG_INHERIT)
+      return dup ();
+
+    slock l (process_spawn_mutex);
+
+    auto_fd nfd (dup ());
+    if (!SetHandleInformation (handle (nfd.get ()), HANDLE_FLAG_INHERIT, 0))
+      throw_ios_failure (EIO, last_error_msg ().c_str ());
+
+    return nfd;
+  }
 
   bool
   fdclose (int fd) noexcept
@@ -864,7 +950,7 @@ namespace butl
     // No need to translate \r\n before sending it to void.
     //
     if (!temp)
-      return _sopen ("nul", _O_RDWR | _O_BINARY, _SH_DENYNO);
+      return _sopen ("nul", _O_RDWR | _O_BINARY | _O_NOINHERIT, _SH_DENYNO);
 
     try
     {
@@ -873,11 +959,12 @@ namespace butl
       //
       path p (path::temp_path ("null")); // Can throw.
       return _sopen (p.string ().c_str (),
-                     (_O_CREAT      |
-                      _O_RDWR       |
-                      _O_BINARY     |  // Don't translate.
-                      _O_TEMPORARY  |  // Remove on close.
-                      _O_SHORT_LIVED), // Don't flush to disk.
+                     (_O_CREAT       |
+                      _O_RDWR        |
+                      _O_BINARY      | // Don't translate.
+                      _O_TEMPORARY   | // Remove on close.
+                      _O_SHORT_LIVED | // Don't flush to disk.
+                      _O_NOINHERIT),   // Don't inherit by child process.
                      _SH_DENYNO,
                      _S_IREAD | _S_IWRITE);
     }
@@ -908,6 +995,8 @@ namespace butl
     if (m != fdstream_mode::binary && m != fdstream_mode::text)
       throw invalid_argument ("invalid translation mode");
 
+    // Note that _setmode() preserves the _O_NOINHERIT flag value.
+    //
     int r (_setmode (fd, m == fdstream_mode::binary ? _O_BINARY : _O_TEXT));
     if (r == -1)
       throw_ios_failure (errno);

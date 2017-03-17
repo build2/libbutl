@@ -2,7 +2,7 @@
 # copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
-lib{butl}:                               \
+lib{butl}:                                  \
    {hxx         cxx}{ base64              } \
    {hxx         cxx}{ char-scanner        } \
    {hxx            }{ const-ptr           } \
@@ -21,6 +21,7 @@ lib{butl}:                               \
    {hxx            }{ path-map            } \
    {hxx     txx    }{ prefix-map          } \
    {hxx ixx     cxx}{ process             } \
+   {hxx            }{ process-details     } \
    {hxx         cxx}{ sha256              } \
    {hxx            }{ small-vector        } \
    {hxx     txx    }{ string-table        } \
@@ -65,6 +66,9 @@ objs{*}: cxx.poptions += -DLIBBUTL_SHARED_BUILD
 lib{butl}: cxx.export.poptions = "-I$src_root"
 liba{butl}: cxx.export.poptions += -DLIBBUTL_STATIC
 libs{butl}: cxx.export.poptions += -DLIBBUTL_SHARED
+
+if ($cxx.target.class != "windows")
+  cxx.libs += -lpthread
 
 # Install into the butl/ subdirectory of, say, /usr/include/.
 #

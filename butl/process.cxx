@@ -27,7 +27,7 @@
 
 #  include <cstdlib> // __argv[]
 
-#  include <butl/win32-utility>
+#  include <butl/small-vector>
 #endif
 
 #include <errno.h>
@@ -39,8 +39,9 @@
 #include <utility>  // move()
 #include <ostream>
 
-#include <butl/utility>  // casecmp()
-#include <butl/fdstream> // fdnull()
+#include <butl/utility>         // casecmp()
+#include <butl/fdstream>        // fdnull()
+#include <butl/process-details>
 
 using namespace std;
 
@@ -50,6 +51,8 @@ using namespace butl::win32;
 
 namespace butl
 {
+  shared_mutex process_spawn_mutex;
+
   // process
   //
   static process_path
@@ -256,7 +259,7 @@ namespace butl
     fdpipe in_ofd;
     fdpipe in_efd;
 
-    auto fail = [](bool child) {throw process_error (errno, child);};
+    auto fail = [] (bool child) {throw process_error (errno, child);};
 
     auto open_pipe = [] () -> fdpipe
     {
@@ -303,65 +306,68 @@ namespace butl
     else if (err == -2)
       in_efd.out = open_null ();
 
-    handle = fork ();
-
-    if (handle == -1)
-      fail (false);
-
-    if (handle == 0)
     {
-      // Child.
-      //
-      // Duplicate the user-supplied (fd > -1) or the created pipe descriptor
-      // to the standard stream descriptor (read end for STDIN_FILENO, write
-      // end otherwise). Close the the pipe afterwards.
-      //
-      auto duplicate = [&fail](int sd, int fd, fdpipe& pd)
-      {
-        if (fd == -1 || fd == -2)
-          fd = (sd == STDIN_FILENO ? pd.in : pd.out).get ();
+      ulock l (process_spawn_mutex); // Will not be released in child.
+      handle = fork ();
 
-        assert (fd > -1);
-        if (dup2 (fd, sd) == -1)
+      if (handle == -1)
+        fail (false);
+
+      if (handle == 0)
+      {
+        // Child.
+        //
+        // Duplicate the user-supplied (fd > -1) or the created pipe descriptor
+        // to the standard stream descriptor (read end for STDIN_FILENO, write
+        // end otherwise). Close the the pipe afterwards.
+        //
+        auto duplicate = [&fail] (int sd, int fd, fdpipe& pd)
+        {
+          if (fd == -1 || fd == -2)
+            fd = (sd == STDIN_FILENO ? pd.in : pd.out).get ();
+
+          assert (fd > -1);
+          if (dup2 (fd, sd) == -1)
+            fail (true);
+
+          pd.in.reset ();  // Silently close.
+          pd.out.reset (); // Silently close.
+        };
+
+        if (in != STDIN_FILENO)
+          duplicate (STDIN_FILENO, in, out_fd);
+
+        // If stdout is redirected to stderr (out == 2) we need to duplicate it
+        // after duplicating stderr to pickup the proper fd. Otherwise keep the
+        // "natual" order of duplicate() calls, so if stderr is redirected to
+        // stdout it picks up the proper fd as well.
+        //
+        if (out == STDERR_FILENO)
+        {
+          if (err != STDERR_FILENO)
+            duplicate (STDERR_FILENO, err, in_efd);
+
+          if (out != STDOUT_FILENO)
+            duplicate (STDOUT_FILENO, out, in_ofd);
+        }
+        else
+        {
+          if (out != STDOUT_FILENO)
+            duplicate (STDOUT_FILENO, out, in_ofd);
+
+          if (err != STDERR_FILENO)
+            duplicate (STDERR_FILENO, err, in_efd);
+        }
+
+        // Change current working directory if requested.
+        //
+        if (cwd != nullptr && *cwd != '\0' && chdir (cwd) != 0)
           fail (true);
 
-        pd.in.reset ();  // Silently close.
-        pd.out.reset (); // Silently close.
-      };
-
-      if (in != STDIN_FILENO)
-        duplicate (STDIN_FILENO, in, out_fd);
-
-      // If stdout is redirected to stderr (out == 2) we need to duplicate it
-      // after duplicating stderr to pickup the proper fd. Otherwise keep the
-      // "natual" order of duplicate() calls, so if stderr is redirected to
-      // stdout it picks up the proper fd as well.
-      //
-      if (out == STDERR_FILENO)
-      {
-        if (err != STDERR_FILENO)
-          duplicate (STDERR_FILENO, err, in_efd);
-
-        if (out != STDOUT_FILENO)
-          duplicate (STDOUT_FILENO, out, in_ofd);
+        if (execv (pp.effect_string (), const_cast<char**> (&args[0])) == -1)
+          fail (true);
       }
-      else
-      {
-        if (out != STDOUT_FILENO)
-          duplicate (STDOUT_FILENO, out, in_ofd);
-
-        if (err != STDERR_FILENO)
-          duplicate (STDERR_FILENO, err, in_efd);
-      }
-
-      // Change current working directory if requested.
-      //
-      if (cwd != nullptr && *cwd != '\0' && chdir (cwd) != 0)
-        fail (true);
-
-      if (execv (pp.effect_string (), const_cast<char**> (&args[0])) == -1)
-        fail (true);
-    }
+    } // Release the lock in parent.
 
     assert (handle != 0); // Shouldn't get here unless in the parent process.
 
@@ -798,6 +804,61 @@ namespace butl
     HANDLE handle_;
   };
 
+  // Make handles inheritable. The process_spawn_mutex must be pre-acquired for
+  // exclusive access. Revert handles inheritability state in destructor.
+  //
+  // There is a period of time when the process ctor makes file handles it
+  // passes to the child to be inheritable, that otherwise are not inheritable
+  // by default. During this time these handles can also be inherited by other
+  // (irrelevant) child processed spawned from other threads. That can lead to
+  // some unwanted consequences, such as inability to delete a file
+  // corresponding to such a handle until all childs, that the handle leaked
+  // into, terminate. To prevent this behavior the specific sequence of steps
+  // (that involves making handles inheritable, spawning process and reverting
+  // handles to non-inheritable state back) will be performed after aquiring
+  // the process_spawn_mutex (that is released afterwards).
+  //
+  class inheritability_guard
+  {
+  public:
+    // Require the proof that the mutex is pre-acquired for exclusive access.
+    //
+    inheritability_guard (const ulock&) {}
+
+    ~inheritability_guard ()
+    {
+      for (auto h: handles_)
+        inheritable (h, false); // Can't throw.
+    }
+
+    void
+    inheritable (HANDLE h)
+    {
+      inheritable (h, true);  // Can throw.
+      handles_.push_back (h);
+    }
+
+  private:
+    void
+    inheritable (HANDLE h, bool state)
+    {
+      if (!SetHandleInformation (
+            h, HANDLE_FLAG_INHERIT, state ? HANDLE_FLAG_INHERIT : 0))
+      {
+        if (state)
+          throw process_error (last_error_msg ());
+
+        // We should be able to successfully reset the HANDLE_FLAG_INHERIT flag
+        // that we successfully set, unless something is severely damaged.
+        //
+        assert (false);
+      }
+    }
+
+  private:
+    small_vector<HANDLE, 3> handles_;
+  };
+
   process::
   process (const char* cwd,
            const process_path& pp, const char* args[],
@@ -862,35 +923,6 @@ namespace butl
     else if (err == -2)
       in_efd.out = open_null ();
 
-    // Resolve file descriptor to HANDLE and make sure it is inherited. Note
-    // that the handle is closed either when CloseHandle() is called for it or
-    // when _close() is called for the associated file descriptor. Make sure
-    // that either the original file descriptor or the resulting HANDLE is
-    // closed but not both of them.
-    //
-    auto get_osfhandle = [&fail](int fd) -> HANDLE
-    {
-      HANDLE h (reinterpret_cast<HANDLE> (_get_osfhandle (fd)));
-      if (h == INVALID_HANDLE_VALUE)
-        fail ("unable to obtain file handle");
-
-      // Make the handle inheritable by the child unless it is already
-      // inheritable.
-      //
-      DWORD f;
-      if (!GetHandleInformation (h, &f))
-	fail ();
-
-      // Note that the flag check is essential as SetHandleInformation() fails
-      // for standard handles and their duplicates.
-      //
-      if ((f & HANDLE_FLAG_INHERIT) == 0 &&
-          !SetHandleInformation (h, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT))
-        fail ();
-
-      return h;
-    };
-
     // Create the process.
     //
 
@@ -934,58 +966,90 @@ namespace butl
     si.cb = sizeof (STARTUPINFO);
     si.dwFlags |= STARTF_USESTDHANDLES;
 
-    si.hStdInput = in == -1 || in == -2
-      ? get_osfhandle (out_fd.in.get ())
-      : in == STDIN_FILENO
-        ? GetStdHandle (STD_INPUT_HANDLE)
-        : get_osfhandle (in);
+    {
+      ulock l (process_spawn_mutex);
+      inheritability_guard ig (l);
 
-    si.hStdOutput = out == -1 || out == -2
-      ? get_osfhandle (in_ofd.out.get ())
-      : out == STDOUT_FILENO
-        ? GetStdHandle (STD_OUTPUT_HANDLE)
-        : get_osfhandle (out);
+      // Resolve file descriptor to HANDLE and make sure it is inherited. Note
+      // that the handle is closed either when CloseHandle() is called for it
+      // or when _close() is called for the associated file descriptor. Make
+      // sure that either the original file descriptor or the resulting HANDLE
+      // is closed but not both of them.
+      //
+      auto get_osfhandle = [&fail, &ig] (int fd) -> HANDLE
+      {
+        HANDLE h (reinterpret_cast<HANDLE> (_get_osfhandle (fd)));
+        if (h == INVALID_HANDLE_VALUE)
+          fail ("unable to obtain file handle");
 
-    si.hStdError = err == -1 || err == -2
-      ? get_osfhandle (in_efd.out.get ())
-      : err == STDERR_FILENO
-        ? GetStdHandle (STD_ERROR_HANDLE)
-        : get_osfhandle (err);
+        // Make the handle inheritable by the child unless it is already
+        // inheritable.
+        //
+        DWORD f;
+        if (!GetHandleInformation (h, &f))
+          fail ();
 
-    // Perform standard stream redirection if requested.
-    //
-    if (err == STDOUT_FILENO)
-      si.hStdError = si.hStdOutput;
-    else if (out == STDERR_FILENO)
-      si.hStdOutput = si.hStdError;
+        // Note that the flag check is essential as SetHandleInformation()
+        // fails for standard handles and their duplicates.
+        //
+        if ((f & HANDLE_FLAG_INHERIT) == 0)
+          ig.inheritable (h);
 
-    if (err == STDIN_FILENO ||
-        out == STDIN_FILENO ||
-        in == STDOUT_FILENO ||
-        in == STDERR_FILENO)
-      fail ("invalid file descriptor");
+        return h;
+      };
 
-    if (!CreateProcess (
-          pp.effect_string (),
-          const_cast<char*> (cmd_line.c_str ()),
-          0,    // Process security attributes.
-          0,    // Primary thread security attributes.
-          true, // Inherit handles.
-          0,    // Creation flags.
-          0,    // Use our environment.
-          cwd != nullptr && *cwd != '\0' ? cwd : nullptr,
-          &si,
-          &pi))
-      fail ();
+      si.hStdInput = in == -1 || in == -2
+        ? get_osfhandle (out_fd.in.get ())
+        : (in == STDIN_FILENO
+           ? GetStdHandle (STD_INPUT_HANDLE)
+           : get_osfhandle (in));
+
+      si.hStdOutput = out == -1 || out == -2
+        ? get_osfhandle (in_ofd.out.get ())
+        : (out == STDOUT_FILENO
+           ? GetStdHandle (STD_OUTPUT_HANDLE)
+           : get_osfhandle (out));
+
+      si.hStdError = err == -1 || err == -2
+        ? get_osfhandle (in_efd.out.get ())
+        : (err == STDERR_FILENO
+           ? GetStdHandle (STD_ERROR_HANDLE)
+           : get_osfhandle (err));
+
+      // Perform standard stream redirection if requested.
+      //
+      if (err == STDOUT_FILENO)
+        si.hStdError = si.hStdOutput;
+      else if (out == STDERR_FILENO)
+        si.hStdOutput = si.hStdError;
+
+      if (err == STDIN_FILENO ||
+          out == STDIN_FILENO ||
+          in == STDOUT_FILENO ||
+          in == STDERR_FILENO)
+        fail ("invalid file descriptor");
+
+      if (!CreateProcess (
+            pp.effect_string (),
+            const_cast<char*> (cmd_line.c_str ()),
+            0,    // Process security attributes.
+            0,    // Primary thread security attributes.
+            true, // Inherit handles.
+            0,    // Creation flags.
+            0,    // Use our environment.
+            cwd != nullptr && *cwd != '\0' ? cwd : nullptr,
+            &si,
+            &pi))
+        fail ();
+    } // Revert handled back to non-inheritable and release the lock.
 
     auto_handle (pi.hThread).reset (); // Close.
-    auto_handle process (pi.hProcess);
 
     this->out_fd = move (out_fd.out);
     this->in_ofd = move (in_ofd.in);
     this->in_efd = move (in_efd.in);
 
-    this->handle = process.release ();
+    this->handle = pi.hProcess;
 
     // 0 has a special meaning denoting a terminated process handle.
     //
