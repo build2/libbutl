@@ -20,6 +20,22 @@
 
 namespace butl
 {
+  // Throw std::system_error with generic_category or system_category,
+  // respectively.
+  //
+  // The generic version should be used for portable errno codes (those that
+  // are mapped to std::errc). The system version should be used for platform-
+  // specific codes, for example, additional errno codes on POSIX systems or
+  // the result of GetLastError() on Windows.
+  //
+  // See also the exception sanitization below.
+  //
+  [[noreturn]] void
+  throw_generic_error (int errno_code);
+
+  [[noreturn]] void
+  throw_system_error (int system_code, int fallback_errno_code = 0);
+
   // Convert ASCII character/string case. If there is no upper/lower case
   // counterpart, leave the character unchanged. The POSIX locale (also known
   // as C locale) must be the current application locale. Otherwise the
