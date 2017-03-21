@@ -30,10 +30,10 @@ namespace butl
   //
   // See also the exception sanitization below.
   //
-  [[noreturn]] void
-  throw_generic_error (int errno_code);
+  [[noreturn]] LIBBUTL_EXPORT void
+  throw_generic_error (int errno_code, const char* what = nullptr);
 
-  [[noreturn]] void
+  [[noreturn]] LIBBUTL_EXPORT void
   throw_system_error (int system_code, int fallback_errno_code = 0);
 
   // Convert ASCII character/string case. If there is no upper/lower case
@@ -252,6 +252,7 @@ namespace std
   //
   // - stripping leading colons and spaces (see fdstream.cxx)
   // - stripping trailing newlines, periods, and spaces
+  // - stripping system error redundant suffix (see utility.cxx)
   // - lower-case the first letter if the beginning looks like a word
   //
   LIBBUTL_EXPORT ostream&

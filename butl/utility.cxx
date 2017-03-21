@@ -2,12 +2,20 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <ostream>
-
 #include <butl/utility>
+
+#ifdef _WIN32
+#  include <butl/win32-utility>
+#endif
+
+#include <string>
+#include <ostream>
+#include <system_error>
 
 namespace butl
 {
+  using namespace std;
+
 #ifndef __cpp_lib_uncaught_exceptions
 
 #ifdef __cpp_thread_local
@@ -23,6 +31,39 @@ namespace butl
 #endif
 
 #endif
+
+  [[noreturn]] void
+  throw_generic_error (int errno_code, const char* what)
+  {
+    if (what == nullptr)
+      throw system_error (errno_code, generic_category ());
+    else
+      throw system_error (errno_code, generic_category (), what);
+  }
+
+  [[noreturn]] void
+#ifndef _WIN32
+  throw_system_error (int system_code, int)
+  {
+    throw system_error (system_code, system_category ());
+#else
+  throw_system_error (int system_code, int fallback_errno_code)
+  {
+    // Here we work around MinGW libstdc++ that interprets Windows system error
+    // codes (for example those returned by GetLastError()) as errno codes. The
+    // resulting system_error description will have the following form:
+    //
+    // <system_code description>: <fallback_errno_code description>
+    //
+    // Also note that the fallback-related description suffix is stripped by
+    // our custom operator<<(ostream, exception) for the common case (see
+    // below).
+    //
+    throw system_error (fallback_errno_code,
+                        system_category (),
+                        win32::error_msg (system_code));
+#endif
+  }
 }
 
 namespace std
@@ -62,6 +103,16 @@ namespace std
 
       break;
     }
+
+    // Strip the suffix for system_error thrown by
+    // throw_system_error(system_code) on Windows. For example for the
+    // ERROR_INVALID_DATA error code the original description will be
+    // 'Invalid data. : Success' for MinGW libstdc++ and
+    // 'Invalid data. : Success.' for msvcrt.
+    //
+    if (n >= 11 &&
+        string::traits_type::compare (s + n - 11, ". : Success", 11) == 0)
+      n -= 11;
 
     // Lower-case the first letter if the beginning looks like a word (the
     // second character is the lower-case letter or space).

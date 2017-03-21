@@ -15,7 +15,8 @@
 #include <ostream>
 #include <utility>      // pair, make_pair()
 #include <stdexcept>    // runtime_error
-#include <system_error>
+
+#include <butl/utility> // throw_generic_error()
 
 using namespace std;
 
@@ -137,7 +138,7 @@ namespace butl
     if ((local
          ? details::localtime (&t, &tm)
          : details::gmtime (&t, &tm)) == nullptr)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
 
     using namespace chrono;
 
@@ -147,7 +148,7 @@ namespace butl
     char fmt[256];
     size_t n (strlen (format));
     if (n + 1 > sizeof (fmt))
-      throw system_error (EINVAL, system_category ());
+      throw_generic_error (EINVAL);
     memcpy (fmt, format, n + 1);
 
     // Chunk the format string into fragments that we feed to put_time() and
@@ -175,18 +176,18 @@ namespace butl
 
           j += 2; // Character after '['.
           if (j == n)
-            throw system_error (EINVAL, system_category ());
+            throw_generic_error (EINVAL);
 
           char d ('\0');
           if (fmt[j] != 'N')
           {
             d = fmt[j];
             if (++j == n || fmt[j] != 'N')
-              throw system_error (EINVAL, system_category ());
+              throw_generic_error (EINVAL);
           }
 
           if (++j == n || fmt[j] != ']')
-            throw system_error (EINVAL, system_category ());
+            throw_generic_error (EINVAL);
 
           if (ns != nanoseconds::zero ())
           {
@@ -267,7 +268,7 @@ namespace butl
     {
       std::tm tm;
       if (details::gmtime (&t, &tm) == nullptr)
-        throw system_error (errno, system_category ());
+        throw_generic_error (errno);
 
       if (t >= 24 * 60 * 60)
         tm.tm_mday -= 1; // Make day of the month to be a zero-based number.
@@ -431,7 +432,7 @@ namespace butl
   static pair<tm, chrono::nanoseconds>
   from_string (const char* input, const char* format, const char** end)
   {
-    auto bad_val = []() {throw system_error (EINVAL, system_category ());};
+    auto bad_val = [] () {throw_generic_error (EINVAL);};
 
     // See if we have our specifier.
     //
@@ -603,7 +604,7 @@ namespace butl
 
     time_t time (local ? mktime (&t.first) : timegm (&t.first));
     if (time == -1)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
 
     return timestamp::clock::from_time_t (time) +
       chrono::duration_cast<duration> (t.second);

@@ -71,13 +71,35 @@ namespace butl
     throw ios_base::failure (m != nullptr ? m : e.message ().c_str ());
   }
 
+  // Throw system_error with generic_category.
+  //
   static inline void
-  throw_ios_failure (int ev, const char* m = nullptr)
+  throw_ios_failure (int errno_code, const char* m = nullptr)
   {
-    error_code ec (ev, system_category ());
+    error_code ec (errno_code, generic_category ());
     throw_ios_failure<is_base_of<system_error, ios_base::failure>::value> (
       ec, m);
   }
+
+#ifdef _WIN32
+  // Throw system_error with system_category.
+  //
+  static inline void
+  throw_ios_system_failure (int system_code)
+  {
+    // Here we work around MinGW libstdc++ that interprets Windows system error
+    // codes (for example those returned by GetLastError()) as errno codes.
+    //
+    // Note that the resulting system_error description will have ': Success.'
+    // suffix that is stripped by our custom operator<<(ostream, exception).
+    //
+    error_code ec (0, system_category ());
+    string m (win32::error_msg (system_code));
+
+    throw_ios_failure<is_base_of<system_error, ios_base::failure>::value> (
+      ec, m.c_str ());
+  }
+#endif
 
   // auto_fd
   //
@@ -905,7 +927,7 @@ namespace butl
     {
       HANDLE h (reinterpret_cast<HANDLE> (_get_osfhandle (fd)));
       if (h == INVALID_HANDLE_VALUE)
-        throw_ios_failure (EIO, "unable to obtain file handle");
+        throw_ios_failure (errno); // EBADF (POSIX value).
 
       return h;
     };
@@ -921,7 +943,7 @@ namespace butl
 
     DWORD f;
     if (!GetHandleInformation (handle (fd), &f))
-      throw_ios_failure (EIO, last_error_msg ().c_str ());
+      throw_ios_system_failure (GetLastError ());
 
     // If the source handle is inheritable then no flag copy is required (as
     // the duplicate handle will be inheritable by default).
@@ -933,7 +955,7 @@ namespace butl
 
     auto_fd nfd (dup ());
     if (!SetHandleInformation (handle (nfd.get ()), HANDLE_FLAG_INHERIT, 0))
-      throw_ios_failure (EIO, last_error_msg ().c_str ());
+      throw_ios_system_failure (GetLastError ());
 
     return nfd;
   }
@@ -975,6 +997,10 @@ namespace butl
     }
     catch (const system_error& e)
     {
+      // Make sure that the error denotes errno portable code.
+      //
+      assert (e.code ().category () == generic_category ());
+
       errno = e.code ().value ();
       return -1;
     }
@@ -999,7 +1025,7 @@ namespace butl
     //
     int r (_setmode (fd, m == fdstream_mode::binary ? _O_BINARY : _O_TEXT));
     if (r == -1)
-      throw_ios_failure (errno);
+      throw_ios_failure (errno); // EBADF or EINVAL (POSIX values).
 
     return fdstream_mode::blocking |
       ((r & _O_BINARY) == _O_BINARY

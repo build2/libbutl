@@ -16,9 +16,9 @@
 
 #include <cstring>      // strchr()
 #include <utility>      // move()
-#include <system_error>
 
-#include <butl/utility>  // operator<<(ostream, exception)
+#include <butl/utility>  // operator<<(ostream, exception),
+                         // throw_generic_error()
 #include <butl/fdstream> // fdclose()
 
 using namespace std;
@@ -139,7 +139,7 @@ namespace butl
         p_.out_fd.reset ();
 
         if (pager != nullptr)
-          throw system_error (ECHILD, system_category ());
+          throw_generic_error (ECHILD);
       }
       else
         os_.open (move (p_.out_fd));

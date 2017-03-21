@@ -37,6 +37,7 @@
 #include <system_error>
 
 #include <butl/path>
+#include <butl/utility>      // throw_generic_error()
 #include <butl/fdstream>
 #include <butl/small-vector>
 
@@ -75,7 +76,7 @@ namespace butl
       if (errno == ENOENT || errno == ENOTDIR)
         return make_pair (false, entry_type::unknown);
       else
-        throw system_error (errno, system_category ());
+        throw_generic_error (errno);
     }
 
     auto m (s.st_mode);
@@ -129,7 +130,7 @@ namespace butl
         if (errno == ENOENT || errno == ENOTDIR)
           return make_pair (false, entry_type::unknown);
         else
-          throw system_error (errno, system_category ());
+          throw_generic_error (errno);
       }
 
       auto m (s.st_mode);
@@ -166,7 +167,7 @@ namespace butl
       if (e == EEXIST && dir_exists (p))
         return mkdir_status::already_exists;
       else
-        throw system_error (e, system_category ());
+        throw_generic_error (e);
     }
 
     return mkdir_status::success;
@@ -202,7 +203,7 @@ namespace butl
       else if (errno == ENOTEMPTY || errno == EEXIST)
         r = rmdir_status::not_empty;
       else if (!ignore_error)
-        throw system_error (errno, system_category ());
+        throw_generic_error (errno);
     }
 
     return r;
@@ -229,8 +230,9 @@ namespace butl
       rmdir_status r (try_rmdir (p));
 
       if (r != rmdir_status::success && !ignore_error)
-        throw system_error (r == rmdir_status::not_empty ? ENOTEMPTY : ENOENT,
-                            system_category ());
+        throw_generic_error (r == rmdir_status::not_empty
+                             ? ENOTEMPTY
+                             : ENOENT);
     }
   }
 
@@ -251,7 +253,7 @@ namespace butl
       if (errno == ENOENT || errno == ENOTDIR)
         r = rmfile_status::not_exist;
       else if (!ignore_error)
-        throw system_error (errno, system_category ());
+        throw_generic_error (errno);
     }
 
     return r;
@@ -262,14 +264,14 @@ namespace butl
   mksymlink (const path& target, const path& link, bool)
   {
     if (symlink (target.string ().c_str (), link.string ().c_str ()) == -1)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
   }
 
   void
   mkhardlink (const path& target, const path& link, bool)
   {
     if (::link (target.string ().c_str (), link.string ().c_str ()) == -1)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
   }
 
 #else
@@ -277,7 +279,7 @@ namespace butl
   void
   mksymlink (const path&, const path&, bool)
   {
-    throw system_error (ENOSYS, system_category (), "symlinks not supported");
+    throw_generic_error (ENOSYS, "symlinks not supported");
   }
 
   void
@@ -288,14 +290,10 @@ namespace butl
       if (!CreateHardLinkA (link.string ().c_str (),
                             target.string ().c_str (),
                             nullptr))
-      {
-        string e (win32::last_error_msg ());
-        throw system_error (EIO, system_category (), e);
-      }
+        throw_system_error (GetLastError ());
     }
     else
-      throw system_error (
-        ENOSYS, system_category (), "directory hard links not supported");
+      throw_generic_error (ENOSYS, "directory hard links not supported");
   }
 #endif
 
@@ -362,7 +360,7 @@ namespace butl
       // Note that our custom operator<<(ostream, exception) doesn't strip this
       // suffix. This is a temporary code after all.
       //
-      throw system_error (EIO, system_category (), e.what ());
+      throw_generic_error (EIO, e.what ());
     }
   }
 
@@ -450,7 +448,7 @@ namespace butl
 #ifndef _WIN32
 
     if (!ovr && path_entry (to).first)
-      throw system_error (EEXIST, system_category ());
+      throw_generic_error (EEXIST);
 
     if (::rename (f, t) == 0) // POSIX implementation.
       return;
@@ -459,7 +457,7 @@ namespace butl
     // move the file ourselves.
     //
     if (errno != EXDEV)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
 
     // Note that cpfile() follows symlinks, so we need to remove destination if
     // exists.
@@ -474,7 +472,7 @@ namespace butl
     //
     struct stat s;
     if (stat (f, &s) != 0)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
 
     timeval times[2];
     times[0].tv_sec = s.st_atime;
@@ -483,7 +481,7 @@ namespace butl
     times[1].tv_usec = mnsec<struct stat> (&s, true) / 1000;
 
     if (utimes (t, times) != 0)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
 
     // Finally, remove the source file.
     //
@@ -496,13 +494,8 @@ namespace butl
     //
     auto te (path_entry (to));
 
-    // Note that it would be nicer to just pass standard error codes to
-    // system_error ctors below, but their error descriptions horrifies for
-    // msvcrt. Actually they just don't match the semantics. The resulted error
-    // description is also not ideal (see below).
-    //
     if (!ovr && te.first)
-      throw system_error (EEXIST, system_category (), "file exists");
+      throw_generic_error (EEXIST);
 
     bool td (te.first && te.second == entry_type::directory);
 
@@ -513,7 +506,7 @@ namespace butl
     // either directories or not directories.
     //
     if (fe.first && te.first && fd != td)
-      throw system_error (EIO, system_category (), "not a directory");
+      throw_generic_error (ENOTDIR);
 
     DWORD mfl (fd ? 0 : (MOVEFILE_COPY_ALLOWED | MOVEFILE_REPLACE_EXISTING));
 
@@ -534,15 +527,7 @@ namespace butl
 	MoveFileExA (f, t, mfl))
       return;
 
-    // @@ The exception description will look like:
-    //
-    //    file not found. : Access denied
-    //
-    //    Probably need to consider such discriptions for sanitizing in
-    //    operator<<(ostream,exception).
-    //
-    string e (win32::error_msg (ec));
-    throw system_error (EIO, system_category (), e);
+    throw_system_error (ec);
 
 #endif
   }
@@ -561,7 +546,7 @@ namespace butl
       if (errno == ENOENT || errno == ENOTDIR)
         return timestamp_nonexistent;
       else
-        throw system_error (errno, system_category ());
+        throw_generic_error (errno);
     }
 
     return S_ISREG (s.st_mode)
@@ -581,7 +566,7 @@ namespace butl
     struct _stat s;
     if (_stat (p.string ().c_str (), &s) != 0)
 #endif
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
 
     // VC++ has no S_IRWXU defined. MINGW GCC <= 4.9 has no S_IRWXG, S_IRWXO
     // defined.
@@ -624,7 +609,7 @@ namespace butl
 #else
     if (_chmod (p.string ().c_str (), m) == -1)
 #endif
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
   }
 
   // dir_{entry,iterator}
@@ -648,7 +633,7 @@ namespace butl
       e_ = move (x.e_);
 
       if (h_ != nullptr && closedir (h_) == -1)
-        throw system_error (errno, system_category ());
+        throw_generic_error (errno);
 
       h_ = x.h_;
       x.h_ = nullptr;
@@ -665,7 +650,7 @@ namespace butl
          ? stat (p.string ().c_str (), &s)
          : lstat (p.string ().c_str (), &s)) != 0)
     {
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
     }
 
     entry_type r;
@@ -696,7 +681,7 @@ namespace butl
     h_ = h.get ();
 
     if (h_ == nullptr)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
 
     next ();
 
@@ -771,7 +756,7 @@ namespace butl
         h_ = nullptr;
       }
       else
-        throw system_error (errno, system_category ());
+        throw_generic_error (errno);
 
       break;
     }
@@ -796,7 +781,7 @@ namespace butl
       e_ = move (x.e_);
 
       if (h_ != -1 && _findclose (h_) == -1)
-        throw system_error (errno, system_category ());
+        throw_generic_error (errno);
 
       h_ = x.h_;
       x.h_ = -1;
@@ -814,7 +799,7 @@ namespace butl
 
     struct _stat s;
     if (_stat (p.string ().c_str (), &s) != 0)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
 
     entry_type r;
     if (S_ISREG (s.st_mode))
@@ -876,7 +861,7 @@ namespace butl
         // Check to distinguish non-existent vs empty directories.
         //
         if (!dir_exists (e_.b_))
-          throw system_error (ENOENT, system_category ());
+          throw_generic_error (ENOENT);
 
         h_ = _findfirst ((e_.b_ / path ("*")).string ().c_str (), &fi);
         r = h_ != -1;
@@ -917,7 +902,7 @@ namespace butl
         }
       }
       else
-        throw system_error (errno, system_category ());
+        throw_generic_error (errno);
 
       break;
     }
@@ -1187,6 +1172,10 @@ namespace butl
         // other error. We consider ENOTDIR as a variety of removal, with a
         // new filesystem entry being created afterwards.
         //
+        // Make sure that the error denotes errno portable code.
+        //
+        assert (e.code ().category () == generic_category ());
+
         int ec (e.code ().value ());
         if (ec != ENOENT && ec != ENOTDIR)
           throw;

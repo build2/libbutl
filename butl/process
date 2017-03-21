@@ -30,13 +30,14 @@ namespace butl
 
 #ifndef _WIN32
     process_error (int e, bool child)
-        : system_error (e, std::system_category ()), child_ (child) {}
+        : system_error (e, std::generic_category ()), child_ (child) {}
 #else
     process_error (int e, bool child = false)
-        : system_error (e, std::system_category ()), child_ (child) {}
+        : system_error (e, std::generic_category ()), child_ (child) {}
 
-    process_error (const std::string& d, int e = ECHILD)
-        : system_error (e, std::system_category (), d), child_ (false) {}
+    process_error (const std::string& d, int fallback_errno_code = 0)
+        : system_error (fallback_errno_code, std::system_category (), d),
+          child_ (false) {}
 #endif
 
   private:

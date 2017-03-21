@@ -28,10 +28,10 @@
 #include <atomic>
 #include <cassert>
 #include <cstring> // strcpy()
-#include <system_error>
 
 #include <butl/export>
 
+#include <butl/utility> // throw_*_error()
 #include <butl/process>
 
 #ifndef _WIN32
@@ -65,12 +65,12 @@ namespace butl
 #ifdef _WIN32
     char cwd[_MAX_PATH];
     if (_getcwd (cwd, _MAX_PATH) == 0)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
     cwd[0] = toupper (cwd[0]); // Canonicalize.
 #else
     char cwd[PATH_MAX];
     if (getcwd (cwd, PATH_MAX) == 0)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
 #endif
 
     return cwd;
@@ -93,10 +93,10 @@ namespace butl
                           : string_type (s + directory_separator));
 
     if (_chdir (d.c_str ()) != 0)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
 #else
     if (chdir (s.c_str ()) != 0)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
 #endif
   }
 
@@ -115,10 +115,10 @@ namespace butl
 
     struct stat s;
     if (stat (dir, &s) != 0)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
 
     if (!S_ISDIR (s.st_mode))
-      throw system_error (ENOTDIR, system_category ());
+      throw_generic_error (ENOTDIR);
 
     return dir;
   }
@@ -141,13 +141,13 @@ namespace butl
 
     int r (getpwuid_r (getuid (), &pw, buf, sizeof (buf), &rpw));
     if (r == -1)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
 
     if (r == 0 && rpw == nullptr)
       // According to POSIX errno should be left unchanged if an entry is not
       // found.
       //
-      throw system_error (ENOENT, system_category ());
+      throw_generic_error (ENOENT);
 
     return pw.pw_dir;
   }
@@ -160,10 +160,7 @@ namespace butl
 #ifdef _WIN32
     char d[_MAX_PATH + 1];
     if (GetTempPathA (_MAX_PATH + 1, d) == 0)
-    {
-      string e (last_error_msg ());
-      throw system_error (ENOTDIR, system_category (), e);
-    }
+      throw_system_error (GetLastError ());
 
     return d;
 #else
@@ -198,10 +195,7 @@ namespace butl
     HRESULT r (SHGetFolderPathA (NULL, CSIDL_PROFILE, NULL, 0, h));
 
     if (!SUCCEEDED (r))
-    {
-      string e (error_msg (r));
-      throw system_error (ENOTDIR, system_category (), e);
-    }
+      throw_system_error (r);
 
     return h;
 #endif
@@ -221,7 +215,7 @@ namespace butl
       if (errno == EACCES || errno == ENOENT || errno == ENOTDIR)
         throw invalid_basic_path<char> (s);
       else
-        throw system_error (errno, system_category ());
+        throw_generic_error (errno);
     }
 
     s = r;
@@ -239,16 +233,16 @@ namespace butl
 #ifdef _WIN32
     wchar_t wcwd[_MAX_PATH];
     if (_wgetcwd (wcwd, _MAX_PATH) == 0)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
     wcwd[0] = toupper (wcwd[0]); // Canonicalize.
 #else
     char cwd[PATH_MAX];
     if (getcwd (cwd, PATH_MAX) == 0)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
 
     wchar_t wcwd[PATH_MAX];
     if (mbstowcs (wcwd, cwd, PATH_MAX) == size_type (-1))
-      throw system_error (EINVAL, system_category ());
+      throw_generic_error (EINVAL);
 #endif
 
     return wcwd;
@@ -268,17 +262,17 @@ namespace butl
                           : string_type (s + directory_separator));
 
     if (_wchdir (d.c_str ()) != 0)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
 #else
     char ns[PATH_MAX + 1];
 
     if (wcstombs (ns, s.c_str (), PATH_MAX) == size_type (-1))
-      throw system_error (EINVAL, system_category ());
+      throw_generic_error (EINVAL);
 
     ns[PATH_MAX] = '\0';
 
     if (chdir (ns) != 0)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
 #endif
   }
 
@@ -289,10 +283,7 @@ namespace butl
 #ifdef _WIN32
     wchar_t d[_MAX_PATH + 1];
     if (GetTempPathW (_MAX_PATH + 1, d) == 0)
-    {
-      string e (last_error_msg ());
-      throw system_error (ENOTDIR, system_category (), e);
-    }
+      throw_system_error (GetLastError ());
 #else
     wchar_t d[PATH_MAX];
 
@@ -304,10 +295,10 @@ namespace butl
     size_t r (mbstowcs (d, butl::temp_directory (), PATH_MAX));
 
     if (r == size_t (-1))
-      throw system_error (EINVAL, system_category ());
+      throw_generic_error (EINVAL);
 
     if (r == PATH_MAX)
-      throw system_error (ENOTSUP, system_category ());
+      throw_generic_error (ENOTSUP);
 #endif
 
     return d;
@@ -331,10 +322,10 @@ namespace butl
     size_t r (mbstowcs (d, home ().c_str (), PATH_MAX));
 
     if (r == size_t (-1))
-      throw system_error (EINVAL, system_category ());
+      throw_generic_error (EINVAL);
 
     if (r == PATH_MAX)
-      throw system_error (ENOTSUP, system_category ());
+      throw_generic_error (ENOTSUP);
 
     return d;
 #else
@@ -347,10 +338,7 @@ namespace butl
     HRESULT r (SHGetFolderPathW (NULL, CSIDL_PROFILE, NULL, 0, h));
 
     if (!SUCCEEDED (r))
-    {
-      string e (error_msg (r));
-      throw system_error (ENOTDIR, system_category (), e);
-    }
+      throw_system_error (r);
 
     return h;
 #endif
@@ -388,7 +376,7 @@ namespace butl
       return false;
 
     if (h == -1 || _findclose (h) == -1)
-      throw system_error (errno, system_category ());
+      throw_generic_error (errno);
 
     r += fi.name;
     return true;
