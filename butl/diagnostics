@@ -21,9 +21,22 @@ namespace butl
   //
 
   // Diagnostics destination stream (std::cerr by default). Note that its
-  // modification is not MT-safe.
+  // modification is not MT-safe. Also note that concurrent writing to the
+  // stream from multiple threads can result in interleaved characters. To
+  // prevent this an object of diag_lock type (see below) must be created prior
+  // to write operation.
   //
   LIBBUTL_EXPORT extern std::ostream* diag_stream;
+
+  // Acquire the diagnostics exclusive access mutex in ctor, release in dtor.
+  // An object of the type must be created prior to writing to diag_stream (see
+  // above).
+  //
+  struct LIBBUTL_EXPORT diag_lock
+  {
+    diag_lock ();
+    ~diag_lock ();
+  };
 
   struct diag_record;
   template <typename> struct diag_prologue;

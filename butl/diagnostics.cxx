@@ -4,6 +4,7 @@
 
 #include <butl/diagnostics>
 
+#include <mutex>
 #include <iostream> // cerr
 
 using namespace std;
@@ -11,6 +12,18 @@ using namespace std;
 namespace butl
 {
   ostream* diag_stream = &cerr;
+
+  static mutex diag_mutex;
+
+  diag_lock::diag_lock ()
+  {
+    diag_mutex.lock ();
+  }
+
+  diag_lock::~diag_lock ()
+  {
+    diag_mutex.unlock ();
+  }
 
   void diag_record::
   flush () const
@@ -20,7 +33,16 @@ namespace butl
       if (epilogue_ == nullptr)
       {
         os.put ('\n');
-        *diag_stream << os.str ();
+
+        {
+          diag_lock l;
+          *diag_stream << os.str ();
+        }
+
+        // We can endup flushing the result of several writes. The last one may
+        // possibly be incomplete, but that's not a problem as it will also be
+        // followed by the flush() call.
+        //
         diag_stream->flush ();
 
         empty_ = true;
