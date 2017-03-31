@@ -25,6 +25,7 @@ lib{butl}:                                  \
    {hxx         cxx}{ sha256              } \
    {hxx            }{ small-vector        } \
    {hxx     txx    }{ string-table        } \
+   {hxx         cxx}{ tab-parser          } \
    {hxx         cxx}{ target-triplet      } \
    {hxx         cxx}{ timestamp           } \
    {hxx ixx     cxx}{ utility             } \

@@ -1,0 +1,49 @@
+# file      : tests/tab-parser/testscript
+# copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+: valid
+:
+: Roundtrip tab-files.
+:
+{
+  : newline-term
+  :
+  $* <<EOF >>EOF
+  abc
+  def xyz
+  fff
+  EOF
+
+  : eos-term
+  :
+  $* <:'abc' >'abc'
+
+  : empty-lines
+  :
+  $* <<EOI >'def'
+  # abc
+
+    # abc
+  def
+
+  EOI
+
+  : quoting
+  :
+  $* -l <<EOI >>EOO
+  def k" l'"'m n"' xyz
+  EOI
+  def
+  k" l'"'m n"'
+  xyz
+  EOO
+}
+
+: invalid
+:
+{
+  : unterm-quoting
+  :
+  $* <'ab"c' 2>'cin:1:5: error: unterminated quoted string' == 1
+}
