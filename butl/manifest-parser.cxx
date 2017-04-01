@@ -174,6 +174,14 @@ namespace butl
         unget (c);
     }
 
+    // Multi-line value starts from the line that follows the name.
+    //
+    if (ml)
+    {
+      r.value_line = c.line;
+      r.value_column = c.column;
+    }
+
     // The nl flag signals that the preceding character was a "special
     // newline", that is, a newline that was part of the milti-line mode
     // introductor or an escape sequence.
