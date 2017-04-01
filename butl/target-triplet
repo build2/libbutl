@@ -85,7 +85,7 @@ namespace butl
   // are recognized:
   //
   // linux     *-*-linux-*
-  // macosx    *-apple-darwin*
+  // macos     *-apple-darwin*
   // bsd       *-*-(freebsd|openbsd|netbsd)*
   // windows   *-*-win32-* | *-*-mingw32
   //

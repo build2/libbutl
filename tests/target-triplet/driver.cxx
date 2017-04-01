@@ -90,7 +90,7 @@ main ()
   //
   assert (test ("x86_64-apple-darwin14.5.0",
                 "x86_64-apple-darwin14.5.0",
-                "x86_64", "apple", "darwin", "14.5.0", "macosx"));
+                "x86_64", "apple", "darwin", "14.5.0", "macos"));
 
   assert (test ("x86_64-unknown-freebsd10.2",
                 "x86_64-freebsd10.2",
