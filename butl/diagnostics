@@ -82,7 +82,7 @@ namespace butl
     flush () const;
 
     void
-    append (diag_epilogue* e) const
+    append (const char* indent, diag_epilogue* e) const
     {
       // Ignore subsequent epilogues (e.g., from nested marks, etc).
       //
@@ -91,8 +91,8 @@ namespace butl
         epilogue_ = e;
         empty_ = false;
       }
-      else
-        os << "\n  ";
+      else if (indent != nullptr)
+        os << indent;
     }
 
     // Move constructible-only type.
@@ -141,22 +141,27 @@ namespace butl
   template <typename B>
   struct diag_prologue: B
   {
-    diag_prologue (diag_epilogue* e = nullptr): B (), epilogue_ (e) {}
+    diag_prologue (const char* i = "\n  ", diag_epilogue* e = nullptr)
+        : B (), indent_ (i), epilogue_ (e) {}
 
     template <typename... A>
     diag_prologue (A&&... a)
-        : B (std::forward<A> (a)...), epilogue_ (nullptr) {}
+        : B (std::forward<A> (a)...), indent_ ("\n  "), epilogue_ (nullptr) {}
 
     template <typename... A>
     diag_prologue (diag_epilogue* e, A&&... a)
-        : B (std::forward<A> (a)...), epilogue_ (e) {}
+        : B (std::forward<A> (a)...), indent_ ("\n  "), epilogue_ (e) {}
+
+    template <typename... A>
+    diag_prologue (const char* i, diag_epilogue* e, A&&... a)
+        : B (std::forward<A> (a)...), indent_ (i), epilogue_ (e) {}
 
     template <typename T>
     diag_record
     operator<< (const T& x) const
     {
       diag_record r;
-      r.append (epilogue_);
+      r.append (indent_, epilogue_);
       B::operator() (r);
       r << x;
       return r;
@@ -165,12 +170,13 @@ namespace butl
     friend const diag_record&
     operator<< (const diag_record& r, const diag_prologue& p)
     {
-      r.append (p.epilogue_);
+      r.append (p.indent_, p.epilogue_);
       p (r);
       return r;
     }
 
   private:
+    const char* indent_;
     diag_epilogue* epilogue_;
   };
 
