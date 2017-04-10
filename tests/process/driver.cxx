@@ -143,7 +143,7 @@ exec (const path& p,
   }
   catch (const process_error& e)
   {
-    if (e.child ())
+    if (e.child)
       exit (1);
 
     //cerr << args[0] << ": " << e << endl;

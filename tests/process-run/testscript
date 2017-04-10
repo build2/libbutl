@@ -1,0 +1,14 @@
+# file      : tests/process-run/testscript
+# copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+$* -p >>"EOO" 2>>EOE
+$0 -c
+abc
+abc
+abc
+abc
+123
+EOO
+abc
+EOE

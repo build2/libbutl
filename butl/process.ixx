@@ -165,4 +165,15 @@ namespace butl
 
     return *this;
   }
+
+  inline bool process::
+  try_wait (bool& s)
+  {
+    bool r (try_wait ());
+
+    if (r)
+      s = exit && exit->normal () && exit->code () == 0;
+
+    return r;
+  }
 }

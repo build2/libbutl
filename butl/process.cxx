@@ -64,7 +64,7 @@ namespace butl
     process_path r (try_path_search (f, init, fb));
 
     if (r.empty ())
-      throw process_error (ENOENT, false);
+      throw process_error (ENOENT);
 
     return r;
   }
@@ -259,7 +259,13 @@ namespace butl
     fdpipe in_ofd;
     fdpipe in_efd;
 
-    auto fail = [] (bool child) {throw process_error (errno, child);};
+    auto fail = [] (bool child)
+    {
+      if (child)
+        throw process_child_error (errno);
+      else
+        throw process_error (errno);
+    };
 
     auto open_pipe = [] () -> fdpipe
     {
@@ -276,7 +282,7 @@ namespace butl
         // other hand the only possible values are EMFILE and ENFILE. Lets use
         // EMFILE as the more probable. This is a temporary code after all.
         //
-        throw process_error (EMFILE, false);
+        throw process_error (EMFILE);
       }
     };
 
@@ -391,7 +397,7 @@ namespace butl
         // information available" semantics.
         //
         if (!ie)
-          throw process_error (errno, false);
+          throw process_error (errno);
       }
       else
         exit = process_exit (es, process_exit::as_status);
@@ -401,7 +407,7 @@ namespace butl
   }
 
   bool process::
-  try_wait (bool& s)
+  try_wait ()
   {
     if (handle != 0)
     {
@@ -414,12 +420,11 @@ namespace butl
       handle = 0; // We have tried.
 
       if (r == -1)
-        throw process_error (errno, false);
+        throw process_error (errno);
 
       exit = process_exit (es, process_exit::as_status);
     }
 
-    s = exit && exit->normal () && exit->code () == 0;
     return true;
   }
 
@@ -1089,7 +1094,7 @@ namespace butl
   }
 
   bool process::
-  try_wait (bool& s)
+  try_wait ()
   {
     if (handle != 0)
     {
@@ -1112,7 +1117,6 @@ namespace butl
       exit->status = es;
     }
 
-    s = exit && exit->normal () && exit->code () == 0;
     return true;
   }
 

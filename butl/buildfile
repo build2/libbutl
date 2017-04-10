@@ -22,6 +22,7 @@ lib{butl}:                                  \
    {hxx     txx    }{ prefix-map          } \
    {hxx ixx     cxx}{ process             } \
    {hxx            }{ process-details     } \
+   {        txx cxx}{ process-run         } \
    {hxx         cxx}{ sha256              } \
    {hxx            }{ small-vector        } \
    {hxx     txx    }{ string-table        } \

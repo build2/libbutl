@@ -146,7 +146,7 @@ namespace butl
     }
     catch (const process_error& e)
     {
-      if (e.child ())
+      if (e.child)
       {
         cerr << args[0] << ": unable to execute: " << e << endl;
         exit (1);
