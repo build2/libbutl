@@ -149,17 +149,6 @@ namespace butl
     fd_ = move (fd);
   }
 
-  void fdbuf::
-  close ()
-  {
-    // Before we invented auto_fd into fdstreams we keept fdbuf opened on
-    // faulty close attempt. Now fdbuf is always closed by close() function.
-    // This semantics change seems to be the right one as there is no reason to
-    // expect fdclose() to succeed after it has already failed once.
-    //
-    fd_.close ();
-  }
-
   streamsize fdbuf::
   showmanyc ()
   {
