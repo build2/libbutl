@@ -49,6 +49,14 @@ namespace butl
     return *this;
   }
 
+#ifndef _WIN32
+  inline process::id_type process::
+  id () const
+  {
+    return handle;
+  }
+#endif
+
   inline const char* process_path::
   recall_string () const
   {

@@ -1121,6 +1121,17 @@ namespace butl
   }
 
   process::id_type process::
+  id () const
+  {
+    id_type r (GetProcessId (handle));
+
+    if (r == 0)
+      throw process_error (last_error_msg ());
+
+    return r;
+  }
+
+  process::id_type process::
   current_id ()
   {
     return GetCurrentProcessId ();

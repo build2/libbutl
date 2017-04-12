@@ -347,6 +347,9 @@ namespace butl
     print (std::ostream&, const char* const args[], size_t n = 0);
 
   public:
+    id_type
+    id () const;
+
     static id_type
     current_id ();
 

@@ -20,7 +20,7 @@ namespace butl
   inline int
   process_stderr (const auto_fd& v) {assert (v.get () >= 0); return v.get ();}
 
-  process
+  LIBBUTL_EXPORT process
   process_start (const dir_path& cwd,
                  const process_path& pp,
                  const char* cmd[],
@@ -55,7 +55,7 @@ namespace butl
     //
     const std::size_t args_size (sizeof... (args));
 
-    std::string storage[args_size];
+    std::string storage[args_size != 0 ? args_size : 1];
     const char* cmd[args_size + 2] = {
       pp.recall_string (),
       process_arg_as (args, storage[index])...,
