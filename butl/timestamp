@@ -141,6 +141,6 @@ namespace butl
                const char* format,
                bool local,
                const char** end = nullptr);
-};
+}
 
 #endif // BUTL_TIMESTAMP

@@ -75,6 +75,6 @@ namespace butl
   private:
     T* p_;
   };
-};
+}
 
 #endif // BUTL_CONST_PTR

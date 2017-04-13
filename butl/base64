@@ -45,6 +45,6 @@ namespace butl
 
   LIBBUTL_EXPORT std::vector<char>
   base64_decode (const std::string&);
-};
+}
 
 #endif // BUTL_BASE64

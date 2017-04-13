@@ -37,22 +37,25 @@ namespace butl
             const recipients_type& bcc,
             O&&... options)
   {
-    {
-      fdpipe pipe (fdopen_pipe ()); // Text mode seems appropriate.
+    fdpipe pipe (fdopen_pipe ()); // Text mode seems appropriate.
 
-      process& p (*this);
-      p = process_start (cmdc,
-                         pipe.in,
-                         2, // No output expected so redirect to stderr.
-                         std::forward<E> (err),
-                         dir_path (),
-                         "sendmail",
-                         "-i", // Don't treat '.' as the end of input.
-                         "-t", // Read recipients from headers.
-                         std::forward<O> (options)...);
+    process& p (*this);
+    p = process_start (cmdc,
+                       pipe.in,
+                       2, // No output expected so redirect to stderr.
+                       std::forward<E> (err),
+                       dir_path (),
+                       "sendmail",
+                       "-i", // Don't treat '.' as the end of input.
+                       "-t", // Read recipients from headers.
+                       std::forward<O> (options)...);
 
-      out.open (std::move (pipe.out));
-    } // Close pipe.in.
+    // Close the reading end of the pipe not to block on writing if sendmail
+    // terminates before that.
+    //
+    pipe.in.close ();
+
+    out.open (std::move (pipe.out));
 
     // Write headers.
     //

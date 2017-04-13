@@ -96,6 +96,6 @@ namespace butl
   //
   LIBBUTL_EXPORT std::string
   fingerprint_to_sha256 (const std::string&);
-};
+}
 
 #endif // BUTL_SHA256

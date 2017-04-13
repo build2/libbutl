@@ -150,6 +150,6 @@ namespace butl
   {
     return o << x.string ();
   }
-};
+}
 
 #endif // BUTL_TARGET_TRIPLET
