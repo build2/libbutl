@@ -621,12 +621,12 @@ namespace butl
   //
   // Note that on Windows both ends of the created pipe are not inheritable.
   // In particular, the process class that uses fdpipe underneath makes the
-  // appropriate end of pipe (the one being passed to the child) inheritable.
+  // appropriate end (the one being passed to the child) inheritable.
   //
   // Note that on POSIX the FD_CLOEXEC flag is set for both ends, so they get
   // automatically closed by the child process to prevent undesired behaviors
   // (such as child deadlock on read from a pipe due to the write-end leakage
-  // into the child process). Opening pipe and setting the flag is not an
+  // into the child process). Opening a pipe and setting the flag is not an
   // atomic operation generally, but it is in regards to child process spawning
   // (to prevent file descriptor leakage into child processes spawned from
   // other threads). Also note that you don't need to reset the flag for a pipe

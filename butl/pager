@@ -83,6 +83,6 @@ namespace butl
     int_type prev_ = '\n'; // Previous character.
     std::streambuf* buf_ = nullptr;
   };
-};
+}
 
 #endif // BUTL_PAGER

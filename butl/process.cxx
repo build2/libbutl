@@ -325,7 +325,7 @@ namespace butl
         //
         // Duplicate the user-supplied (fd > -1) or the created pipe descriptor
         // to the standard stream descriptor (read end for STDIN_FILENO, write
-        // end otherwise). Close the the pipe afterwards.
+        // end otherwise). Close the pipe afterwards.
         //
         auto duplicate = [&fail] (int sd, int fd, fdpipe& pd)
         {
