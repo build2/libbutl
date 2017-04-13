@@ -1,0 +1,10 @@
+# file      : tests/sendmail/testscript
+# copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+$* admin@build2.org <<EOI 2>>EOE
+Test email to admin@build2.org.
+Sent from libbutl/tests/sendmail/testscript.
+EOI
+sendmail -i -t
+EOE

@@ -23,6 +23,7 @@ lib{butl}:                                  \
    {hxx ixx     cxx}{ process             } \
    {hxx            }{ process-details     } \
    {        txx cxx}{ process-run         } \
+   {hxx ixx     cxx}{ sendmail            } \
    {hxx         cxx}{ sha256              } \
    {hxx            }{ small-vector        } \
    {hxx     txx    }{ string-table        } \
