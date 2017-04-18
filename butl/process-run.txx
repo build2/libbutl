@@ -55,20 +55,21 @@ namespace butl
     //
     const std::size_t args_size (sizeof... (args));
 
-    std::string storage[args_size != 0 ? args_size : 1];
-    const char* cmd[args_size + 2] = {
-      pp.recall_string (),
-      process_arg_as (args, storage[index])...,
-      nullptr};
+    small_vector<const char*, args_size + 2> cmd;
+    cmd.push_back (pp.recall_string ());
 
-    // The last argument can be NULL (used to handle zero A... pack).
-    //
-    cmdc (cmd, args_size + 2);
+    std::string storage[args_size != 0 ? args_size : 1];
+    const char* dummy[] = {
+      nullptr, (process_args_as (cmd, args, storage[index]), nullptr)... };
+
+    cmd.push_back (dummy[0]); // NULL (and get rid of unused warning).
+
+    cmdc (cmd.data (), cmd.size ());
 
     // @@ Do we need to make sure certain fd's are closed before calling
     //    wait()? Is this only the case with pipes? Needs thinking.
 
-    return process_start (cwd, pp, cmd, in_i, out_i, err_i);
+    return process_start (cwd, pp, cmd.data (), in_i, out_i, err_i);
   }
 
   template <typename C,

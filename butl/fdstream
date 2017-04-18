@@ -612,6 +612,13 @@ namespace butl
   {
     auto_fd in;
     auto_fd out;
+
+    void
+    close ()
+    {
+      in.close ();
+      out.close ();
+    }
   };
 
   // Create a pipe. Throw ios::failure on the underlying OS error. By default

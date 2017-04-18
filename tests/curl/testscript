@@ -1,0 +1,57 @@
+# file      : tests/curl/testscript
+# copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+#\
+
+TFTP server (tftp-hpa) setup: from the test out_base, run (sudo is required
+for --secure/chroot):
+
+sudo /usr/sbin/in.tftpd \
+  --foreground \
+  --address 127.0.0.1:55123 \
+  --user "$(whoami)" \
+  --permissive \
+  --create \
+  --secure \
+  "$(pwd)"
+
+#\
+
+: tftp
+:
+{
+  echo 'foo' >=foo-src;
+
+  $* 'tftp' &foo &bar 2>>EOE;
+
+  curl -s -S tftp://localhost:55123/test-driver/tftp/foo
+  curl: (68) TFTP: File Not Found
+
+  curl -s -S --upload-file foo-src tftp://localhost:55123/test-driver/tftp/foo
+
+  curl -s -S --upload-file - tftp://localhost:55123/test-driver/tftp/bar
+
+  curl -s -S tftp://localhost:55123/test-driver/tftp/foo
+
+  curl -s -S tftp://localhost:55123/test-driver/tftp/foo
+  EOE
+
+  diff -u foo-src foo;
+  diff -u - bar <'bar'
+}
+
+: http
+:
+{
+  $* 'http' 2>>EOE
+
+  curl -s -S --fail --location https://build2.org/bogus
+  curl: (22) The requested URL returned error: 404 Not Found
+
+  curl -s -S --fail --location https://build2.org
+
+  curl -s -S --fail --location --data-binary @- https://build2.org/bogus
+  curl: (22) The requested URL returned error: 404 Not Found
+  EOE
+}

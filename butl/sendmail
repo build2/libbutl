@@ -15,7 +15,7 @@
 
 namespace butl
 {
-  // Send email using the sendmail program.
+  // Send email using the sendmail(1) program.
   //
   // Write the body of the email to out. Note that you must explicitly close
   // it before calling wait(). Throw process_error and io_error (both derive
@@ -64,8 +64,7 @@ namespace butl
               const recipients_type& bcc = recipients_type (),
               O&&... options);
 
-    // Version with the command line callback (see process_run() for
-    // details).
+    // Version with the command line callback (see process_run() for details).
     //
     template <typename C, typename E, typename... O>
     sendmail (const C&,

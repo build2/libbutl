@@ -9,6 +9,7 @@
 #  include <sys/types.h> // pid_t
 #endif
 
+#include <vector>
 #include <iosfwd>
 #include <cassert>
 #include <cstdint>      // uint32_t
@@ -17,7 +18,9 @@
 #include <butl/path>
 #include <butl/export>
 #include <butl/optional>
-#include <butl/fdstream> // auto_fd, fdpipe
+#include <butl/fdstream>     // auto_fd, fdpipe
+#include <butl/vector-view>
+#include <butl/small-vector>
 
 namespace butl
 {
@@ -389,9 +392,8 @@ namespace butl
   //
   // The A arguments can be anything convertible to const char* via the
   // overloaded process_arg_as() (see below). Out of the box you can use const
-  // char*, std::string, path/dir_path, and numeric types.
-  //
-  //
+  // char*, std::string, path/dir_path, (as well as [small_]vector[_view] of
+  // these), and numeric types.
   //
   template <typename I,
             typename O,
@@ -480,6 +482,8 @@ namespace butl
     return p.string ().c_str ();
   }
 
+  // char[N]
+  //
   inline const char*
   process_arg_as (const char* s, std::string&) {return s;}
 
@@ -490,6 +494,63 @@ namespace butl
   template <std::size_t N>
   inline const char*
   process_arg_as (const char (&s)[N], std::string&) {return s;}
+
+  template <typename V, typename T>
+  inline void
+  process_args_as (V& v, const T& x, std::string& storage)
+  {
+    v.push_back (process_arg_as (x, storage));
+  }
+
+  // [small_]vector[_view]<>
+  //
+  template <typename V>
+  inline void
+  process_args_as (V& v, const std::vector<std::string>& vs, std::string&)
+  {
+    for (const std::string& s: vs)
+      v.push_back (s.c_str ());
+  }
+
+  template <typename V, std::size_t N>
+  inline void
+  process_args_as (V& v, const small_vector<std::string, N>& vs, std::string&)
+  {
+    for (const std::string& s: vs)
+      v.push_back (s.c_str ());
+  }
+
+  template <typename V>
+  inline void
+  process_args_as (V& v, const vector_view<std::string>& vs, std::string&)
+  {
+    for (const std::string& s: vs)
+      v.push_back (s.c_str ());
+  }
+
+  template <typename V>
+  inline void
+  process_args_as (V& v, const std::vector<const char*>& vs, std::string&)
+  {
+    for (const char* s: vs)
+      v.push_back (s);
+  }
+
+  template <typename V, std::size_t N>
+  inline void
+  process_args_as (V& v, const small_vector<const char*, N>& vs, std::string&)
+  {
+    for (const char* s: vs)
+      v.push_back (s);
+  }
+
+  template <typename V>
+  inline void
+  process_args_as (V& v, const vector_view<const char*>& vs, std::string&)
+  {
+    for (const char* s: vs)
+      v.push_back (s);
+  }
 }
 
 #include <butl/process.ixx>

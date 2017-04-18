@@ -1,0 +1,21 @@
+// file      : butl/process-io -*- C++ -*-
+// copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+// license   : MIT; see accompanying LICENSE file
+
+#ifndef BUTL_PROCESS_IO
+#define BUTL_PROCESS_IO
+
+#include <ostream>
+
+#include <butl/process>
+
+namespace butl
+{
+  inline std::ostream&
+  operator<< (std::ostream& o, const process_path& p)
+  {
+    return o << p.recall_string ();
+  }
+}
+
+#endif // BUTL_PROCESS_IO
