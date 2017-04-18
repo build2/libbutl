@@ -30,6 +30,14 @@ namespace butl
     reset ();
   }
 
+  // fdbuf
+  //
+  inline auto_fd fdbuf::
+  release ()
+  {
+    return std::move (fd_);
+  }
+
   // ifdstream
   //
   inline ifdstream::
@@ -104,6 +112,12 @@ namespace butl
     open (f.string (), m);
   }
 
+  inline auto_fd ifdstream::
+  release ()
+  {
+    return buf_.release ();
+  }
+
   // ofdstream
   //
   inline ofdstream::
@@ -174,6 +188,15 @@ namespace butl
   open (const path& f, fdopen_mode m)
   {
     open (f.string (), m);
+  }
+
+  inline auto_fd ofdstream::
+  release ()
+  {
+    if (is_open ())
+      flush ();
+
+    return buf_.release ();
   }
 
   // fdopen()

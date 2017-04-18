@@ -110,7 +110,7 @@ namespace butl
     close () {fd_.close ();}
 
     auto_fd
-    release () {return std::move (fd_);}
+    release ();
 
     void
     open (auto_fd&&);
@@ -380,7 +380,7 @@ namespace butl
     open (auto_fd&& fd) {buf_.open (std::move (fd)); clear ();}
 
     void close ();
-    auto_fd release () {return buf_.release ();} // Note: no skipping.
+    auto_fd release (); // Note: no skipping.
     bool is_open () const {return buf_.is_open ();}
 
   private:
@@ -458,7 +458,7 @@ namespace butl
     open (auto_fd&& fd) {buf_.open (std::move (fd)); clear ();}
 
     void close () {if (is_open ()) flush (); buf_.close ();}
-    auto_fd release () {if (is_open ()) flush (); return buf_.release ();}
+    auto_fd release ();
     bool is_open () const {return buf_.is_open ();}
   };
 
