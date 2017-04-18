@@ -44,6 +44,12 @@ namespace butl
     process_child_error (int e): process_error (e, true) {}
   };
 
+  struct process_args
+  {
+    const char* const* argv;
+    std::size_t argc;
+  };
+
   // A process executable has three paths: initial, recall, and effective.
   // Initial is the original "command" that you specify in argv[0] and on
   // POSIX that's what ends up in the child's argv[0]. But not on Windows. On
