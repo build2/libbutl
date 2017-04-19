@@ -28,6 +28,14 @@ namespace butl
                  int out,
                  int err);
 
+  template <typename V, typename T>
+  inline const char*
+  process_args_as_wrapper (V& v, const T& x, std::string& storage)
+  {
+    process_args_as (v, x, storage);
+    return nullptr;
+  }
+
   template <typename C,
             typename I,
             typename O,
@@ -58,14 +66,10 @@ namespace butl
     small_vector<const char*, args_size + 2> cmd;
     cmd.push_back (pp.recall_string ());
 
-    auto call = [&cmd] (const auto& x, std::string& s) -> const char*
-    {
-      process_args_as (cmd, x, s);
-      return nullptr;
-    };
-
     std::string storage[args_size != 0 ? args_size : 1];
-    const char* dummy[] = {nullptr, call (args, storage[index])... };
+
+    const char* dummy[] = {
+      nullptr, process_args_as_wrapper (cmd, args, storage[index])... };
 
     cmd.push_back (dummy[0]); // NULL (and get rid of unused warning).
 
