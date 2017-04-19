@@ -44,6 +44,10 @@ namespace butl
     process_child_error (int e): process_error (e, true) {}
   };
 
+  // Process arguments (i.e., the command line). The first must be an
+  // executable name and the last element should be NULL. Can also be the
+  // multi-process piped command line (see process::print() for details).
+  //
   struct process_args
   {
     const char* const* argv;
