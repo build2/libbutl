@@ -1,0 +1,45 @@
+// file      : butl/string-parser -*- C++ -*-
+// copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+// license   : MIT; see accompanying LICENSE file
+
+#ifndef BUTL_STRING_PARSER
+#define BUTL_STRING_PARSER
+
+#include <string>
+#include <vector>
+#include <cstddef>   // size_t
+#include <stdexcept> // invalid_argument
+
+#include <butl/export>
+
+namespace butl
+{
+  class LIBBUTL_EXPORT invalid_string: public std::invalid_argument
+  {
+  public:
+    invalid_string (std::size_t p, const std::string& d)
+        : invalid_argument (d), pos (p) {}
+
+    std::size_t pos; // Zero-based.
+  };
+
+  class LIBBUTL_EXPORT string_parser
+  {
+  public:
+    // Parse a whitespace-separated list of strings. Can contain single or
+    // double quoted substrings. No escaping is supported. If unquote is true,
+    // return one-level unquoted values. Throw invalid_string in case of
+    // invalid quoting.
+    //
+    std::vector<string>
+    parse_quoted (const string&, bool unquote);
+
+    // Remove a single level of quotes. Note that the format or the
+    // correctness of the quotation is not validated.
+    //
+    std::string
+    unquote (const string&);
+  };
+}
+
+#endif // BUTL_STRING_PARSER
