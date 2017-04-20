@@ -45,5 +45,10 @@
 {
   : unterm-quoting
   :
-  $* <'ab"c' 2>'cin:1:5: error: unterminated quoted string' == 1
+  $* <<EOI >'123' 2>'cin:3:5: error: unterminated quoted string' == 1
+
+  123
+  ab"c
+  xyz
+  EOI
 }

@@ -7,6 +7,8 @@
 #include <cassert>
 #include <sstream>
 
+#include <butl/string-parser>
+
 using namespace std;
 
 namespace butl
@@ -19,106 +21,50 @@ namespace butl
   next ()
   {
     tab_fields r;
-    xchar c (skip_spaces ()); // Skip empty lines and leading spaces.
 
-    auto eol   = [&c] () -> bool {return eos (c) || c == '\n';};
-    auto space = [&c] () -> bool {return c == ' ' || c == '\t';};
-    auto next  = [&c, this] () {get (); c = peek ();};
-
-    r.line = c.line;
-
-    // Read line fields until eos or the newline character.
+    // Read lines until a non-empty one or EOF is encountered. In the first
+    // case parse the line and bail out.
     //
-    while (!eol ())
+    // Note that we check for character presence in the stream prior to the
+    // getline() call, to prevent it from setting the failbit.
+    //
+    while (!is_.eof () && is_.peek () != istream::traits_type::eof ())
     {
-      for (; !eol () && space (); next ()) ; // Skip space characters.
+      string s;
+      getline (is_, s);
 
-      if (eol ()) // No more fields.
-        break;
+      ++line_;
 
-      // Read the field. Here we scan until the first whitespace character that
-      // appears out of quotes.
+      // Skip empty line.
       //
-      tab_field tf ({string (), c.column});
-      char quoting ('\0'); // Current quoting mode, can be used as bool.
+      auto i (s.begin ());
+      auto e (s.end ());
+      for (; i != e && (*i == ' ' || *i == '\t'); ++i) ; // Skip spaces.
 
-      for (; !eol (); next ())
+      if (i == e || *i == '#')
+        continue;
+
+      r.line = line_;
+      r.end_column = s.size () + 1; // Newline position.
+
+      vector<std::pair<string, size_t>> sp;
+
+      try
       {
-        if (!quoting)
-        {
-          if (space ())                   // End of the field.
-            break;
-          else if (c == '"' || c == '\'') // Begin of quoted string.
-            quoting = c;
-        }
-        else if (c == quoting)            // End of quoted string.
-          quoting = '\0';
-
-        tf.value += c;
+        sp = string_parser::parse_quoted_position (s, false);
+      }
+      catch (const invalid_string& e)
+      {
+        throw parsing (name_, line_, e.position + 1, e.what ());
       }
 
-      if (quoting)
-        throw parsing (name_, c.line, c.column, "unterminated quoted string");
+      for (auto& s: sp)
+        r.emplace_back (tab_field ({move (s.first), s.second + 1}));
 
-      r.emplace_back (move (tf));
+      break;
     }
 
-    r.end_column = c.column;
-
-    // Read out eof or newline character from the stream. Note that "reading"
-    // eof multiple times is safe.
-    //
-    get ();
     return r;
-  }
-
-  tab_parser::xchar tab_parser::
-  skip_spaces ()
-  {
-    xchar c (peek ());
-    bool start (c.column == 1);
-
-    for (; !eos (c); c = peek ())
-    {
-      switch (c)
-      {
-      case ' ':
-      case '\t':
-        break;
-      case '\n':
-        {
-          // Skip empty lines.
-          //
-          if (!start)
-            return c;
-
-          break;
-        }
-      case '#':
-        {
-          // We only recognize '#' as a start of a comment at the beginning
-          // of the line (sans leading spaces).
-          //
-          if (!start)
-            return c;
-
-          get ();
-
-          // Read until newline or eos.
-          //
-          for (c = peek (); !eos (c) && c != '\n'; c = peek ())
-            get ();
-
-          continue;
-        }
-      default:
-        return c; // Not a space.
-      }
-
-      get ();
-    }
-
-    return c;
   }
 
   // tab_parsing

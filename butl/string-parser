@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <cstddef>   // size_t
+#include <utility>   // pair
 #include <stdexcept> // invalid_argument
 
 #include <butl/export>
@@ -18,9 +19,9 @@ namespace butl
   {
   public:
     invalid_string (std::size_t p, const std::string& d)
-        : invalid_argument (d), pos (p) {}
+        : invalid_argument (d), position (p) {}
 
-    std::size_t pos; // Zero-based.
+    std::size_t position; // Zero-based.
   };
 
   class LIBBUTL_EXPORT string_parser
@@ -31,14 +32,24 @@ namespace butl
     // return one-level unquoted values. Throw invalid_string in case of
     // invalid quoting.
     //
-    std::vector<string>
-    parse_quoted (const string&, bool unquote);
+    static std::vector<std::string>
+    parse_quoted (const std::string&, bool unquote);
+
+    // As above but return a list of string and zero-based position pairs.
+    // Position is useful for issuing diagnostics about an invalid string
+    // during second-level parsing.
+    //
+    static std::vector<std::pair<std::string, std::size_t>>
+    parse_quoted_position (const std::string&, bool unquote);
 
     // Remove a single level of quotes. Note that the format or the
     // correctness of the quotation is not validated.
     //
-    std::string
-    unquote (const string&);
+    static std::string
+    unquote (const std::string&);
+
+    static std::vector<std::string>
+    unquote (const std::vector<std::string>&);
   };
 }
 

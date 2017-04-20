@@ -7,13 +7,11 @@
 
 #include <string>
 #include <vector>
-#include <iosfwd>
+#include <istream>
 #include <cstdint>   // uint64_t
 #include <stdexcept> // runtime_error
 
 #include <butl/export>
-
-#include <butl/char-scanner>
 
 namespace butl
 {
@@ -52,11 +50,11 @@ namespace butl
   // supported. Blank lines and lines that start with # (collectively called
   // empty lines) are ignored.
   //
-  class LIBBUTL_EXPORT tab_parser: protected butl::char_scanner
+  class LIBBUTL_EXPORT tab_parser
   {
   public:
     tab_parser (std::istream& is, const std::string& name)
-        : char_scanner (is), name_ (name) {}
+        : is_ (is), name_ (name) {}
 
     // Return next line of fields. Skip empty lines. Empty result denotes the
     // end of stream.
@@ -65,13 +63,9 @@ namespace butl
     next ();
 
   private:
-    // Skip spaces and return the first peeked non-space character.
-    //
-    xchar
-    skip_spaces ();
-
-  private:
+    std::istream& is_;
     const std::string name_;
+    std::uint64_t line_ = 0;
   };
 }
 

@@ -28,6 +28,7 @@ lib{butl}:                                  \
    {hxx ixx     cxx}{ sendmail            } \
    {hxx         cxx}{ sha256              } \
    {hxx            }{ small-vector        } \
+   {hxx         cxx}{ string-parser       } \
    {hxx     txx    }{ string-table        } \
    {hxx         cxx}{ tab-parser          } \
    {hxx         cxx}{ target-triplet      } \

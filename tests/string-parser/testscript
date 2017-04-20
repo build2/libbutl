@@ -1,0 +1,42 @@
+# file      : tests/string-parser/testscript
+# copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+: valid
+:
+{
+  test.options += -l
+  sp=' ' # For line-terminating spaces.
+
+  : quoted
+  :
+  {
+    $* -p <<"EOI" >>EOO
+    abc  "d 'ef " 'x  "y z'$sp
+    EOI
+    0:abc
+    5:"d 'ef "
+    14:'x  "y z'
+    EOO
+  }
+
+  : unquoted
+  :
+  {
+    $* -u <<"EOI" >>"EOO"
+    abc  "d 'ef " 'x  "y z'$sp
+    EOI
+    abc
+    d 'ef$sp
+    x  "y z
+    EOO
+  }
+}
+
+: invalid
+:
+{
+  : unterm-quoting
+  :
+  $* <'ab"c' 2>'4: unterminated quoted string' == 1
+}
