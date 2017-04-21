@@ -1,0 +1,17 @@
+# file      : tests/process/testscript
+# copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+if ($cxx.target.class == 'windows')
+  cat <<EOI >=test.bat
+    @echo off
+    setlocal
+    goto end
+    :error
+    endlocal
+    exit /b 1
+    :end
+    endlocal
+    EOI
+end;
+$*

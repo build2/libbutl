@@ -143,10 +143,11 @@ exec (const path& p,
   }
   catch (const process_error& e)
   {
+    //cerr << args[0] << ": " << e << endl;
+
     if (e.child)
       exit (1);
 
-    //cerr << args[0] << ": " << e << endl;
     return false;
   }
 }
@@ -176,6 +177,7 @@ main (int argc, const char* argv[])
   for (; i != argc; ++i)
   {
     string v (argv[i]);
+
     if (v == "-c")
       child = true;
     else if (v == "-b")
@@ -254,6 +256,8 @@ main (int argc, const char* argv[])
     return 0;
   }
 
+  dir_path owd (dir_path::current_directory ());
+
   // Test processes created as "already terminated".
   //
   {
@@ -309,7 +313,7 @@ main (int argc, const char* argv[])
 
   assert (exec (dir_path (".") / fp.leaf ()));
 
-  // Fail for unexistent file path.
+  // Fail for non-existent file path.
   //
   assert (!exec (dir_path (".") / path ("dr")));
 
@@ -342,5 +346,22 @@ main (int argc, const char* argv[])
   process pr;
   pr.handle = reinterpret_cast<process::handle_type> (-1);
   assert (!pr.wait (true) && !pr.wait (false));
+#endif
+
+  // Test execution of Windows batch files. The test file is in the original
+  // working directory.
+  //
+#ifdef _WIN32
+  {
+    assert (exec (owd / "test.bat"));
+    assert (exec (owd / "test"));
+
+    paths = owd.string () + path::traits::path_separator + paths;
+    assert (_putenv (("PATH=" + paths).c_str ()) == 0);
+
+    assert (exec (path ("test.bat")));
+    assert (exec (path ("test")));
+    assert (!exec (path ("testX.bat")));
+  }
 #endif
 }

@@ -13,7 +13,7 @@
 #  include <butl/win32-utility>
 
 #  include <io.h>        // _get_osfhandle(), _close()
-#  include <stdlib.h>    // _MAX_PATH, getenv()
+#  include <stdlib.h>    // _MAX_PATH
 #  include <sys/types.h> // stat
 #  include <sys/stat.h>  // stat(), S_IS*
 
@@ -25,7 +25,7 @@
 #    define STDERR_FILENO 2
 #  endif // _MSC_VER
 
-#  include <cstdlib> // __argv[]
+#  include <cstdlib> // getenv(), __argv[]
 
 #  include <butl/small-vector>
 #endif
@@ -574,16 +574,16 @@ namespace butl
 
     size_t fn (strlen (f));
 
-    // Unless there is already the .exe extension, then we will need to add
-    // it. Note that running .bat files requires starting cmd.exe and passing
-    // the batch file as an argument (see CreateProcess() for deails). So
-    // if/when we decide to support those, it will have to be handled
-    // differently.
+    // Unless there is already the .exe/.bat extension, then we will need to
+    // add it.
     //
     bool ext;
     {
       const char* e (traits::find_extension (f, fn));
-      ext = (e == nullptr || casecmp (e, ".exe") != 0);
+      ext = (e == nullptr ||
+             (casecmp (e, ".exe") != 0 &&
+              casecmp (e, ".bat") != 0 &&
+              casecmp (e, ".cmd") != 0));
     }
 
     process_path r (f, path (), path ()); // Make sure it is not empty.
@@ -599,9 +599,26 @@ namespace butl
       return _stat (f, &si) == 0 && S_ISREG (si.st_mode);
     };
 
-    auto search = [&ep, f, fn, ext, &exists] (const char* d,
-                                              size_t dn,
-                                              bool norm = false) -> bool
+    // Check with extensions: .exe, .cmd, and .bat.
+    //
+    auto exists_ext = [&exists] (string& s) -> bool
+    {
+      size_t i (s.size () + 1); // First extension letter.
+
+      s += ".exe";
+      if (exists (s.c_str ()))
+        return true;
+
+      s[i] = 'c'; s[i + 1] = 'm'; s[i + 2] = 'd';
+      if (exists (s.c_str ()))
+        return true;
+
+      s[i] = 'b'; s[i + 1] = 'a'; s[i + 2] = 't';
+      return exists (s.c_str ());
+    };
+
+    auto search = [&ep, f, fn, ext, &exists, &exists_ext] (
+      const char* d, size_t dn, bool norm = false) -> bool
     {
       string s (move (ep).string ()); // Reuse buffer.
 
@@ -619,12 +636,15 @@ namespace butl
       if (norm)
         ep.normalize ();
 
-      // Add the .exe extension if necessary.
-      //
-      if (ext)
-        ep += ".exe";
+      if (!ext)
+        return exists (ep.string ().c_str ());
 
-      return exists (ep.string ().c_str ());
+      // Try with the extensions.
+      //
+      s = move (ep).string ();
+      bool e (exists_ext (s));
+      ep = path (move (s));
+      return e;
     };
 
     // If there is a directory component in the file, then the PATH search
@@ -636,13 +656,17 @@ namespace butl
     {
       if (traits::absolute (f, fn))
       {
-        if (ext)
+        bool e;
+        if (!ext)
+          e = exists (r.effect_string ());
+        else
         {
-          ep = path (f, fn);
-          ep += ".exe";
+          string s (f, fn);
+          e = exists_ext (s);
+          ep = path (move (s));
         }
 
-        if (exists (r.effect_string ()))
+        if (e)
           return r;
       }
       else
@@ -869,6 +893,24 @@ namespace butl
            const process_path& pp, const char* args[],
            int in, int out, int err)
   {
+    // Figure out if this is a batch file since running them requires starting
+    // cmd.exe and passing the batch file as an argument (see CreateProcess()
+    // for deails).
+    //
+    const char* batch (nullptr);
+    {
+      const char* p (pp.effect_string ());
+      const char* e (path::traits::find_extension (p, strlen (p)));
+      if (e != nullptr && (casecmp (e, ".bat") == 0 ||
+                           casecmp (e, ".cmd") == 0))
+      {
+        batch = getenv ("COMSPEC");
+
+        if (batch == nullptr)
+          batch = "C:\\Windows\\System32\\cmd.exe";
+      }
+    }
+
     fdpipe out_fd;
     fdpipe in_ofd;
     fdpipe in_efd;
@@ -934,31 +976,44 @@ namespace butl
     // Serialize the arguments to string.
     //
     string cmd_line;
-
-    for (const char* const* p (args); *p != 0; ++p)
     {
-      if (p != args)
-        cmd_line += ' ';
-
-      // On Windows we need to protect values with spaces using quotes. Since
-      // there could be actual quotes in the value, we need to escape them.
-      //
-      string a (*p);
-      bool quote (a.empty () || a.find (' ') != string::npos);
-
-      if (quote)
-        cmd_line += '"';
-
-      for (size_t i (0); i < a.size (); ++i)
+      auto append = [&cmd_line] (const string& a)
       {
-        if (a[i] == '"')
-          cmd_line += "\\\"";
-        else
-          cmd_line += a[i];
+        if (!cmd_line.empty ())
+          cmd_line += ' ';
+
+        // On Windows we need to protect values with spaces using quotes.
+        // Since there could be actual quotes in the value, we need to escape
+        // them.
+        //
+        bool quote (a.empty () || a.find (' ') != string::npos);
+
+        if (quote)
+          cmd_line += '"';
+
+        for (size_t i (0); i < a.size (); ++i)
+        {
+          if (a[i] == '"')
+            cmd_line += "\\\"";
+          else
+            cmd_line += a[i];
+        }
+
+        if (quote)
+          cmd_line += '"';
+      };
+
+      if (batch != nullptr)
+      {
+        append (batch);
+        append ("/c");
+        append (pp.effect_string ());
       }
 
-      if (quote)
-        cmd_line += '"';
+      for (const char* const* p (args + (batch != nullptr ? 1 : 0));
+           *p != 0;
+           ++p)
+        append (*p);
     }
 
     // Prepare other process information.
@@ -1035,7 +1090,7 @@ namespace butl
         fail ("invalid file descriptor");
 
       if (!CreateProcess (
-            pp.effect_string (),
+            batch != nullptr ? batch : pp.effect_string (),
             const_cast<char*> (cmd_line.c_str ()),
             0,    // Process security attributes.
             0,    // Primary thread security attributes.
