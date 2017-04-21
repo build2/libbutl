@@ -6,6 +6,8 @@
 
 namespace butl
 {
+  // process_path
+  //
   inline process_path::
   ~process_path ()
   {
@@ -49,14 +51,6 @@ namespace butl
     return *this;
   }
 
-#ifndef _WIN32
-  inline process::id_type process::
-  id () const
-  {
-    return handle;
-  }
-#endif
-
   inline const char* process_path::
   recall_string () const
   {
@@ -68,6 +62,32 @@ namespace butl
   {
     return effect.empty () ? recall_string () : effect.string ().c_str ();
   }
+
+  // process_exit
+  //
+#ifdef _WIN32
+  inline int process_exit::
+  signal () const
+  {
+    return 0;
+  }
+
+  inline bool process_exit::
+  core () const
+  {
+    return false;
+  }
+#endif
+
+  // process
+  //
+#ifndef _WIN32
+  inline process::id_type process::
+  id () const
+  {
+    return handle;
+  }
+#endif
 
   inline process_path process::
   path_search (const char*& a0, const dir_path& fb)

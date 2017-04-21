@@ -156,7 +156,7 @@ namespace butl
 
     // Abnormal termination information.
     //
-#ifndef _WIN32
+
     // Return the signal number that caused the termination or 0 if no such
     // information is available.
     //
@@ -167,7 +167,6 @@ namespace butl
     //
     bool
     core () const;
-#endif
 
     // Return a description of the reason that caused the process to terminate
     // abnormally. On POSIX this is the signal name, on Windows -- the summary
