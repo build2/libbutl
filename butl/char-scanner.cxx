@@ -53,6 +53,17 @@ namespace butl
       {
         is_.get ();
 
+        if (crlf_ && c == 0x0D)
+        {
+          xchar c1 (peek ());
+
+          if (c1 == '\n')
+          {
+            is_.get ();
+            c = c1;
+          }
+        }
+
         if (c == '\n')
         {
           line++;

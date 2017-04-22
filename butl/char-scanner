@@ -19,7 +19,12 @@ namespace butl
   class LIBBUTL_EXPORT char_scanner
   {
   public:
-    char_scanner (std::istream& is): is_ (is) {}
+    // If the crlf argument is true, then recognize Windows newlines (0x0D
+    // 0x0A) and convert them to just '\n' (0x0A). Note that standalone 0x0D
+    // that are not followed by 0x0A are returned as is.
+    //
+    char_scanner (std::istream& is, bool crlf = true)
+        : is_ (is), crlf_ (crlf) {}
 
     char_scanner (const char_scanner&) = delete;
     char_scanner& operator= (const char_scanner&) = delete;
@@ -74,6 +79,7 @@ namespace butl
 
   protected:
     std::istream& is_;
+    bool crlf_;
 
     bool unget_ {false};
     xchar buf_ = '\0';
