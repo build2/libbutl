@@ -25,6 +25,19 @@ namespace butl
 
         if (v == xchar::traits_type::eof ())
           eos_ = true;
+        else if (crlf_ && v == 0x0D)
+        {
+          is_.get ();
+          xchar::int_type v1 (is_.peek ());
+
+          if (v1 != '\n')
+          {
+            unget_ = true;
+            buf_ = '\n';
+          }
+
+          v = '\n';
+        }
 
         return xchar (v, line, column);
       }
@@ -52,17 +65,6 @@ namespace butl
       if (!eos (c))
       {
         is_.get ();
-
-        if (crlf_ && c == 0x0D)
-        {
-          xchar c1 (peek ());
-
-          if (c1 == '\n')
-          {
-            is_.get ();
-            c = c1;
-          }
-        }
 
         if (c == '\n')
         {

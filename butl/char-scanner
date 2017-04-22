@@ -20,8 +20,8 @@ namespace butl
   {
   public:
     // If the crlf argument is true, then recognize Windows newlines (0x0D
-    // 0x0A) and convert them to just '\n' (0x0A). Note that standalone 0x0D
-    // that are not followed by 0x0A are returned as is.
+    // 0x0A) and convert them to just '\n' (0x0A). Note that a standalone
+    // 0x0D is treated "as if" it was followed by 0x0A.
     //
     char_scanner (std::istream& is, bool crlf = true)
         : is_ (is), crlf_ (crlf) {}
