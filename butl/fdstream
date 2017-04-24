@@ -575,9 +575,8 @@ namespace butl
 
   // Open the null device (e.g., /dev/null) that discards all data written to
   // it and provides no data for read operations (i.e., yelds EOF on read).
-  // Return file descriptor on success, set errno and return -1 otherwise.
-  // Note that it's the caller's responsibility to close the returned file
-  // descriptor.
+  // Return an auto_fd that holds its file descriptor on success and throwing
+  // ios::failure otherwise.
   //
   // On Windows the null device is NUL and writing anything substantial to it
   // (like redirecting a process' output) is extremely slow, as in, an order
@@ -593,18 +592,14 @@ namespace butl
   // and read from the descriptor.
   //
   // Note that on POSIX the FD_CLOEXEC flag is set for the file descriptor to
-  // prevent its leakage into child processes.
-  //
-  // @@ You may have noticed that this interface doesn't match fdopen() (it
-  //    does not throw and return int instead of auto_fd). The reason for this
-  //    is process and its need to translate everything to process_error).
-  //    Once we solve that we can clean this up as well.
+  // prevent its leakage into child processes. On Windows, for the same
+  // purpose, the _O_NOINHERIT flag is set.
   //
 #ifndef _WIN32
-  LIBBUTL_EXPORT int
+  LIBBUTL_EXPORT auto_fd
   fdnull () noexcept;
 #else
-  LIBBUTL_EXPORT int
+  LIBBUTL_EXPORT auto_fd
   fdnull (bool temp = false) noexcept;
 #endif
 

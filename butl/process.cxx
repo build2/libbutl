@@ -286,13 +286,26 @@ namespace butl
       }
     };
 
-    auto open_null = [&fail] () -> auto_fd
+    auto open_null = [] () -> auto_fd
     {
-      auto_fd fd (fdnull ());
-      if (fd.get () == -1)
-        fail (false);
+      try
+      {
+        return fdnull ();
+      }
+      catch (const ios_base::failure& e)
+      {
+        // Translate to process_error.
+        //
+        // For old versions of g++ (as of 4.9) ios_base::failure is not derived
+        // from system_error and so we cannot recover the errno value. Lets use
+        // EIO in this case. This is a temporary code after all.
+        //
+        const system_error* se (dynamic_cast<const system_error*> (&e));
 
-      return fd;
+        throw process_error (se != nullptr
+                             ? se->code ().value ()
+                             : EIO);
+      }
     };
 
     // If we are asked to open null (-2) then open "half-pipe".
@@ -940,17 +953,30 @@ namespace butl
       throw process_error (m == nullptr ? last_error_msg () : m);
     };
 
-    auto open_null = [&fail] () -> auto_fd
+    auto open_null = [] () -> auto_fd
     {
       // Note that we are using a faster, temporary file-based emulation of
       // NUL since we have no way of making sure the child buffers things
       // properly (and by default they seem no to).
       //
-      auto_fd fd (fdnull (true));
-      if (fd.get () == -1)
-        fail ();
+      try
+      {
+        return fdnull (true);
+      }
+      catch (const ios_base::failure& e)
+      {
+        // Translate to process_error.
+        //
+        // For old versions of g++ (as of 4.9) ios_base::failure is not derived
+        // from system_error and so we cannot recover the errno value. Lets use
+        // EIO in this case. This is a temporary code after all.
+        //
+        const system_error* se (dynamic_cast<const system_error*> (&e));
 
-      return fd;
+        throw process_error (se != nullptr
+                             ? se->code ().value ()
+                             : EIO);
+      }
     };
 
     // If we are asked to open null (-2) then open "half-pipe".

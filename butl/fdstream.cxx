@@ -47,7 +47,7 @@ namespace butl
   // throw_ios_failure
   //
   template <bool v>
-  static inline typename enable_if<v>::type
+  [[noreturn]] static inline typename enable_if<v>::type
   throw_ios_failure (error_code e, const char* m)
   {
     // The idea here is to make an error code to be saved into failure
@@ -65,7 +65,7 @@ namespace butl
   }
 
   template <bool v>
-  static inline typename enable_if<!v>::type
+  [[noreturn]] static inline typename enable_if<!v>::type
   throw_ios_failure (error_code e, const char* m)
   {
     throw ios_base::failure (m != nullptr ? m : e.message ().c_str ());
@@ -73,7 +73,7 @@ namespace butl
 
   // Throw system_error with generic_category.
   //
-  static inline void
+  [[noreturn]] static inline void
   throw_ios_failure (int errno_code, const char* m = nullptr)
   {
     error_code ec (errno_code, generic_category ());
@@ -810,10 +810,15 @@ namespace butl
     return close (fd) == 0;
   }
 
-  int
+  auto_fd
   fdnull () noexcept
   {
-    return open ("/dev/null", O_RDWR | O_CLOEXEC);
+    int fd (open ("/dev/null", O_RDWR | O_CLOEXEC));
+
+    if (fd == -1)
+      throw_ios_failure (errno);
+
+    return auto_fd (fd);
   }
 
   fdstream_mode
@@ -955,13 +960,20 @@ namespace butl
     return _close (fd) == 0;
   }
 
-  int
+  auto_fd
   fdnull (bool temp) noexcept
   {
     // No need to translate \r\n before sending it to void.
     //
     if (!temp)
-      return _sopen ("nul", _O_RDWR | _O_BINARY | _O_NOINHERIT, _SH_DENYNO);
+    {
+      int fd (_sopen ("nul", _O_RDWR | _O_BINARY | _O_NOINHERIT, _SH_DENYNO));
+
+      if (fd == -1)
+        throw_ios_failure (errno);
+
+      return auto_fd (fd);
+    }
 
     try
     {
@@ -969,20 +981,24 @@ namespace butl
       // the temporary file that avoid any allocations and exceptions.
       //
       path p (path::temp_path ("null")); // Can throw.
-      return _sopen (p.string ().c_str (),
-                     (_O_CREAT       |
-                      _O_RDWR        |
-                      _O_BINARY      | // Don't translate.
-                      _O_TEMPORARY   | // Remove on close.
-                      _O_SHORT_LIVED | // Don't flush to disk.
-                      _O_NOINHERIT),   // Don't inherit by child process.
-                     _SH_DENYNO,
-                     _S_IREAD | _S_IWRITE);
+      int fd (_sopen (p.string ().c_str (),
+                      (_O_CREAT       |
+                       _O_RDWR        |
+                       _O_BINARY      | // Don't translate.
+                       _O_TEMPORARY   | // Remove on close.
+                       _O_SHORT_LIVED | // Don't flush to disk.
+                       _O_NOINHERIT),   // Don't inherit by child process.
+                      _SH_DENYNO,
+                      _S_IREAD | _S_IWRITE));
+
+      if (fd == -1)
+        throw_ios_failure (errno);
+
+      return auto_fd (fd);
     }
     catch (const bad_alloc&)
     {
-      errno = ENOMEM;
-      return -1;
+      throw_ios_failure (ENOMEM);
     }
     catch (const system_error& e)
     {
@@ -990,8 +1006,7 @@ namespace butl
       //
       assert (e.code ().category () == generic_category ());
 
-      errno = e.code ().value ();
-      return -1;
+      throw_ios_failure (e.code ().value ());
     }
   }
 

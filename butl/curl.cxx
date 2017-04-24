@@ -25,7 +25,7 @@ namespace butl
     case ftp_get:
     case http_get:
       {
-        d.pipe.in.reset (fdnull ()); // /dev/null
+        d.pipe.in = fdnull (); // /dev/null
         return d.pipe.in.get ();
       }
     }
@@ -60,7 +60,7 @@ namespace butl
           out.open (move (d.pipe.out));
         }
         else
-          d.pipe.in.reset (fdnull ()); // /dev/null
+          d.pipe.in = fdnull (); // /dev/null
 
         return d.pipe.in.get ();
       }
@@ -85,7 +85,7 @@ namespace butl
     case ftp_put:
     case http_post: // May or may not produce output.
       {
-        d.pipe.out.reset (fdnull ());
+        d.pipe.out = fdnull ();
         return d.pipe.out.get (); // /dev/null
       }
     }
@@ -113,7 +113,7 @@ namespace butl
         {
           d.options.push_back ("-o");
           d.options.push_back (f.string ().c_str ());
-          d.pipe.out.reset (fdnull ()); // /dev/null
+          d.pipe.out = fdnull (); // /dev/null
         }
 
         return d.pipe.out.get ();
