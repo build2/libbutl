@@ -405,9 +405,12 @@ namespace butl
     return s->st_mtime_n; // AIX 5.2 and later.
   }
 
-  template <typename S>
-  inline constexpr int
-  mnsec (...) {return 0;}
+  // Things are not going to end up well with only seconds resolution so
+  // let's make it a compile error.
+  //
+  // template <typename S>
+  // inline constexpr int
+  // mnsec (...) {return 0;}
 
   template <typename S>
   inline constexpr auto
@@ -430,9 +433,9 @@ namespace butl
     return s->st_atime_n; // AIX 5.2 and later.
   }
 
-  template <typename S>
-  inline constexpr int
-  ansec (...) {return 0;}
+  // template <typename S>
+  // inline constexpr int
+  // ansec (...) {return 0;}
 
   void
   mventry (const path& from, const path& to, cpflags fl)
@@ -538,10 +541,6 @@ namespace butl
 #ifndef _WIN32
     struct stat s;
     if (stat (p, &s) != 0)
-#else
-    struct _stat s;
-    if (_stat (p, &s) != 0)
-#endif
     {
       if (errno == ENOENT || errno == ENOTDIR)
         return timestamp_nonexistent;
@@ -549,11 +548,50 @@ namespace butl
         throw_generic_error (errno);
     }
 
-    return S_ISREG (s.st_mode)
-      ? system_clock::from_time_t (s.st_mtime) +
+    if (!S_ISREG (s.st_mode))
+      return timestamp_nonexistent;
+
+    return system_clock::from_time_t (s.st_mtime) +
       chrono::duration_cast<duration> (
-        chrono::nanoseconds (mnsec<struct stat> (&s, true)))
-      : timestamp_nonexistent;
+        chrono::nanoseconds (mnsec<struct stat> (&s, true)));
+#else
+
+    WIN32_FILE_ATTRIBUTE_DATA s;
+
+    if (!GetFileAttributesExA (p, GetFileExInfoStandard, &s))
+    {
+      DWORD ec (GetLastError ());
+
+      if (ec == ERROR_FILE_NOT_FOUND ||
+          ec == ERROR_PATH_NOT_FOUND ||
+          ec == ERROR_INVALID_NAME   ||
+          ec == ERROR_INVALID_DRIVE  ||
+          ec == ERROR_BAD_PATHNAME   ||
+          ec == ERROR_BAD_NETPATH)
+        return timestamp_nonexistent;
+
+      throw_system_error (ec);
+    }
+
+    if (s.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY != 0)
+      return timestamp_nonexistent;
+
+    // Time in FILETIME is in 100 nanosecond "ticks" since "Windows epoch"
+    // (1601-01-01T00:00:00Z). To convert it to "UNIX epoch"
+    // (1970-01-01T00:00:00Z) we need to subtract 11644473600 seconds.
+    //
+    const FILETIME& t (s.ftLastWriteTime);
+
+    uint64_t ns ((static_cast<uint64_t> (t.dwHighDateTime) << 32) |
+                 t.dwLowDateTime);
+
+    ns -= 11644473600ULL * 10000000; // Now in UNIX epoch.
+    ns *= 100;                       // Now in nanoseconds.
+
+    return timestamp (
+      chrono::duration_cast<duration> (
+        chrono::nanoseconds (ns)));
+#endif
   }
 
   permissions
