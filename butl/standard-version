@@ -1,0 +1,111 @@
+// file      : butl/standard-version -*- C++ -*-
+// copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+// license   : MIT; see accompanying LICENSE file
+
+#ifndef BUTL_STANDARD_VERSION
+#define BUTL_STANDARD_VERSION
+
+#include <string>
+#include <cstdint> // uint*_t
+#include <cstddef> // size_t
+#include <ostream>
+
+#include <butl/export>
+
+namespace butl
+{
+  // The build2 "standard version":
+  //
+  // [<epoch>~]<maj>.<min>.<patch>[-(a|b).<num>[.<snapsn>[.<snapid>]]][+<rev>]
+  //
+  struct LIBBUTL_EXPORT standard_version
+  {
+    // Invariants:
+    //
+    // 1. (E == 0) == (snapshot_sn == 0 && snapshot_id.empty ())
+    //
+    // 2. snapshot_sn != latest_sn || snapshot_id.empty ()
+    //
+    static const std::uint64_t latest_sn = std::uint64_t (~0);
+
+    std::uint16_t epoch        = 0;  // 0 if not specified.
+    std::uint64_t version      = 0;  // AAABBBCCCDDDE
+    std::uint64_t snapshot_sn  = 0;  // 0 if not specifed, latest_sn if 'z'.
+    std::string   snapshot_id;       // Empty if not specified.
+    std::uint16_t revision     = 0;  // 0 if not specified.
+
+    std::uint16_t major () const;
+    std::uint16_t minor () const;
+    std::uint16_t patch () const;
+    std::uint16_t pre_release () const; // Note: 0 is ambiguous (-a.0.z).
+
+    // Note: return empty if the corresponding component is unspecified.
+    //
+    std::string string () const;             // Package version.
+    std::string string_project () const;     // Project version (no epoch/rev).
+    std::string string_version () const;     // Version only (no snapshot).
+    std::string string_pre_release () const; // Pre-release part only (a.1).
+    std::string string_snapshot () const;    // Snapshot part only (1234.1f23).
+
+    bool empty () const {return version == 0;}
+
+    bool alpha () const;
+    bool beta () const;
+    bool snapshot () const {return snapshot_sn != 0;}
+
+    int
+    compare (const standard_version&) const;
+
+    // Parse the version. Throw std::invalid_argument if the format is not
+    // recognizable or components are invalid.
+    //
+    explicit
+    standard_version (const std::string&);
+
+    explicit
+    standard_version (std::uint64_t version);
+
+    standard_version (std::uint64_t version, const std::string& snapshot);
+
+    standard_version (std::uint16_t epoch,
+                      std::uint64_t version,
+                      const std::string& snapshot,
+                      std::uint16_t revision);
+
+    standard_version (std::uint16_t epoch,
+                      std::uint64_t version,
+                      std::uint64_t snapshot_sn,
+                      std::string snapshot_id,
+                      std::uint16_t revision);
+
+    // Create empty version.
+    //
+    standard_version () = default;
+
+  private:
+    void
+    parse_snapshot (const std::string&, std::size_t&);
+  };
+
+  inline bool
+  operator== (const standard_version& x, const standard_version& y)
+  {
+    return x.compare (y) == 0;
+  }
+
+  inline bool
+  operator!= (const standard_version& x, const standard_version& y)
+  {
+    return !(x == y);
+  }
+
+  inline std::ostream&
+  operator<< (std::ostream& o, const standard_version& x)
+  {
+    return o << x.string ();
+  }
+}
+
+#include <butl/standard-version.ixx>
+
+#endif // BUTL_STANDARD_VERSION

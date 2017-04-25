@@ -1,0 +1,190 @@
+# file      : tests/standard-version/testscript
+# copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+: valid
+:
+: Roundtrip version.
+:
+{
+  : non-prerelease
+  :
+  $* <<EOF >>EOF
+  1.2.3
+  EOF
+
+  : prerelease
+  :
+  {
+    : final
+    :
+    $* <<EOF >>EOF
+    1.2.3-a.1
+    1.2.3-b.1
+    EOF
+
+    : snapshot
+    :
+    $* <<EOF >>EOF
+    1.2.3-a.1.z
+    1.2.3-a.0.456
+    1.2.3-a.1.456.340c0a26a5ef
+    EOF
+  }
+
+  : revision
+  :
+  $* <<EOF >>EOF
+  1.2.3+4
+  1.2.3-a.4+5
+  1.2.3-a.4.z+5
+  1.2.3-a.4.567+8
+  1.2.3-a.4.567.340c0a26a5ef+8
+  EOF
+
+  : epoch
+  :
+  $* <<EOF >>EOF
+  4~1.2.3
+  EOF
+}
+
+: invalid
+:
+{
+  : major
+  :
+  $* <'a' 2>'invalid major version' == 1
+
+  : no-major-dot
+  :
+  $* <'1' 2>"'.' expected after major version" == 1
+
+  : minor
+  :
+  $* <'1.a' 2>'invalid minor version' == 1
+
+  : no-minor-dot
+  :
+  $* <'1.2' 2>"'.' expected after minor version" == 1
+
+  : bugfix
+  :
+  $* <'1.2.a' 2>'invalid bugfix version' == 1
+
+  : zero-version
+  :
+  $* <'1~0.0.0' 2>'0.0.0 version' == 1
+
+  : a-b-expected1
+  :
+  $* <'1.2.3-' 2>"'a' or 'b' expected in pre-release" == 1
+
+  : a-b-expected2
+  :
+  $* <'1.2.3-k' 2>"'a' or 'b' expected in pre-release" == 1
+
+  : prerelease-dot-expected
+  :
+  $* <'1.2.3-a' 2>"'.' expected after pre-release letter" == 1
+
+  : prerelease
+  :
+  $* <'1.2.3-a.b' 2>'invalid pre-release' == 1
+
+  : final-prerelease
+  :
+  $* <'1.2.3-b.0' 2>'invalid final pre-release' == 1
+
+  : snapshot-num
+  :
+  $* <'1.2.3-a.1.0' 2>'invalid snapshot number' == 1
+
+  : snapshot-id
+  :
+  $* <'1.2.3-a.1.1.@' 2>'invalid snapshot id' == 1
+
+  : revision
+  :
+  {
+    : non-prerelease
+    :
+    $* <'1.2.3+a' 2>'invalid revision' == 1
+
+    : prerelease
+    :
+    $* <'1.2.3-a.1+a' 2>'invalid revision' == 1
+
+    : snapshot-num
+    :
+    $* <'1.2.3-a.0.1+a' 2>'invalid revision' == 1
+
+    : snapshot-id
+    :
+    $* <'1.2.3-a.0.1.83jdgsf+0' 2>'invalid revision' == 1
+  }
+
+  : trailing-junk-after
+  :
+  {
+    : snapshot-num
+    :
+    $* <'1.2.3-a.1.z.a' 2>'junk after version' == 1
+
+    : revision
+    :
+    $* <'1.2.3-a.1.z+1a' 2>'junk after version' == 1
+  }
+}
+
+: alpha
+:
+{
+  test.options += -a
+
+  $* '1.2.3'       >n: non-prerelease
+  $* '1.2.3-b.1'   >n: beta
+  $* '1.2.3-a.1'   >y: final
+  $* '1.2.3-a.0.1' >y: snapshot
+}
+
+: beta
+:
+{
+  test.options += -b
+
+  $* '1.2.3'       >n: non-prerelease
+  $* '1.2.3-a.1'   >n: alpha
+  $* '1.2.3-b.1'   >y: final
+  $* '1.2.3-b.0.1' >y: snapshot
+}
+
+: compare
+:
+{
+  test.options += -c
+
+  : epoch
+  :
+  {
+    $* '4~1.2.3' '4~1.2.3' >'0' : equal
+    $* '1.2.4'   '4~1.2.3' >'-1': less
+  }
+
+  : non-prerelease
+  :
+  {
+    $* '1.2.3' '1.2.3' >'0'  : equal
+    $* '1.2.3' '1.2.4' >'-1' : less
+  }
+
+  : prerelease
+  :
+  {
+    $* '1.2.3-a.1'      '1.2.3-a.1'   >'0'  : equal
+    $* '1.2.3'          '1.2.3-a.1'   >'1'  : release-gt-prereleas
+    $* '1.2.3-a.2'      '1.2.3-b.1'   >'-1' : a-lt-b
+    $* '1.2.3-a.1'      '1.2.3-a.1.2' >'-1' : final-lt-snapshot
+    $* '1.2.3-a.1.2.xy' '1.2.3-a.1.2' >'0'  : ignore-snapshot-id
+  }
+}
