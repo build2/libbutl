@@ -1282,7 +1282,7 @@ namespace butl
     switch (status)
     {
     case STATUS_ACCESS_VIOLATION:       return "access violation";
-    case STATUS_STACK_OVERFLOW:         return "stack overflow";
+    case STATUS_DLL_INIT_FAILED:        return "DLL initialization failed";
     case STATUS_INTEGER_DIVIDE_BY_ZERO: return "integer divided by zero";
 
     // VC-compiled program that calls abort() terminates with this error code
@@ -1291,6 +1291,7 @@ namespace butl
     // program exits with status 3 for both VC and MinGW GCC. Sounds weird.
     //
     case STATUS_STACK_BUFFER_OVERRUN: return "stack buffer overrun";
+    case STATUS_STACK_OVERFLOW:       return "stack overflow";
 
     default:
       {
