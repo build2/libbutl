@@ -4,8 +4,10 @@
 
 #include <butl/standard-version>
 
+#include <cassert>
 #include <cstdlib>   // strtoull()
 #include <cstddef>   // size_t
+#include <utility>   // move()
 #include <stdexcept> // invalid_argument
 
 #include <butl/utility> // alnum()
@@ -90,7 +92,7 @@ namespace butl
       ep = *e == '~';
     }
 
-    size_t p (0), n (s.size ());
+    size_t p (0);
 
     if (ep)
     {
@@ -152,7 +154,7 @@ namespace butl
     if (s[p] == '+')
       revision = parse_num (s, ++p, "invalid revision", 1, uint16_t (~0));
 
-    if (p != n)
+    if (p != s.size ())
       bail ("junk after version");
 
     if (ab != 0)
@@ -329,5 +331,177 @@ namespace butl
     }
 
     return r;
+  }
+
+  // standard_version_constraint
+  //
+  standard_version_constraint::
+  standard_version_constraint (const std::string& s)
+  {
+    using std::string; // Not to confuse with string().
+
+    auto bail = [] (const string& m) {throw invalid_argument (m);};
+    const char* spaces (" \t");
+
+    size_t p (0);
+    char c (s[p]);
+
+    if (c == '(' || c == '[') // Can be '\0'.
+    {
+      bool min_open = c == '(';
+
+      p = s.find_first_not_of (spaces, ++p);
+      if (p == string::npos)
+        bail ("no min version");
+
+      size_t e (s.find_first_of (spaces, p));
+
+      standard_version min_version;
+
+      try
+      {
+        min_version = standard_version (s.substr (p, e - p));
+      }
+      catch (const invalid_argument& e)
+      {
+        bail (string ("invalid min version: ") + e.what ());
+      }
+
+      p = s.find_first_not_of (spaces, e);
+      if (p == string::npos)
+        bail ("no max version");
+
+      e = s.find_first_of (" \t])", p);
+
+      standard_version max_version;
+
+      try
+      {
+        max_version = standard_version (s.substr (p, e - p));
+      }
+      catch (const invalid_argument& e)
+      {
+        bail (string ("invalid max version: ") + e.what ());
+      }
+
+      p = s.find_first_of ("])", e);
+      if (p == string::npos)
+        bail ("no closing bracket");
+
+      bool max_open = s[p] == ')';
+
+      if (++p != s.size ())
+        bail ("junk after constraint");
+
+      // Verify and copy the constraint.
+      //
+      *this = standard_version_constraint (min_version, min_open,
+                                           max_version, max_open);
+    }
+    else
+    {
+      enum comparison {eq, lt, gt, le, ge};
+      comparison operation (eq); // Uninitialized warning.
+
+      if (s.compare (0, p = 2, "==") == 0)
+        operation = eq;
+      else if (s.compare (0, p = 2, ">=") == 0)
+        operation = ge;
+      else if (s.compare (0, p = 2, "<=") == 0)
+        operation = le;
+      else if (s.compare (0, p = 1, ">") == 0)
+        operation = gt;
+      else if (s.compare (0, p = 1, "<") == 0)
+        operation = lt;
+      else
+        bail ("invalid constraint");
+
+      p = s.find_first_not_of (spaces, p);
+
+      if (p == string::npos)
+        bail ("no version");
+
+      standard_version v;
+
+      try
+      {
+        v = standard_version (s.substr (p));
+      }
+      catch (const invalid_argument& e)
+      {
+        bail (string ("invalid version: ") + e.what ());
+      }
+
+      // Verify and copy the constraint.
+      //
+      switch (operation)
+      {
+      case comparison::eq:
+        *this = standard_version_constraint (v);
+        break;
+      case comparison::lt:
+        *this = standard_version_constraint (nullopt, true, move (v), true);
+        break;
+      case comparison::le:
+        *this = standard_version_constraint (nullopt, true, move (v), false);
+        break;
+      case comparison::gt:
+        *this = standard_version_constraint (move (v), true, nullopt, true);
+        break;
+      case comparison::ge:
+        *this = standard_version_constraint (move (v), false, nullopt, true);
+        break;
+      }
+    }
+  }
+
+  standard_version_constraint::
+  standard_version_constraint (optional<standard_version> mnv, bool mno,
+                               optional<standard_version> mxv, bool mxo)
+      : min_version (move (mnv)),
+        max_version (move (mxv)),
+        min_open (mno),
+        max_open (mxo)
+  {
+    assert (
+      // Min and max versions can't both be absent.
+      //
+      (min_version || max_version) &&
+
+      // Version should be non-empty.
+      //
+      (!min_version || !min_version->empty ()) &&
+      (!max_version || !max_version->empty ()) &&
+
+      // Absent version endpoint (infinity) should be open.
+      //
+      (min_version || min_open) && (max_version || max_open));
+
+    if (min_version && max_version)
+    {
+      if (*min_version > *max_version)
+        throw invalid_argument ("min version is greater than max version");
+
+      if (*min_version == *max_version && (min_open || max_open))
+        throw invalid_argument ("equal version endpoints not closed");
+    }
+  }
+
+  string standard_version_constraint::
+  string () const
+  {
+    assert (!empty ());
+
+    if (!min_version)
+      return (max_open ? "< " : "<= ") + max_version->string ();
+
+    if (!max_version)
+      return (min_open ? "> " : ">= ") + min_version->string ();
+
+    if (*min_version == *max_version)
+      return "== " + min_version->string ();
+
+    return (min_open ? '(' : '[') + min_version->string () + ' ' +
+      max_version->string () + (max_open ? ')' : ']');
   }
 }

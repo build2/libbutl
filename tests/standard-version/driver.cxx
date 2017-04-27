@@ -72,11 +72,13 @@ version (const string& s)
 // argv[0] -a <version>
 // argv[0] -b <version>
 // argv[0] -c <version> <version>
+// argv[0] -r
 // argv[0]
 //
 // -a  output 'y' for alpha-version, 'n' otherwise
 // -b  output 'y' for beta-version, 'n' otherwise
 // -c  output 0 if versions are equal, -1 if the first one is less, 1 otherwise
+// -r  create version constraints from STDIN lines, and print them to STDOUT
 //
 // If no options are specified, then create versions from STDIN lines, and
 // print them to STDOUT.
@@ -116,6 +118,14 @@ try
 
       int r (version (argv[2]).compare (version (argv[3])));
       cout << r << endl;
+    }
+    else if (o == "-r")
+    {
+      assert (argc == 2);
+
+      string s;
+      while (getline (cin, s))
+        cout << standard_version_constraint (s) << endl;
     }
     else
       assert (false);

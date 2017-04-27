@@ -188,3 +188,86 @@
     $* '1.2.3-a.1.2.xy' '1.2.3-a.1.2' >'0'  : ignore-snapshot-id
   }
 }
+
+: constraints
+:
+{
+  test.options += -r
+
+  : range
+  :
+  {
+    : valid
+    :
+    $* <<EOI >>EOE
+    [1.2.3 1.2.4]
+    (1.2.3 1.2.4)
+    [ 1.2.3  1.2.4 ]
+    EOI
+    [1.2.3 1.2.4]
+    (1.2.3 1.2.4)
+    [1.2.3 1.2.4]
+    EOE
+
+    : invalid
+    :
+    {
+      $* <'' 2>'invalid constraint' == 1                  : empty
+      $* <'1' 2>'invalid constraint' == 1                 : no-opening
+      $* <'[ ' 2>'no min version' == 1                    : no-min
+      $* <'[1.2.3' 2>'no max version' == 1                : no-max
+      $* <'[1.2.3 1.2.4' 2>'no closing bracket' == 1      : no-closing
+      $* <'[1.2.3 1.2.4)]' 2>'junk after constraint' == 1 : junk
+
+      : invalid-min
+      :
+      $* <'[1' 2>"invalid min version: '.' expected after major version" == 1
+
+      : invalid-max
+      :
+      $* <'[1.2.3 1' 2>"invalid max version: '.' expected after major version" == 1
+
+      : min-gt-max
+      :
+      $* <'[1.2.4 1.2.3]' 2>'min version is greater than max version' == 1
+
+      : open-end
+      :
+      $* <'[1.2.3 1.2.3)' 2>'equal version endpoints not closed' == 1
+    }
+  }
+
+  : comparison
+  :
+  {
+    : valid
+    :
+    $* <<EOI >>EOE
+    == 1.2.3
+    >= 1.2.3
+    <= 1.2.3
+    > 1.2.3
+    < 1.2.3
+    <=1.2.3
+    <1.2.3
+    EOI
+    == 1.2.3
+    >= 1.2.3
+    <= 1.2.3
+    > 1.2.3
+    < 1.2.3
+    <= 1.2.3
+    < 1.2.3
+    EOE
+
+    : invalid
+    :
+    {
+      $* <'>=' 2>'no version' == 1 : no-version
+
+      : junk
+      :
+      $* <'>= 1.2.3-a.1.1.ads@' 2>'invalid version: junk after version' == 1
+    }
+  }
+}

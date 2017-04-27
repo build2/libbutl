@@ -18,7 +18,7 @@ namespace butl
   }
 
   inline std::uint16_t standard_version::
-  major () const
+  major () const noexcept
   {
     std::uint64_t v (version / 10);
     std::uint64_t ab (v % 1000);
@@ -29,7 +29,7 @@ namespace butl
   }
 
   inline std::uint16_t standard_version::
-  minor () const
+  minor () const noexcept
   {
     std::uint64_t v (version / 10);
     std::uint64_t ab (v % 1000);
@@ -40,7 +40,7 @@ namespace butl
   }
 
   inline std::uint16_t standard_version::
-  patch () const
+  patch () const noexcept
   {
     std::uint64_t v (version / 10);
     std::uint64_t ab (v % 1000);
@@ -51,7 +51,7 @@ namespace butl
   }
 
   inline std::uint16_t standard_version::
-  pre_release () const
+  pre_release () const noexcept
   {
     std::uint64_t ab (version / 10 % 1000);
     if (ab > 500)
@@ -61,21 +61,21 @@ namespace butl
   }
 
   inline bool standard_version::
-  alpha () const
+  alpha () const noexcept
   {
     std::uint64_t abe (version % 10000);
     return abe > 0 && abe < 5000;
   }
 
   inline bool standard_version::
-  beta () const
+  beta () const noexcept
   {
     std::uint64_t abe (version % 10000);
     return abe > 5000;
   }
 
   inline int standard_version::
-  compare (const standard_version& v) const
+  compare (const standard_version& v) const noexcept
   {
     if (epoch != v.epoch)
       return epoch < v.epoch ? -1 : 1;

@@ -12,6 +12,8 @@
 
 #include <butl/export>
 
+#include <butl/optional>
+
 namespace butl
 {
   // The build2 "standard version":
@@ -34,10 +36,13 @@ namespace butl
     std::string   snapshot_id;       // Empty if not specified.
     std::uint16_t revision     = 0;  // 0 if not specified.
 
-    std::uint16_t major () const;
-    std::uint16_t minor () const;
-    std::uint16_t patch () const;
-    std::uint16_t pre_release () const; // Note: 0 is ambiguous (-a.0.z).
+    std::uint16_t major () const noexcept;
+    std::uint16_t minor () const noexcept;
+    std::uint16_t patch () const noexcept;
+
+    // Note: 0 is ambiguous (-a.0.z).
+    //
+    std::uint16_t pre_release () const noexcept;
 
     // Note: return empty if the corresponding component is unspecified.
     //
@@ -47,14 +52,14 @@ namespace butl
     std::string string_pre_release () const; // Pre-release part only (a.1).
     std::string string_snapshot () const;    // Snapshot part only (1234.1f23).
 
-    bool empty () const {return version == 0;}
+    bool empty () const noexcept {return version == 0;}
 
-    bool alpha () const;
-    bool beta () const;
-    bool snapshot () const {return snapshot_sn != 0;}
+    bool alpha () const noexcept;
+    bool beta () const noexcept;
+    bool snapshot () const noexcept {return snapshot_sn != 0;}
 
     int
-    compare (const standard_version&) const;
+    compare (const standard_version&) const noexcept;
 
     // Parse the version. Throw std::invalid_argument if the format is not
     // recognizable or components are invalid.
@@ -88,19 +93,99 @@ namespace butl
   };
 
   inline bool
-  operator== (const standard_version& x, const standard_version& y)
+  operator< (const standard_version& x, const standard_version& y) noexcept
+  {
+    return x.compare (y) < 0;
+  }
+
+  inline bool
+  operator> (const standard_version& x, const standard_version& y) noexcept
+  {
+    return x.compare (y) > 0;
+  }
+
+  inline bool
+  operator== (const standard_version& x, const standard_version& y) noexcept
   {
     return x.compare (y) == 0;
   }
 
   inline bool
-  operator!= (const standard_version& x, const standard_version& y)
+  operator<= (const standard_version& x, const standard_version& y) noexcept
+  {
+    return x.compare (y) <= 0;
+  }
+
+  inline bool
+  operator>= (const standard_version& x, const standard_version& y) noexcept
+  {
+    return x.compare (y) >= 0;
+  }
+
+  inline bool
+  operator!= (const standard_version& x, const standard_version& y) noexcept
   {
     return !(x == y);
   }
 
   inline std::ostream&
   operator<< (std::ostream& o, const standard_version& x)
+  {
+    return o << x.string ();
+  }
+
+  // The build2 "standard version" constraint:
+  //
+  // ('==' | '>' | '<' | '>=' | '<=') <version>
+  // ('(' | '[') <version> <version> (')' | ']')
+  //
+  struct LIBBUTL_EXPORT standard_version_constraint
+  {
+    butl::optional<standard_version> min_version;
+    butl::optional<standard_version> max_version;
+    bool min_open;
+    bool max_open;
+
+    // Parse the version constraint. Throw std::invalid_argument on error.
+    //
+    explicit
+    standard_version_constraint (const std::string&);
+
+    // Throw std::invalid_argument if the specified version range is invalid.
+    //
+    standard_version_constraint (
+      butl::optional<standard_version> min_version, bool min_open,
+      butl::optional<standard_version> max_version, bool max_open);
+
+    standard_version_constraint (const standard_version& v)
+        : standard_version_constraint (v, false, v, false) {}
+
+    standard_version_constraint () = default;
+
+    std::string
+    string () const;
+
+    bool
+    empty () const noexcept {return !min_version && !max_version;}
+  };
+
+  inline bool
+  operator== (const standard_version_constraint& x,
+              const standard_version_constraint& y)
+  {
+    return x.min_version == y.min_version && x.max_version == y.max_version &&
+      x.min_open == y.min_open && x.max_open == y.max_open;
+  }
+
+  inline bool
+  operator!= (const standard_version_constraint& x,
+              const standard_version_constraint& y)
+  {
+    return !(x == y);
+  }
+
+  inline std::ostream&
+  operator<< (std::ostream& o, const standard_version_constraint& x)
   {
     return o << x.string ();
   }
