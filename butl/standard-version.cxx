@@ -38,7 +38,7 @@ namespace butl
   }
 
   static void
-  check_version (uint64_t version, bool snapshot)
+  check_version (uint64_t version, bool snapshot, bool allow_earliest)
   {
     // Check that the version isn't too large.
     //
@@ -46,9 +46,18 @@ namespace butl
     bool r (version < 10000000000000ULL);
 
     // Check that E version component is consistent with the snapshot flag.
+    // Note that if the allow_earliest flag is true, then E can be 1 for the
+    // snapshot flag being false, denoting the earliest pre-release of the
+    // version.
     //
     if (r)
-      r = (version % 10) == (snapshot ? 1 : 0);
+    {
+      uint64_t e (version % 10);
+      if (!allow_earliest)
+        r = e == (snapshot ? 1 : 0);
+      else
+        r = e == 1 || (e == 0 && !snapshot);
+    }
 
     // Check that pre-release number is consistent with the snapshot flag.
     //
@@ -78,7 +87,7 @@ namespace butl
   // standard_version
   //
   standard_version::
-  standard_version (const std::string& s)
+  standard_version (const std::string& s, bool allow_earliest)
   {
     auto bail = [] (const char* m) {throw invalid_argument (m);};
 
@@ -127,56 +136,66 @@ namespace butl
 
     // Parse the pre-release component if present.
     //
+    bool earliest (false);
     if (s[p] == '-')
     {
       char k (s[++p]);
 
-      if (k != 'a' && k != 'b')
-        bail ("'a' or 'b' expected in pre-release");
+      if (k == '\0' && allow_earliest) // Dash is the last string character.
+        earliest = true;
+      else
+      {
+        if (k != 'a' && k != 'b')
+          bail ("'a' or 'b' expected in pre-release");
 
-      if (s[++p] != '.')
-        bail ("'.' expected after pre-release letter");
+        if (s[++p] != '.')
+          bail ("'.' expected after pre-release letter");
 
-      ab = parse_num (s, ++p, "invalid pre-release", 0, 499);
+        ab = parse_num (s, ++p, "invalid pre-release", 0, 499);
 
-      if (k == 'b')
-        ab += 500;
+        if (k == 'b')
+          ab += 500;
 
-      // Parse the snapshot components if present. Note that pre-release number
-      // can't be zero for the final pre-release.
-      //
-      if (s[p] == '.')
-        parse_snapshot (s, ++p);
-      else if (ab == 0 || ab == 500)
-        bail ("invalid final pre-release");
+        // Parse the snapshot components if present. Note that pre-release number
+        // can't be zero for the final pre-release.
+        //
+        if (s[p] == '.')
+          parse_snapshot (s, ++p);
+        else if (ab == 0 || ab == 500)
+          bail ("invalid final pre-release");
+      }
     }
 
     if (s[p] == '+')
+    {
+      assert (!earliest); // Would bail out earlier (a or b expected after -).
+
       revision = parse_num (s, ++p, "invalid revision", 1, uint16_t (~0));
+    }
 
     if (p != s.size ())
       bail ("junk after version");
 
-    if (ab != 0)
+    if (ab != 0 || snapshot_sn != 0 || earliest)
       version -= 10000 - ab * 10;
 
-    if (snapshot_sn != 0)
+    if (snapshot_sn != 0 || earliest)
       version += 1;
   }
 
   standard_version::
-  standard_version (uint64_t v)
+  standard_version (uint64_t v, bool allow_earliest)
       : version (v)
   {
-    check_version (v, false);
+    check_version (v, false, allow_earliest);
   }
 
   standard_version::
-  standard_version (uint64_t v, const std::string& s)
+  standard_version (uint64_t v, const std::string& s, bool allow_earliest)
       : version (v)
   {
     bool snapshot (!s.empty ());
-    check_version (version, snapshot);
+    check_version (version, snapshot, allow_earliest);
 
     if (snapshot)
     {
@@ -193,14 +212,15 @@ namespace butl
                     uint64_t vr,
                     uint64_t sn,
                     std::string si,
-                    uint16_t rv)
+                    uint16_t rv,
+                    bool allow_earliest)
       : epoch (ep),
         version (vr),
         snapshot_sn (sn),
         snapshot_id (move (si)),
         revision (rv)
   {
-    check_version (vr, true);
+    check_version (vr, true, allow_earliest);
 
     if (!snapshot_id.empty () && (snapshot_id.size () > 16 ||
                                   snapshot_sn == 0 ||
@@ -244,7 +264,7 @@ namespace butl
   {
     std::string r;
 
-    if (alpha () || beta ())
+    if ((alpha () && !earliest ()) || beta ())
     {
       uint64_t ab (version / 10 % 1000);
 
@@ -360,7 +380,7 @@ namespace butl
 
       try
       {
-        min_version = standard_version (s.substr (p, e - p));
+        min_version = standard_version (s.substr (p, e - p), true);
       }
       catch (const invalid_argument& e)
       {
@@ -377,7 +397,7 @@ namespace butl
 
       try
       {
-        max_version = standard_version (s.substr (p, e - p));
+        max_version = standard_version (s.substr (p, e - p), true);
       }
       catch (const invalid_argument& e)
       {
@@ -425,7 +445,7 @@ namespace butl
 
       try
       {
-        v = standard_version (s.substr (p));
+        v = standard_version (s.substr (p), operation != comparison::eq);
       }
       catch (const invalid_argument& e)
       {
@@ -482,8 +502,14 @@ namespace butl
       if (*min_version > *max_version)
         throw invalid_argument ("min version is greater than max version");
 
-      if (*min_version == *max_version && (min_open || max_open))
-        throw invalid_argument ("equal version endpoints not closed");
+      if (*min_version == *max_version)
+      {
+        if (min_open || max_open)
+          throw invalid_argument ("equal version endpoints not closed");
+
+        if (min_version->earliest ())
+          throw invalid_argument ("equal version endpoints are earliest");
+      }
     }
   }
 

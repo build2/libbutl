@@ -17,9 +17,9 @@ using namespace butl;
 // Create standard version from string, and also test another ctors.
 //
 static standard_version
-version (const string& s)
+version (const string& s, bool allow_earliest = true)
 {
-  standard_version r (s);
+  standard_version r (s, allow_earliest);
 
   try
   {
@@ -28,7 +28,8 @@ version (const string& s)
                         r.snapshot ()
                         ? r.string_snapshot ()
                         : string (),
-                        r.revision);
+                        r.revision,
+                        allow_earliest);
 
     assert (r == v);
 
@@ -37,12 +38,13 @@ version (const string& s)
       standard_version v (r.version,
                           r.snapshot ()
                           ? r.string_snapshot ()
-                          : string ());
+                          : string (),
+                          allow_earliest);
       assert (r == v);
 
       if (!r.snapshot ())
       {
-        standard_version v (r.version);
+        standard_version v (r.version, allow_earliest);
         assert (r == v);
       }
     }
@@ -53,7 +55,8 @@ version (const string& s)
                           r.version,
                           r.snapshot_sn,
                           r.snapshot_id,
-                          r.revision);
+                          r.revision,
+                          allow_earliest);
       assert (r == v);
     }
 

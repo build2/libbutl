@@ -16,17 +16,20 @@
 
 namespace butl
 {
-  // The build2 "standard version":
+  // The build2 "standard version" (specific and earliest):
   //
   // [<epoch>~]<maj>.<min>.<patch>[-(a|b).<num>[.<snapsn>[.<snapid>]]][+<rev>]
+  // [<epoch>~]<maj>.<min>.<patch>-
   //
   struct LIBBUTL_EXPORT standard_version
   {
     // Invariants:
     //
-    // 1. (E == 0) == (snapshot_sn == 0 && snapshot_id.empty ())
+    // 1. allow_earliest
+    //    ? (E == 1) || (snapshot_sn == 0)
+    //    : (E == 0) == (snapshot_sn == 0)
     //
-    // 2. snapshot_sn != latest_sn || snapshot_id.empty ()
+    // 2. snapshot_sn != latest_sn && snapshot_sn != 0 || snapshot_id.empty ()
     //
     static const std::uint64_t latest_sn = std::uint64_t (~0);
 
@@ -58,6 +61,13 @@ namespace butl
     bool beta () const noexcept;
     bool snapshot () const noexcept {return snapshot_sn != 0;}
 
+    // Is represented by DDDE being 0001 and snapshot_sn being 0.
+    //
+    // Note that the earliest version is a final alpha pre-release.
+    //
+    bool
+    earliest () const noexcept;
+
     int
     compare (const standard_version&) const noexcept;
 
@@ -65,23 +75,27 @@ namespace butl
     // recognizable or components are invalid.
     //
     explicit
-    standard_version (const std::string&);
+    standard_version (const std::string&, bool allow_earliest = false);
 
     explicit
-    standard_version (std::uint64_t version);
+    standard_version (std::uint64_t version, bool allow_earliest = false);
 
-    standard_version (std::uint64_t version, const std::string& snapshot);
+    standard_version (std::uint64_t version,
+                      const std::string& snapshot,
+                      bool allow_earliest = false);
 
     standard_version (std::uint16_t epoch,
                       std::uint64_t version,
                       const std::string& snapshot,
-                      std::uint16_t revision);
+                      std::uint16_t revision,
+                      bool allow_earliest = false);
 
     standard_version (std::uint16_t epoch,
                       std::uint64_t version,
                       std::uint64_t snapshot_sn,
                       std::string snapshot_id,
-                      std::uint16_t revision);
+                      std::uint16_t revision,
+                      bool allow_earliest = false);
 
     // Create empty version.
     //

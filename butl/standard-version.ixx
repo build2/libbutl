@@ -8,8 +8,9 @@ namespace butl
   standard_version ( std::uint16_t e,
                      std::uint64_t v,
                      const std::string& s,
-                     std::uint16_t r)
-      : standard_version (v, s)
+                     std::uint16_t r,
+                     bool allow_earliest)
+      : standard_version (v, s, allow_earliest)
   {
     // Can't initialize above due to ctor delegating.
     //
@@ -20,9 +21,10 @@ namespace butl
   inline std::uint16_t standard_version::
   major () const noexcept
   {
+    std::uint64_t e (version % 10);
     std::uint64_t v (version / 10);
     std::uint64_t ab (v % 1000);
-    if (ab != 0)
+    if (ab != 0 || e == 1)
       v += 1000 - ab;
 
     return static_cast<std::uint16_t> (v / 1000000000 % 1000);
@@ -31,9 +33,10 @@ namespace butl
   inline std::uint16_t standard_version::
   minor () const noexcept
   {
+    std::uint64_t e (version % 10);
     std::uint64_t v (version / 10);
     std::uint64_t ab (v % 1000);
-    if (ab != 0)
+    if (ab != 0 || e == 1)
       v += 1000 - ab;
 
     return static_cast<std::uint16_t> (v / 1000000 % 1000);
@@ -42,9 +45,10 @@ namespace butl
   inline std::uint16_t standard_version::
   patch () const noexcept
   {
+    std::uint64_t e (version % 10);
     std::uint64_t v (version / 10);
     std::uint64_t ab (v % 1000);
-    if (ab != 0)
+    if (ab != 0 || e == 1)
       v += 1000 - ab;
 
     return static_cast<std::uint16_t> (v / 1000 % 1000);
@@ -72,6 +76,12 @@ namespace butl
   {
     std::uint64_t abe (version % 10000);
     return abe > 5000;
+  }
+
+  inline bool standard_version::
+  earliest () const noexcept
+  {
+    return version % 10000 == 1 && !snapshot ();
   }
 
   inline int standard_version::
