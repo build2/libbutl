@@ -83,22 +83,4 @@ namespace butl
   {
     return version % 10000 == 1 && !snapshot ();
   }
-
-  inline int standard_version::
-  compare (const standard_version& v) const noexcept
-  {
-    if (epoch != v.epoch)
-      return epoch < v.epoch ? -1 : 1;
-
-    if (version != v.version)
-      return version < v.version ? -1 : 1;
-
-    if (snapshot_sn != v.snapshot_sn)
-      return snapshot_sn < v.snapshot_sn ? -1 : 1;
-
-    if (revision != v.revision)
-      return revision < v.revision ? -1 : 1;
-
-    return 0;
-  }
 }

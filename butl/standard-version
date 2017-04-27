@@ -69,7 +69,22 @@ namespace butl
     earliest () const noexcept;
 
     int
-    compare (const standard_version&) const noexcept;
+    compare (const standard_version& v) const noexcept
+    {
+      if (epoch != v.epoch)
+        return epoch < v.epoch ? -1 : 1;
+
+      if (version != v.version)
+        return version < v.version ? -1 : 1;
+
+      if (snapshot_sn != v.snapshot_sn)
+        return snapshot_sn < v.snapshot_sn ? -1 : 1;
+
+      if (revision != v.revision)
+        return revision < v.revision ? -1 : 1;
+
+      return 0;
+    }
 
     // Parse the version. Throw std::invalid_argument if the format is not
     // recognizable or components are invalid.

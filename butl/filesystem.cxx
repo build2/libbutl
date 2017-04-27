@@ -573,7 +573,7 @@ namespace butl
       throw_system_error (ec);
     }
 
-    if (s.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY != 0)
+    if ((s.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
       return timestamp_nonexistent;
 
     // Time in FILETIME is in 100 nanosecond "ticks" since "Windows epoch"
