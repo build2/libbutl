@@ -530,4 +530,24 @@ namespace butl
     return (min_open ? '(' : '[') + min_version->string () + ' ' +
       max_version->string () + (max_open ? ')' : ']');
   }
+
+  bool standard_version_constraint::
+  satisfies (const standard_version& v) const noexcept
+  {
+    bool s (true);
+
+    if (min_version)
+    {
+      int i (v.compare (*min_version));
+      s = min_open ? i > 0 : i >= 0;
+    }
+
+    if (s && max_version)
+    {
+      int i (v.compare (*max_version));
+      s = max_open ? i < 0 : i <= 0;
+    }
+
+    return s;
+  }
 }

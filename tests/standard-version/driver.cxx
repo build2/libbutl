@@ -76,12 +76,14 @@ version (const string& s, bool allow_earliest = true)
 // argv[0] -b <version>
 // argv[0] -c <version> <version>
 // argv[0] -r
+// argv[0] -s <version> <constraint>
 // argv[0]
 //
 // -a  output 'y' for alpha-version, 'n' otherwise
 // -b  output 'y' for beta-version, 'n' otherwise
 // -c  output 0 if versions are equal, -1 if the first one is less, 1 otherwise
 // -r  create version constraints from STDIN lines, and print them to STDOUT
+// -s  output 'y' if version satisfies constraint, 'n' otherwise
 //
 // If no options are specified, then create versions from STDIN lines, and
 // print them to STDOUT.
@@ -100,18 +102,14 @@ try
     if (o == "-a")
     {
       assert (argc == 3);
-      char r (version (argv[2]).alpha ()
-              ? 'y'
-              : 'n');
+      char r (version (argv[2]).alpha () ? 'y' : 'n');
 
       cout << r << endl;
     }
     else if (o == "-b")
     {
       assert (argc == 3);
-      char r (version (argv[2]).beta ()
-              ? 'y'
-              : 'n');
+      char r (version (argv[2]).beta () ? 'y' : 'n');
 
       cout << r << endl;
     }
@@ -129,6 +127,15 @@ try
       string s;
       while (getline (cin, s))
         cout << standard_version_constraint (s) << endl;
+    }
+    else if (o == "-s")
+    {
+      assert (argc == 4);
+
+      char r (standard_version_constraint (argv[3]).satisfies (
+                version (argv[2])) ? 'y' : 'n');
+
+      cout << r << endl;
     }
     else
       assert (false);

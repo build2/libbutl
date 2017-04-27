@@ -297,3 +297,85 @@
     }
   }
 }
+
+: satisfaction
+:
+{
+  test.options += -s
+
+  : comparison
+  :
+  : Constraints have a single endpoint being present.
+  :
+  {
+    : eq
+    :
+    {
+      $* '1.2.3' '== 1.2.3' >y : eq
+      $* '1.2.3' '<= 1.2.3' >y : le
+      $* '1.2.3' '<  1.2.3' >n : lt
+      $* '1.2.3' '>= 1.2.3' >y : ge
+      $* '1.2.3' '>  1.2.3' >n : gt
+    }
+
+    : smaller-greater
+    :
+    {
+      $* '1.2.3' '== 1.2.4' >n : eq
+      $* '1.2.3' '<= 1.2.4' >y : le
+      $* '1.2.3' '<  1.2.4' >y : lt
+      $* '1.2.3' '>= 1.2.4' >n : ge
+      $* '1.2.3' '>  1.2.4' >n : gt
+    }
+
+    : greater-smaller
+    :
+    {
+      $* '1.2.4' '<= 1.2.3' >n : le
+      $* '1.2.4' '<  1.2.3' >n : lt
+      $* '1.2.4' '>= 1.2.3' >y : ge
+      $* '1.2.4' '>  1.2.3' >y : gt
+    }
+  }
+
+  : range
+  :
+  : Constraints have both endpoints being present.
+  :
+  {
+    : left-out
+    :
+    {
+      $* '1.2.3' '[1.2.4 1.2.5]' >n : closed
+      $* '1.2.3' '(1.2.4 1.2.5]' >n : open
+    }
+
+    : left-endpoint
+    :
+    {
+      $* '1.2.3' '[1.2.3 1.2.4]'  >y : closed
+      $* '1.2.3' '(1.2.3 1.2.4]'  >n : open
+    }
+
+    : in
+    :
+    {
+      $* '1.2.3' '[1.2.2 1.2.4]' >y : closed
+      $* '1.2.3' '(1.2.2 1.2.4)' >y : open
+    }
+
+    : right-endpoint
+    :
+    {
+      $* '1.2.3' '[1.2.2 1.2.3]'  >y : closed
+      $* '1.2.3' '[1.2.2 1.2.3)'  >n : open
+    }
+
+    : right-out
+    :
+    {
+      $* '1.2.3' '[1.2.1 1.2.2]' >n : closed
+      $* '1.2.3' '[1.2.1 1.2.2)' >n : open
+    }
+  }
+}

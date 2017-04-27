@@ -181,6 +181,9 @@ namespace butl
 
     bool
     empty () const noexcept {return !min_version && !max_version;}
+
+    bool
+    satisfies (const standard_version&) const noexcept;
   };
 
   inline bool
