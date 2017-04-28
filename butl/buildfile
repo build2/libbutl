@@ -58,13 +58,16 @@ lib{butl}: file{sha256c.c}
 #
 lib{butl}: file{strptime.c timelocal.h timelocal.c}
 
+hxx{version}: in{version} $src_root/file{manifest}
+hxx{version}: dist = true
+
 # For pre-releases use the complete version to make sure they cannot be used
 # in place of another pre-release or the final version.
 #
-if $abi_prerelease
-  lib{butl}: bin.lib.version = @-$version
+if $version.pre_release
+  lib{butl}: bin.lib.version = @"-$version.project_id"
 else
-  lib{butl}: bin.lib.version = @-$abi_major.$abi_minor
+  lib{butl}: bin.lib.version = @"-$version.major.$version.minor"
 
 cxx.poptions =+ "-I$src_root"
 obja{*}: cxx.poptions += -DLIBBUTL_STATIC_BUILD
