@@ -1114,10 +1114,12 @@ namespace butl
     recursive_dir_iterator (dir_path p,
                             bool recursive,
                             bool self,
+                            bool fs,
                             preopen po)
         : start_ (move (p)),
           recursive_ (recursive),
           self_ (self),
+          follow_symlinks_ (fs),
           preopen_ (move (po))
     {
       open (dir_path (), self_);
@@ -1165,7 +1167,8 @@ namespace butl
       // Append separator if a directory. Note that dir_entry::type() can
       // throw.
       //
-      path pe (de.type () == entry_type::directory
+      entry_type et (follow_symlinks_ ? de.type () : de.ltype ());
+      path pe (et == entry_type::directory
                ? path_cast<dir_path> (i.second / de.path ())
                : i.second / de.path ());
 
@@ -1224,6 +1227,7 @@ namespace butl
     dir_path start_;
     bool recursive_;
     bool self_;
+    bool follow_symlinks_;
     preopen preopen_;
     small_vector<pair<dir_iterator, dir_path>, 1> iters_;
   };
@@ -1239,6 +1243,7 @@ namespace butl
     path pattern,
     dir_path pattern_dir,
     const dir_path start_dir,
+    bool follow_symlinks,
     const function<bool (path&&, const string& pattern, bool interm)>& func)
   {
     // Fast-forward the leftmost pattern non-wildcard components. So, for
@@ -1293,6 +1298,7 @@ namespace butl
       start_dir / pattern_dir,
       pcr.find ("**") != string::npos,                  // Recursive.
       pcr.find ("***") != string::npos,                 // Self-inclusive.
+      follow_symlinks,
       [&pattern_dir, &func] (const dir_path& p) -> bool // Preopen.
       {
         return func (pattern_dir / p, any_dir, true);
@@ -1366,6 +1372,7 @@ namespace butl
       if (!simple && !search (pattern.leaf (pc),
                               pattern_dir / path_cast<dir_path> (move (p)),
                               start_dir,
+                              follow_symlinks,
                               func))
         return false;
     }
@@ -1377,11 +1384,13 @@ namespace butl
   path_search (
     const path& pattern,
     const function<bool (path&&, const string& pattern, bool interm)>& func,
-    const dir_path& start)
+    const dir_path& start,
+    bool follow_symlinks)
   {
     search (pattern,
             dir_path (),
             pattern.relative () ? start : dir_path (),
+            follow_symlinks,
             func);
   }
 }

@@ -558,7 +558,8 @@ namespace butl
                const std::function<bool (path&&,
                                          const std::string& pattern,
                                          bool interm)>&,
-               const dir_path& start = dir_path ());
+               const dir_path& start = dir_path (),
+               bool follow_symlinks = true);
 }
 
 #include <butl/filesystem.ixx>
