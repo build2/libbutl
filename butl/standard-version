@@ -51,6 +51,7 @@ namespace butl
     //
     std::string string () const;             // Package version.
     std::string string_project () const;     // Project version (no epoch/rev).
+    std::string string_project_id () const;  // Project version id (no snapsn).
     std::string string_version () const;     // Version only (no snapshot).
     std::string string_pre_release () const; // Pre-release part only (a.1).
     std::string string_snapshot () const;    // Snapshot part only (1234.1f23).
@@ -186,6 +187,7 @@ namespace butl
       butl::optional<standard_version> min_version, bool min_open,
       butl::optional<standard_version> max_version, bool max_open);
 
+    explicit
     standard_version_constraint (const standard_version& v)
         : standard_version_constraint (v, false, v, false) {}
 

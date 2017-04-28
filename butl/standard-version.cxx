@@ -332,6 +332,21 @@ namespace butl
   }
 
   string standard_version::
+  string_project_id () const
+  {
+    std::string r (string_version ());
+
+    if (snapshot ()) // Trailing dot already in id.
+    {
+      r += (snapshot_sn == latest_sn ? "z" :
+            snapshot_id.empty ()     ? to_string (snapshot_sn) :
+            snapshot_id);
+    }
+
+    return r;
+  }
+
+  string standard_version::
   string () const
   {
     std::string r;
