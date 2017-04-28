@@ -69,11 +69,11 @@ if $version.pre_release
 else
   lib{butl}: bin.lib.version = @"-$version.major.$version.minor"
 
-cxx.poptions =+ "-I$src_root"
+cxx.poptions =+ "-I$out_root" "-I$src_root"
 obja{*}: cxx.poptions += -DLIBBUTL_STATIC_BUILD
 objs{*}: cxx.poptions += -DLIBBUTL_SHARED_BUILD
 
-lib{butl}: cxx.export.poptions = "-I$src_root"
+lib{butl}: cxx.export.poptions = "-I$out_root" "-I$src_root"
 liba{butl}: cxx.export.poptions += -DLIBBUTL_STATIC
 libs{butl}: cxx.export.poptions += -DLIBBUTL_SHARED
 
