@@ -73,8 +73,10 @@ namespace butl
     earliest () const noexcept;
 
     bool
-    stub () const noexcept {return version == 0;}
+    stub () const noexcept {return version == std::uint64_t (~0);}
 
+    // Comparison of empty or stub versions doesn't make sense.
+    //
     int
     compare (const standard_version& v) const noexcept
     {

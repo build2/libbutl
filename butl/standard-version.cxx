@@ -40,47 +40,57 @@ namespace butl
   static void
   check_version (uint64_t vr, bool sn, standard_version::flags fl)
   {
-    // Check that the version isn't too large.
-    //
-    //            AAABBBCCCDDDE
-    bool r (vr < 10000000000000ULL);
-
-    // Check that E version component is consistent with the snapshot flag.
-    // Note that if the allow_earliest flag is set, then E can be 1 for the
-    // snapshot flag being false, denoting the earliest pre-release of the
-    // version.
-    //
-    if (r)
+    bool r;
+    if (vr == uint64_t (~0) && (fl & standard_version::allow_stub) != 0)
     {
-      uint64_t e (vr % 10);
-      if ((fl & standard_version::allow_earliest) == 0)
-        r = e == (sn ? 1 : 0);
-      else
-        r = e == 1 || (e == 0 && !sn);
-    }
-
-    // Check that pre-release number is consistent with the snapshot flag.
-    //
-    if (r)
-    {
-      uint64_t ab (vr / 10 % 1000);
-
-      // Note that if ab is 0, it can either mean non-pre-release version in
-      // the absence of snapshot number, or 'a.0' pre-release otherwise. If ab
-      // is 500, it can only mean 'b.0', that must be followed by a snapshot
-      // number.
+      // Stub.
       //
-      if (ab != 0)
-        r = ab != 500 || sn;
+      // Check that the snapshot flag is false.
+      //
+      r = !sn;
     }
+    else
+    {
+      // Check that the version isn't too large, unless represents stub.
+      //
+      //        AAABBBCCCDDDE
+      r = vr < 10000000000000ULL;
 
-    // Check that the major, the minor and the patch versions are not
-    // simultaneously zeros, unless stub is allowed, in which case the snapshot
-    // flag must be false.
-    //
-    if (r)
-      r = (vr / 10000) != 0 ||
-        ((fl & standard_version::allow_stub) != 0 && !sn);
+      // Check that E version component is consistent with the snapshot flag.
+      // Note that if the allow_earliest flag is set, then E can be 1 for the
+      // snapshot flag being false, denoting the earliest pre-release of the
+      // version.
+      //
+      if (r)
+      {
+        uint64_t e (vr % 10);
+        if ((fl & standard_version::allow_earliest) == 0)
+          r = e == (sn ? 1 : 0);
+        else
+          r = e == 1 || (e == 0 && !sn);
+      }
+
+      // Check that pre-release number is consistent with the snapshot flag.
+      //
+      if (r)
+      {
+        uint64_t ab (vr / 10 % 1000);
+
+        // Note that if ab is 0, it can either mean non-pre-release version in
+        // the absence of snapshot number, or 'a.0' pre-release otherwise. If
+        // ab is 500, it can only mean 'b.0', that must be followed by a
+        // snapshot number.
+        //
+        if (ab != 0)
+          r = ab != 500 || sn;
+      }
+
+      // Check that the major, the minor and the patch versions are not
+      // simultaneously zeros.
+      //
+      if (r)
+        r = (vr / 10000) != 0;
+    }
 
     if (!r)
       throw invalid_argument ("invalid project version");
@@ -121,13 +131,14 @@ namespace butl
 
     // The only valid version that has no epoch, contains only the major
     // version being equal to zero, that is optionally followed by the plus
-    // character, is the stub version, unless forbidden. For such a version
-    // we go straight to the package revision parsing.
+    // character, is the stub version, unless forbidden.
     //
     bool stub ((f & allow_stub) != 0 && !ep && ma == 0 &&
                (p == n || s[p] == '+'));
 
-    if (!stub)
+    if (stub)
+      version = uint64_t (~0);
+    else
     {
       if (s[p] != '.')
         bail ("'.' expected after major version");
@@ -224,6 +235,23 @@ namespace butl
   }
 
   standard_version::
+  standard_version (uint16_t e,
+                    uint64_t v,
+                    const std::string& s,
+                    uint16_t r,
+                    flags f)
+      : standard_version (v, s, f)
+  {
+    if (stub () && e != 0)
+      throw invalid_argument ("epoch for stub");
+
+    // Can't initialize above due to ctor delegating.
+    //
+    epoch = e;
+    revision = r;
+  }
+
+  standard_version::
   standard_version (uint16_t ep,
                     uint64_t vr,
                     uint64_t sn,
@@ -311,6 +339,9 @@ namespace butl
   string standard_version::
   string_version () const
   {
+    if (empty ())
+      return "";
+
     if (stub ())
       return "0";
 
@@ -536,10 +567,10 @@ namespace butl
       //
       (min_version || max_version) &&
 
-      // Version should be non-empty.
+      // Version should be non-empty and not a stub.
       //
-      (!min_version || !min_version->empty ()) &&
-      (!max_version || !max_version->empty ()) &&
+      (!min_version || (!min_version->empty () && !min_version->stub ())) &&
+      (!max_version || (!max_version->empty () && !max_version->stub ())) &&
 
       // Absent version endpoint (infinity) should be open.
       //

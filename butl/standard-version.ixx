@@ -4,20 +4,6 @@
 
 namespace butl
 {
-  inline standard_version::
-  standard_version ( std::uint16_t e,
-                     std::uint64_t v,
-                     const std::string& s,
-                     std::uint16_t r,
-                     flags f)
-      : standard_version (v, s, f)
-  {
-    // Can't initialize above due to ctor delegating.
-    //
-    epoch = e;
-    revision = r;
-  }
-
   inline std::uint16_t standard_version::
   major () const noexcept
   {
@@ -68,20 +54,20 @@ namespace butl
   alpha () const noexcept
   {
     std::uint64_t abe (version % 10000);
-    return abe > 0 && abe < 5000;
+    return abe > 0 && abe < 5000 && !stub ();
   }
 
   inline bool standard_version::
   beta () const noexcept
   {
     std::uint64_t abe (version % 10000);
-    return abe > 5000;
+    return abe > 5000 && !stub ();
   }
 
   inline bool standard_version::
   earliest () const noexcept
   {
-    return version % 10000 == 1 && !snapshot ();
+    return version % 10000 == 1 && !snapshot () && !stub ();
   }
 
   inline standard_version::flags

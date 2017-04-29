@@ -147,7 +147,7 @@ try
 
   string s;
   while (getline (cin, s))
-    cout << version (s) << endl;
+    cout << (s.empty () ? standard_version () : version (s)) << endl;
 
   return 0;
 }

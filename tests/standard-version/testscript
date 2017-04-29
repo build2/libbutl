@@ -60,6 +60,12 @@
   0
   0+1
   EOF
+
+  : empty
+  :
+  $* <<EOF >>EOF
+
+  EOF
 }
 
 : invalid
@@ -161,7 +167,6 @@
   $* '1.2.3-a.0.1' >y: snapshot
   $* '1.2.3-'      >y: earliest
   $* '0'           >n: stub
-
 }
 
 : beta
@@ -210,12 +215,6 @@
     $* '1.2.3-a.1'      '1.2.3-'      >'1'  : final-gt-earliest
     $* '1.2.3-a.0.1'    '1.2.3-'      >'1'  : snapshot-gt-earliest
     $* '1.2.2-b.499.z'  '1.2.3-'      >'-1' : prev-max-snapshot-lt-earliest
-  }
-
-  : stub
-  :
-  {
-    $* '0+1' '0.0.1-' >'-1' : stub-lt-earliest
   }
 }
 
