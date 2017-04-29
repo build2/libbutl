@@ -9,8 +9,8 @@ namespace butl
                      std::uint64_t v,
                      const std::string& s,
                      std::uint16_t r,
-                     bool allow_earliest)
-      : standard_version (v, s, allow_earliest)
+                     flags f)
+      : standard_version (v, s, f)
   {
     // Can't initialize above due to ctor delegating.
     //
@@ -82,5 +82,33 @@ namespace butl
   earliest () const noexcept
   {
     return version % 10000 == 1 && !snapshot ();
+  }
+
+  inline standard_version::flags
+  operator& (standard_version::flags x, standard_version::flags y)
+  {
+    return x &= y;
+  }
+
+  inline standard_version::flags
+  operator| (standard_version::flags x, standard_version::flags y)
+  {
+    return x |= y;
+  }
+
+  inline standard_version::flags
+  operator&= (standard_version::flags& x, standard_version::flags y)
+  {
+    return x = static_cast<standard_version::flags> (
+      static_cast<std::uint16_t> (x) &
+      static_cast<std::uint16_t> (y));
+  }
+
+  inline standard_version::flags
+  operator|= (standard_version::flags& x, standard_version::flags y)
+  {
+    return x = static_cast<standard_version::flags> (
+      static_cast<std::uint16_t> (x) |
+      static_cast<std::uint16_t> (y));
   }
 }

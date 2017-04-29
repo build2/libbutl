@@ -16,10 +16,11 @@
 
 namespace butl
 {
-  // The build2 "standard version" (specific and earliest):
+  // The build2 "standard version" (specific, earliest and stub):
   //
   // [<epoch>~]<maj>.<min>.<patch>[-(a|b).<num>[.<snapsn>[.<snapid>]]][+<rev>]
   // [<epoch>~]<maj>.<min>.<patch>-
+  // 0[+<revision>]
   //
   struct LIBBUTL_EXPORT standard_version
   {
@@ -29,7 +30,9 @@ namespace butl
     //    ? (E == 1) || (snapshot_sn == 0)
     //    : (E == 0) == (snapshot_sn == 0)
     //
-    // 2. snapshot_sn != latest_sn && snapshot_sn != 0 || snapshot_id.empty ()
+    // 2. version != 0 || allow_stub && epoch == 0 && snapshot_sn == 0
+    //
+    // 3. snapshot_sn != latest_sn && snapshot_sn != 0 || snapshot_id.empty ()
     //
     static const std::uint64_t latest_sn = std::uint64_t (~0);
 
@@ -62,12 +65,15 @@ namespace butl
     bool beta () const noexcept;
     bool snapshot () const noexcept {return snapshot_sn != 0;}
 
-    // Is represented by DDDE being 0001 and snapshot_sn being 0.
+    // Represented by DDDE in version being 0001 and snapshot_sn being 0.
     //
     // Note that the earliest version is a final alpha pre-release.
     //
     bool
     earliest () const noexcept;
+
+    bool
+    stub () const noexcept {return version == 0;}
 
     int
     compare (const standard_version& v) const noexcept
@@ -90,28 +96,35 @@ namespace butl
     // Parse the version. Throw std::invalid_argument if the format is not
     // recognizable or components are invalid.
     //
-    explicit
-    standard_version (const std::string&, bool allow_earliest = false);
+    enum flags
+    {
+      none           = 0,
+      allow_earliest = 0x01, // Allow <major>.<minor>.<patch>- form.
+      allow_stub     = 0x02  // Allow 0[+<revision>] form.
+    };
 
     explicit
-    standard_version (std::uint64_t version, bool allow_earliest = false);
+    standard_version (const std::string&, flags = none);
+
+    explicit
+    standard_version (std::uint64_t version, flags = none);
 
     standard_version (std::uint64_t version,
                       const std::string& snapshot,
-                      bool allow_earliest = false);
+                      flags = none);
 
     standard_version (std::uint16_t epoch,
                       std::uint64_t version,
                       const std::string& snapshot,
                       std::uint16_t revision,
-                      bool allow_earliest = false);
+                      flags = none);
 
     standard_version (std::uint16_t epoch,
                       std::uint64_t version,
                       std::uint64_t snapshot_sn,
                       std::string snapshot_id,
                       std::uint16_t revision,
-                      bool allow_earliest = false);
+                      flags = none);
 
     // Create empty version.
     //
@@ -163,6 +176,18 @@ namespace butl
   {
     return o << x.string ();
   }
+
+  inline standard_version::flags
+  operator& (standard_version::flags, standard_version::flags);
+
+  inline standard_version::flags
+  operator| (standard_version::flags, standard_version::flags);
+
+  inline standard_version::flags
+  operator&= (standard_version::flags&, standard_version::flags);
+
+  inline standard_version::flags
+  operator|= (standard_version::flags&, standard_version::flags);
 
   // The build2 "standard version" constraint:
   //

@@ -53,6 +53,13 @@
   $* <<EOF >>EOF
   4~1.2.3
   EOF
+
+  : stub
+  :
+  $* <<EOF >>EOF
+  0
+  0+1
+  EOF
 }
 
 : invalid
@@ -74,9 +81,9 @@
   :
   $* <'1.2' 2>"'.' expected after minor version" == 1
 
-  : bugfix
+  : patch
   :
-  $* <'1.2.a' 2>'invalid bugfix version' == 1
+  $* <'1.2.a' 2>'invalid patch version' == 1
 
   : zero-version
   :
@@ -153,6 +160,8 @@
   $* '1.2.3-a.1'   >y: final
   $* '1.2.3-a.0.1' >y: snapshot
   $* '1.2.3-'      >y: earliest
+  $* '0'           >n: stub
+
 }
 
 : beta
@@ -165,6 +174,7 @@
   $* '1.2.3-b.1'   >y: final
   $* '1.2.3-b.0.1' >y: snapshot
   $* '1.2.3-'      >n: earliest
+  $* '0+1'         >n: stub
 }
 
 : compare
@@ -200,6 +210,12 @@
     $* '1.2.3-a.1'      '1.2.3-'      >'1'  : final-gt-earliest
     $* '1.2.3-a.0.1'    '1.2.3-'      >'1'  : snapshot-gt-earliest
     $* '1.2.2-b.499.z'  '1.2.3-'      >'-1' : prev-max-snapshot-lt-earliest
+  }
+
+  : stub
+  :
+  {
+    $* '0+1' '0.0.1-' >'-1' : stub-lt-earliest
   }
 }
 
@@ -290,6 +306,10 @@
       : eq-earliest
       :
       $* <'==1.2.3-' 2>"invalid version: 'a' or 'b' expected in pre-release" == 1
+
+      : eq-stub
+      :
+      $* <'==0' 2>"invalid version: '.' expected after major version" == 1
 
       : junk
       :
