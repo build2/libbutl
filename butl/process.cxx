@@ -1115,31 +1115,94 @@ namespace butl
           in == STDERR_FILENO)
         fail ("invalid file descriptor");
 
-      if (!CreateProcess (
-            batch != nullptr ? batch : pp.effect_string (),
-            const_cast<char*> (cmd_line.c_str ()),
-            0,    // Process security attributes.
-            0,    // Primary thread security attributes.
-            true, // Inherit handles.
-            0,    // Creation flags.
-            0,    // Use our environment.
-            cwd != nullptr && *cwd != '\0' ? cwd : nullptr,
-            &si,
-            &pi))
-        fail ();
-    } // Revert handled back to non-inheritable and release the lock.
+      // Ready for some "Fun with Windows"(TM)? Here is what's in today's
+      // episode: MSYS2 (actually, Cygwin) tries to emulate POSIX fork() on
+      // Win32 via some pretty heavy hackery. As a result it makes a bunch of
+      // assumptions such as that the child process will have the same virtual
+      // memory position as the parent and that nobody interferes in its
+      // child-parent dance.
+      //
+      // This, however, doesn't always pan out: for reasons unknown Windows
+      // sometimes decides to start the child somewhere else (or, as Cygwin
+      // FAQ puts it: "sometimes Windows sets up a process environment that is
+      // even more hostile to fork() than usual"). Also things like Windows
+      // Defender (collectively called Big List Of Dodgy Apps/BLODA in Cygwin
+      // speak) do interfere in all kinds of ways.
+      //
+      // We also observe another issue that seem related: if we run multiple
+      // MSYS2-based applications in parallel (either from the same process
+      // or from several processes), then they sometimes terminate abnormally
+      // (but quietly, without printing any of the cygheap/fork diagnostics)
+      // with status 0xC0000142 (STATUS_DLL_INIT_FAILED).
+      //
+      // Cygwin FAQ suggests the following potential solutions:
+      //
+      // 1. Restart the process hoping things will pan out next time around.
+      //
+      // 2. Eliminate/disable programs from BLODA (disabling Defender helps
+      //    a lot but not entirely).
+      //
+      // 3. Apparently switching from 32 to 64-bit should help (less chance
+      //    for address collisions).
+      //
+      // 4. Rebase all the Cygwin DLLs (this is a topic for a another episode).
+      //
+      // To add to this list, we also have our own remedy (which is not
+      // generally applicable):
+      //
+      // 5. Make sure processes that you start don't need to fork. A good
+      //    example would be tar that runs gz/bzip2/xz. Instead, we start and
+      //    pipe them ourselves.
+      //
+      // So what's coming next is a hack that implements remedy #1: after
+      // starting the process we wait a bit (50ms) and check if it has
+      // terminated with STATUS_DLL_INIT_FAILED (the assumption here is that
+      // if this happens, it happens quickly). We then retry starting the
+      // process for up to a second.
+      //
+      // One way to improve this implementation would be to only do it for
+      // MSYS2-based programs, for example, by checking (EnumProcessModules())
+      // if the process loaded the msys-2.0.dll (not clear though if it will
+      // be in the returned list if it has failed to initialize). With this
+      // improvement we could then wait longer and try harder.
+      //
+      for (size_t ret (0); ret != 20; ++ret)
+      {
+        if (!CreateProcess (
+              batch != nullptr ? batch : pp.effect_string (),
+              const_cast<char*> (cmd_line.c_str ()),
+              0,    // Process security attributes.
+              0,    // Primary thread security attributes.
+              true, // Inherit handles.
+              0,    // Creation flags.
+              0,    // Use our environment.
+              cwd != nullptr && *cwd != '\0' ? cwd : nullptr,
+              &si,
+              &pi))
+          fail ();
 
-    auto_handle (pi.hThread).reset (); // Close.
+        auto_handle (pi.hThread).reset (); // Close.
+
+        // Wait a bit (50ms) and check if the process has terminated. If it is
+        // still running then we assume all is good. Otherwise, retry if this
+        // is the DLL initialization error.
+        //
+        DWORD s;
+        if (WaitForSingleObject (pi.hProcess, 50) != WAIT_OBJECT_0 ||
+            !GetExitCodeProcess (pi.hProcess, &s)                  ||
+            s != STATUS_DLL_INIT_FAILED)
+          break;
+      }
+    } // Revert handles back to non-inheritable and release the lock.
+
+    // 0 has a special meaning denoting a terminated process handle.
+    //
+    this->handle = pi.hProcess;
+    assert (this->handle != 0 && this->handle != INVALID_HANDLE_VALUE);
 
     this->out_fd = move (out_fd.out);
     this->in_ofd = move (in_ofd.in);
     this->in_efd = move (in_efd.in);
-
-    this->handle = pi.hProcess;
-
-    // 0 has a special meaning denoting a terminated process handle.
-    //
-    assert (this->handle != 0 && this->handle != INVALID_HANDLE_VALUE);
   }
 
   bool process::
