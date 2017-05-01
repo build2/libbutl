@@ -6,7 +6,7 @@
 #include <cassert>
 #include <iostream>
 
-#include <butl/sha256>
+#include <libbutl/sha256.hxx>
 
 using namespace std;
 using namespace butl;

@@ -8,8 +8,8 @@
 #include <cassert>
 #include <iostream>
 
-#include <butl/utility>       // operator<<(ostream,exception)
-#include <butl/string-parser>
+#include <libbutl/utility.hxx>       // operator<<(ostream,exception)
+#include <libbutl/string-parser.hxx>
 
 using namespace std;
 using namespace butl;

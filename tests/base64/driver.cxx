@@ -6,7 +6,7 @@
 #include <sstream>
 #include <cassert>
 
-#include <butl/base64>
+#include <libbutl/base64.hxx>
 
 using namespace std;
 using namespace butl;

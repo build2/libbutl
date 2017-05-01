@@ -6,7 +6,7 @@
 #include <cassert>
 #include <iostream>
 
-#include <butl/prefix-map>
+#include <libbutl/prefix-map.hxx>
 
 using namespace std;
 using namespace butl;

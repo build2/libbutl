@@ -9,7 +9,7 @@
 #include <sstream>
 #include <iostream>
 
-#include <butl/manifest-serializer>
+#include <libbutl/manifest-serializer.hxx>
 
 using namespace std;
 using namespace butl;

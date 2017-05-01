@@ -9,7 +9,7 @@
 #include <sstream>
 #include <iostream>
 
-#include <butl/manifest-parser>
+#include <libbutl/manifest-parser.hxx>
 
 using namespace std;
 using namespace butl;

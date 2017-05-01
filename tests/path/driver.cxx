@@ -6,8 +6,8 @@
 #include <iostream>
 #include <type_traits>
 
-#include <butl/path>
-#include <butl/path-io>
+#include <libbutl/path.hxx>
+#include <libbutl/path-io.hxx>
 
 using namespace std;
 using namespace butl;

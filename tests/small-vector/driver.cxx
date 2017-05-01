@@ -6,7 +6,7 @@
 #include <cassert>
 #include <iostream>
 
-#include <butl/small-vector>
+#include <libbutl/small-vector.hxx>
 
 using namespace std;
 using namespace butl;

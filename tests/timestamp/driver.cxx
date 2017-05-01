@@ -12,7 +12,7 @@
 #include <iomanip>
 #include <system_error>
 
-#include <butl/timestamp>
+#include <libbutl/timestamp.hxx>
 
 using namespace std;
 using namespace butl;

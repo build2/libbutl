@@ -5,7 +5,7 @@
 #include <string>
 #include <cassert>
 
-#include <butl/utility>
+#include <libbutl/utility.hxx>
 
 using namespace std;
 using namespace butl;

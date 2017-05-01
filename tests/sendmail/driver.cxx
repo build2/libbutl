@@ -5,9 +5,9 @@
 #include <iostream>
 #include <system_error>
 
-#include <butl/path>
-#include <butl/utility>    // operator<<(ostream, exception)
-#include <butl/sendmail>
+#include <libbutl/path.hxx>
+#include <libbutl/utility.hxx>  // operator<<(ostream, exception)
+#include <libbutl/sendmail.hxx>
 
 using namespace std;
 using namespace butl;

@@ -12,9 +12,9 @@
 #include <iterator>  // istreambuf_iterator, ostream_iterator
 #include <algorithm> // copy()
 
-#include <butl/path>
-#include <butl/process>
-#include <butl/fdstream>
+#include <libbutl/path.hxx>
+#include <libbutl/process.hxx>
+#include <libbutl/fdstream.hxx>
 
 using namespace std;
 using namespace butl;

@@ -6,8 +6,8 @@
 #include <cassert>
 #include <iostream>
 
-#include <butl/utility>    // operator<<(ostream,exception)
-#include <butl/tab-parser>
+#include <libbutl/utility.hxx>    // operator<<(ostream,exception)
+#include <libbutl/tab-parser.hxx>
 
 using namespace std;
 using namespace butl;

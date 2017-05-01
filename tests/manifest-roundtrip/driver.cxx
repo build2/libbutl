@@ -5,10 +5,10 @@
 #include <cassert>
 #include <iostream>
 
-#include <butl/utility>             // operator<<(ostream, exception)
-#include <butl/fdstream>
-#include <butl/manifest-parser>
-#include <butl/manifest-serializer>
+#include <libbutl/utility.hxx>             // operator<<(ostream, exception)
+#include <libbutl/fdstream.hxx>
+#include <libbutl/manifest-parser.hxx>
+#include <libbutl/manifest-serializer.hxx>
 
 using namespace std;
 using namespace butl;

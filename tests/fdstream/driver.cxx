@@ -18,11 +18,11 @@
 #include <iostream>
 #include <exception>
 
-#include <butl/path>
-#include <butl/process>
-#include <butl/fdstream>
-#include <butl/timestamp>
-#include <butl/filesystem>
+#include <libbutl/path.hxx>
+#include <libbutl/process.hxx>
+#include <libbutl/fdstream.hxx>
+#include <libbutl/timestamp.hxx>
+#include <libbutl/filesystem.hxx>
 
 using namespace std;
 using namespace butl;

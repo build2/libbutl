@@ -8,8 +8,8 @@
 #include <iostream>
 #include <stdexcept> // invalid_argument
 
-#include <butl/utility>          // operator<<(ostream,exception)
-#include <butl/standard-version>
+#include <libbutl/utility.hxx>          // operator<<(ostream,exception)
+#include <libbutl/standard-version.hxx>
 
 using namespace std;
 using namespace butl;

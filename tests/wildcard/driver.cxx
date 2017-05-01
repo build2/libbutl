@@ -9,9 +9,9 @@
 #include <algorithm> // sort()
 #include <exception>
 
-#include <butl/path>
-#include <butl/utility>    // operator<<(ostream, exception)
-#include <butl/filesystem>
+#include <libbutl/path.hxx>
+#include <libbutl/utility.hxx>    // operator<<(ostream, exception)
+#include <libbutl/filesystem.hxx>
 
 using namespace std;
 using namespace butl;

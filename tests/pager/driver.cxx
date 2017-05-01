@@ -10,7 +10,7 @@
 #include <sstream>
 #include <iostream>
 
-#include <butl/pager>
+#include <libbutl/pager.hxx>
 
 using namespace std;
 using namespace butl;

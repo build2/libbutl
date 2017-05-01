@@ -6,7 +6,7 @@
 #include <iostream>
 #include <stdexcept> // invalid_argument
 
-#include <butl/target-triplet>
+#include <libbutl/target-triplet.hxx>
 
 using namespace std;
 using namespace butl;

@@ -7,9 +7,9 @@
 #include <utility>      // pair
 #include <system_error>
 
-#include <butl/path>
-#include <butl/fdstream>
-#include <butl/filesystem>
+#include <libbutl/path.hxx>
+#include <libbutl/fdstream.hxx>
+#include <libbutl/filesystem.hxx>
 
 using namespace std;
 using namespace butl;

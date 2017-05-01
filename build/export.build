@@ -4,7 +4,7 @@
 
 $out_root/:
 {
-  include butl/
+  include libbutl/
 }
 
-export $out_root/butl/lib{butl}
+export $out_root/libbutl/lib{butl}

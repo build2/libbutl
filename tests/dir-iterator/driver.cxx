@@ -6,10 +6,10 @@
 #include <cassert>
 #include <iostream>
 
-#include <butl/path>
-#include <butl/path-io>
-#include <butl/utility>    // operator<<(ostream, exception)
-#include <butl/filesystem>
+#include <libbutl/path.hxx>
+#include <libbutl/path-io.hxx>
+#include <libbutl/utility.hxx>    // operator<<(ostream, exception)
+#include <libbutl/filesystem.hxx>
 
 using namespace std;
 using namespace butl;
