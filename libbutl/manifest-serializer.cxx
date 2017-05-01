@@ -158,49 +158,59 @@ namespace butl
     //
     for (const char* e (s + n); s != e; s++, cl++)
     {
+      char pc (c);
       c = *s;
       bool br (false); // Break the line.
 
-      // If this is a whitespace, see if it's a good place to break the
-      // line.
+      // Note that even the "hard" break (see below) is not that hard when it
+      // comes to breaking the line right after the backslash. Doing so would
+      // inject the redundant newline character, as the line-terminating
+      // backslash would be escaped. So we delay breaking till the next
+      // non-backslash character.
       //
-      if (c == ' ' || c == '\t')
+      if (pc != '\\')
       {
-        // Find the next whitespace (or the end) and see if it is a better
-        // place.
+        // If this is a whitespace, see if it's a good place to break the
+        // line.
         //
-        for (const char* w (s + 1); ; w++)
+        if (c == ' ' || c == '\t')
         {
-          if (w == e || *w == ' ' || *w == '\t')
+          // Find the next whitespace (or the end) and see if it is a better
+          // place.
+          //
+          for (const char* w (s + 1); ; w++)
           {
-            // Is this whitespace past where we need to break? Also see
-            // below the "hard" break case for why we use 78 at the end.
-            //
-            if (cl + static_cast<size_t> (w - s) > (w != e ? 77 : 78))
+            if (w == e || *w == ' ' || *w == '\t')
             {
-              // Only break if this whitespace is close enough to
-              // the end of the line.
+              // Is this whitespace past where we need to break? Also see
+              // below the "hard" break case for why we use 78 at the end.
               //
-              br = (cl > 57);
-            }
+              if (cl + static_cast<size_t> (w - s) > (w != e ? 77 : 78))
+              {
+                // Only break if this whitespace is close enough to
+                // the end of the line.
+                //
+                br = (cl > 57);
+              }
 
-            break;
+              break;
+            }
           }
         }
-      }
 
-      // Do we have to do a "hard" break (i.e., without a whitespace)?
-      // If there is just one character left, then instead of writing
-      // '\' and then the character on the next line, we might as well
-      // write it on this line.
-      //
-      if (cl == (s + 1 != e ? 77 : 78))
-        br = true;
+        // Do we have to do a "hard" break (i.e., without a whitespace)?
+        // If there is just one character left, then instead of writing
+        // '\' and then the character on the next line, we might as well
+        // write it on this line.
+        //
+        if (cl >= (s + 1 != e ? 77 : 78))
+          br = true;
 
-      if (br)
-      {
-        os_ << '\\' << endl;
-        cl = 0;
+        if (br)
+        {
+          os_ << '\\' << endl;
+          cl = 0;
+        }
       }
 
       os_ << c;

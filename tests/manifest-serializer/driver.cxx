@@ -147,10 +147,21 @@ main ()
              " Zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
 
+  // Hard break after the backslash/delayed hard break.
+  //
+  string l5 ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+             "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\\"
+             "Yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy");
+
+  string e5 ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+             "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\\Y\\\n"
+             "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy");
+
   assert (test ({{"","1"},{"a",l1},{"",""},{"",""}}, ": 1\na: " + e1 + "\n"));
   assert (test ({{"","1"},{"a",l2},{"",""},{"",""}}, ": 1\na: " + e2 + "\n"));
   assert (test ({{"","1"},{"a",l3},{"",""},{"",""}}, ": 1\na: " + e3 + "\n"));
   assert (test ({{"","1"},{"a",l4},{"",""},{"",""}}, ": 1\na: " + e4 + "\n"));
+  assert (test ({{"","1"},{"a",l5},{"",""},{"",""}}, ": 1\na: " + e5 + "\n"));
 
 
   // Multi-line value.
