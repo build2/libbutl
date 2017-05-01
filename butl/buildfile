@@ -77,7 +77,14 @@ lib{butl}: cxx.export.poptions = "-I$out_root" "-I$src_root"
 liba{butl}: cxx.export.poptions += -DLIBBUTL_STATIC
 libs{butl}: cxx.export.poptions += -DLIBBUTL_SHARED
 
-if ($cxx.target.class != "windows")
+if ($cxx.target.class == "windows")
+{
+  if ($cxx.target.system == "mingw32")
+    cxx.libs += -lpsapi
+  else
+    cxx.libs += psapi.lib
+}
+else
   cxx.libs += -lpthread
 
 # Install into the butl/ subdirectory of, say, /usr/include/.

@@ -12,6 +12,8 @@
 #else
 #  include <butl/win32-utility>
 
+#  include <psapi.h>     // EnumProcessModules(), etc
+
 #  include <io.h>        // _get_osfhandle(), _close()
 #  include <stdlib.h>    // _MAX_PATH
 #  include <sys/types.h> // stat
@@ -42,6 +44,8 @@
 #include <butl/utility>         // casecmp()
 #include <butl/fdstream>        // fdnull()
 #include <butl/process-details>
+
+#include <iostream>
 
 using namespace std;
 
@@ -1166,7 +1170,9 @@ namespace butl
       // be in the returned list if it has failed to initialize). With this
       // improvement we could then wait longer and try harder.
       //
-      for (size_t ret (0); ret != 20; ++ret)
+      optional<bool> msys; // Absent if we don't know.
+
+      for (size_t ret (0); ret != 5; ++ret)
       {
         if (!CreateProcess (
               batch != nullptr ? batch : pp.effect_string (),
@@ -1183,13 +1189,54 @@ namespace butl
 
         auto_handle (pi.hThread).reset (); // Close.
 
-        // Wait a bit (50ms) and check if the process has terminated. If it is
+        // Detect if this is an MSYS2 process by checking if the process has
+        // loaded msys-2.0.dll.
+        //
+        size_t wait (200);
+
+        if (!msys)
+        {
+          // Wait a bit for the process to load its DLLs.
+          //
+          if (WaitForSingleObject (pi.hProcess, 50) == WAIT_TIMEOUT)
+          {
+            wait -= 50;
+
+            DWORD mn;
+            HMODULE ms[32]; // Normally it is one of the first.
+
+            if (EnumProcessModules (pi.hProcess, ms, sizeof (ms), &mn))
+            {
+              for (DWORD i (0); !msys && i != mn / sizeof (HMODULE); ++i)
+              {
+                char p[_MAX_PATH + 1];
+                if (GetModuleFileNameExA (pi.hProcess, ms[i], p, sizeof (p)))
+                {
+                  size_t n (strlen (p));
+                  if (n >= 12 && casecmp (p + n - 12, "msys-2.0.dll") == 0)
+                    msys = true;
+                }
+              }
+
+              if (!msys)
+                msys = false;
+            }
+            // EnumProcessModules() failed (presumably because the process has
+            // already exited), fall through.
+          }
+          // Process exited, fall through.
+        }
+
+        if (msys && !*msys)
+          break;
+
+        // Wait a bit longer and check if the process has terminated. If it is
         // still running then we assume all is good. Otherwise, retry if this
         // is the DLL initialization error.
         //
         DWORD s;
-        if (WaitForSingleObject (pi.hProcess, 50) != WAIT_OBJECT_0 ||
-            !GetExitCodeProcess (pi.hProcess, &s)                  ||
+        if (WaitForSingleObject (pi.hProcess, wait) != WAIT_OBJECT_0 ||
+            !GetExitCodeProcess (pi.hProcess, &s)                    ||
             s != STATUS_DLL_INIT_FAILED)
           break;
       }
