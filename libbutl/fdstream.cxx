@@ -9,8 +9,8 @@
 #  include <unistd.h>    // close(), read(), write(), lseek(), dup(), pipe(),
                          // ssize_t, STD*_FILENO
 #  include <sys/uio.h>   // writev(), iovec
-#  include <sys/stat.h>  // S_I*
-#  include <sys/types.h> // off_t
+#  include <sys/stat.h>  // stat(), S_I*
+#  include <sys/types.h> // stat, off_t
 #else
 #  include <libbutl/win32-utility.hxx>
 
@@ -674,6 +674,18 @@ namespace butl
 
 #ifdef O_LARGEFILE
     of |= O_LARGEFILE;
+#endif
+
+    // Unlike other platforms, FreeBSD allows opening a directory as a file
+    // which will cause all kinds of problems upstream (e.g., cpfile()). So we
+    // detect and diagnose this.
+    //
+#ifdef __FreeBSD__
+    {
+      struct stat s;
+      if (stat (f, &s) == 0 && S_ISDIR (s.st_mode))
+        throw_ios_failure (EISDIR);
+    }
 #endif
 
     int fd (open (f, of | O_CLOEXEC, pf));
