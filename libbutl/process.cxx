@@ -1159,20 +1159,19 @@ namespace butl
       //    pipe them ourselves.
       //
       // So what's coming next is a hack that implements remedy #1: after
-      // starting the process we wait a bit (50ms) and check if it has
-      // terminated with STATUS_DLL_INIT_FAILED (the assumption here is that
-      // if this happens, it happens quickly). We then retry starting the
-      // process for up to a second.
+      // starting the process we wait a bit and check if it has terminated
+      // with STATUS_DLL_INIT_FAILED (the assumption here is that if this
+      // happens, it happens quickly). We then retry starting the process for
+      // some time.
       //
-      // One way to improve this implementation would be to only do it for
-      // MSYS2-based programs, for example, by checking (EnumProcessModules())
-      // if the process loaded the msys-2.0.dll (not clear though if it will
-      // be in the returned list if it has failed to initialize). With this
-      // improvement we could then wait longer and try harder.
+      // One way to improve this implementation is to only do it for MSYS2-
+      // based programs by checking (using EnumProcessModules()) if the
+      // process loaded the msys-2.0.dll. With this improvement we can then
+      // wait longer and try harder.
       //
       optional<bool> msys; // Absent if we don't know.
 
-      for (size_t ret (0); ret != 5; ++ret)
+      for (size_t ret (0); ret != (msys ? 40 : 16); ++ret)
       {
         if (!CreateProcess (
               batch != nullptr ? batch : pp.effect_string (),
@@ -1192,15 +1191,15 @@ namespace butl
         // Detect if this is an MSYS2 process by checking if the process has
         // loaded msys-2.0.dll.
         //
-        size_t wait (200);
+        size_t wait (250);
 
         if (!msys)
         {
           // Wait a bit for the process to load its DLLs.
           //
-          if (WaitForSingleObject (pi.hProcess, 50) == WAIT_TIMEOUT)
+          if (WaitForSingleObject (pi.hProcess, 75) == WAIT_TIMEOUT)
           {
-            wait -= 50;
+            wait -= 75;
 
             DWORD mn;
             HMODULE ms[32]; // Normally it is one of the first.
