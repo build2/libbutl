@@ -5,6 +5,7 @@
 #include <libbutl/process.hxx>
 
 #ifndef _WIN32
+#  include <signal.h>    // SIG*
 #  include <unistd.h>    // execvp, fork, dup2, pipe, chdir, *_FILENO, getpid
 #  include <sys/wait.h>  // waitpid
 #  include <sys/types.h> // _stat
