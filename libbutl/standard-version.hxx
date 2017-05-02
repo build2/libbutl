@@ -14,6 +14,16 @@
 
 #include <libbutl/optional.hxx>
 
+// FreeBSD defines these macros in its <sys/types.h>.
+//
+#ifdef major
+#  undef major
+#endif
+
+#ifdef minor
+#  undef minor
+#endif
+
 namespace butl
 {
   // The build2 "standard version" (specific, earliest and stub):
