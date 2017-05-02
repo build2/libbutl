@@ -353,7 +353,7 @@ namespace butl
     if (m < bn)
     {
       memmove (pbase (), pbase () + m, bn - m);
-      pbump (-m); // Note that pbump() accepts negatives.
+      pbump (-static_cast<int> (m)); // Note that pbump() accepts negatives.
       return 0;
     }
 
@@ -396,7 +396,7 @@ namespace butl
     if (m < wn)
     {
       memmove (pbase (), pbase () + m, wn - m);
-      pbump (-m); // Note that pbump() accepts negatives.
+      pbump (-static_cast<int> (m)); // Note that pbump() accepts negatives.
       return m < bn ? 0 : m - bn;
     }
 
