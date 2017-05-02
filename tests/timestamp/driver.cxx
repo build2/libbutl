@@ -197,7 +197,12 @@ main ()
   //    of std::get_time() manipulator. So need to be commented out.
   //
   assert (fail ("Apr 08 19:31:10 2016", "%b %d %H:%M:%S %Y %"));
+
+  // Error is not detected on FreeBSD 11 with Clang/libc++ 3.8.0.
+  //
+#ifndef __FreeBSD__
   assert (fail ("Apr 08 19:31:10", "%b %d %H:%M:%S %Y"));
+#endif
 
   assert (parse (
     "Apr  8 19:31:10 2016", "%b %d %H:%M:%S %Y", "Apr 08 19:31:10 2016"));
