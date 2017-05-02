@@ -108,7 +108,7 @@ namespace butl
   // dir_iterator
   //
   inline dir_iterator::
-  dir_iterator (dir_iterator&& x)
+  dir_iterator (dir_iterator&& x) noexcept
       : e_ (std::move (x.e_)), h_ (x.h_)
   {
 #ifndef _WIN32

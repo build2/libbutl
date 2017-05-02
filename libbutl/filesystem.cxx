@@ -1229,14 +1229,7 @@ namespace butl
     bool self_;
     bool follow_symlinks_;
     preopen preopen_;
-
-    // @@ Some issue with libc++ (reproducible on FreeBSD 11 with Clang 3.8).
-    //
-#ifdef _LIBCPP_VERSION
-    std::vector<pair<dir_iterator, dir_path>> iters_;
-#else
     small_vector<pair<dir_iterator, dir_path>, 1> iters_;
-#endif
   };
 
   // Search for paths matching the pattern and call the specified function for

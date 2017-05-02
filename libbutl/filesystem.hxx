@@ -434,7 +434,7 @@ namespace butl
     dir_iterator (const dir_iterator&) = delete;
     dir_iterator& operator= (const dir_iterator&) = delete;
 
-    dir_iterator (dir_iterator&& x);
+    dir_iterator (dir_iterator&&) noexcept;
     dir_iterator& operator= (dir_iterator&&);
 
     dir_iterator& operator++ () {next (); return *this;}
