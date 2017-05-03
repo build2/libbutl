@@ -1,3 +1,16 @@
+Version 0.5.0
+
+  * Various new functionality in the process, fdstream, and filesystem
+    facilities.
+
+  * Feature test facility (ft/).
+
+  * Tab, manifest parsers/serializers.
+
+  * Process wrappers for running sendmail and curl.
+
+  * Standard version and range classes.
+
 Version 0.4.0
 
   * The process class has been redesigned and extended.
