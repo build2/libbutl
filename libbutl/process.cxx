@@ -1172,7 +1172,7 @@ namespace butl
       //
       optional<bool> msys; // Absent if we don't know.
 
-      for (size_t ret (0); ret != (msys ? 40 : 16); ++ret)
+      for (size_t ret (0); ret != (msys ? 40 : 20); ++ret)
       {
         if (!CreateProcess (
               batch != nullptr ? batch : pp.effect_string (),
@@ -1192,15 +1192,15 @@ namespace butl
         // Detect if this is an MSYS2 process by checking if the process has
         // loaded msys-2.0.dll.
         //
-        size_t wait (250);
+        size_t wait (300);
 
         if (!msys)
         {
           // Wait a bit for the process to load its DLLs.
           //
-          if (WaitForSingleObject (pi.hProcess, 75) == WAIT_TIMEOUT)
+          if (WaitForSingleObject (pi.hProcess, 100) == WAIT_TIMEOUT)
           {
-            wait -= 75;
+            wait -= 100;
 
             DWORD mn;
             HMODULE ms[32]; // Normally it is one of the first.
