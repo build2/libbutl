@@ -10,6 +10,16 @@ namespace butl
   class manifest_parser;
   class manifest_serializer;
   class manifest_name_value;
+
+  // The way manifest implementation should proceed when unknown value name is
+  // encountered during parsing.
+  //
+  enum class unknown_name_mode
+  {
+    skip,
+    stop,
+    fail
+  };
 }
 
 #endif // LIBBUTL_MANIFEST_FORWARD_HXX
