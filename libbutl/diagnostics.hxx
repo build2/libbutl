@@ -141,27 +141,30 @@ namespace butl
   template <typename B>
   struct diag_prologue: B
   {
+    const char* indent;
+    diag_epilogue* epilogue;
+
     diag_prologue (const char* i = "\n  ", diag_epilogue* e = nullptr)
-        : B (), indent_ (i), epilogue_ (e) {}
+        : B (), indent (i), epilogue (e) {}
 
     template <typename... A>
     diag_prologue (A&&... a)
-        : B (std::forward<A> (a)...), indent_ ("\n  "), epilogue_ (nullptr) {}
+        : B (std::forward<A> (a)...), indent ("\n  "), epilogue (nullptr) {}
 
     template <typename... A>
     diag_prologue (diag_epilogue* e, A&&... a)
-        : B (std::forward<A> (a)...), indent_ ("\n  "), epilogue_ (e) {}
+        : B (std::forward<A> (a)...), indent ("\n  "), epilogue (e) {}
 
     template <typename... A>
     diag_prologue (const char* i, diag_epilogue* e, A&&... a)
-        : B (std::forward<A> (a)...), indent_ (i), epilogue_ (e) {}
+        : B (std::forward<A> (a)...), indent (i), epilogue (e) {}
 
     template <typename T>
     diag_record
     operator<< (const T& x) const
     {
       diag_record r;
-      r.append (indent_, epilogue_);
+      r.append (indent, epilogue);
       B::operator() (r);
       r << x;
       return r;
@@ -170,14 +173,10 @@ namespace butl
     friend const diag_record&
     operator<< (const diag_record& r, const diag_prologue& p)
     {
-      r.append (p.indent_, p.epilogue_);
+      r.append (p.indent, p.epilogue);
       p (r);
       return r;
     }
-
-  private:
-    const char* indent_;
-    diag_epilogue* epilogue_;
   };
 
   template <typename B>
