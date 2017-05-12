@@ -271,6 +271,14 @@ namespace butl
     return save () ? 0 : -1;
   }
 
+#ifdef _WIN32
+  static inline int
+  write (int fd, const void* buf, size_t n)
+  {
+    return _write (fd, buf, static_cast<unsigned int> (n));
+  }
+#endif
+
   bool fdbuf::
   save ()
   {
@@ -282,11 +290,7 @@ namespace butl
       // descriptor opened for read-only access (while -1 with errno EBADF is
       // expected). This is in contrast with VC's _write() and POSIX's write().
       //
-#ifndef _WIN32
-      ssize_t m (write (fd_.get (), buf_, n));
-#else
-      int m (_write (fd_.get (), buf_, n));
-#endif
+      auto m (write (fd_.get (), buf_, n));
 
       if (m == -1)
         throw_ios_failure (errno);
@@ -317,13 +321,15 @@ namespace butl
     //
     size_t n (static_cast<size_t> (sn));
 
+    auto advance = [this] (size_t n) {pbump (static_cast<int> (n));};
+
     // Buffer the data if there is enough space.
     //
     size_t an (epptr () - pptr ()); // Amount of free space in the buffer.
     if (n <= an)
     {
       memcpy (pptr (), s, n);
-      pbump (n);
+      advance (n);
       return n;
     }
 
@@ -377,13 +383,13 @@ namespace butl
     else
     {
       memcpy (pptr (), s, an);
-      pbump (an);
+      advance (an);
     }
 
     // Flush the buffer.
     //
     size_t wn (bn + an);
-    int r (wn > 0 ? _write (fd_.get (), buf_, wn) : 0);
+    int r (wn > 0 ? write (fd_.get (), buf_, wn) : 0);
 
     if (r == -1)
       throw_ios_failure (errno);
@@ -413,13 +419,13 @@ namespace butl
     if (n <= static_cast<size_t> (epptr () - pbase ()))
     {
       memcpy (pbase (), s, n);
-      pbump (n);
+      advance (n);
       return sn;
     }
 
     // The data tail doesn't fit the buffer so write it to the file.
     //
-    r = _write (fd_.get (), s, n);
+    r = write (fd_.get (), s, n);
 
     if (r == -1)
       throw_ios_failure (errno);

@@ -294,8 +294,13 @@ main (int argc, const char* argv[])
   v.reserve (5000 * 256);
   for (size_t i (0); i < 5000; ++i)
   {
-    for (size_t c (0); c < 256; ++c)
+    char c (numeric_limits<char>::min ());
+
+    do
+    {
       v.push_back (c);
+    }
+    while (c++ != numeric_limits<char>::max ());
   }
 
   assert (exec (p, v, true, true));

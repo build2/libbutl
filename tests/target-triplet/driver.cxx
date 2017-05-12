@@ -152,7 +152,7 @@ fail (const char* s)
     cerr << "nofail: " << s << endl;
     return false;
   }
-  catch (invalid_argument& e)
+  catch (const invalid_argument&)
   {
     //cerr << e << endl;
   }

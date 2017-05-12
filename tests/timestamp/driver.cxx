@@ -2,7 +2,7 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <time.h> // tzset()
+#include <time.h> // tzset() (POSIX), _tzset() (Windows)
 
 #include <chrono>
 #include <locale>
@@ -80,7 +80,13 @@ ns (unsigned long long t)
 int
 main ()
 {
-  tzset (); // To use butl::to_stream() later on.
+  // To use butl::to_stream() later on.
+  //
+#ifndef _WIN32
+  tzset ();
+#else
+  _tzset ();
+#endif
 
   // Invalid %[].
   //

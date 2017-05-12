@@ -19,9 +19,9 @@ namespace butl
   // Utility functions
   //
   static uint64_t
-  parse_num (const string& s, size_t& p,
-             const char* m,
-             uint64_t min = 0, uint64_t max = 999)
+  parse_uint64 (const string& s, size_t& p,
+                const char* m,
+                uint64_t min, uint64_t max)
   {
     if (s[p] == '-' || s[p] == '+') // strtoull() allows these.
       throw invalid_argument (m);
@@ -35,6 +35,14 @@ namespace butl
 
     p = e - s.c_str ();
     return static_cast<uint64_t> (r);
+  }
+
+  static uint16_t
+  parse_uint16 (const string& s, size_t& p,
+                const char* m,
+                uint16_t min = 0, uint16_t max = 999)
+  {
+    return static_cast<uint16_t> (parse_uint64 (s, p, m, min, max));
   }
 
   static void
@@ -120,14 +128,14 @@ namespace butl
 
     if (ep)
     {
-      epoch = parse_num (s, p, "invalid epoch", 1, uint16_t (~0));
+      epoch = parse_uint16 (s, p, "invalid epoch", 1, uint16_t (~0));
       ++p; // Skip '~'.
     }
 
     uint16_t ma, mi, bf, ab (0);
     bool earliest (false);
 
-    ma = parse_num (s, p, "invalid major version");
+    ma = parse_uint16 (s, p, "invalid major version");
 
     // The only valid version that has no epoch, contains only the major
     // version being equal to zero, that is optionally followed by the plus
@@ -143,12 +151,12 @@ namespace butl
       if (s[p] != '.')
         bail ("'.' expected after major version");
 
-      mi = parse_num (s, ++p, "invalid minor version");
+      mi = parse_uint16 (s, ++p, "invalid minor version");
 
       if (s[p] != '.')
         bail ("'.' expected after minor version");
 
-      bf = parse_num (s, ++p, "invalid patch version");
+      bf = parse_uint16 (s, ++p, "invalid patch version");
 
       //           AAABBBCCCDDDE
       version = ma * 10000000000ULL +
@@ -177,7 +185,7 @@ namespace butl
           if (s[++p] != '.')
             bail ("'.' expected after pre-release letter");
 
-          ab = parse_num (s, ++p, "invalid pre-release", 0, 499);
+          ab = parse_uint16 (s, ++p, "invalid pre-release", 0, 499);
 
           if (k == 'b')
             ab += 500;
@@ -197,7 +205,7 @@ namespace butl
     {
       assert (!earliest); // Would bail out earlier (a or b expected after -).
 
-      revision = parse_num (s, ++p, "invalid revision", 1, uint16_t (~0));
+      revision = parse_uint16 (s, ++p, "invalid revision", 1, uint16_t (~0));
     }
 
     if (p != n)
@@ -293,10 +301,10 @@ namespace butl
       return;
     }
 
-    uint64_t sn (parse_num (s,
-                            p,
-                            "invalid snapshot number",
-                            1, latest_sn - 1));
+    uint64_t sn (parse_uint64 (s,
+                               p,
+                               "invalid snapshot number",
+                               1, latest_sn - 1));
     std::string id;
     if (s[p] == '.')
     {

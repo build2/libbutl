@@ -185,7 +185,7 @@ namespace butl
               // Is this whitespace past where we need to break? Also see
               // below the "hard" break case for why we use 78 at the end.
               //
-              if (cl + static_cast<size_t> (w - s) > (w != e ? 77 : 78))
+              if (cl + static_cast<size_t> (w - s) > (w != e ? 77U : 78U))
               {
                 // Only break if this whitespace is close enough to
                 // the end of the line.
@@ -203,7 +203,7 @@ namespace butl
         // '\' and then the character on the next line, we might as well
         // write it on this line.
         //
-        if (cl >= (s + 1 != e ? 77 : 78))
+        if (cl >= (s + 1 != e ? 77U : 78U))
           br = true;
 
         if (br)

@@ -198,7 +198,7 @@ fail (const char* m)
     cerr << "nofail: " << r << endl;
     return false;
   }
-  catch (const manifest_parsing& e)
+  catch (const manifest_parsing&)
   {
     //cerr << e << endl;
   }

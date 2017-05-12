@@ -1192,7 +1192,7 @@ namespace butl
         // Detect if this is an MSYS2 process by checking if the process has
         // loaded msys-2.0.dll.
         //
-        size_t wait (300);
+        DWORD wait (300);
 
         if (!msys)
         {

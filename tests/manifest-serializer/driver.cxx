@@ -247,7 +247,7 @@ fail (const pairs& m)
     cerr << "nofail: " << r << endl;
     return false;
   }
-  catch (const manifest_serialization& e)
+  catch (const manifest_serialization&)
   {
     //cerr << e << endl;
   }
