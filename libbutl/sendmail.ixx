@@ -26,6 +26,27 @@ namespace butl
   {
   }
 
+  template <typename E>
+  inline sendmail::
+  sendmail (E&& err,
+            const std::string& from,
+            const std::string& subj,
+            const recipients_type& to,
+            const recipients_type& cc)
+      : sendmail (err, from, subj, to, cc, recipients_type ())
+  {
+  }
+
+  template <typename E>
+  inline sendmail::
+  sendmail (E&& err,
+            const std::string& from,
+            const std::string& subj,
+            const recipients_type& to)
+      : sendmail (err, from, subj, to, recipients_type ())
+  {
+  }
+
   template <typename C, typename E, typename... O>
   inline sendmail::
   sendmail (const C& cmdc,
@@ -64,5 +85,28 @@ namespace butl
     // destructor will wait for its termination ignoring any errors.
     //
     headers (from, subj, to, cc, bcc);
+  }
+
+  template <typename C, typename E>
+  inline sendmail::
+  sendmail (const C& cmdc,
+            E&& err,
+            const std::string& from,
+            const std::string& subj,
+            const recipients_type& to,
+            const recipients_type& cc)
+      : sendmail (cmdc, err, from, subj, to, cc, recipients_type ())
+  {
+  }
+
+  template <typename C, typename E>
+  inline sendmail::
+  sendmail (const C& cmdc,
+            E&& err,
+            const std::string& from,
+            const std::string& subj,
+            const recipients_type& to)
+      : sendmail (cmdc, err, from, subj, to, recipients_type ())
+  {
   }
 }

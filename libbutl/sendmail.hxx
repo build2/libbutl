@@ -55,25 +55,53 @@ namespace butl
     //
     using recipients_type = small_vector<std::string, 1>;
 
+    template <typename E>
+    sendmail (E&& err,
+              const std::string& from,
+              const std::string& subject,
+              const recipients_type& to);
+
+    template <typename E>
+    sendmail (E&& err,
+              const std::string& from,
+              const std::string& subject,
+              const recipients_type& to,
+              const recipients_type& cc);
+
     template <typename E, typename... O>
     sendmail (E&& err,
               const std::string& from,
               const std::string& subject,
               const recipients_type& to,
-              const recipients_type& cc = recipients_type (),
-              const recipients_type& bcc = recipients_type (),
+              const recipients_type& cc,
+              const recipients_type& bcc,
               O&&... options);
 
     // Version with the command line callback (see process_run() for details).
     //
+    template <typename C, typename E>
+    sendmail (const C&,
+              E&& err,
+              const std::string& from,
+              const std::string& subject,
+              const recipients_type& to);
+
+    template <typename C, typename E>
+    sendmail (const C&,
+              E&& err,
+              const std::string& from,
+              const std::string& subject,
+              const recipients_type& to,
+              const recipients_type& cc);
+
     template <typename C, typename E, typename... O>
     sendmail (const C&,
               E&& err,
               const std::string& from,
               const std::string& subject,
               const recipients_type& to,
-              const recipients_type& cc = recipients_type (),
-              const recipients_type& bcc = recipients_type (),
+              const recipients_type& cc,
+              const recipients_type& bcc,
               O&&... options);
 
   private:
