@@ -10,6 +10,7 @@
 #include <ctime>        // tm, time_t, mktime()
 #include <cstdlib>      // strtoull()
 #include <cassert>
+#include <sstream>
 #include <iomanip>      // put_time(), setw(), dec, right
 #include <cstring>      // strlen(), memcpy()
 #include <ostream>
@@ -219,6 +220,17 @@ namespace butl
     return os;
   }
 
+  string
+  to_string (const timestamp& ts,
+             const char* format,
+             bool special,
+             bool local)
+  {
+    ostringstream o;
+    to_stream (o, ts, format, special, local);
+    return o.str ();
+  }
+
   ostream&
   operator<< (ostream& os, const duration& d)
   {
@@ -338,7 +350,6 @@ extern "C"
 #include <ctime>   // tm
 #include <locale>
 #include <clocale>
-#include <sstream>
 #include <iomanip>
 #include <cstring> // strlen()
 

@@ -174,6 +174,10 @@ namespace butl
   LIBBUTL_EXPORT path_traits<char>::string_type path_traits<char>::
   temp_name (string_type const& prefix)
   {
+    // Otherwise compiler get confused with butl::to_string(timestamp).
+    //
+    using std::to_string;
+
     return prefix
       + "-" + to_string (process::current_id ())
       + "-" + to_string (temp_name_count++);

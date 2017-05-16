@@ -9,6 +9,7 @@
 #  include <sys/types.h> // pid_t
 #endif
 
+#include <string>
 #include <vector>
 #include <iosfwd>
 #include <cassert>
@@ -477,8 +478,7 @@ namespace butl
   inline const char*
   process_arg_as (const T& x, std::string& storage)
   {
-    using namespace std;
-    return (storage = to_string (x)).c_str ();
+    return (storage = std::to_string (x)).c_str ();
   }
 
   inline const char*

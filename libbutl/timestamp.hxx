@@ -88,6 +88,15 @@ namespace butl
              bool special,
              bool local);
 
+  // Same as above, but provide the result as string. Note that it is
+  // implemented via to_stream() and std::ostringstream.
+  //
+  LIBBUTL_EXPORT std::string
+  to_string (const timestamp&,
+             const char* format,
+             bool special,
+             bool local);
+
   inline std::ostream&
   operator<< (std::ostream& os, const timestamp& ts)
   {

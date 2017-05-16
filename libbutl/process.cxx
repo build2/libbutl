@@ -577,7 +577,7 @@ namespace butl
     case SIGXFSZ:   return "file size limit exceeded (SIGXFSZ)";
 
     case 0:         return "status unknown";
-    default:        return "unknown signal " + to_string (signal ());
+    default:        return "unknown signal " + std::to_string (signal ());
     }
   }
 
