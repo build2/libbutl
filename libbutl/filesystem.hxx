@@ -21,7 +21,7 @@
 #endif
 
 #include <cstddef>    // ptrdiff_t
-#include <cstdint>    // uint16_t
+#include <cstdint>    // uint16_t, etc
 #include <utility>    // move(), pair
 #include <iterator>
 #include <functional>
@@ -73,22 +73,36 @@ namespace butl
     other
   };
 
+  // Filesystem entry info. The size is only meaningful for regular files.
+  //
+  struct entry_stat
+  {
+    entry_type    type;
+    std::uint64_t size;
+  };
+
   // Return a flag indicating if the path is to an existing file system entry
   // and its type if so. Note that by default this function doesn't follow
   // symlinks.
   //
-  LIBBUTL_EXPORT std::pair<bool, entry_type>
+  LIBBUTL_EXPORT std::pair<bool, entry_stat>
   path_entry (const char*, bool follow_symlinks = false);
 
-  inline std::pair<bool, entry_type>
+  inline std::pair<bool, entry_stat>
   path_entry (const path& p, bool fs = false) {
     return path_entry (p.string ().c_str (), fs);}
 
   // Return true if the directory is empty. Note that the path must exist
-  // and be a directory.
+  // and be a directory. This function follows symlinks.
   //
-  LIBBUTL_EXPORT bool
+  bool
   dir_empty (const dir_path&);
+
+  // Return true if the file is empty. Note that the path must exist and be a
+  // regular file. This function follows symlinks.
+  //
+  bool
+  file_empty (const path&);
 
   // Try to create a directory unless it already exists. If you expect
   // the directory to exist and performance is important, then you

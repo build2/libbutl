@@ -7,7 +7,23 @@ namespace butl
   inline bool
   dir_empty (const dir_path& d)
   {
+    // @@ Could 0 size be a valid and faster way?
+    //
     return dir_iterator (d) == dir_iterator ();
+  }
+
+  inline bool
+  file_empty (const path& f)
+  {
+    auto p (path_entry (f));
+
+    if (p.first && p.second.type == entry_type::regular)
+      return p.second.size == 0;
+
+    throw_generic_error (
+      p.first
+      ? (p.second.type == entry_type::directory ? EISDIR : EINVAL)
+      : ENOENT);
   }
 
   inline rmdir_status

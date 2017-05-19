@@ -49,8 +49,8 @@ namespace butl
   file_exists (const char* p, bool fl)
   {
     auto pe (path_entry (p, fl));
-    return pe.first && (pe.second == entry_type::regular ||
-                        (!fl && pe.second == entry_type::symlink));
+    return pe.first && (pe.second.type == entry_type::regular ||
+                        (!fl && pe.second.type == entry_type::symlink));
   }
 
   bool
@@ -63,18 +63,18 @@ namespace butl
   dir_exists (const char* p)
   {
     auto pe (path_entry (p, true));
-    return pe.first && pe.second == entry_type::directory;
+    return pe.first && pe.second.type == entry_type::directory;
   }
 
 #ifndef _WIN32
-  pair<bool, entry_type>
+  pair<bool, entry_stat>
   path_entry (const char* p, bool fl)
   {
     struct stat s;
     if ((fl ? stat (p, &s) : lstat (p, &s)) != 0)
     {
       if (errno == ENOENT || errno == ENOTDIR)
-        return make_pair (false, entry_type::unknown);
+        return make_pair (false, entry_stat {entry_type::unknown, 0});
       else
         throw_generic_error (errno);
     }
@@ -91,10 +91,10 @@ namespace butl
     else if (S_ISBLK (m) || S_ISCHR (m) || S_ISFIFO (m) || S_ISSOCK (m))
       t = entry_type::other;
 
-    return make_pair (true, t);
+    return make_pair (true, entry_stat {t, static_cast<uint64_t> (s.st_size)});
   }
 #else
-  pair<bool, entry_type>
+  pair<bool, entry_stat>
   path_entry (const char* p, bool)
   {
     // A path like 'C:', while being a root path in our terminology, is not as
@@ -113,9 +113,10 @@ namespace butl
 
     DWORD attr (GetFileAttributesA (p));
     if (attr == INVALID_FILE_ATTRIBUTES) // Presumably not exists.
-      return make_pair (false, entry_type::unknown);
+      return make_pair (false, entry_stat {entry_type::unknown, 0});
 
-    entry_type t (entry_type::unknown);
+    entry_type et (entry_type::unknown);
+    uint64_t es (0);
 
     // S_ISLNK/S_IFDIR are not defined for Win32 but it does have symlinks.
     // We will consider symlink entry to be of the unknown type. Note that
@@ -123,12 +124,12 @@ namespace butl
     //
     if ((attr & FILE_ATTRIBUTE_REPARSE_POINT) == 0)
     {
-      struct _stat s;
+      struct __stat64 s; // For 64-bit size.
 
-      if (_stat (p, &s) != 0)
+      if (_stat64 (p, &s) != 0)
       {
         if (errno == ENOENT || errno == ENOTDIR)
-          return make_pair (false, entry_type::unknown);
+          return make_pair (false, entry_stat {entry_type::unknown, 0});
         else
           throw_generic_error (errno);
       }
@@ -136,15 +137,17 @@ namespace butl
       auto m (s.st_mode);
 
       if (S_ISREG (m))
-        t = entry_type::regular;
+        et = entry_type::regular;
       else if (S_ISDIR (m))
-        t = entry_type::directory;
+        et = entry_type::directory;
       //
       //else if (S_ISLNK (m))
-      //  t = entry_type::symlink;
+      //  et = entry_type::symlink;
+
+      es = static_cast<uint64_t> (s.st_size);
     }
 
-    return make_pair (true, t);
+    return make_pair (true, entry_stat {et, es});
   }
 #endif
 
@@ -500,10 +503,10 @@ namespace butl
     if (!ovr && te.first)
       throw_generic_error (EEXIST);
 
-    bool td (te.first && te.second == entry_type::directory);
+    bool td (te.first && te.second.type == entry_type::directory);
 
     auto fe (path_entry (from));
-    bool fd (fe.first && fe.second == entry_type::directory);
+    bool fd (fe.first && fe.second.type == entry_type::directory);
 
     // If source and destination filesystem entries exist, they both must be
     // either directories or not directories.
@@ -1265,7 +1268,7 @@ namespace butl
         auto pe (path_entry (start_dir / p, true));
 
         if (pe.first &&
-            ((pe.second == entry_type::directory) == p.to_directory ()))
+            ((pe.second.type == entry_type::directory) == p.to_directory ()))
           return func (move (p), string (), false);
 
         return true;
