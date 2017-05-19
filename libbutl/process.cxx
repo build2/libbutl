@@ -1170,7 +1170,8 @@ namespace butl
       // process loaded the msys-2.0.dll. With this improvement we can then
       // wait longer and try harder.
       //
-      optional<bool> msys; // Absent if we don't know.
+      optional<bool>& msys = msys_; // Absent if we don't know.
+      msys = nullopt;
 
       for (size_t ret (0); ret != (msys ? 40 : 20); ++ret)
       {
@@ -1270,6 +1271,7 @@ namespace butl
       {
         exit = process_exit ();
         exit->status = es;
+        exit->msys_ = msys_;
       }
       else
       {
@@ -1306,6 +1308,7 @@ namespace butl
 
       exit = process_exit ();
       exit->status = es;
+      exit->msys_ = msys_;
     }
 
     return true;
@@ -1392,7 +1395,8 @@ namespace butl
     switch (status)
     {
     case STATUS_ACCESS_VIOLATION:       return "access violation";
-    case STATUS_DLL_INIT_FAILED:        return "DLL initialization failed";
+    case STATUS_DLL_INIT_FAILED:        return "DLL initialization failed" +
+        string (msys_ ? (*msys_ ? " (MSYS)" : " (not MSYS)") : " (unknown)");
     case STATUS_INTEGER_DIVIDE_BY_ZERO: return "integer divided by zero";
 
     // VC-compiled program that calls abort() terminates with this error code

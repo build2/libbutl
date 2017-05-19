@@ -175,6 +175,12 @@ namespace butl
     //
     std::string
     description () const;
+
+    // @@ TMP
+    //
+#ifdef _WIN32
+    optional<bool> msys_;
+#endif
   };
 
   class LIBBUTL_EXPORT process
@@ -380,6 +386,10 @@ namespace butl
     auto_fd out_fd; // Write to it to send to stdin.
     auto_fd in_ofd; // Read from it to receive from stdout.
     auto_fd in_efd; // Read from it to receive from stderr.
+
+#ifdef _WIN32
+    optional<bool> msys_;
+#endif
   };
 
   // Higher-level process running interface that aims to make executing a
