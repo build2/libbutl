@@ -13,7 +13,7 @@
 #else
 #  include <libbutl/win32-utility.hxx>
 
-#  include <psapi.h>     // EnumProcessModules(), etc
+#  include "imagehlp.h"  // ImageLoad(), etc (PE insepction for MSYS2 detect).
 
 #  include <io.h>        // _get_osfhandle(), _close()
 #  include <stdlib.h>    // _MAX_PATH
@@ -28,6 +28,7 @@
 #    define STDERR_FILENO 2
 #  endif // _MSC_VER
 
+#  include <map>
 #  include <cstdlib> // getenv(), __argv[]
 
 #  include <libbutl/small-vector.hxx>
@@ -906,6 +907,10 @@ namespace butl
     small_vector<HANDLE, 3> handles_;
   };
 
+  // Protected by process_spawn_mutex. See below for the gory details.
+  //
+  static map<string, bool> detect_msys_cache_;
+
   process::
   process (const char* cwd,
            const process_path& pp, const char* args[],
@@ -1166,14 +1171,111 @@ namespace butl
       // some time.
       //
       // One way to improve this implementation is to only do it for MSYS2-
-      // based programs by checking (using EnumProcessModules()) if the
-      // process loaded the msys-2.0.dll. With this improvement we can then
-      // wait longer and try harder.
+      // based programs. This way we can then wait longer and try harder. We
+      // first used EnumProcessModules() to see if the process loaded the
+      // msys-2.0.dll but that proved racy. Now we examine the PE executable's
+      // import list.
       //
-      optional<bool>& msys = msys_; // Absent if we don't know.
-      msys = nullopt;
 
-      for (size_t ret (0); ret != (msys ? 40 : 20); ++ret)
+      // Notes:
+      //
+      // 1. The ImageLoad() API is not thread-safe so we do this while holding
+      //    process_spawn_mutex.
+      //
+      // 2. We can only load an image of the same width as us (32/64-bit).
+      //
+      // 3. If something goes wrong (width mismatch, failed to load, etc),
+      //    then we assume it is MSYS for safety. Better run slow than not run
+      //    at all, right?
+      //
+      auto detect_msys = [] (const char* p) -> bool
+      {
+        auto deleter = [] (LOADED_IMAGE* p)
+        {
+          if (p != nullptr)
+            ImageUnload (p);
+        };
+
+        unique_ptr<LOADED_IMAGE, void (*)(LOADED_IMAGE*)> img (
+          ImageLoad (p, nullptr), deleter);
+
+        if (img == nullptr)
+          return true;
+
+        if (img->FileHeader->OptionalHeader.NumberOfRvaAndSizes < 2)
+          return false;
+
+        auto rva_to_ptr = [&img] (DWORD rva) -> const void*
+        {
+          const IMAGE_NT_HEADERS* nh (img->FileHeader);
+          const BYTE* base (img->MappedAddress);
+
+          auto rva_to_sh = [nh] (DWORD rva) -> const IMAGE_SECTION_HEADER*
+          {
+            const IMAGE_SECTION_HEADER* s (IMAGE_FIRST_SECTION (nh));
+
+            for (WORD i (0); i < nh->FileHeader.NumberOfSections; ++i, ++s)
+            {
+              DWORD v (s->Misc.VirtualSize);
+              if (v == 0)
+                v = s->SizeOfRawData;
+
+              // Is the RVA within this section?
+              //
+              if (rva >= s->VirtualAddress && rva < s->VirtualAddress + v)
+                return s;
+            }
+
+            return nullptr;
+          };
+
+          if (const IMAGE_SECTION_HEADER* sh = rva_to_sh (rva))
+          {
+            ptrdiff_t o (sh->VirtualAddress - sh->PointerToRawData);
+            return base - o + rva;
+          }
+          else
+            return nullptr;
+        };
+
+        auto imp (
+          static_cast<const IMAGE_IMPORT_DESCRIPTOR*> (
+            rva_to_ptr (
+              img->FileHeader->OptionalHeader.DataDirectory[1].VirtualAddress)));
+
+        if (imp == nullptr)
+          return true;
+
+        for (; imp->Name != 0 || imp->TimeDateStamp != 0; ++imp)
+        {
+          if (auto name = static_cast<const char*> (rva_to_ptr (imp->Name)))
+          {
+            if (casecmp (name, "msys-2.0.dll") == 0)
+              return true;
+          }
+        }
+
+        return false;
+      };
+
+      bool msys (false);
+      if (batch == nullptr)
+      {
+        string p (pp.effect_string ());
+        auto i (detect_msys_cache_.find (p));
+
+        if (i == detect_msys_cache_.end ())
+        {
+          msys = detect_msys (p.c_str ());
+          detect_msys_cache_.emplace (move (p), msys);
+        }
+        else
+          msys = i->second;
+      }
+
+      msys_ = msys; //@@ TMP
+
+      for (size_t ret (0); ret != 40; ++ret)
       {
         if (!CreateProcess (
               batch != nullptr ? batch : pp.effect_string (),
@@ -1190,56 +1292,20 @@ namespace butl
 
         auto_handle (pi.hThread).reset (); // Close.
 
-        // Detect if this is an MSYS2 process by checking if the process has
-        // loaded msys-2.0.dll.
-        //
-        DWORD wait (300);
-
-        if (!msys)
+        if (msys)
         {
-          // Wait a bit for the process to load its DLLs.
+          // Wait a bit and check if the process has terminated. If it is
+          // still running then we assume all is good. Otherwise, retry if
+          // this is the DLL initialization error.
           //
-          if (WaitForSingleObject (pi.hProcess, 100) == WAIT_TIMEOUT)
-          {
-            wait -= 100;
-
-            DWORD mn;
-            HMODULE ms[32]; // Normally it is one of the first.
-
-            if (EnumProcessModules (pi.hProcess, ms, sizeof (ms), &mn))
-            {
-              for (DWORD i (0); !msys && i != mn / sizeof (HMODULE); ++i)
-              {
-                char p[_MAX_PATH + 1];
-                if (GetModuleFileNameExA (pi.hProcess, ms[i], p, sizeof (p)))
-                {
-                  size_t n (strlen (p));
-                  if (n >= 12 && casecmp (p + n - 12, "msys-2.0.dll") == 0)
-                    msys = true;
-                }
-              }
-
-              if (!msys)
-                msys = false;
-            }
-            // EnumProcessModules() failed (presumably because the process has
-            // already exited), fall through.
-          }
-          // Process exited, fall through.
+          DWORD s;
+          if (WaitForSingleObject (pi.hProcess, 250) == WAIT_OBJECT_0 &&
+              GetExitCodeProcess (pi.hProcess, &s)                    &&
+              s == STATUS_DLL_INIT_FAILED)
+            continue;
         }
 
-        if (msys && !*msys)
-          break;
-
-        // Wait a bit longer and check if the process has terminated. If it is
-        // still running then we assume all is good. Otherwise, retry if this
-        // is the DLL initialization error.
-        //
-        DWORD s;
-        if (WaitForSingleObject (pi.hProcess, wait) != WAIT_OBJECT_0 ||
-            !GetExitCodeProcess (pi.hProcess, &s)                    ||
-            s != STATUS_DLL_INIT_FAILED)
-          break;
+        break;
       }
     } // Revert handles back to non-inheritable and release the lock.
 

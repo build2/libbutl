@@ -80,9 +80,9 @@ libs{butl}: cxx.export.poptions += -DLIBBUTL_SHARED
 if ($cxx.target.class == "windows")
 {
   if ($cxx.target.system == "mingw32")
-    cxx.libs += -lpsapi
+    cxx.libs += -limagehlp
   else
-    cxx.libs += psapi.lib
+    cxx.libs += imagehlp.lib
 }
 else
   cxx.libs += -lpthread
