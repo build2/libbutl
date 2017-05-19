@@ -15,6 +15,7 @@
 
 #  ifdef _MSC_VER
 #    pragma warning (push, 1)
+#    pragma warning (disable: 4091)
 #  endif
 #  include <imagehlp.h>  // ImageLoad(), etc (PE insepction for MSYS2 detect).
 #  ifdef _MSC_VER
