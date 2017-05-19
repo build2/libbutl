@@ -13,7 +13,13 @@
 #else
 #  include <libbutl/win32-utility.hxx>
 
-#  include "imagehlp.h"  // ImageLoad(), etc (PE insepction for MSYS2 detect).
+#  ifdef _MSC_VER
+#    pragma warning (push, 1)
+#  endif
+#  include <imagehlp.h>  // ImageLoad(), etc (PE insepction for MSYS2 detect).
+#  ifdef _MSC_VER
+#    pragma warning (pop)
+#  endif
 
 #  include <io.h>        // _get_osfhandle(), _close()
 #  include <stdlib.h>    // _MAX_PATH
