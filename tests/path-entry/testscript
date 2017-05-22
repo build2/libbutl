@@ -1,0 +1,33 @@
+# file      : tests/path-entry/testscript
+# copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+: existing
+:
+{
+  : file
+  :
+  : Note that the newline character is translated into 2 characters being
+  : printed on Windows. This why we exclude it, to get consistent behavior on
+  : both POSIX and Windows.
+  :
+  cat <:'abc' >=f;
+  $* f >>EOO
+  regular
+  3
+  EOO
+
+  : dir
+  :
+  : Note that the size value is meaningless for directory entries.
+  :
+  mkdir -p d;
+  $* d >>~/EOO/
+  directory
+  /.
+  EOO
+}
+
+: non-existent
+:
+$* f == 1
