@@ -33,8 +33,12 @@ namespace butl
     //
   public:
 
-    // Extended character. It includes line/column information
-    // and is capable of representing EOF.
+    // Extended character. It includes line/column information and is capable
+    // of representing EOF.
+    //
+    // Note that implicit conversion of EOF to char_type results in NUL
+    // character (which means in most cases it is safe to compare xchar to
+    // char without checking for EOF).
     //
     class xchar
     {
@@ -47,7 +51,12 @@ namespace butl
       std::uint64_t line;
       std::uint64_t column;
 
-      operator char_type () const {return static_cast<char_type> (value);}
+      operator char_type () const
+      {
+        return value != traits_type::eof ()
+          ? static_cast<char_type> (value)
+          : char_type (0);
+      }
 
       xchar (int_type v, std::uint64_t l = 0, std::uint64_t c = 0)
           : value (v), line (l), column (c) {}
@@ -55,6 +64,9 @@ namespace butl
 
     xchar
     get ();
+
+    void
+    get (const xchar& peeked); // Get previously peeked character (faster).
 
     void
     unget (const xchar&);
@@ -71,20 +83,26 @@ namespace butl
     static bool
     eos (const xchar& c) {return c.value == xchar::traits_type::eof ();}
 
-    // Line and column of the furthest seen (either via get() or
-    // peek()) character.
+    // Line and column of the next character to be extracted from the stream
+    // by peek() or get().
     //
-    std::uint64_t line {1};
-    std::uint64_t column {1};
+    std::uint64_t line = 1;
+    std::uint64_t column = 1;
 
   protected:
     std::istream& is_;
-    bool crlf_;
 
-    bool unget_ {false};
-    xchar buf_ = '\0';
-    bool eos_ {false};
+    bool crlf_;
+    bool eos_ = false;
+
+    bool unget_ = false;
+    bool unpeek_ = false;
+
+    xchar ungetc_ = '\0';
+    xchar unpeekc_ = '\0';
   };
 }
+
+#include <libbutl/char-scanner.ixx>
 
 #endif // LIBBUTL_CHAR_SCANNER_HXX

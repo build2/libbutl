@@ -14,44 +14,44 @@ namespace butl
   peek () -> xchar
   {
     if (unget_)
-      return buf_;
-    else
+      return ungetc_;
+
+    if (unpeek_)
+      return unpeekc_;
+
+    if (eos_)
+      return xchar (xchar::traits_type::eof (), line, column);
+
+    xchar::int_type v (is_.peek ());
+
+    if (v == xchar::traits_type::eof ())
+      eos_ = true;
+    else if (crlf_ && v == 0x0D)
     {
-      if (eos_)
-        return xchar (xchar::traits_type::eof (), line, column);
-      else
+      is_.get ();
+      xchar::int_type v1 (is_.peek ());
+
+      if (v1 != '\n')
       {
-        xchar::int_type v (is_.peek ());
-
-        if (v == xchar::traits_type::eof ())
-          eos_ = true;
-        else if (crlf_ && v == 0x0D)
-        {
-          is_.get ();
-          xchar::int_type v1 (is_.peek ());
-
-          if (v1 != '\n')
-          {
-            unget_ = true;
-            buf_ = '\n';
-          }
-
-          v = '\n';
-        }
-
-        return xchar (v, line, column);
+        // We need to make sure subsequent calls to peek() return newline.
+        //
+        unpeek_ = true;
+        unpeekc_ = xchar ('\n', line, column);
       }
+
+      v = '\n';
     }
+
+    return xchar (v, line, column);
   }
 
-  auto char_scanner::
-  get () -> xchar
+  void char_scanner::
+  get (const xchar& c)
   {
     if (unget_)
-    {
       unget_ = false;
-      return buf_;
-    }
+    else if (unpeek_)
+      unpeek_ = false;
     else
     {
       // When is_.get () returns eof, the failbit is also set (stupid,
@@ -60,8 +60,6 @@ namespace butl
       // eof. But we can only call peek() on eof once; any subsequent
       // calls will spoil the failbit (even more stupid).
       //
-      xchar c (peek ());
-
       if (!eos (c))
       {
         is_.get ();
@@ -74,18 +72,6 @@ namespace butl
         else
           column++;
       }
-
-      return c;
     }
-  }
-
-  void char_scanner::
-  unget (const xchar& c)
-  {
-    // Because iostream::unget cannot work once eos is reached,
-    // we have to provide our own implementation.
-    //
-    buf_ = c;
-    unget_ = true;
   }
 }
