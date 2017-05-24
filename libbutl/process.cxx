@@ -1280,8 +1280,6 @@ namespace butl
           msys = i->second;
       }
 
-      msys_ = msys; //@@ TMP
-
       for (size_t ret (0); ret != 40; ++ret)
       {
         if (!CreateProcess (
@@ -1344,7 +1342,6 @@ namespace butl
       {
         exit = process_exit ();
         exit->status = es;
-        exit->msys_ = msys_;
       }
       else
       {
@@ -1381,7 +1378,6 @@ namespace butl
 
       exit = process_exit ();
       exit->status = es;
-      exit->msys_ = msys_;
     }
 
     return true;
@@ -1468,8 +1464,7 @@ namespace butl
     switch (status)
     {
     case STATUS_ACCESS_VIOLATION:       return "access violation";
-    case STATUS_DLL_INIT_FAILED:        return "DLL initialization failed" +
-        string (msys_ ? (*msys_ ? " (MSYS)" : " (not MSYS)") : " (unknown)");
+    case STATUS_DLL_INIT_FAILED:        return "DLL initialization failed";
     case STATUS_INTEGER_DIVIDE_BY_ZERO: return "integer divided by zero";
 
     // VC-compiled program that calls abort() terminates with this error code
