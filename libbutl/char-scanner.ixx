@@ -29,4 +29,35 @@ namespace butl
     unget_ = true;
     ungetc_ = c;
   }
+
+  inline auto char_scanner::
+  peek_ () -> int_type
+  {
+    if (gptr_ != egptr_)
+      return *gptr_;
+
+    int_type r (is_.peek ());
+
+    // Update buffer pointers for the next chunk.
+    //
+    if (buf_ != nullptr)
+    {
+      gptr_ = buf_->gptr ();
+      egptr_ = buf_->egptr ();
+    }
+
+    return r;
+  }
+
+  inline void char_scanner::
+  get_ ()
+  {
+    if (gptr_ != egptr_)
+    {
+      buf_->gbump (1);
+      ++gptr_;
+    }
+    else
+      is_.get (); // About as fast as ignore() and way faster than tellg().
+  }
 }

@@ -122,8 +122,10 @@ namespace butl
     fd () const {return fd_.get ();}
 
   public:
-    using int_type = std::basic_streambuf<char>::int_type;
-    using traits_type = std::basic_streambuf<char>::traits_type;
+    using base = std::basic_streambuf<char>;
+
+    using int_type = base::int_type;
+    using traits_type = base::traits_type;
 
     // basic_streambuf input interface.
     //
@@ -133,6 +135,12 @@ namespace butl
 
     virtual int_type
     underflow ();
+
+    // Direct access to the get area. Use with caution.
+    //
+    using base::gptr;
+    using base::egptr;
+    using base::gbump;
 
   private:
     bool

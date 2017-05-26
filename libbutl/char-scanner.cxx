@@ -4,12 +4,20 @@
 
 #include <libbutl/char-scanner.hxx>
 
-#include <istream>
-
 using namespace std;
 
 namespace butl
 {
+  char_scanner::
+  char_scanner (istream& is, bool crlf)
+      : is_ (is),
+        buf_ (dynamic_cast<fdbuf*> (is.rdbuf ())),
+        gptr_ (nullptr),
+        egptr_ (nullptr),
+        crlf_ (crlf)
+  {
+  }
+
   auto char_scanner::
   peek () -> xchar
   {
@@ -22,14 +30,14 @@ namespace butl
     if (eos_)
       return xchar (xchar::traits_type::eof (), line, column);
 
-    xchar::int_type v (is_.peek ());
+    int_type v (peek_ ());
 
     if (v == xchar::traits_type::eof ())
       eos_ = true;
     else if (crlf_ && v == 0x0D)
     {
-      is_.get ();
-      xchar::int_type v1 (is_.peek ());
+      get_ ();
+      int_type v1 (peek_ ());
 
       if (v1 != '\n')
       {
@@ -62,7 +70,7 @@ namespace butl
       //
       if (!eos (c))
       {
-        is_.get ();
+        get_ ();
 
         if (c == '\n')
         {

@@ -6,8 +6,10 @@
 #define LIBBUTL_CHAR_SCANNER_HXX
 
 #include <string>  // char_traits
-#include <iosfwd>
 #include <cstdint> // uint64_t
+#include <istream>
+
+#include <libbutl/fdstream.hxx>
 
 #include <libbutl/export.hxx>
 
@@ -23,8 +25,11 @@ namespace butl
     // 0x0A) and convert them to just '\n' (0x0A). Note that a standalone
     // 0x0D is treated "as if" it was followed by 0x0A.
     //
-    char_scanner (std::istream& is, bool crlf = true)
-        : is_ (is), crlf_ (crlf) {}
+    // Note also that if the stream happens to be ifdstream, then it includes
+    // a number of optimizations that assume nobody else is messing with the
+    // stream.
+    //
+    char_scanner (std::istream& is, bool crlf = true);
 
     char_scanner (const char_scanner&) = delete;
     char_scanner& operator= (const char_scanner&) = delete;
@@ -43,9 +48,9 @@ namespace butl
     class xchar
     {
     public:
-      typedef std::char_traits<char> traits_type;
-      typedef traits_type::int_type int_type;
-      typedef traits_type::char_type char_type;
+      using traits_type = std::char_traits<char>;
+      using int_type = traits_type::int_type;
+      using char_type = traits_type::char_type;
 
       int_type value;
       std::uint64_t line;
@@ -90,7 +95,21 @@ namespace butl
     std::uint64_t column = 1;
 
   protected:
+    using int_type = xchar::int_type;
+    using char_type = xchar::char_type;
+
+    int_type
+    peek_ ();
+
+    void
+    get_ ();
+
+  protected:
     std::istream& is_;
+
+    fdbuf* buf_; // NULL if not ifdstream.
+    const char_type* gptr_;
+    const char_type* egptr_;
 
     bool crlf_;
     bool eos_ = false;
