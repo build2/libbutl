@@ -1280,7 +1280,7 @@ namespace butl
           msys = i->second;
       }
 
-      for (size_t ret (0); ret != 40; ++ret)
+      for (DWORD timeout (10000); timeout != 0; ) // Try for about 10s.
       {
         if (!CreateProcess (
               batch != nullptr ? batch : pp.effect_string (),
@@ -1297,16 +1297,31 @@ namespace butl
 
         auto_handle (pi.hThread).reset (); // Close.
 
+        // @@ Should we unlock and re-lock the mutex? To be able to do that we
+        //    will have to revert handles to non-inheritable and, in case of
+        //    retry, back to inheritable. Still might be worth the pain.
+
         if (msys)
         {
           // Wait a bit and check if the process has terminated. If it is
           // still running then we assume all is good. Otherwise, retry if
           // this is the DLL initialization error.
           //
-          DWORD s;
-          if (WaitForSingleObject (pi.hProcess, 250) == WAIT_OBJECT_0 &&
-              GetExitCodeProcess (pi.hProcess, &s)                    &&
-              s == STATUS_DLL_INIT_FAILED)
+          DWORD r;
+
+          // Wait in small increments to get (approximate) time elapsed.
+          //
+          for (size_t i (0); i != 4; ++i, timeout -= 50) // 4 * 50 = 200ms.
+          {
+            r = WaitForSingleObject (pi.hProcess, 50);
+
+            if (r != WAIT_TIMEOUT)
+              break;
+          }
+
+          if (r == WAIT_OBJECT_0                   &&
+              GetExitCodeProcess (pi.hProcess, &r) &&
+              r == STATUS_DLL_INIT_FAILED)
             continue;
         }
 
