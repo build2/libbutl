@@ -387,6 +387,13 @@ namespace butl
     void
     open (auto_fd&& fd) {buf_.open (std::move (fd)); clear ();}
 
+    void
+    open (auto_fd&& fd, fdstream_mode m)
+    {
+      open (std::move (fd));
+      skip_ = (m & fdstream_mode::skip) == fdstream_mode::skip;
+    }
+
     void close ();
     auto_fd release (); // Note: no skipping.
     bool is_open () const {return buf_.is_open ();}

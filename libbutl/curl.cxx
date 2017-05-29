@@ -4,7 +4,7 @@
 
 #include <libbutl/curl.hxx>
 
-#include <utility>   // move(), forward()
+#include <utility>   // move()
 #include <exception> // invalid_argument
 
 #include <libbutl/utility.hxx> // casecmp()

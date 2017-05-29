@@ -15,6 +15,7 @@ lib{butl}:                                  \
    {hxx         cxx}{ manifest-parser     } \
    {hxx         cxx}{ manifest-serializer } \
    {hxx            }{ multi-index         } \
+   {hxx ixx txx cxx}{ openssl             } \
    {hxx            }{ optional            } \
    {hxx         cxx}{ pager               } \
    {hxx ixx txx cxx}{ path                } \

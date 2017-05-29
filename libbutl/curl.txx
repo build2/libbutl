@@ -2,7 +2,7 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <utility>   // move(), forward()
+#include <utility>   // forward()
 #include <exception> // invalid_argument
 
 namespace butl
