@@ -94,9 +94,7 @@ exec (const path& p,
               cwd, args.data (), pr, bin_mode (move (pr3.out_fd)).get (), -2);
 
             ifdstream is (bin_mode (move (pr3.in_ofd)));
-
-            o = vector<char> (
-              (istreambuf_iterator<char> (is)), istreambuf_iterator<char> ());
+            o = is.read_binary ();
 
             r = pr2.wait () && r;
             r = pr3.wait () && r;
@@ -104,9 +102,7 @@ exec (const path& p,
           else
           {
             ifdstream is (bin_mode (move (pr.in_ofd)));
-
-            o = vector<char> (
-              (istreambuf_iterator<char> (is)), istreambuf_iterator<char> ());
+            o = is.read_binary ();
           }
 
           if (err)
@@ -125,9 +121,7 @@ exec (const path& p,
         if (err && !out)
         {
           ifdstream is (bin_mode (move (pr.in_efd)));
-
-          vector<char> e
-            ((istreambuf_iterator<char> (is)), istreambuf_iterator<char> ());
+          vector<char> e (is.read_binary ());
 
           r = in == e && r;
         }

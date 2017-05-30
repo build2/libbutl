@@ -37,8 +37,7 @@ static const string text3 ("ABCDEF\r\nXYZ");
 static string
 from_stream (ifdstream& is)
 {
-  string s;
-  getline (is, s, '\0');
+  string s (is.read_text ());
   is.close (); // Not to miss failed close of the underlying file descriptor.
   return s;
 }

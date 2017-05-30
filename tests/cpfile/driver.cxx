@@ -22,14 +22,7 @@ static string
 from_file (const path& f)
 {
   ifdstream ifs (f, ios::binary);
-  string s;
-
-  // Note that the eof check is important: if the stream is at eof (empty
-  // file) then getline() will fail.
-  //
-  if (ifs.peek () != ifdstream::traits_type::eof ())
-    getline (ifs, s, '\0');
-
+  string s (ifs.read_text ());
   ifs.close (); // Not to miss failed close of the underlying file descriptor.
   return s;
 }

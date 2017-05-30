@@ -5,6 +5,7 @@
 #ifndef LIBBUTL_FDSTREAM_HXX
 #define LIBBUTL_FDSTREAM_HXX
 
+#include <vector>
 #include <string>
 #include <istream>
 #include <ostream>
@@ -397,6 +398,17 @@ namespace butl
     void close ();
     auto_fd release (); // Note: no skipping.
     bool is_open () const {return buf_.is_open ();}
+
+    // Read the textual stream. The stream is supposed not to contain the null
+    // character.
+    //
+    std::string
+    read_text ();
+
+    // Read the binary stream.
+    //
+    std::vector<char>
+    read_binary ();
 
   private:
     bool skip_ = false;

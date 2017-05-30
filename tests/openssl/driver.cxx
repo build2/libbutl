@@ -22,10 +22,9 @@ try
 {
   openssl os (nullfd, path ("-"), 2, path ("openssl"), "rand", 128);
 
-  vector<char> r
-    ((istreambuf_iterator<char> (os.in)), istreambuf_iterator<char> ());
-
+  vector<char> r (os.in.read_binary ());
   os.in.close ();
+
   return os.wait () && r.size () == 128 ? 0 : 1;
 }
 catch (const system_error& e)

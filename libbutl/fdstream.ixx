@@ -3,6 +3,7 @@
 // license   : MIT; see accompanying LICENSE file
 
 #include <cassert>
+#include <iterator>
 
 namespace butl
 {
@@ -116,6 +117,28 @@ namespace butl
   release ()
   {
     return buf_.release ();
+  }
+
+  inline std::string ifdstream::
+  read_text ()
+  {
+    std::string s;
+
+    // Note that the eof check is important: if the stream is at eof (empty
+    // file) then getline() will fail.
+    //
+    if (peek () != traits_type::eof ())
+      butl::getline (*this, s, '\0'); // Hidden by istream::getline().
+
+    return s;
+  }
+
+  inline std::vector<char> ifdstream::
+  read_binary ()
+  {
+    std::vector<char> v (std::istreambuf_iterator<char> (*this),
+                         std::istreambuf_iterator<char> ());
+    return v;
   }
 
   // ofdstream
