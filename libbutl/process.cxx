@@ -1280,7 +1280,7 @@ namespace butl
           msys = i->second;
       }
 
-      for (DWORD timeout (10000); timeout != 0; ) // Try for about 10s.
+      for (DWORD timeout (10500); timeout != 0; ) // Try for about 10s.
       {
         if (!CreateProcess (
               batch != nullptr ? batch : pp.effect_string (),
@@ -1311,7 +1311,7 @@ namespace butl
 
           // Wait in small increments to get (approximate) time elapsed.
           //
-          for (size_t i (0); i != 4; ++i, timeout -= 50) // 4 * 50 = 200ms.
+          for (size_t i (0); i != 6; ++i, timeout -= 50) // 6 * 50 = 300ms.
           {
             r = WaitForSingleObject (pi.hProcess, 50);
 
