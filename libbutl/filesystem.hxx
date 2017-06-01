@@ -567,6 +567,10 @@ namespace butl
   // (a/b/,   b*/, true)
   // (a/b/c/, c*/, false)
   //
+  // Note that recursive iterating through directories currently goes
+  // depth-first which make sense for the cleanup use cases. In future we may
+  // want to make it controllable.
+  //
   LIBBUTL_EXPORT void
   path_search (const path& pattern,
                const std::function<bool (path&&,
