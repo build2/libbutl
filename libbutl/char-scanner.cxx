@@ -34,7 +34,7 @@ namespace butl
 
     if (v == xchar::traits_type::eof ())
       eos_ = true;
-    else if (crlf_ && v == 0x0D)
+    else if (crlf_ && v == '\r')
     {
       get_ ();
       int_type v1 (peek_ ());

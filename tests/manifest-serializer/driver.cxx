@@ -184,6 +184,17 @@ main ()
   assert (test ({{"","1"},{"a"," x "},{"",""},{"",""}},
                 ": 1\na: \\\n x \n\\\n"));
 
+  // Carriage return character.
+  //
+  assert (test ({{"","1"},{"a","x\ry"},{"",""},{"",""}},
+                ": 1\na: \\\nx\ny\n\\\n"));
+  assert (test ({{"","1"},{"a","x\r"},{"",""},{"",""}},
+                ": 1\na: \\\nx\n\n\\\n"));
+  assert (test ({{"","1"},{"a","x\r\ny"},{"",""},{"",""}},
+                ": 1\na: \\\nx\ny\n\\\n"));
+  assert (test ({{"","1"},{"a","x\r\n"},{"",""},{"",""}},
+                ": 1\na: \\\nx\n\n\\\n"));
+
   // Extra three x's are for the leading name part ("a: ") that we
   // don't have.
   //

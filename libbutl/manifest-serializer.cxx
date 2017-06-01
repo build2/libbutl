@@ -66,6 +66,11 @@ namespace butl
         {
           os_ << ' ';
 
+          // Consider both \r and \n characters as line separators, and the
+          // \r\n characters sequence as a single line separator.
+          //
+          auto nl = [&v] (size_t p = 0) {return v.find_first_of ("\r\n", p);};
+
           // Use the multi-line mode in any of the following cases:
           //
           // - name is too long (say longer than 37 (78/2 - 2) characters;
@@ -74,8 +79,7 @@ namespace butl
           // - value contains newlines
           // - value contains leading/trailing whitespaces
           //
-          if (n.size () > 37 ||
-              v.find ('\n') != string::npos ||
+          if (n.size () > 37 || nl () != string::npos ||
               v.front () == ' ' || v.front () == '\t' ||
               v.back () == ' ' || v.back () == '\t')
           {
@@ -83,7 +87,7 @@ namespace butl
 
             // Chunk the value into fragments separated by newlines.
             //
-            for (size_t i (0), p (v.find ('\n')); ; p = v.find ('\n', i))
+            for (size_t i (0), p (nl ()); ; p = nl (i))
             {
               if (p == string::npos)
               {
@@ -95,7 +99,8 @@ namespace butl
 
               write_value (0, v.c_str () + i, p - i);
               os_ << endl;
-              i = p + 1;
+
+              i = p + (v[p] == '\r' && v[p + 1] == '\n' ? 2 : 1);
             }
 
             os_ << endl << "\\"; // Multi-line mode terminator.
@@ -140,6 +145,7 @@ namespace butl
       {
       case ' ':
       case '\t':
+      case '\r':
       case '\n': throw serialization (name_, "name contains whitespace");
       case ':': throw serialization (name_, "name contains ':'");
       default: break;
