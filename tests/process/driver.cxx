@@ -19,6 +19,8 @@
 using namespace std;
 using namespace butl;
 
+static const char* envvars[] = {"ABC=1", "DEF", nullptr};
+
 static bool
 exec (const path& p,
       vector<char> in = vector<char> (),
@@ -26,7 +28,8 @@ exec (const path& p,
       bool err = false,
       bool pipeline = false,
       bool bin = true,           // Set binary mode for file descriptors.
-      dir_path wd = dir_path ()) // Set the working dir for the child process.
+      dir_path wd = dir_path (), // Set the working dir for the child process.
+      bool env = false)          // Set environment variables for the child.
 {
   using cstrings = vector<const char*>;
 
@@ -40,6 +43,25 @@ exec (const path& p,
   if (bin)
     args.push_back ("-b");
 
+  if (env)
+  {
+    args.push_back ("-e");
+
+    // Here we set the environment variables for the current process to make
+    // sure that the child process will not see the variable that is requested
+    // to be unset, and will see the other one unaffected.
+    //
+    // Note that we don't support (un)setting environment variables for the
+    // child process on Windows.
+    //
+#ifndef _WIN32
+    assert (setenv ("DEF", "2", 1) == 0);
+    assert (setenv ("XYZ", "3", 1) == 0);
+#else
+    assert (false);
+#endif
+  }
+
   if (cwd != nullptr)
     args.push_back (cwd);
 
@@ -52,11 +74,12 @@ exec (const path& p,
     // If both o and e are true, then redirect STDERR to STDOUT, so both can be
     // read from the same stream.
     //
-    process pr (cwd,
-                args.data (),
+    process pr (args.data (),
                 !in.empty () ? -1 : -2,
                 out ? -1 : -2,
-                err ? (out ? 1 : -1) : -2);
+                err ? (out ? 1 : -1) : -2,
+                cwd,
+                env ? envvars : nullptr);
 
     try
     {
@@ -88,10 +111,15 @@ exec (const path& p,
             // input fd as an output for another one (pr2.out = pr3.in). The
             // overall pipeline looks like 'os -> pr -> pr2 -> pr3 -> is'.
             //
-            process pr3 (cwd, args.data (), -1, -1, -2);
+            process pr3 (args.data (),
+                         -1, -1, -2,
+                         cwd,
+                         env ? envvars : nullptr);
 
-            process pr2 (
-              cwd, args.data (), pr, bin_mode (move (pr3.out_fd)).get (), -2);
+            process pr2 (args.data (),
+                         pr, bin_mode (move (pr3.out_fd)).get (), -2,
+                         cwd,
+                         env ? envvars : nullptr);
 
             ifdstream is (bin_mode (move (pr3.in_ofd)));
             o = is.read_binary ();
@@ -152,10 +180,11 @@ exec (const path& p,
       bool o = false,
       bool e = false,
       bool pipeline = false,
-      dir_path wd = dir_path ())
+      dir_path wd = dir_path (),
+      bool env = false)
 {
   return exec (
-    p, vector<char> (i.begin (), i.end ()), o, e, pipeline, false, wd);
+    p, vector<char> (i.begin (), i.end ()), o, e, pipeline, false, wd, env);
 }
 
 int
@@ -163,7 +192,8 @@ main (int argc, const char* argv[])
 {
   bool child (false);
   bool bin (false);
-  dir_path wd; // Working directory.
+  dir_path wd;      // Working directory.
+  bool env (false); // Check the environment variables.
 
   assert (argc > 0);
 
@@ -176,6 +206,8 @@ main (int argc, const char* argv[])
       child = true;
     else if (v == "-b")
       bin = true;
+    else if (v == "-e")
+      env = true;
     else
     {
       if (!wd.empty ())
@@ -223,6 +255,18 @@ main (int argc, const char* argv[])
 
     if (!wd.empty () && wd.realize () != dir_path::current_directory ())
       return 1;
+
+    if (env)
+    {
+      // Check that the ABC variable is set, the DEF is unset and the XYZ is
+      // left unchanged.
+      //
+      const char* v;
+      if ((v = getenv ("ABC")) == nullptr || string ("1") != v ||
+          getenv ("DEF") != nullptr ||
+          (v = getenv ("XYZ")) == nullptr || string ("3") != v)
+        return 1;
+    }
 
     try
     {
@@ -281,6 +325,15 @@ main (int argc, const char* argv[])
   assert (exec (p, s, false, true));
   assert (exec (p, s, true, true));
   assert (exec (p, s, true, true, true)); // Same but with piping.
+
+  // Passing environment variables to the child process.
+  //
+  // Note that we don't support (un)setting environment variables for the
+  // child process on Windows.
+  //
+#ifndef _WIN32
+  assert (exec (p, string (), false, false, false, dir_path (), true));
+#endif
 
   // Transmit large binary data through the child.
   //

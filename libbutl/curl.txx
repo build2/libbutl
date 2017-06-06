@@ -84,7 +84,6 @@ namespace butl
       map_in  (std::forward<I> (in),  mp, in_data),
       map_out (std::forward<O> (out), mp, out_data),
       std::forward<E> (err),
-      dir_path (),
       "curl",
       "-s", // Silent.
       "-S", // But do show diagnostics.

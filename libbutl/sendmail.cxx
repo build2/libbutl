@@ -18,7 +18,7 @@ namespace butl
     if (!from.empty ())
       out << "From: " << from << endl;
 
-    auto rcp =[this] (const char* h, const recipients_type& rs)
+    auto rcp = [this] (const char* h, const recipients_type& rs)
     {
       if (!rs.empty ())
       {

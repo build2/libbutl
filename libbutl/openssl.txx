@@ -24,14 +24,13 @@ namespace butl
             typename I,
             typename O,
             typename E,
-            typename P,
             typename... A>
   openssl::
   openssl (const C& cmdc,
            I&& in,
            O&& out,
            E&& err,
-           const P& program,
+           const process_env& env,
            const std::string& command,
            A&&... options)
   {
@@ -39,17 +38,15 @@ namespace butl
     io_data out_data;
 
     process& p (*this);
-    p = process_start (
-      cmdc,
-      map_in  (std::forward<I> (in),  in_data),
-      map_out (std::forward<O> (out), out_data),
-      std::forward<E> (err),
-      dir_path (),
-      program,
-      command,
-      in_data.options,
-      out_data.options,
-      std::forward<A> (options)...);
+    p = process_start (cmdc,
+                       map_in  (std::forward<I> (in),  in_data),
+                       map_out (std::forward<O> (out), out_data),
+                       std::forward<E> (err),
+                       env,
+                       command,
+                       in_data.options,
+                       out_data.options,
+                       std::forward<A> (options)...);
 
     // Note: leaving this scope closes any open ends of the pipes in io_data.
   }

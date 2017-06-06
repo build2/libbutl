@@ -10,20 +10,19 @@ namespace butl
   template <typename I,
             typename O,
             typename E,
-            typename P,
             typename... A>
   inline openssl::
   openssl (I&& in,
            O&& out,
            E&& err,
-           const P& program,
+           const process_env& env,
            const std::string& command,
            A&&... options)
       : openssl ([] (const char* [], std::size_t) {},
                  std::forward<I> (in),
                  std::forward<O> (out),
                  std::forward<E> (err),
-                 program,
+                 env,
                  command,
                  std::forward<A> (options)...)
   {

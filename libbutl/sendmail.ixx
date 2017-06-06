@@ -66,7 +66,6 @@ namespace butl
                        pipe.in,
                        2, // No output expected so redirect to stderr.
                        std::forward<E> (err),
-                       dir_path (),
                        "sendmail",
                        "-i", // Don't treat '.' as the end of input.
                        "-t", // Read recipients from headers.

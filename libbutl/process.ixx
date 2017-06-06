@@ -138,30 +138,18 @@ namespace butl
   }
 
   inline process::
-  process (const char* args[], int in, int out, int err)
-      : process (nullptr, path_search (args[0]), args, in, out, err) {}
+  process (const char* args[],
+           int in, int out, int err,
+           const char* cwd,
+           const char* const* envvars)
+      : process (path_search (args[0]), args, in, out, err, cwd, envvars) {}
 
   inline process::
-  process (const process_path& pp, const char* args[],
-           int in, int out, int err)
-      : process (nullptr, pp, args, in, out, err) {}
-
-  inline process::
-  process (const char* args[], process& in, int out, int err)
-      : process (nullptr, path_search (args[0]), args, in, out, err) {}
-
-  inline process::
-  process (const process_path& pp, const char* args[],
-           process& in, int out, int err)
-      : process (nullptr, pp, args, in, out, err) {}
-
-  inline process::
-  process (const char* cwd, const char* args[], int in, int out, int err)
-      : process (cwd, path_search (args[0]), args, in, out, err) {}
-
-  inline process::
-  process (const char* cwd, const char* args[], process& in, int out, int err)
-      : process (cwd, path_search (args[0]), args, in, out, err) {}
+  process (const char* args[],
+           process& in, int out, int err,
+           const char* cwd,
+           const char* const* envvars)
+      : process (path_search (args[0]), args, in, out, err, cwd, envvars) {}
 
   inline process::
   process (process&& p)

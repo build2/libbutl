@@ -7,6 +7,7 @@
 #include <libbutl/path.hxx>
 #include <libbutl/process.hxx>
 #include <libbutl/fdstream.hxx>
+#include <libbutl/small-vector.hxx>
 
 using namespace std;
 using namespace butl;
@@ -14,20 +15,18 @@ using namespace butl;
 template <typename I,
           typename O,
           typename E,
-          typename P,
           typename... A>
 process_exit
 run (I&& in,
      O&& out,
      E&& err,
-     const P& p,
+     const process_env& env,
      A&&... args)
 {
   return process_run (forward<I> (in),
                       forward<O> (out),
                       forward<E> (err),
-                      dir_path (),
-                      p,
+                      env,
                       forward<A> (args)...);
 }
 
@@ -72,7 +71,6 @@ main (int argc, const char* argv[])
                  cout << endl;
                },
                0, 1, 2,
-               dir_path (),
                p,
                "-c");
 

@@ -88,12 +88,11 @@ namespace butl
     template <typename I,
               typename O,
               typename E,
-              typename P,
               typename... A>
     openssl (I&& in,
              O&& out,
              E&& err,
-             const P& program,
+             const process_env&,
              const std::string& command,
              A&&... options);
 
@@ -103,13 +102,12 @@ namespace butl
               typename I,
               typename O,
               typename E,
-              typename P,
               typename... A>
     openssl (const C&,
              I&& in,
              O&& out,
              E&& err,
-             const P& program,
+             const process_env&,
              const std::string& command,
              A&&... options);
 

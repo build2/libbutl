@@ -5,6 +5,7 @@
 #include <libbutl/process.hxx>
 
 #ifndef _WIN32
+#  include <stdlib.h>    // setenv(), unsetenv()
 #  include <signal.h>    // SIG*
 #  include <unistd.h>    // execvp, fork, dup2, pipe, chdir, *_FILENO, getpid
 #  include <sys/wait.h>  // waitpid
@@ -134,10 +135,11 @@ namespace butl
   }
 
   process::
-  process (const char* cwd,
-           const process_path& pp, const char* args[],
-           process& in, int out, int err)
-      : process (cwd, pp, args, in.in_ofd.get (), out, err)
+  process (const process_path& pp, const char* args[],
+           process& in, int out, int err,
+           const char* cwd,
+           const char* const* envvars)
+      : process (pp, args, in.in_ofd.get (), out, err, cwd, envvars)
   {
     assert (in.in_ofd.get () != -1); // Should be a pipe.
     in.in_ofd.reset (); // Close it on our side.
@@ -264,9 +266,10 @@ namespace butl
   }
 
   process::
-  process (const char* cwd,
-           const process_path& pp, const char* args[],
-           int in, int out, int err)
+  process (const process_path& pp, const char* args[],
+           int in, int out, int err,
+           const char* cwd,
+           const char* const* envvars)
   {
     fdpipe out_fd;
     fdpipe in_ofd;
@@ -395,6 +398,23 @@ namespace butl
         //
         if (cwd != nullptr && *cwd != '\0' && chdir (cwd) != 0)
           fail (true);
+
+        // Set/unset environment variables if requested.
+        //
+        if (envvars != nullptr)
+        {
+          while (const char* ev = *envvars++)
+          {
+            const char* v (strchr (ev, '='));
+
+            int r (v != nullptr
+                   ? setenv (string (ev, v - ev).c_str (), v + 1, 1)
+                   : unsetenv (ev));
+
+            if (r == -1)
+              fail (true);
+          }
+        }
 
         if (execv (pp.effect_string (), const_cast<char**> (&args[0])) == -1)
           fail (true);
@@ -919,10 +939,16 @@ namespace butl
   static map<string, bool> detect_msys_cache_;
 
   process::
-  process (const char* cwd,
-           const process_path& pp, const char* args[],
-           int in, int out, int err)
+  process (const process_path& pp, const char* args[],
+           int in, int out, int err,
+           const char* cwd,
+           const char* const* envvars)
   {
+    // Currently we don't support (un)setting environment variables for the
+    // child process.
+    //
+    assert (envvars == nullptr);
+
     // Figure out if this is a batch file since running them requires starting
     // cmd.exe and passing the batch file as an argument (see CreateProcess()
     // for deails).

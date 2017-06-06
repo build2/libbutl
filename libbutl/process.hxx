@@ -215,6 +215,16 @@ namespace butl
     //
     // process p (..., 0, 2);
     //
+    // The cwd argument allows to change the current working directory of the
+    // child process. NULL and empty arguments are ignored.
+    //
+    // The envvars argument allows to set and unset environment variables in
+    // the child process. If not NULL, it must contain strings in the
+    // "name=value" (set) or "name" (unset) forms and be terminated with
+    // NULL. Note that all other variables are inherited from the parent
+    // process. Also note that currently is not supported on Windows so must be
+    // NULL.
+    //
     // Throw process_error if anything goes wrong. Note that some of the
     // exceptions (e.g., if exec() failed) can be thrown in the child
     // version of us (as process_child_error).
@@ -222,10 +232,15 @@ namespace butl
     // Note that the versions without the the process_path argument may
     // temporarily change args[0] (see path_search() for details).
     //
-    process (const char* args[], int in = 0, int out = 1, int err = 2);
+    process (const char* [],
+             int = 0, int = 1, int = 2,
+             const char* cwd = nullptr,
+             const char* const* envvars = nullptr);
 
-    process (const process_path&, const char* args[],
-             int in = 0, int out = 1, int err = 2);
+    process (const process_path&, const char* [],
+             int = 0, int = 1, int = 2,
+             const char* cwd = nullptr,
+             const char* const* envvars = nullptr);
 
     // The "piping" constructor, for example:
     //
@@ -235,26 +250,15 @@ namespace butl
     // rhs.wait (); // Wait for last first.
     // lhs.wait ();
     //
-    process (const char* args[], process& in, int out = 1, int err = 2);
+    process (const char* [],
+             process&, int = 1, int = 2,
+             const char* cwd = nullptr,
+             const char* const* envvars = nullptr);
 
-    process (const process_path&, const char* args[],
-             process& in, int out = 1, int err = 2);
-
-    // Versions of the above constructors that allow us to change the
-    // current working directory of the child process. NULL and empty
-    // cwd arguments are ignored.
-    //
-    process (const char* cwd, const char* [], int = 0, int = 1, int = 2);
-
-    process (const char* cwd,
-             const process_path&, const char* [],
-             int = 0, int = 1, int = 2);
-
-    process (const char* cwd, const char* [], process&, int = 1, int = 2);
-
-    process (const char* cwd,
-             const process_path&, const char* [],
-             process&, int = 1, int = 2);
+    process (const process_path&, const char* [],
+             process&, int = 1, int = 2,
+             const char* cwd = nullptr,
+             const char* const* envvars = nullptr);
 
     // Wait for the process to terminate. Return true if the process
     // terminated normally and with the zero exit code. Unless ignore_error
@@ -405,17 +409,89 @@ namespace butl
   // char*, std::string, path/dir_path, (as well as [small_]vector[_view] of
   // these), and numeric types.
   //
+  struct process_env
+  {
+    const process_path* path;
+    const dir_path*     cwd  = nullptr;
+    const char* const*  vars = nullptr;
+
+    process_env (const process_path& p,
+                 const dir_path& c = dir_path (),
+                 const char* const* v = nullptr)
+        : path (&p),
+
+          // Note that this is not just an optimization. It is required when
+          // the ctor is called with the default arguments (not to keep the
+          // temporary object pointer).
+          //
+          cwd (!c.empty () ? &c : nullptr),
+
+          vars (v) {}
+
+    process_env (const process_path& p, const char* const* v)
+        : path (&p), cwd (nullptr), vars (v) {}
+
+    template <typename V>
+    process_env (const process_path& p, const dir_path& c, const V& v)
+        : process_env (p, v) {cwd = &c;}
+
+    template <typename V>
+    process_env (const process_path& p, const V& v);
+
+    process_env (const char* p,
+                 const dir_path& c = dir_path (),
+                 const char* const* v = nullptr)
+        : process_env (path_, c, v) {path_ = process::path_search (p, true);}
+
+    process_env (const std::string& p,
+                 const dir_path& c = dir_path (),
+                 const char* const* v = nullptr)
+        : process_env (p.c_str (), c, v) {}
+
+    process_env (const butl::path& p,
+                 const dir_path& c = dir_path (),
+                 const char* const* v = nullptr)
+        : process_env (p.string (), c, v) {}
+
+    template <typename V>
+    process_env (const char* p, const dir_path& c, const V& v)
+        : process_env (path_, c, v) {path_ = process::path_search (p, true);}
+
+    template <typename V>
+    process_env (const std::string& p, const dir_path& c, const V& v)
+        : process_env (p.c_str (), c, v) {}
+
+    template <typename V>
+    process_env (const butl::path& p, const dir_path& c, const V& v)
+        : process_env (p.string (), c, v) {}
+
+    template <typename V>
+    process_env (const char* p, const V& v)
+        : process_env (path_, v) {path_ = process::path_search (p, true);}
+
+    template <typename V>
+    process_env (const std::string& p, const V& v)
+        : process_env (p.c_str (), v) {}
+
+    template <typename V>
+    process_env (const butl::path& p, const V& v)
+        : process_env (p.string (), v) {}
+
+  private:
+    process_path path_;
+    small_vector<const char*, 3> vars_;
+    std::string storage_;
+  };
+
   template <typename I,
             typename O,
             typename E,
-            typename P,
             typename... A>
   process_exit
   process_run (I&& in,
                O&& out,
                E&& err,
-               const dir_path& cwd,
-               const P&,
+               const process_env&,
                A&&... args);
 
   // The version with the command callback that can be used for printing the
@@ -428,15 +504,13 @@ namespace butl
             typename I,
             typename O,
             typename E,
-            typename P,
             typename... A>
   process_exit
   process_run (const C&,
                I&& in,
                O&& out,
                E&& err,
-               const dir_path& cwd,
-               const P&,
+               const process_env&,
                A&&... args);
 
   // Versions that start the process without waiting.
@@ -444,29 +518,25 @@ namespace butl
   template <typename I,
             typename O,
             typename E,
-            typename P,
             typename... A>
   process
   process_start (I&& in,
                  O&& out,
                  E&& err,
-                 const dir_path& cwd,
-                 const P&,
+                 const process_env&,
                  A&&... args);
 
   template <typename C,
             typename I,
             typename O,
             typename E,
-            typename P,
             typename... A>
   process
   process_start (const C&,
                  I&& in,
                  O&& out,
                  E&& err,
-                 const dir_path& cwd,
-                 const P&,
+                 const process_env&,
                  A&&... args);
 
   // Conversion of types to their C string representations. Can be overloaded

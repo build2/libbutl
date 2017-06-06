@@ -3,10 +3,23 @@
 // license   : MIT; see accompanying LICENSE file
 
 #include <cassert>
-#include <utility> // move(), forward(), index_sequence
+#include <utility> // forward(), index_sequence
 
 namespace butl
 {
+  template <typename V>
+  process_env::
+  process_env (const process_path& p, const V& v)
+      : process_env (p)
+  {
+    if (!v.empty ())
+    {
+      process_args_as (vars_, v, storage_);
+      vars_.push_back (nullptr);
+      vars = vars_.data ();
+    }
+  }
+
   inline int process_stdin  (int v) {assert (v >= 0); return v;}
   inline int process_stdout (int v) {assert (v >= 0); return v;}
   inline int process_stderr (int v) {assert (v >= 0); return v;}
@@ -21,9 +34,10 @@ namespace butl
   process_stderr (const auto_fd& v) {assert (v.get () >= 0); return v.get ();}
 
   LIBBUTL_EXPORT process
-  process_start (const dir_path& cwd,
+  process_start (const dir_path* cwd,
                  const process_path& pp,
                  const char* cmd[],
+                 const char* const* envvars,
                  int in,
                  int out,
                  int err);
@@ -48,8 +62,7 @@ namespace butl
                  I&& in,
                  O&& out,
                  E&& err,
-                 const dir_path& cwd,
-                 const process_path& pp,
+                 const process_env& env,
                  A&&... args)
   {
     // Map stdin/stdout/stderr arguments to their integer values, as expected
@@ -64,7 +77,9 @@ namespace butl
     const std::size_t args_size (sizeof... (args));
 
     small_vector<const char*, args_size + 2> cmd;
-    cmd.push_back (pp.recall_string ());
+
+    assert (env.path != nullptr);
+    cmd.push_back (env.path->recall_string ());
 
     std::string storage[args_size != 0 ? args_size : 1];
 
@@ -78,7 +93,10 @@ namespace butl
     // @@ Do we need to make sure certain fd's are closed before calling
     //    wait()? Is this only the case with pipes? Needs thinking.
 
-    return process_start (cwd, pp, cmd.data (), in_i, out_i, err_i);
+    return process_start (env.cwd,
+                          *env.path, cmd.data (),
+                          env.vars,
+                          in_i, out_i, err_i);
   }
 
   template <typename C,
@@ -91,8 +109,7 @@ namespace butl
                  I&& in,
                  O&& out,
                  E&& err,
-                 const dir_path& cwd,
-                 const process_path& pp,
+                 const process_env& env,
                  A&&... args)
   {
     return process_start (std::index_sequence_for<A...> (),
@@ -100,54 +117,26 @@ namespace butl
                           std::forward<I> (in),
                           std::forward<O> (out),
                           std::forward<E> (err),
-                          cwd,
-                          pp,
+                          env,
                           std::forward<A> (args)...);
   }
 
   template <typename I,
             typename O,
             typename E,
-            typename P,
             typename... A>
   inline process
   process_start (I&& in,
                  O&& out,
                  E&& err,
-                 const dir_path& cwd,
-                 const P& p,
+                 const process_env& env,
                  A&&... args)
   {
     return process_start ([] (const char* [], std::size_t) {},
                           std::forward<I> (in),
                           std::forward<O> (out),
                           std::forward<E> (err),
-                          cwd,
-                          process::path_search (p, true),
-                          std::forward<A> (args)...);
-  }
-
-  template <typename C,
-            typename I,
-            typename O,
-            typename E,
-            typename P,
-            typename... A>
-  inline process
-  process_start (const C& cmdc,
-                 I&& in,
-                 O&& out,
-                 E&& err,
-                 const dir_path& cwd,
-                 const P& p,
-                 A&&... args)
-  {
-    return process_start (cmdc,
-                          std::forward<I> (in),
-                          std::forward<O> (out),
-                          std::forward<E> (err),
-                          cwd,
-                          process::path_search (p, true),
+                          env,
                           std::forward<A> (args)...);
   }
 
@@ -161,8 +150,7 @@ namespace butl
                I&& in,
                O&& out,
                E&& err,
-               const dir_path& cwd,
-               const process_path& pp,
+               const process_env& env,
                A&&... args)
   {
     process pr (
@@ -170,8 +158,7 @@ namespace butl
                      std::forward<I> (in),
                      std::forward<O> (out),
                      std::forward<E> (err),
-                     cwd,
-                     pp,
+                     env,
                      std::forward<A> (args)...));
 
     pr.wait ();
@@ -181,46 +168,19 @@ namespace butl
   template <typename I,
             typename O,
             typename E,
-            typename P,
             typename... A>
   inline process_exit
   process_run (I&& in,
                O&& out,
                E&& err,
-               const dir_path& cwd,
-               const P& p,
+               const process_env& env,
                A&&... args)
   {
     return process_run ([] (const char* [], std::size_t) {},
                         std::forward<I> (in),
                         std::forward<O> (out),
                         std::forward<E> (err),
-                        cwd,
-                        process::path_search (p, true),
-                        std::forward<A> (args)...);
-  }
-
-  template <typename C,
-            typename I,
-            typename O,
-            typename E,
-            typename P,
-            typename... A>
-  inline process_exit
-  process_run (const C& cmdc,
-               I&& in,
-               O&& out,
-               E&& err,
-               const dir_path& cwd,
-               const P& p,
-               A&&... args)
-  {
-    return process_run (cmdc,
-                        std::forward<I> (in),
-                        std::forward<O> (out),
-                        std::forward<E> (err),
-                        cwd,
-                        process::path_search (p, true),
+                        env,
                         std::forward<A> (args)...);
   }
 }

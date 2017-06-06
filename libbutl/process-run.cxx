@@ -12,16 +12,20 @@ using namespace std;
 namespace butl
 {
   process
-  process_start (const dir_path& cwd,
+  process_start (const dir_path* cwd,
                  const process_path& pp,
                  const char* cmd[],
+                 const char* const* envvars,
                  int in,
                  int out,
                  int err)
   {
     try
     {
-      return process (cwd.string ().c_str (), pp, cmd, in, out, err);
+      return process (pp, cmd,
+                      in, out, err,
+                      cwd != nullptr ? cwd->string ().c_str () : nullptr,
+                      envvars);
     }
     catch (const process_child_error& e)
     {
