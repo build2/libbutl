@@ -489,6 +489,10 @@ namespace butl
 
   // Wildcard pattern match and search (aka glob).
   //
+  // Currently the following wildcard characters are supported:
+  //
+  // * - match any number of characters (including zero)
+  // ? - match any single character
 
   // Return true if name matches pattern. Both must be single path components,
   // possibly with a trailing directory separator to indicate a directory.
@@ -498,13 +502,18 @@ namespace butl
   // different). Otherwise, it only matches a non-directory name (no trailing
   // directory separator).
   //
-  // Currently the following wildcard characters are supported:
-  //
-  // * - match any number of characters (including zero)
-  // ? - match any single character
-  //
   LIBBUTL_EXPORT bool
   path_match (const std::string& pattern, const std::string& name);
+
+  // Return true if path entry matches pattern. Note that the match is
+  // performed literally, with no paths normalization being performed. The
+  // start directory is used if the first pattern component is a self-matching
+  // wildcard (see below for the start directory and wildcard semantics).
+  //
+  LIBBUTL_EXPORT bool
+  path_match (const path& pattern,
+              const path& entry,
+              const dir_path& start = dir_path ());
 
   // Search for paths matching the pattern calling the specified function for
   // each matching path (see below for details).
@@ -521,7 +530,10 @@ namespace butl
   // path_search() also recognizes the ** and *** wildcard sequences. If a
   // path component contains **, then it is matched just like * but in all the
   // subdirectories, recursively. The *** wildcard behaves like ** but also
-  // matches the start directory itself.
+  // matches the start directory itself. Note that if the first pattern
+  // component contains ***, then the start directory must be empty or be
+  // terminated with a "meaningful" component (e.g., probably not '.' or
+  // '..').
   //
   // So, for example, foo/bar-**.txt will return all the files matching the
   // bar-*.txt pattern in all the subdirectoris of foo/. And foo/f***/ will
@@ -567,6 +579,12 @@ namespace butl
   // (a/b/,   b*/, true)
   // (a/b/c/, c*/, false)
   //
+  // Symlinks are not followed if the follow_symlinks argument is false. This
+  // rule is only applied for symlinks that are matched against the rightmost
+  // component of the pattern. In particular, this mean that such symlinks will
+  // never match a directory pattern, and some results can be missing for the
+  // recursive rightmost component.
+  //
   // Note that recursive iterating through directories currently goes
   // depth-first which make sense for the cleanup use cases. In future we may
   // want to make it controllable.
@@ -578,6 +596,18 @@ namespace butl
                                          bool interm)>&,
                const dir_path& start = dir_path (),
                bool follow_symlinks = true);
+
+  // Same as above, but behaves as if the directory tree being searched
+  // through contains only the specified entry. The start directory is used if
+  // the first pattern component is a self-matching wildcard (see above).
+  //
+  LIBBUTL_EXPORT void
+  path_search (const path& pattern,
+               const path& entry,
+               const std::function<bool (path&&,
+                                         const std::string& pattern,
+                                         bool interm)>&,
+               const dir_path& start = dir_path ());
 }
 
 #include <libbutl/filesystem.ixx>

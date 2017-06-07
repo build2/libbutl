@@ -1097,6 +1097,192 @@ namespace butl
     return match (pattern.begin (), pi.base (), name.begin (), ni.base ());
   }
 
+  // Search for paths matching the pattern and call the specified function for
+  // each matching path. Return false if the underlying func() call returns
+  // false. Otherwise the function conforms to the path_search() description.
+  //
+  // Note that the access to the traversed directory tree (real or virtual) is
+  // performed through the provided filesystem object.
+  //
+  static const string any_dir ("*/");
+
+  template <typename FS>
+  static bool
+  search (
+    path pattern,
+    dir_path pattern_dir,
+    bool follow_symlinks,
+    const function<bool (path&&, const string& pattern, bool interm)>& func,
+    FS& filesystem)
+  {
+    // Fast-forward the leftmost pattern non-wildcard components. So, for
+    // example, search for foo/f* in /bar/ becomes search for f* in /bar/foo/.
+    //
+    {
+      auto b (pattern.begin ());
+      auto e (pattern.end ());
+      auto i (b);
+      for (; i != e && (*i).find_first_of ("*?") == string::npos; ++i) ;
+
+      // If the pattern has no wildcards then we reduce to checking for the
+      // filesystem entry existence. It matches if exists and is of the proper
+      // type.
+      //
+      if (i == e)
+      {
+        path p (pattern_dir / pattern);
+        auto pe (filesystem.path_entry (p, follow_symlinks));
+
+        if (pe.first &&
+            ((pe.second.type == entry_type::directory) == p.to_directory ()))
+          return func (move (p), string (), false);
+
+        return true;
+      }
+      else if (i != b) // There are non-wildcard components, so fast-forward.
+      {
+        path p (b, i);
+        pattern = pattern.leaf (p);
+        pattern_dir /= path_cast<dir_path> (move (p));
+      }
+    }
+
+    assert (!pattern.empty ());
+
+    // The pattern leftmost component. Will use it to match the start directory
+    // sub-entries.
+    //
+    path pc (pattern.begin (), ++pattern.begin ());
+    string pcr (pc.representation ());
+
+    // Note that if the pattern has multiple components (is not a simple path),
+    // then the leftmost one has a trailing separator, and so will match
+    // sub-directories only.
+    //
+    bool simple (pattern.simple ());
+
+    // Note that we rely on "small function object" optimization here.
+    //
+    typename FS::iterator_type i (filesystem.iterator (
+      pattern_dir,
+      pcr.find ("**") != string::npos,                  // Recursive.
+      pcr.find ("***") != string::npos,                 // Self-inclusive.
+      follow_symlinks || !simple,
+      [&pattern_dir, &func] (const dir_path& p) -> bool // Preopen.
+      {
+        return func (pattern_dir / p, any_dir, true);
+      }));
+
+    // Canonicalize the pattern component collapsing consecutive stars (used to
+    // express that it is recursive) into a single one.
+    //
+    size_t j (0);
+    size_t n (pcr.size ());
+    for (size_t i (0); i < n; ++i)
+    {
+      char c (pcr[i]);
+      if (!(c == '*' && i > 0 && pcr[i - 1] == '*'))
+        pcr[j++] = c;
+    }
+
+    if (j != n)
+      pcr.resize (j);
+
+    // Note that the callback function can be called for the same directory
+    // twice: first time as intermediate match from iterator's preopen() call,
+    // and then, if the first call succeed, from the iterating loop (possibly
+    // as the final match).
+    //
+    path p;
+    while (i.next (p))
+    {
+      // Skip sub-entry if its name doesn't match the pattern leftmost
+      // component.
+      //
+      // Matching the directory we are iterating through (as for a pattern
+      // component containing ***) is a bit tricky. This directory is
+      // represented by the iterator as an empty path, and so we need to
+      // compute it (the leaf would actually be enough) for matching. This
+      // leaf can be acquired from the start_dir / pattern_dir. We don't expect
+      // this path to be empty, as the filesystem object must replace an empty
+      // start directory with the current one. This is the case when we search
+      // in the current directory (start_dir is empty) with a pattern that
+      // starts with *** wildcard (for example f***/bar). Note that this will
+      // be the only case per path_search() as the next time pattern_dir will
+      // not be empty.
+      //
+      const path& se (!p.empty ()
+                      ? p
+                      : path_cast<path> (!pattern_dir.empty ()
+                                         ? pattern_dir
+                                         : filesystem.start_dir ()));
+
+      if (!path_match (pcr, se.leaf ().representation ()))
+        continue;
+
+      // If the callback function returns false, then we stop the entire search
+      // for the final match, or do not search below the path for the
+      // intermediate one.
+      //
+      if (!func (pattern_dir / p, pcr, !simple))
+      {
+        if (simple) // Final match.
+          return false;
+        else
+          continue;
+      }
+
+      // If the pattern is not a simple one, and it's leftmost component
+      // matches the sub-entry, then the sub-entry is a directory (see the note
+      // above), and we search in it using the trailing part of the pattern.
+      //
+      if (!simple && !search (pattern.leaf (pc),
+                              pattern_dir / path_cast<dir_path> (move (p)),
+                              follow_symlinks,
+                              func,
+                              filesystem))
+        return false;
+    }
+
+    return true;
+  }
+
+  // Path search implementations.
+  //
+  static const dir_path empty_dir;
+
+  using preopen = std::function<bool (const dir_path&)>;
+
+  // Base for filesystem (see above) implementations.
+  //
+  // Don't copy start directory. It is expected to exist till the end of the
+  // object lifetime.
+  //
+  class filesystem_base
+  {
+  protected:
+    filesystem_base (const dir_path& start): start_ (start) {}
+
+  public:
+    const dir_path&
+    start_dir ()
+    {
+      if (!start_.empty ())
+        return start_;
+
+      if (current_.empty ())
+        current_ = dir_path::current_directory ();
+
+      return current_;
+    }
+
+  protected:
+    const dir_path& start_;
+    dir_path current_;
+  };
+
+  // Search path in the real filesystem.
+  //
   // Iterate over directory sub-entries, recursively and including itself if
   // requested. Note that recursive iterating goes depth-first which make
   // sense for the cleanup use cases (@@ maybe this should be controllable
@@ -1109,8 +1295,6 @@ namespace butl
   // Note that iterating over non-existent directory is not en error. The
   // subsequent next() call returns false for such a directory.
   //
-  using preopen = std::function<bool (const dir_path&)>;
-
   class recursive_dir_iterator
   {
   public:
@@ -1128,10 +1312,11 @@ namespace butl
       open (dir_path (), self_);
     }
 
-    // Non-copyable, non-movable type.
+    // Move constructible-only, non-assignable type.
     //
     recursive_dir_iterator (const recursive_dir_iterator&) = delete;
     recursive_dir_iterator& operator= (const recursive_dir_iterator&) = delete;
+    recursive_dir_iterator (recursive_dir_iterator&&) = default;
 
     // Return false if no more entries left. Otherwise save the next entry path
     // and return true. The path is relative against the directory being
@@ -1235,153 +1420,31 @@ namespace butl
     small_vector<pair<dir_iterator, dir_path>, 1> iters_;
   };
 
-  // Search for paths matching the pattern and call the specified function for
-  // each matching path. Return false if the underlying func() call returns
-  // false. Otherwise the function conforms to the path_search() description.
+  // Provide an access to the real filesystem.
   //
-  static const string any_dir ("*/");
-
-  static bool
-  search (
-    path pattern,
-    dir_path pattern_dir,
-    const dir_path start_dir,
-    bool follow_symlinks,
-    const function<bool (path&&, const string& pattern, bool interm)>& func)
+  class real_filesystem: public filesystem_base
   {
-    // Fast-forward the leftmost pattern non-wildcard components. So, for
-    // example, search for foo/f* in /bar/ becomes search for f* in /bar/foo/.
-    //
+  public:
+    using iterator_type = recursive_dir_iterator;
+
+    real_filesystem (const dir_path& start): filesystem_base (start) {}
+
+    pair<bool, entry_stat>
+    path_entry (const path& p, bool follow_symlinks) const
     {
-      auto b (pattern.begin ());
-      auto e (pattern.end ());
-      auto i (b);
-      for (; i != e && (*i).find_first_of ("*?") == string::npos; ++i) ;
-
-      // If the pattern has no wildcards then we reduce to checking for the
-      // filesystem entry existence. It matches if exists and is of the proper
-      // type.
-      //
-      if (i == e)
-      {
-        path p (pattern_dir / pattern);
-        auto pe (path_entry (start_dir / p, true));
-
-        if (pe.first &&
-            ((pe.second.type == entry_type::directory) == p.to_directory ()))
-          return func (move (p), string (), false);
-
-        return true;
-      }
-      else if (i != b) // There are non-wildcard components, so fast-forward.
-      {
-        path p (b, i);
-        pattern = pattern.leaf (p);
-        pattern_dir /= path_cast<dir_path> (move (p));
-      }
+      return butl::path_entry (start_ / p, follow_symlinks);
     }
 
-    assert (!pattern.empty ());
-
-    // The pattern leftmost component. Will use it to match the start directory
-    // sub-entries.
-    //
-    path pc (pattern.begin (), ++pattern.begin ());
-    string pcr (pc.representation ());
-
-    // Note that if the pattern has multiple components (is not a simple path),
-    // then the leftmost one has a trailing separator, and so will match
-    // sub-directories only.
-    //
-    bool simple (pattern.simple ());
-
-    // Note that we rely on "small function object" optimization here.
-    //
-    recursive_dir_iterator i (
-      start_dir / pattern_dir,
-      pcr.find ("**") != string::npos,                  // Recursive.
-      pcr.find ("***") != string::npos,                 // Self-inclusive.
-      follow_symlinks,
-      [&pattern_dir, &func] (const dir_path& p) -> bool // Preopen.
-      {
-        return func (pattern_dir / p, any_dir, true);
-      });
-
-    // Canonicalize the pattern component collapsing consecutive stars (used to
-    // express that it is recursive) into a single one.
-    //
-    size_t j (0);
-    size_t n (pcr.size ());
-    for (size_t i (0); i < n; ++i)
+    iterator_type
+    iterator (const dir_path& p,
+              bool recursive,
+              bool self,
+              bool follow_symlinks,
+              preopen po) const
     {
-      char c (pcr[i]);
-      if (!(c == '*' && i > 0 && pcr[i - 1] == '*'))
-        pcr[j++] = c;
+      return iterator_type (start_ / p, recursive, self, follow_symlinks, po);
     }
-
-    if (j != n)
-      pcr.resize (j);
-
-    // Note that the callback function can be called for the same directory
-    // twice: first time as intermediate match from iterator's preopen() call,
-    // and then, if the first call succeed, from the iterating loop (possibly
-    // as the final match).
-    //
-    path p;
-    while (i.next (p))
-    {
-      // Skip sub-entry if its name doesn't match the pattern leftmost
-      // component.
-      //
-      // Matching the directory we are iterating through (as for a pattern
-      // component containing ***) is a bit tricky. This directory is
-      // represented by the iterator as an empty path, and so we need to
-      // compute it (the leaf would actually be enough) for matching. This
-      // leaf can be aquired from the pattern_dir / start_dir path except the
-      // case when both directories are empty. This is the case when we search
-      // in the current directory (start_dir is empty) with a pattern that
-      // starts with *** wildcard (for example f***/bar). All we can do here is
-      // to fallback to path::current_directory() call. Note that this will be
-      // the only call per path_search() as the next time pattern_dir will not
-      // be empty.
-      //
-      const path& se (!p.empty ()
-                      ? p
-                      : path_cast<path> (!pattern_dir.empty ()
-                                         ? pattern_dir
-                                         : !start_dir.empty ()
-                                           ? start_dir
-                                           : path::current_directory ()));
-
-      if (!path_match (pcr, se.leaf ().representation ()))
-        continue;
-
-      // If the callback function returns false, then we stop the entire search
-      // for the final match, or do not search below the path for the
-      // intermediate one.
-      //
-      if (!func (pattern_dir / p, pcr, !simple))
-      {
-        if (simple) // Final match.
-          return false;
-        else
-          continue;
-      }
-
-      // If the pattern is not a simple one, and it's leftmost component
-      // matches the sub-entry, then the sub-entry is a directory (see the note
-      // above), and we search in it using the trailing part of the pattern.
-      //
-      if (!simple && !search (pattern.leaf (pc),
-                              pattern_dir / path_cast<dir_path> (move (p)),
-                              start_dir,
-                              follow_symlinks,
-                              func))
-        return false;
-    }
-
-    return true;
-  }
+  };
 
   void
   path_search (
@@ -1390,10 +1453,174 @@ namespace butl
     const dir_path& start,
     bool follow_symlinks)
   {
-    search (pattern,
-            dir_path (),
-            pattern.relative () ? start : dir_path (),
-            follow_symlinks,
-            func);
+    real_filesystem fs (pattern.relative () ? start : empty_dir);
+    search (pattern, dir_path (), follow_symlinks, func, fs);
+  }
+
+  // Search path in the directory tree represented by a path.
+  //
+  // Iterate over path prefixes, as recursive_dir_iterator (see above) would
+  // iterate over the real directory tree.
+  //
+  class path_iterator
+  {
+  public:
+    path_iterator (path p, bool recursive, bool self, preopen po)
+        : path_ (move (p)),
+          recursive_ (recursive),
+          self_ (self),
+          preopen_ (move (po)),
+          iter_ (path_.begin ())
+    {
+      open (dir_path (), self_);
+    }
+
+    // Move constructible-only, non-assignable type.
+    //
+    path_iterator (const path_iterator&) = delete;
+    path_iterator& operator= (const path_iterator&) = delete;
+    path_iterator (path_iterator&&) = default;
+
+    // Return false if no more entries left. Otherwise save the next entry path
+    // and return true.
+    //
+    bool
+    next (path& p)
+    {
+      if (iter_ == path_.begin ())
+      {
+        if (!self_)
+          return false;
+
+        p = path ();
+        self_ = false; // To bail out the next time.
+        return true;
+      }
+
+      path pe (path_.begin (), iter_);
+      if (recursive_ && pe.to_directory ())
+      {
+        open (path_cast<dir_path> (pe), true);
+        return next (p);
+      }
+
+      --iter_; // Return one level up.
+
+      p = move (pe);
+      return true;
+    }
+
+  private:
+    void
+    open (const dir_path& p, bool preopen)
+    {
+      // If preopen_() returns false, then the directory will not be
+      // traversed (as we reset the recursive flag) but still be returned by
+      // the next() call as a sub-entry.
+      //
+      if (preopen && !preopen_ (p))
+        recursive_ = false;
+      else if (iter_ != path_.end ())
+        ++iter_;
+
+      // If the rightmost component is reached, then all the directories were
+      // traversed, so we reset the recursive flag.
+      //
+      if (iter_ == path_.end ())
+        recursive_ = false;
+    }
+
+  private:
+    path path_;
+    bool recursive_;
+    bool self_;
+    preopen preopen_;
+    path::iterator iter_;
+  };
+
+  // Provide an access to a directory tree, that is represented by the path.
+  //
+  // Note that symlinks are meaningless for this filesystem.
+  //
+  class path_filesystem: public filesystem_base
+  {
+  public:
+    using iterator_type = path_iterator;
+
+    path_filesystem (const dir_path& start, const path& p)
+        : filesystem_base (start),
+          path_ (p) {}
+
+    pair<bool, entry_stat>
+    path_entry (const path& p, bool /*follow_symlinks*/) const
+    {
+      // Note that paths are not required to be normalized, so we just check
+      // that one path is a literal prefix of the other one.
+      //
+      if (!path_.sub (p))
+        return make_pair (false, entry_stat {entry_type::unknown, 0});
+
+      entry_type t (p == path_ && !p.to_directory ()
+                    ? entry_type::regular
+                    : entry_type::directory);
+
+      return make_pair (true, entry_stat {t, 0});
+    }
+
+    iterator_type
+    iterator (const dir_path& p,
+              bool recursive,
+              bool self,
+              bool /*follow_symlinks*/,
+              preopen po) const
+    {
+      assert (path_.sub (p));
+      return iterator_type (path_.leaf (p), recursive, self, po);
+    }
+
+  private:
+    const path& path_;
+  };
+
+  void
+  path_search (
+    const path& pattern,
+    const path& entry,
+    const function<bool (path&&, const string& pattern, bool interm)>& func,
+    const dir_path& start)
+  {
+    path_filesystem fs (pattern.relative () ? start : empty_dir, entry);
+    search (pattern, dir_path (), true, func, fs);
+  }
+
+  bool
+  path_match (const path& pattern, const path& entry, const dir_path& start)
+  {
+    bool r (false);
+
+    auto match = [&entry, &r] (path&& p, const std::string&, bool interim)
+    {
+      if (p == entry)
+      {
+        // If we found the entry (possibly through one of the recursive
+        // components) no need to search further.
+        //
+        if (!interim)
+        {
+          r = true;
+          return false;
+        }
+        else
+          // For self-matching the callback is first called in the interim
+          // mode (through the preopen function) with an empty path.
+          //
+          assert (p.empty ());
+      }
+
+      return true;
+    };
+
+    path_search (pattern, entry, match, start);
+    return r;
   }
 }

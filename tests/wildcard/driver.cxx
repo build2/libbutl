@@ -2,6 +2,7 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
+#include <map>
 #include <string>
 #include <vector>
 #include <cassert>
@@ -90,8 +91,11 @@ try
     assert (i == argc); // All args parsed,
 
     vector<path> paths;
-    auto add =
-      [&paths, &start] (path&& p, const std::string& pt, bool interim) -> bool
+    map<path, size_t> path_count;
+
+    auto add = [&paths, &path_count, &start] (path&& p,
+                                              const string& pt,
+                                              bool interim)
     {
       bool pd (!pt.empty () && pt[0] == '.'); // Dot-started pattern.
 
@@ -114,13 +118,58 @@ try
         return !skip;
 
       if (!skip)
-        paths.emplace_back (move (p.canonicalize ()));
+      {
+        p.canonicalize ();
+
+        auto i (path_count.find (p));
+        if (i == path_count.end ())
+          path_count[p] = 1;
+        else
+          ++(i->second);
+
+        paths.emplace_back (move (p));
+      }
 
       return true;
     };
 
     path_search (pattern, add, start);
 
+    // Test search in the directory tree represented by the path.
+    //
+    for (const auto& p: path_count)
+    {
+      // Will match multiple times if the pattern contains several recursive
+      // components.
+      //
+      size_t match_count (0);
+
+      auto check = [&p, &match_count] (path&& pe, const string&, bool interim)
+      {
+        if (pe == p.first)
+        {
+          if (!interim)
+            ++match_count;
+          else
+            // For self-matching the callback is first called in the interim
+            // mode (through the preopen function) with an empty path.
+            //
+            assert (pe.empty ());
+        }
+
+        return true;
+      };
+
+      path_search (pattern, p.first, check, start);
+      assert (match_count == p.second);
+
+      // Test path match.
+      //
+      assert (path_match (pattern, p.first, start));
+    }
+
+    // Print the found paths.
+    //
     if (sort)
       std::sort (paths.begin (), paths.end ());
 
