@@ -14,7 +14,10 @@ namespace butl
   {
     if (!v.empty ())
     {
-      process_args_as (vars_, v, storage_);
+      std::string storage;
+      process_args_as (vars_, v, storage);
+      assert (storage.empty ()); // We don't expect the storage to be used.
+
       vars_.push_back (nullptr);
       vars = vars_.data ();
     }

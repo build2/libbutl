@@ -480,7 +480,6 @@ namespace butl
   private:
     process_path path_;
     small_vector<const char*, 3> vars_;
-    std::string storage_;
   };
 
   template <typename I,
