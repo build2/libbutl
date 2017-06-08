@@ -88,7 +88,7 @@ namespace butl
              bool special,
              bool local);
 
-  // Same as above, but provide the result as string. Note that it is
+  // Same as above, but provide the result as a string. Note that it is
   // implemented via to_stream() and std::ostringstream.
   //
   LIBBUTL_EXPORT std::string
@@ -103,8 +103,22 @@ namespace butl
     return to_stream (os, ts, "%Y-%m-%d %H:%M:%S%[.N]", true, true);
   }
 
+  // Print human-readable representation of the duration.
+  //
   LIBBUTL_EXPORT std::ostream&
-  operator<< (std::ostream&, const duration&);
+  to_stream (std::ostream&, const duration&, bool nanoseconds);
+
+  // Same as above, but provide the result as a string. Note that it is
+  // implemented via to_stream() and std::ostringstream.
+  //
+  LIBBUTL_EXPORT std::string
+  to_string (const duration&, bool nanoseconds);
+
+  inline std::ostream&
+  operator<< (std::ostream& os, const duration& d)
+  {
+    return to_stream (os, d, true);
+  }
 
   // Parse human-readable representation of the timestamp.
   //

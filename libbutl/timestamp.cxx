@@ -232,7 +232,7 @@ namespace butl
   }
 
   ostream&
-  operator<< (ostream& os, const duration& d)
+  to_stream (ostream& os, const duration& d, bool ns)
   {
     if (os.width () != 0) // We always print nanosecond.
       throw runtime_error (
@@ -300,28 +300,41 @@ namespace butl
 
     using namespace chrono;
 
-    timestamp sec (system_clock::from_time_t (t));
-    nanoseconds ns (duration_cast<nanoseconds> (ts - sec));
-
-    if (ns != nanoseconds::zero ())
+    if (ns)
     {
-      if (fmt != nullptr)
-      {
-        ostream::fmtflags fl (os.flags ());
-        char fc (os.fill ('0'));
-        os << '.' << dec << right << setw (9) << ns.count ();
-        os.fill (fc);
-        os.flags (fl);
-      }
-      else
-        os << ns.count ();
+      timestamp sec (system_clock::from_time_t (t));
+      nanoseconds nsec (duration_cast<nanoseconds> (ts - sec));
 
-      os << ' ' << unt;
+      if (nsec != nanoseconds::zero ())
+      {
+        if (fmt != nullptr)
+        {
+          ostream::fmtflags fl (os.flags ());
+          char fc (os.fill ('0'));
+          os << '.' << dec << right << setw (9) << nsec.count ();
+          os.fill (fc);
+          os.flags (fl);
+        }
+        else
+          os << nsec.count ();
+
+        os << ' ' << unt;
+      }
+      else if (fmt == nullptr)
+        os << '0';
     }
     else if (fmt == nullptr)
       os << '0';
 
     return os;
+  }
+
+  string
+  to_string (const duration& d, bool nsec)
+  {
+    ostringstream o;
+    to_stream (o, d, nsec);
+    return o.str ();
   }
 }
 
