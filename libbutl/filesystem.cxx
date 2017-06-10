@@ -32,9 +32,11 @@
 #include <string>
 #include <vector>
 #include <memory>       // unique_ptr
+#include <cstddef>      // size_t
 #include <utility>      // pair
 #include <iterator>     // reverse_iterator
 #include <system_error>
+
 
 #include <libbutl/path.hxx>
 #include <libbutl/utility.hxx>      // throw_generic_error()
@@ -1203,13 +1205,16 @@ namespace butl
       // component containing ***) is a bit tricky. This directory is
       // represented by the iterator as an empty path, and so we need to
       // compute it (the leaf would actually be enough) for matching. This
-      // leaf can be acquired from the start_dir / pattern_dir. We don't expect
-      // this path to be empty, as the filesystem object must replace an empty
-      // start directory with the current one. This is the case when we search
-      // in the current directory (start_dir is empty) with a pattern that
-      // starts with *** wildcard (for example f***/bar). Note that this will
-      // be the only case per path_search() as the next time pattern_dir will
-      // not be empty.
+      // leaf can be acquired from the pattern_dir (if not empty) or
+      // start_dir.  We don't expect the start_dir to be empty, as the
+      // filesystem object must replace an empty start directory with the
+      // current one. This is the case when we search in the current directory
+      // (start_dir is empty) with a pattern that starts with a *** wildcard
+      // (for example f***/bar).  Note that this will be the only case per
+      // path_search() as the next time pattern_dir will not be empty. Also
+      // note that this is never the case for a pattern that is an absolute
+      // path, as the first component cannot be a wildcard (is empty for POSIX
+      // and is drive for Windows).
       //
       const path& se (!p.empty ()
                       ? p
@@ -1442,7 +1447,11 @@ namespace butl
               bool follow_symlinks,
               preopen po) const
     {
-      return iterator_type (start_ / p, recursive, self, follow_symlinks, po);
+      return iterator_type (start_ / p,
+                            recursive,
+                            self,
+                            follow_symlinks,
+                            move (po));
     }
   };
 
@@ -1475,11 +1484,37 @@ namespace butl
       open (dir_path (), self_);
     }
 
+    // Behave as recursive_dir_iterator (see above) would do if iterating over
+    // non-existent directory. Note that this behavior differs from that for
+    // an empty directory (previous ctor being called with an empty path). If
+    // self flag is true, then, for the empty directory, the first next() call
+    // returns true and saves empty path (self sub-entry). For non-existent
+    // directory the first next() call returns false. Also note that
+    // recursive_dir_iterator calls the preopen function before it becomes
+    // known that the directory doesn't exist, and we emulate such a behavior
+    // here as well.
+    //
+    path_iterator (bool self, preopen po)
+        : self_ (false),
+          iter_ (path_.begin ())
+    {
+      if (self)
+        po (empty_dir);
+    }
+
     // Move constructible-only, non-assignable type.
     //
     path_iterator (const path_iterator&) = delete;
     path_iterator& operator= (const path_iterator&) = delete;
-    path_iterator (path_iterator&&) = default;
+
+    // Custom move ctor (properly moves path/iterator pair).
+    //
+    path_iterator (path_iterator&& pi)
+        : path_ (move (pi.path_)),
+          recursive_ (pi.recursive_),
+          self_ (pi.self_),
+          preopen_ (move (pi.preopen_)),
+          iter_ (path_, pi.iter_) {}
 
     // Return false if no more entries left. Otherwise save the next entry path
     // and return true.
@@ -1552,19 +1587,33 @@ namespace butl
           path_ (p) {}
 
     pair<bool, entry_stat>
-    path_entry (const path& p, bool /*follow_symlinks*/) const
+    path_entry (const path& p, bool /*follow_symlinks*/)
     {
-      // Note that paths are not required to be normalized, so we just check
-      // that one path is a literal prefix of the other one.
+      // If path and sub-path are non-empty, and both are absolute or relative,
+      // then no extra effort is required (prior to checking if one is a
+      // sub-path or the other). Otherwise we complete the relative paths
+      // first.
       //
-      if (!path_.sub (p))
-        return make_pair (false, entry_stat {entry_type::unknown, 0});
+      auto path_entry = [] (const path& p, const path& pe)
+      {
+        // Note that paths are not required to be normalized, so we just check
+        // that one path is a literal prefix of the other one.
+        //
+        if (!p.sub (pe))
+          return make_pair (false, entry_stat {entry_type::unknown, 0});
 
-      entry_type t (p == path_ && !p.to_directory ()
-                    ? entry_type::regular
-                    : entry_type::directory);
+        entry_type t (pe == p && !p.to_directory ()
+                      ? entry_type::regular
+                      : entry_type::directory);
 
-      return make_pair (true, entry_stat {t, 0});
+        return make_pair (true, entry_stat {t, 0});
+      };
+
+      if (path_.relative () == p.relative () && !path_.empty () && !p.empty ())
+        return path_entry (path_, p);
+
+      return path_entry (path_.absolute () ? path_ : complete (path_),
+                         p.absolute () ? p : complete (p));
     }
 
     iterator_type
@@ -1572,10 +1621,50 @@ namespace butl
               bool recursive,
               bool self,
               bool /*follow_symlinks*/,
-              preopen po) const
+              preopen po)
     {
-      assert (path_.sub (p));
-      return iterator_type (path_.leaf (p), recursive, self, po);
+      // If path and sub-path are non-empty, and both are absolute or relative,
+      // then no extra effort is required (prior to checking if one is a
+      // sub-path or the other). Otherwise we complete the relative paths
+      // first.
+      //
+      auto iterator = [recursive, self, &po] (const path& p,
+                                              const dir_path& pe)
+      {
+        // If the directory we should iterate belongs to the directory tree,
+        // then return the corresponding leaf path iterator. Otherwise return
+        // the non-existent directory iterator (returns false on the first
+        // next() call).
+        //
+        return p.sub (pe)
+          ? iterator_type (p.leaf (pe), recursive, self, move (po))
+          : iterator_type (self, move (po));
+      };
+
+      if (path_.relative () == p.relative () && !path_.empty () && !p.empty ())
+        return iterator (path_, p);
+
+      return iterator (path_.absolute () ? path_ : complete (path_),
+                       p.absolute () ? p : path_cast<dir_path> (complete (p)));
+    }
+
+  private:
+    // Complete the relative path.
+    //
+    path
+    complete (const path& p)
+    {
+      assert (p.relative ());
+
+      if (start_.absolute ())
+        return start_ / p;
+
+      if (current_.empty ())
+        current_ = dir_path::current_directory ();
+
+      return !start_.empty ()
+        ? current_ / start_ / p
+        : current_ / p;
     }
 
   private:
@@ -1589,7 +1678,7 @@ namespace butl
     const function<bool (path&&, const string& pattern, bool interm)>& func,
     const dir_path& start)
   {
-    path_filesystem fs (pattern.relative () ? start : empty_dir, entry);
+    path_filesystem fs (start, entry);
     search (pattern, dir_path (), true, func, fs);
   }
 

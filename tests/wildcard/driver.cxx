@@ -12,6 +12,7 @@
 
 #include <libbutl/path.hxx>
 #include <libbutl/utility.hxx>    // operator<<(ostream, exception)
+#include <libbutl/optional.hxx>
 #include <libbutl/filesystem.hxx>
 
 using namespace std;
@@ -28,25 +29,37 @@ using namespace butl;
 int _CRT_glob = 0;
 #endif
 
-// Usage: argv[0] (-m <pattern> <name> | -s [-n] <pattern> [<dir>])
+// Usages:
 //
-// Execute actions specified by -m or -s options. Exit with code 0 if succeed,
+// argv[0] -mn <pattern> <name>
+// argv[0] -sd [-n] <pattern> [<dir>]
+// argv[0] -sp [-n] <pattern> <path> [<dir>]
+//
+// Execute actions specified by the first option. Exit with code 0 if succeed,
 // 1 if fail, 2 on the underlying OS error (print error description to STDERR).
 //
-// -m
+// -mn
 //    Match a name against the pattern.
 //
-// -s
+// -sd
 //    Search for paths matching the pattern in the directory specified (absent
 //    directory means the current one). Print the matching canonicalized paths
 //    to STDOUT in the ascending order. Succeed if at least one matching path
-//    is found. Note that this option must go first in the command line.
+//    is found. For each matching path we will assert that it is also get
+//    matched being searched in the directory tree represented by this path
+//    itself.
 //
-//    Also note that the driver excludes from search file system entries which
-//    names start from dot, unless the pattern explicitly matches them.
+//    Note that the driver excludes from search file system entries which names
+//    start from dot, unless the pattern explicitly matches them.
+//
+// -sp
+//    Same as above, but behaves as if the directory tree being searched
+//    through contains only the specified entry. The start directory is used if
+//    the first pattern component is a self-matching wildcard.
 //
 // -n
-//    Do not sort paths found.
+//    Do not sort paths found. Meaningful in combination with -sd or -sp
+//    options and must follow it, if specified in the command line.
 //
 int
 main (int argc, const char* argv[])
@@ -55,10 +68,8 @@ try
   assert (argc >= 2);
 
   string op (argv[1]);
-  bool match (op == "-m");
-  assert (match || op == "-s");
 
-  if (match)
+  if (op == "-mn")
   {
     assert (argc == 4);
 
@@ -66,9 +77,9 @@ try
     string name (argv[3]);
     return path_match (pattern, name) ? 0 : 1;
   }
-  else
+  else if (op == "-sd" || op == "-sp")
   {
-    assert (argc >= 3);
+    assert (argc >= (op == "-sd" ? 3 : 4));
 
     bool sort (true);
     int i (2);
@@ -83,6 +94,11 @@ try
 
     assert (i != argc); // Still need pattern.
     path pattern (argv[i++]);
+
+    optional<path> entry;
+
+    if (op == "-sp")
+      entry = path (argv[i++]);
 
     dir_path start;
     if (i != argc)
@@ -133,7 +149,10 @@ try
       return true;
     };
 
-    path_search (pattern, add, start);
+    if (!entry)
+      path_search (pattern, add, start);
+    else
+      path_search (pattern, *entry, add, start);
 
     // Test search in the directory tree represented by the path.
     //
@@ -178,6 +197,8 @@ try
 
     return paths.empty () ? 1 : 0;
   }
+  else
+    assert (false);
 }
 catch (const invalid_path& e)
 {

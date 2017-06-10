@@ -601,6 +601,11 @@ namespace butl
   // through contains only the specified entry. The start directory is used if
   // the first pattern component is a self-matching wildcard (see above).
   //
+  // If pattern or entry is relative, then it is assumed to be relative to the
+  // start directory (which, if relative itself, is assumed to be relative to
+  // the current directory). Note that the implementation can optimize the
+  // case when pattern and entry are both non-empty and relative.
+  //
   LIBBUTL_EXPORT void
   path_search (const path& pattern,
                const path& entry,

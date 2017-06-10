@@ -756,6 +756,14 @@ namespace butl
       iterator (const data_type* p, size_type b, size_type e)
           : p_ (p), b_ (b), e_ (e) {}
 
+      // Create an iterator by "rebasing" an old iterator onto a new path
+      // object. Can, for example, be used to "move" an iterator when moving
+      // the path object. Note: potentially dangerous if the old iterator used
+      // to point to a different path.
+      //
+      iterator (const basic_path& p, const iterator& i)
+          : p_ (&p), b_ (i.b_), e_ (i.e_) {}
+
       iterator&
       operator++ ()
       {
