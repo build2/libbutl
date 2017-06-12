@@ -307,12 +307,12 @@ main (int argc, const char* argv[])
     // Note that if to create as just process(0) then the
     // process(const char* args[], int=0, int=1, int=2) ctor is being called.
     //
-    process p (optional<process_exit> (process_exit (0)));
+    process p (process_exit (0));
     assert (p.wait ()); // "Exited" successfully.
   }
 
   {
-    process p (optional<process_exit> (process_exit (1)));
+    process p (process_exit (1));
     assert (!p.wait ()); // "Exited" with an error.
   }
 
