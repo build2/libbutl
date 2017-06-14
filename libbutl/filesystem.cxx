@@ -1535,7 +1535,7 @@ namespace butl
       path pe (path_.begin (), iter_);
       if (recursive_ && pe.to_directory ())
       {
-        open (path_cast<dir_path> (pe), true);
+        open (path_cast<dir_path> (move (pe)), true);
         return next (p);
       }
 
