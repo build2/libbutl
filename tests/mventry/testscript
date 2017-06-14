@@ -118,7 +118,7 @@ if ($test.target == $build.host)
       : rename.
       :
       echo 'foo' >=a;
-      $lns;
+      $lns &!b;
       $* b c &c;
       test -f a;
       test -f b == 1;
@@ -131,7 +131,7 @@ if ($test.target == $build.host)
       : target stays intact.
       :
       echo 'foo' >=a;
-      $lns &b;
+      $lns;
       echo 'bar' >=c &!c;
       $* c b;
       cat a >'foo';
@@ -156,7 +156,7 @@ if ($test.target == $build.host)
       : rename.
       :
       mkdir -p a;
-      $lns;
+      $lns &!b;
       $* b c &c;
       touch a/b;
       test -f c/b;

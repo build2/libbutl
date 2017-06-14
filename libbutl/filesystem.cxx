@@ -295,7 +295,31 @@ namespace butl
       if (!CreateHardLinkA (link.string ().c_str (),
                             target.string ().c_str (),
                             nullptr))
-        throw_system_error (GetLastError ());
+      {
+        // If creation fails because hardlinks are not supported for the
+        // specified target/link paths combination, then throw system_error of
+        // the generic category with an approximate POSIX errno code. This way
+        // the caller could recognize such a case and, for example, fallback
+        // to the copy operation. For other error codes use the system
+        // category.
+        //
+        DWORD ec (GetLastError ());
+        switch (ec)
+        {
+          // Target and link are on different drives.
+          //
+        case ERROR_NOT_SAME_DEVICE: throw_generic_error (EXDEV);
+
+          // Target and link are on the same drive, which doesn't support
+          // hardlinks.
+          //
+        case ERROR_ACCESS_DENIED: throw_generic_error (EPERM);
+
+          // Some other failure reason. Fallback to the system category.
+          //
+        default: throw_system_error (ec);
+        }
+      }
     }
     else
       throw_generic_error (ENOSYS, "directory hard links not supported");
