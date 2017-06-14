@@ -244,7 +244,7 @@ namespace butl
     time_t t (system_clock::to_time_t (ts));
 
     const char* fmt (nullptr);
-    const char* unt ("nanoseconds");
+    const char* unt;
     if (t >= 365 * 24 * 60 * 60)
     {
       fmt = "%Y-%m-%d %H:%M:%S";
@@ -275,6 +275,8 @@ namespace butl
       fmt = "%S";
       unt = "seconds";
     }
+    else
+      unt = ns ? "nanoseconds" : "seconds";
 
     if (fmt != nullptr)
     {
@@ -317,8 +319,6 @@ namespace butl
         }
         else
           os << nsec.count ();
-
-        os << ' ' << unt;
       }
       else if (fmt == nullptr)
         os << '0';
@@ -326,6 +326,7 @@ namespace butl
     else if (fmt == nullptr)
       os << '0';
 
+    os << ' ' << unt;
     return os;
   }
 
