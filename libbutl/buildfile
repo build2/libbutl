@@ -26,6 +26,7 @@ lib{butl}:                                  \
    {hxx            }{ process-details     } \
    {hxx            }{ process-io          } \
    {        txx cxx}{ process-run         } \
+   {hxx     txx cxx}{ regex               } \
    {hxx ixx     cxx}{ sendmail            } \
    {hxx         cxx}{ sha256              } \
    {hxx            }{ small-vector        } \
