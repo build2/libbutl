@@ -145,7 +145,7 @@ namespace butl
 
     setg (buf_, buf_, buf_);
     setp (buf_, buf_ + sizeof (buf_) - 1); // Keep space for overflow's char.
-
+    off_ = 0; // @@ Strictly speaking, need to query, can be at end.
     fd_ = move (fd);
   }
 
@@ -177,6 +177,8 @@ namespace butl
         return -1;
 
       setg (buf_, buf_, buf_ + n);
+      off_ += n;
+
       return n;
     }
 #endif
@@ -223,6 +225,7 @@ namespace butl
       throw_ios_failure (errno);
 
     setg (buf_, buf_, buf_ + n);
+    off_ += n;
     return n != 0;
   }
 
@@ -295,6 +298,8 @@ namespace butl
       if (m == -1)
         throw_ios_failure (errno);
 
+      off_ += m;
+
       if (n != static_cast<size_t> (m))
         return false;
 
@@ -352,6 +357,7 @@ namespace butl
       throw_ios_failure (errno);
 
     size_t m (static_cast<size_t> (r));
+    off_ += m;
 
     // If the buffered data wasn't fully written then move the unwritten part
     // to the beginning of the buffer.
@@ -395,6 +401,7 @@ namespace butl
       throw_ios_failure (errno);
 
     size_t m (static_cast<size_t> (r));
+    off_ += m;
 
     // If the buffered data wasn't fully written then move the unwritten part
     // to the beginning of the buffer.
@@ -429,6 +436,8 @@ namespace butl
 
     if (r == -1)
       throw_ios_failure (errno);
+
+    off_ += r;
 
     return an + r;
 #endif

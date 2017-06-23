@@ -10,7 +10,7 @@
 #include <istream>
 #include <ostream>
 #include <utility> // move()
-#include <cstdint> // uint16_t
+#include <cstdint> // uint16_t, uint64_t
 
 #include <libbutl/export.hxx>
 
@@ -143,6 +143,11 @@ namespace butl
     using base::egptr;
     using base::gbump;
 
+    // Return the (logical) position of the next byte to be read.
+    //
+    uint64_t
+    tellg () const {return off_ - (egptr () - gptr ());}
+
   private:
     bool
     load ();
@@ -159,12 +164,18 @@ namespace butl
     virtual std::streamsize
     xsputn (const char_type*, std::streamsize);
 
+    // Return the (logical) position of the next byte to be written.
+    //
+    uint64_t
+    tellp () const {return off_ + (pptr () - buf_);}
+
   private:
     bool
     save ();
 
   private:
     auto_fd fd_;
+    uint64_t off_;
     char buf_[8192];
     bool non_blocking_ = false;
   };
