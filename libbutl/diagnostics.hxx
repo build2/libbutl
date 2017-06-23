@@ -26,13 +26,13 @@ namespace butl
   // prevent this an object of diag_lock type (see below) must be created prior
   // to write operation.
   //
-  LIBBUTL_EXPORT extern std::ostream* diag_stream;
+  LIBBUTL_SYMEXPORT extern std::ostream* diag_stream;
 
   // Acquire the diagnostics exclusive access mutex in ctor, release in dtor.
   // An object of the type must be created prior to writing to diag_stream (see
   // above).
   //
-  struct LIBBUTL_EXPORT diag_lock
+  struct LIBBUTL_SYMEXPORT diag_lock
   {
     diag_lock ();
     ~diag_lock ();
@@ -44,7 +44,7 @@ namespace butl
 
   using diag_epilogue = void (const diag_record&);
 
-  struct LIBBUTL_EXPORT diag_record
+  struct LIBBUTL_SYMEXPORT diag_record
   {
     template <typename T>
     friend const diag_record&

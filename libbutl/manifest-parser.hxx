@@ -16,7 +16,7 @@
 
 namespace butl
 {
-  class LIBBUTL_EXPORT manifest_parsing: public std::runtime_error
+  class LIBBUTL_SYMEXPORT manifest_parsing: public std::runtime_error
   {
   public:
     manifest_parsing (const std::string& name,
@@ -46,7 +46,7 @@ namespace butl
     empty () const {return name.empty () && value.empty ();}
   };
 
-  class LIBBUTL_EXPORT manifest_parser: protected butl::char_scanner
+  class LIBBUTL_SYMEXPORT manifest_parser: protected butl::char_scanner
   {
   public:
     manifest_parser (std::istream& is, const std::string& name)

@@ -37,7 +37,7 @@ namespace butl
   //   non-dir-adapted implementation (see where we call K::cast()).
   //
 
-  struct LIBBUTL_EXPORT invalid_path_base: public std::exception
+  struct LIBBUTL_SYMEXPORT invalid_path_base: public std::exception
   {
     virtual char const*
     what () const throw ();

@@ -21,7 +21,7 @@ namespace butl
   //
   // cerr << sha256 ("123").string () << endl;
   //
-  class LIBBUTL_EXPORT sha256
+  class LIBBUTL_SYMEXPORT sha256
   {
   public:
     sha256 ();
@@ -87,14 +87,14 @@ namespace butl
   // like 01:AB:CD:...). Throw invalid_argument if the argument is not a valid
   // SHA256 string.
   //
-  LIBBUTL_EXPORT std::string
+  LIBBUTL_SYMEXPORT std::string
   sha256_to_fingerprint (const std::string&);
 
   // Convert a fingerprint (32 colon-separated hex digit pairs) to the SHA256
   // string representation (64 lower case hex digits). Throw invalid_argument
   // if the argument is not a valid fingerprint.
   //
-  LIBBUTL_EXPORT std::string
+  LIBBUTL_SYMEXPORT std::string
   fingerprint_to_sha256 (const std::string&);
 }
 

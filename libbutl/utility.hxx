@@ -30,10 +30,10 @@ namespace butl
   //
   // See also the exception sanitization below.
   //
-  [[noreturn]] LIBBUTL_EXPORT void
+  [[noreturn]] LIBBUTL_SYMEXPORT void
   throw_generic_error (int errno_code, const char* what = nullptr);
 
-  [[noreturn]] LIBBUTL_EXPORT void
+  [[noreturn]] LIBBUTL_SYMEXPORT void
   throw_system_error (int system_code, int fallback_errno_code = 0);
 
   // Convert ASCII character/string case. If there is no upper/lower case
@@ -219,7 +219,7 @@ namespace butl
   // use a wrapper functions.
   //
 #ifdef _WIN32
-  LIBBUTL_EXPORT bool&
+  LIBBUTL_SYMEXPORT bool&
   exception_unwinding_dtor ();
 #else
   inline bool&
@@ -255,7 +255,7 @@ namespace std
   // - stripping system error redundant suffix (see utility.cxx)
   // - lower-case the first letter if the beginning looks like a word
   //
-  LIBBUTL_EXPORT ostream&
+  LIBBUTL_SYMEXPORT ostream&
   operator<< (ostream&, const exception&);
 }
 

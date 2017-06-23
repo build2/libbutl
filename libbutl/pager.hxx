@@ -44,7 +44,7 @@ namespace butl
   //   cerr << "pager error: " << e << endl;
   // }
   //
-  class LIBBUTL_EXPORT pager: protected std::streambuf
+  class LIBBUTL_SYMEXPORT pager: protected std::streambuf
   {
   public:
     ~pager () {wait (true);}

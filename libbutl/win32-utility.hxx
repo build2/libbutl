@@ -41,10 +41,10 @@ namespace butl
 {
   namespace win32
   {
-    LIBBUTL_EXPORT std::string
+    LIBBUTL_SYMEXPORT std::string
     error_msg (DWORD code);
 
-    LIBBUTL_EXPORT std::string
+    LIBBUTL_SYMEXPORT std::string
     last_error_msg ();
   }
 };

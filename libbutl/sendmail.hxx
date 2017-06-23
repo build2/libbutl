@@ -42,7 +42,7 @@ namespace butl
   //   cerr << "sendmail error: " << e << endl;
   // }
   //
-  class LIBBUTL_EXPORT sendmail: public process
+  class LIBBUTL_SYMEXPORT sendmail: public process
   {
   public:
     ofdstream out;

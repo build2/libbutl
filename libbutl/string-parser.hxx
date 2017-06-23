@@ -15,7 +15,7 @@
 
 namespace butl
 {
-  class LIBBUTL_EXPORT invalid_string: public std::invalid_argument
+  class LIBBUTL_SYMEXPORT invalid_string: public std::invalid_argument
   {
   public:
     invalid_string (std::size_t p, const std::string& d)
@@ -24,7 +24,7 @@ namespace butl
     std::size_t position; // Zero-based.
   };
 
-  class LIBBUTL_EXPORT string_parser
+  class LIBBUTL_SYMEXPORT string_parser
   {
   public:
     // Parse a whitespace-separated list of strings. Can contain single or

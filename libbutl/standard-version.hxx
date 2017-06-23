@@ -32,7 +32,7 @@ namespace butl
   // [<epoch>~]<maj>.<min>.<patch>-
   // 0[+<revision>]
   //
-  struct LIBBUTL_EXPORT standard_version
+  struct LIBBUTL_SYMEXPORT standard_version
   {
     // Invariants:
     //
@@ -206,7 +206,7 @@ namespace butl
   // ('==' | '>' | '<' | '>=' | '<=') <version>
   // ('(' | '[') <version> <version> (')' | ']')
   //
-  struct LIBBUTL_EXPORT standard_version_constraint
+  struct LIBBUTL_SYMEXPORT standard_version_constraint
   {
     butl::optional<standard_version> min_version;
     butl::optional<standard_version> max_version;

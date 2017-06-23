@@ -14,7 +14,7 @@
 
 namespace butl
 {
-  class LIBBUTL_EXPORT manifest_serialization: public std::runtime_error
+  class LIBBUTL_SYMEXPORT manifest_serialization: public std::runtime_error
   {
   public:
     manifest_serialization (const std::string& name,
@@ -24,7 +24,7 @@ namespace butl
     std::string description;
   };
 
-  class LIBBUTL_EXPORT manifest_serializer
+  class LIBBUTL_SYMEXPORT manifest_serializer
   {
   public:
     manifest_serializer (std::ostream& os, const std::string& name)

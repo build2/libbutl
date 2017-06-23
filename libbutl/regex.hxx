@@ -48,7 +48,7 @@ namespace std
   // Print regex error description but only if it is meaningful (this is also
   // why we have to print leading colon).
   //
-  LIBBUTL_EXPORT ostream&
+  LIBBUTL_SYMEXPORT ostream&
   operator<< (ostream&, const regex_error&);
 }
 

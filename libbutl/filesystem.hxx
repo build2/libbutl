@@ -36,7 +36,7 @@ namespace butl
   // Return true if the path is to an existing regular file. Note that by
   // default this function follows symlinks.
   //
-  LIBBUTL_EXPORT bool
+  LIBBUTL_SYMEXPORT bool
   file_exists (const char*, bool follow_symlinks = true);
 
   inline bool
@@ -46,7 +46,7 @@ namespace butl
   // Return true if the path is to an existing directory. Note that this
   // function follows symlinks.
   //
-  LIBBUTL_EXPORT bool
+  LIBBUTL_SYMEXPORT bool
   dir_exists (const char*);
 
   inline bool
@@ -55,7 +55,7 @@ namespace butl
   // Return true if the path is to an existing file system entry. Note that by
   // default this function doesn't follow symlinks.
   //
-  LIBBUTL_EXPORT bool
+  LIBBUTL_SYMEXPORT bool
   entry_exists (const char*, bool follow_symlinks = false);
 
   inline bool
@@ -85,7 +85,7 @@ namespace butl
   // and its type if so. Note that by default this function doesn't follow
   // symlinks.
   //
-  LIBBUTL_EXPORT std::pair<bool, entry_stat>
+  LIBBUTL_SYMEXPORT std::pair<bool, entry_stat>
   path_entry (const char*, bool follow_symlinks = false);
 
   inline std::pair<bool, entry_stat>
@@ -117,13 +117,13 @@ namespace butl
   //
   enum class mkdir_status {success, already_exists};
 
-  LIBBUTL_EXPORT mkdir_status
+  LIBBUTL_SYMEXPORT mkdir_status
   try_mkdir (const dir_path&, mode_t = 0777);
 
   // The '-p' version of the above (i.e., it creates the parent
   // directories if necessary).
   //
-  LIBBUTL_EXPORT mkdir_status
+  LIBBUTL_SYMEXPORT mkdir_status
   try_mkdir_p (const dir_path&, mode_t = 0777);
 
   // Try to remove the directory returning not_exist if it does not exist
@@ -132,20 +132,20 @@ namespace butl
   //
   enum class rmdir_status {success, not_exist, not_empty};
 
-  LIBBUTL_EXPORT rmdir_status
+  LIBBUTL_SYMEXPORT rmdir_status
   try_rmdir (const dir_path&, bool ignore_error = false);
 
   // The '-r' (recursive) version of the above. Note that it will
   // never return not_empty.
   //
-  LIBBUTL_EXPORT rmdir_status
+  LIBBUTL_SYMEXPORT rmdir_status
   try_rmdir_r (const dir_path&, bool ignore_error = false);
 
   // As above but throws rather than returns not_exist if the directory
   // does not exist (unless ignore_error is true), so check before calling.
   // If the second argument is false, then the directory itself is not removed.
   //
-  LIBBUTL_EXPORT void
+  LIBBUTL_SYMEXPORT void
   rmdir_r (const dir_path&, bool dir = true, bool ignore_error = false);
 
   // Try to remove the file (or symlinks) returning not_exist if
@@ -154,7 +154,7 @@ namespace butl
   //
   enum class rmfile_status {success, not_exist};
 
-  LIBBUTL_EXPORT rmfile_status
+  LIBBUTL_SYMEXPORT rmfile_status
   try_rmfile (const path&, bool ignore_error = false);
 
   // Automatically try to remove the path on destruction unless cancelled.
@@ -194,7 +194,7 @@ namespace butl
   //
   // Note that Windows symlinks are currently not supported.
   //
-  LIBBUTL_EXPORT void
+  LIBBUTL_SYMEXPORT void
   mksymlink (const path& target, const path& link, bool dir = false);
 
   // Create a symbolic link to a directory. Throw std::system_error on
@@ -213,7 +213,7 @@ namespace butl
   // be a directory. While Windows support directories (via junktions), this
   // is currently not implemented.
   //
-  LIBBUTL_EXPORT void
+  LIBBUTL_SYMEXPORT void
   mkhardlink (const path& target, const path& link, bool dir = false);
 
   // Create a hard link to a directory. Throw std::system_error on failures.
@@ -254,7 +254,7 @@ namespace butl
   // destination is a dangling symbolic link, then this function will still
   // fail.
   //
-  LIBBUTL_EXPORT void
+  LIBBUTL_SYMEXPORT void
   cpfile (const path& from, const path& to, cpflags = cpflags::none);
 
   // Copy a regular file into (inside) an existing directory.
@@ -289,7 +289,7 @@ namespace butl
   // destination paths are on the same file system, and only if the
   // overwrite_content flag is specified.
   //
-  LIBBUTL_EXPORT void
+  LIBBUTL_SYMEXPORT void
   mventry (const path& from,
            const path& to,
            cpflags = cpflags::overwrite_permissions);
@@ -345,7 +345,7 @@ namespace butl
   // by throwing std::system_error. Note that this function resolves
   // symlinks.
   //
-  LIBBUTL_EXPORT timestamp
+  LIBBUTL_SYMEXPORT timestamp
   file_mtime (const char*);
 
   inline timestamp
@@ -380,18 +380,18 @@ namespace butl
   // Get path permissions. Throw std::system_error on failure. Note that this
   // function resolves symlinks.
   //
-  LIBBUTL_EXPORT permissions
+  LIBBUTL_SYMEXPORT permissions
   path_permissions (const path&);
 
   // Set path permissions. Throw std::system_error on failure. Note that this
   // function resolves symlinks.
   //
-  LIBBUTL_EXPORT void
+  LIBBUTL_SYMEXPORT void
   path_permissions (const path&, permissions);
 
   // Directory entry iteration.
   //
-  class LIBBUTL_EXPORT dir_entry
+  class LIBBUTL_SYMEXPORT dir_entry
   {
   public:
     typedef butl::path path_type;
@@ -430,7 +430,7 @@ namespace butl
     dir_path b_;
   };
 
-  class LIBBUTL_EXPORT dir_iterator
+  class LIBBUTL_SYMEXPORT dir_iterator
   {
   public:
     typedef dir_entry value_type;
@@ -502,7 +502,7 @@ namespace butl
   // different). Otherwise, it only matches a non-directory name (no trailing
   // directory separator).
   //
-  LIBBUTL_EXPORT bool
+  LIBBUTL_SYMEXPORT bool
   path_match (const std::string& pattern, const std::string& name);
 
   // Return true if path entry matches pattern. Note that the match is
@@ -510,7 +510,7 @@ namespace butl
   // start directory is used if the first pattern component is a self-matching
   // wildcard (see below for the start directory and wildcard semantics).
   //
-  LIBBUTL_EXPORT bool
+  LIBBUTL_SYMEXPORT bool
   path_match (const path& pattern,
               const path& entry,
               const dir_path& start = dir_path ());
@@ -589,7 +589,7 @@ namespace butl
   // depth-first which make sense for the cleanup use cases. In future we may
   // want to make it controllable.
   //
-  LIBBUTL_EXPORT void
+  LIBBUTL_SYMEXPORT void
   path_search (const path& pattern,
                const std::function<bool (path&&,
                                          const std::string& pattern,
@@ -606,7 +606,7 @@ namespace butl
   // the current directory). Note that the implementation can optimize the
   // case when pattern and entry are both non-empty and relative.
   //
-  LIBBUTL_EXPORT void
+  LIBBUTL_SYMEXPORT void
   path_search (const path& pattern,
                const path& entry,
                const std::function<bool (path&&,

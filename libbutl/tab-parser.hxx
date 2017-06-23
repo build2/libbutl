@@ -15,7 +15,7 @@
 
 namespace butl
 {
-  class LIBBUTL_EXPORT tab_parsing: public std::runtime_error
+  class LIBBUTL_SYMEXPORT tab_parsing: public std::runtime_error
   {
   public:
     tab_parsing (const std::string& name,
@@ -50,7 +50,7 @@ namespace butl
   // supported. Blank lines and lines that start with # (collectively called
   // empty lines) are ignored.
   //
-  class LIBBUTL_EXPORT tab_parser
+  class LIBBUTL_SYMEXPORT tab_parser
   {
   public:
     tab_parser (std::istream& is, const std::string& name)

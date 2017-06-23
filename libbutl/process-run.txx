@@ -36,7 +36,7 @@ namespace butl
   inline int
   process_stderr (const auto_fd& v) {assert (v.get () >= 0); return v.get ();}
 
-  LIBBUTL_EXPORT process
+  LIBBUTL_SYMEXPORT process
   process_start (const dir_path* cwd,
                  const process_path& pp,
                  const char* cmd[],

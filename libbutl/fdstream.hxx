@@ -28,7 +28,7 @@ namespace butl
   struct nullfd_t {constexpr explicit nullfd_t (int) {}};
   constexpr const nullfd_t nullfd (-1);
 
-  class LIBBUTL_EXPORT auto_fd
+  class LIBBUTL_SYMEXPORT auto_fd
   {
   public:
     auto_fd (nullfd_t = nullfd) noexcept: fd_ (-1) {}
@@ -96,7 +96,7 @@ namespace butl
   // - passing to constructor auto_fd with a negative file descriptor is valid
   //   and results in the creation of an unopened object
   //
-  class LIBBUTL_EXPORT fdbuf: public std::basic_streambuf<char>
+  class LIBBUTL_SYMEXPORT fdbuf: public std::basic_streambuf<char>
   {
   public:
     fdbuf () = default;
@@ -237,7 +237,7 @@ namespace butl
   inline fdopen_mode operator&= (fdopen_mode&, fdopen_mode);
   inline fdopen_mode operator|= (fdopen_mode&, fdopen_mode);
 
-  class LIBBUTL_EXPORT fdstream_base
+  class LIBBUTL_SYMEXPORT fdstream_base
   {
   protected:
     fdstream_base () = default;
@@ -337,7 +337,7 @@ namespace butl
   //
   // throw failed ();
   //
-  class LIBBUTL_EXPORT ifdstream: public fdstream_base, public std::istream
+  class LIBBUTL_SYMEXPORT ifdstream: public fdstream_base, public std::istream
   {
   public:
     // Create an unopened object.
@@ -433,7 +433,7 @@ namespace butl
   // (std::uncaught_exception() == true). This is enforced with assert() in
   // the ofdstream destructor.
   //
-  class LIBBUTL_EXPORT ofdstream: public fdstream_base, public std::ostream
+  class LIBBUTL_SYMEXPORT ofdstream: public fdstream_base, public std::ostream
   {
   public:
     // Create an unopened object.
@@ -515,7 +515,7 @@ namespace butl
   // - The fail and eof bits may be left cleared in the stream exception mask
   //   when the function throws because of badbit.
   //
-  LIBBUTL_EXPORT ifdstream&
+  LIBBUTL_SYMEXPORT ifdstream&
   getline (ifdstream&, std::string&, char delim = '\n');
 
   // Open a file returning an auto_fd that holds its file descriptor on
@@ -539,21 +539,21 @@ namespace butl
   // purpose, the _O_NOINHERIT flag is set. Note that the process class, that
   // passes such a descriptor to the child, makes it inheritable for a while.
   //
-  LIBBUTL_EXPORT auto_fd
+  LIBBUTL_SYMEXPORT auto_fd
   fdopen (const char*,
           fdopen_mode,
           permissions = permissions::ru | permissions::wu |
                         permissions::rg | permissions::wg |
                         permissions::ro | permissions::wo);
 
-  LIBBUTL_EXPORT auto_fd
+  LIBBUTL_SYMEXPORT auto_fd
   fdopen (const std::string&,
           fdopen_mode,
           permissions = permissions::ru | permissions::wu |
                         permissions::rg | permissions::wg |
                         permissions::ro | permissions::wo);
 
-  LIBBUTL_EXPORT auto_fd
+  LIBBUTL_SYMEXPORT auto_fd
   fdopen (const path&,
           fdopen_mode,
           permissions = permissions::ru | permissions::wu |
@@ -577,7 +577,7 @@ namespace butl
   // regards to child process spawning (to prevent file descriptor leakage into
   // a child process).
   //
-  LIBBUTL_EXPORT auto_fd
+  LIBBUTL_SYMEXPORT auto_fd
   fddup (int fd);
 
   // Set the translation mode for the file descriptor. Throw invalid_argument
@@ -592,15 +592,15 @@ namespace butl
   // system. Non-blocking mode is not supported on Windows and so the blocking
   // mode is assumed regardless of the flags.
   //
-  LIBBUTL_EXPORT fdstream_mode
+  LIBBUTL_SYMEXPORT fdstream_mode
   fdmode (int, fdstream_mode);
 
   // Convenience functions for setting the translation mode for standard
   // streams.
   //
-  LIBBUTL_EXPORT fdstream_mode stdin_fdmode  (fdstream_mode);
-  LIBBUTL_EXPORT fdstream_mode stdout_fdmode (fdstream_mode);
-  LIBBUTL_EXPORT fdstream_mode stderr_fdmode (fdstream_mode);
+  LIBBUTL_SYMEXPORT fdstream_mode stdin_fdmode  (fdstream_mode);
+  LIBBUTL_SYMEXPORT fdstream_mode stdout_fdmode (fdstream_mode);
+  LIBBUTL_SYMEXPORT fdstream_mode stderr_fdmode (fdstream_mode);
 
   // Low-level, nothrow file descriptor API.
   //
@@ -608,7 +608,7 @@ namespace butl
   // Close the file descriptor. Return true on success, set errno and return
   // false otherwise.
   //
-  LIBBUTL_EXPORT bool
+  LIBBUTL_SYMEXPORT bool
   fdclose (int) noexcept;
 
   // Open the null device (e.g., /dev/null) that discards all data written to
@@ -634,10 +634,10 @@ namespace butl
   // purpose, the _O_NOINHERIT flag is set.
   //
 #ifndef _WIN32
-  LIBBUTL_EXPORT auto_fd
+  LIBBUTL_SYMEXPORT auto_fd
   fdnull () noexcept;
 #else
-  LIBBUTL_EXPORT auto_fd
+  LIBBUTL_SYMEXPORT auto_fd
   fdnull (bool temp = false) noexcept;
 #endif
 
@@ -672,7 +672,7 @@ namespace butl
   // other threads). Also note that you don't need to reset the flag for a pipe
   // end being passed to the process class ctor.
   //
-  LIBBUTL_EXPORT fdpipe
+  LIBBUTL_SYMEXPORT fdpipe
   fdopen_pipe (fdopen_mode = fdopen_mode::none);
 }
 

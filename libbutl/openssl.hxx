@@ -79,7 +79,7 @@ namespace butl
   //    department (that were apparently fixed in 1.0.2). To work around these
   //    bugs pass user-supplied options first.
   //
-  class LIBBUTL_EXPORT openssl: public process
+  class LIBBUTL_SYMEXPORT openssl: public process
   {
   public:
     ifdstream in;

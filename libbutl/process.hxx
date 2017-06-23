@@ -119,7 +119,7 @@ namespace butl
 
   // Process exit information.
   //
-  struct LIBBUTL_EXPORT process_exit
+  struct LIBBUTL_SYMEXPORT process_exit
   {
     // Status type is the raw exit value as returned by GetExitCodeProcess()
     // (NTSTATUS value that represents exit or error codes; MSDN refers to the
@@ -177,7 +177,7 @@ namespace butl
     description () const;
   };
 
-  class LIBBUTL_EXPORT process
+  class LIBBUTL_SYMEXPORT process
   {
   public:
 #ifndef _WIN32

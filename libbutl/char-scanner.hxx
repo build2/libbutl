@@ -18,7 +18,7 @@ namespace butl
   // Low-level character stream scanner. Normally used as a base for
   // higher-level lexers.
   //
-  class LIBBUTL_EXPORT char_scanner
+  class LIBBUTL_SYMEXPORT char_scanner
   {
   public:
     // If the crlf argument is true, then recognize Windows newlines (0x0D

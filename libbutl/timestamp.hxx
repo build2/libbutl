@@ -81,7 +81,7 @@ namespace butl
   //  - support %(N) version for non-optional printing
   //  - support for suffix %[<d>N<s>], for example %[N nsec]
   //
-  LIBBUTL_EXPORT std::ostream&
+  LIBBUTL_SYMEXPORT std::ostream&
   to_stream (std::ostream&,
              const timestamp&,
              const char* format,
@@ -91,7 +91,7 @@ namespace butl
   // Same as above, but provide the result as a string. Note that it is
   // implemented via to_stream() and std::ostringstream.
   //
-  LIBBUTL_EXPORT std::string
+  LIBBUTL_SYMEXPORT std::string
   to_string (const timestamp&,
              const char* format,
              bool special,
@@ -105,13 +105,13 @@ namespace butl
 
   // Print human-readable representation of the duration.
   //
-  LIBBUTL_EXPORT std::ostream&
+  LIBBUTL_SYMEXPORT std::ostream&
   to_stream (std::ostream&, const duration&, bool nanoseconds);
 
   // Same as above, but provide the result as a string. Note that it is
   // implemented via to_stream() and std::ostringstream.
   //
-  LIBBUTL_EXPORT std::string
+  LIBBUTL_SYMEXPORT std::string
   to_string (const duration&, bool nanoseconds);
 
   inline std::ostream&
@@ -159,7 +159,7 @@ namespace butl
   //   - ability to parse local, return UTC and vice-versa
   //   - handle timezone parsing
   //
-  LIBBUTL_EXPORT timestamp
+  LIBBUTL_SYMEXPORT timestamp
   from_string (const char* input,
                const char* format,
                bool local,

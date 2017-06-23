@@ -86,7 +86,7 @@ namespace butl
   // 3. Only binary data HTTP POST is currently supported (the --data-binary
   //    curl option).
   //
-  class LIBBUTL_EXPORT curl: public process
+  class LIBBUTL_SYMEXPORT curl: public process
   {
   public:
     enum method_type {get, put, post};

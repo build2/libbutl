@@ -20,13 +20,13 @@ namespace butl
   // if it has badbit, failbit, or eofbit set and throw invalid_argument if
   // that's the case. Otherwise set badbit if the write operation fails.
   //
-  LIBBUTL_EXPORT void
+  LIBBUTL_SYMEXPORT void
   base64_encode (std::ostream&, std::istream&);
 
-  LIBBUTL_EXPORT std::string
+  LIBBUTL_SYMEXPORT std::string
   base64_encode (std::istream&);
 
-  LIBBUTL_EXPORT std::string
+  LIBBUTL_SYMEXPORT std::string
   base64_encode (const std::vector<char>&);
 
   // Base64-decode a stream or a string. Throw invalid_argument if the input
@@ -37,13 +37,13 @@ namespace butl
   // invalid_argument if that's the case. Otherwise set badbit if the write
   // operation fails.
   //
-  LIBBUTL_EXPORT void
+  LIBBUTL_SYMEXPORT void
   base64_decode (std::ostream&, std::istream&);
 
-  LIBBUTL_EXPORT void
+  LIBBUTL_SYMEXPORT void
   base64_decode (std::ostream&, const std::string&);
 
-  LIBBUTL_EXPORT std::vector<char>
+  LIBBUTL_SYMEXPORT std::vector<char>
   base64_decode (const std::string&);
 }
 

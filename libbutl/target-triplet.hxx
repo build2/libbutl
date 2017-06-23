@@ -96,7 +96,7 @@ namespace butl
   //
   // 2. LLVM has the Triple class with similar goals.
   //
-  struct LIBBUTL_EXPORT target_triplet
+  struct LIBBUTL_SYMEXPORT target_triplet
   {
     std::string cpu;
     std::string vendor;

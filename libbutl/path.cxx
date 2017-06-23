@@ -59,7 +59,7 @@ namespace butl
   //
 
   template <>
-  LIBBUTL_EXPORT path_traits<char>::string_type path_traits<char>::
+  LIBBUTL_SYMEXPORT path_traits<char>::string_type path_traits<char>::
   current_directory ()
   {
 #ifdef _WIN32
@@ -77,7 +77,7 @@ namespace butl
   }
 
   template <>
-  LIBBUTL_EXPORT void path_traits<char>::
+  LIBBUTL_SYMEXPORT void path_traits<char>::
   current_directory (string_type const& s)
   {
 #ifdef _WIN32
@@ -154,7 +154,7 @@ namespace butl
 #endif
 
   template <>
-  LIBBUTL_EXPORT path_traits<char>::string_type path_traits<char>::
+  LIBBUTL_SYMEXPORT path_traits<char>::string_type path_traits<char>::
   temp_directory ()
   {
 #ifdef _WIN32
@@ -171,7 +171,7 @@ namespace butl
   static atomic<size_t> temp_name_count;
 
   template <>
-  LIBBUTL_EXPORT path_traits<char>::string_type path_traits<char>::
+  LIBBUTL_SYMEXPORT path_traits<char>::string_type path_traits<char>::
   temp_name (string_type const& prefix)
   {
     // Otherwise compiler get confused with butl::to_string(timestamp).
@@ -184,7 +184,7 @@ namespace butl
   }
 
   template <>
-  LIBBUTL_EXPORT path_traits<char>::string_type path_traits<char>::
+  LIBBUTL_SYMEXPORT path_traits<char>::string_type path_traits<char>::
   home_directory ()
   {
 #ifndef _WIN32
@@ -207,7 +207,7 @@ namespace butl
 
 #ifndef _WIN32
   template <>
-  LIBBUTL_EXPORT void path_traits<char>::
+  LIBBUTL_SYMEXPORT void path_traits<char>::
   realize (string_type& s)
   {
     char r[PATH_MAX];
@@ -231,7 +231,7 @@ namespace butl
   //
 
   template <>
-  LIBBUTL_EXPORT path_traits<wchar_t>::string_type path_traits<wchar_t>::
+  LIBBUTL_SYMEXPORT path_traits<wchar_t>::string_type path_traits<wchar_t>::
   current_directory ()
   {
 #ifdef _WIN32
@@ -253,7 +253,7 @@ namespace butl
   }
 
   template <>
-  LIBBUTL_EXPORT void path_traits<wchar_t>::
+  LIBBUTL_SYMEXPORT void path_traits<wchar_t>::
   current_directory (string_type const& s)
   {
 #ifdef _WIN32
@@ -281,7 +281,7 @@ namespace butl
   }
 
   template <>
-  LIBBUTL_EXPORT path_traits<wchar_t>::string_type path_traits<wchar_t>::
+  LIBBUTL_SYMEXPORT path_traits<wchar_t>::string_type path_traits<wchar_t>::
   temp_directory ()
   {
 #ifdef _WIN32
@@ -309,7 +309,7 @@ namespace butl
   }
 
   template <>
-  LIBBUTL_EXPORT path_traits<wchar_t>::string_type path_traits<wchar_t>::
+  LIBBUTL_SYMEXPORT path_traits<wchar_t>::string_type path_traits<wchar_t>::
   temp_name (string_type const& prefix)
   {
     return prefix +
@@ -318,7 +318,7 @@ namespace butl
   }
 
   template <>
-  LIBBUTL_EXPORT path_traits<wchar_t>::string_type path_traits<wchar_t>::
+  LIBBUTL_SYMEXPORT path_traits<wchar_t>::string_type path_traits<wchar_t>::
   home_directory ()
   {
 #ifndef _WIN32
@@ -350,7 +350,7 @@ namespace butl
 
 #ifndef _WIN32
   template <>
-  LIBBUTL_EXPORT void path_traits<wchar_t>::
+  LIBBUTL_SYMEXPORT void path_traits<wchar_t>::
   realize (string_type&)
   {
     assert (false); // Implement if/when needed.
@@ -359,7 +359,7 @@ namespace butl
 
 #ifdef _WIN32
   template <>
-  LIBBUTL_EXPORT bool
+  LIBBUTL_SYMEXPORT bool
   basic_path_append_actual_name<char> (string& r,
                                        const string& d,
                                        const string& n)
@@ -387,7 +387,7 @@ namespace butl
   }
 
   template <>
-  LIBBUTL_EXPORT bool
+  LIBBUTL_SYMEXPORT bool
   basic_path_append_actual_name<wchar_t> (wstring&,
                                           const wstring&,
                                           const wstring&)
