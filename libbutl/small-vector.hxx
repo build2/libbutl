@@ -48,6 +48,16 @@ namespace butl
     explicit
     small_vector_allocator (buffer_type* b) noexcept: buf_ (b) {}
 
+    // Required by VC15u3 when _ITERATOR_DEBUG_LEVEL is not 0. It allocates
+    // some extra stuff which cannot possibly come from the static buffer.
+    //
+#if defined(_MSC_VER) && _MSC_VER >= 1911
+    template <typename U>
+    explicit
+    small_vector_allocator (const small_vector_allocator<U, N>&) noexcept
+      : buf_ (nullptr) {}
+#endif
+
     // Allocator interface.
     //
   public:
@@ -56,21 +66,25 @@ namespace butl
     T*
     allocate(std::size_t n)
     {
-      assert (n >= N); // We should never be asked for less than N.
-
-      if (n <= N)
+      if (buf_ != nullptr)
       {
-        buf_->free_ = false;
-        return reinterpret_cast<T*> (buf_->data_);
+        assert (n >= N); // We should never be asked for less than N.
+
+        if (n <= N)
+        {
+          buf_->free_ = false;
+          return reinterpret_cast<T*> (buf_->data_);
+        }
+        // Fall through.
       }
-      else
-        return static_cast<T*> (::operator new (sizeof (T) * n));
+
+      return static_cast<T*> (::operator new (sizeof (T) * n));
     }
 
     void
     deallocate (void* p, std::size_t) noexcept
     {
-      if (p == buf_->data_)
+      if (buf_ != nullptr && p == buf_->data_)
         buf_->free_ = true;
       else
         ::operator delete (p);
