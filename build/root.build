@@ -2,10 +2,11 @@
 # copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
-cxx.std = latest
+cxx.std = experimental
 
 using cxx
 
+mxx{*}: extension = mxx
 hxx{*}: extension = hxx
 ixx{*}: extension = ixx
 txx{*}: extension = txx

@@ -5,6 +5,14 @@
 #ifndef LIBBUTL_EXPORT_HXX
 #define LIBBUTL_EXPORT_HXX
 
+// If we are compiling a module interface, setup the module export.
+//
+#ifdef LIBBUTL_MODULE_BUILD
+#  define LIBBUTL_MODEXPORT export
+#else
+#  define LIBBUTL_MODEXPORT
+#endif
+
 // Normally we don't export class templates (but do complete specializations),
 // inline functions, and classes with only inline member functions. Exporting
 // classes that inherit from non-exported/imported bases (e.g., std::string)
@@ -35,7 +43,7 @@
 // type. Note that this fallback works for both static and shared but in case
 // of shared will be sub-optimal compared to having dllimport.
 //
-#  define LIBBUTL_SYMEXPORT            // Using static or shared.
+#  define LIBBUTL_SYMEXPORT         // Using static or shared.
 #endif
 
 #endif // LIBBUTL_EXPORT_HXX
