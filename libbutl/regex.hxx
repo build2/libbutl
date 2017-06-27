@@ -25,7 +25,7 @@ namespace butl
   // Notes and limitations:
   //
   // - The only valid regex_constants flags are match_default,
-  //   format_first_only (format_no_copy can easily be supported).
+  //   format_first_only and format_no_copy.
   //
   // - If backslash doesn't start any of the listed sequences then it is
   //   silently dropped and the following character is copied as is.

@@ -20,8 +20,8 @@ namespace butl
     using str_it      = typename string_type::const_iterator;
     using regex_it    = regex_iterator<str_it>;
 
-    bool first_only ((flags & std::regex_constants::format_first_only) ==
-                     std::regex_constants::format_first_only);
+    bool first_only ((flags & std::regex_constants::format_first_only) != 0);
+    bool no_copy ((flags & std::regex_constants::format_no_copy) != 0);
 
     locale cl; // Copy of the global C++ locale.
     string_type r;
@@ -41,11 +41,19 @@ namespace butl
       // Copy the preceeding unmatched substring, save the beginning of the
       // one that follows.
       //
-      r.append (ub, m.prefix ().second);
-      ub = m.suffix ().first;
+      if (!no_copy)
+      {
+        r.append (ub, m.prefix ().second);
+        ub = m.suffix ().first;
+      }
 
       if (first_only && i != b)
-        r.append (m[0].first, m[0].second); // Append matched substring.
+      {
+        // Append matched substring.
+        //
+        if (!no_copy)
+          r.append (m[0].first, m[0].second);
+      }
       else
       {
         // The standard implementation calls m.format() here. We perform our
@@ -212,7 +220,11 @@ namespace butl
       }
     }
 
-    r.append (ub, s.end ()); // Append the rightmost non-matched substring.
+    // Append the rightmost non-matched substring.
+    //
+    if (!no_copy)
+      r.append (ub, s.end ());
+
     return make_pair (move (r), match);
   }
 }
