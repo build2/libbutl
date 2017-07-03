@@ -3,7 +3,7 @@
 // license   : MIT; see accompanying LICENSE file
 
 #include <locale>
-#include <cstddef> // size_t
+#include <cstddef> // size_t, _LIBCPP_VERSION
 
 namespace butl
 {
@@ -34,9 +34,25 @@ namespace butl
     regex_it e;
     bool match (b != e);
 
+    // For libc++, the end-of-sequence regex iterator can never be reached
+    // for some regular expressions (LLVM bug #33681). We will check if the
+    // matching sequence start is the same as the one for the previous match
+    // and bail out if that's the case.
+    //
+#if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION <= 4000
+    str_it pm;
+#endif
+
     for (regex_it i (b); i != e; ++i)
     {
       const match_results<str_it>& m (*i);
+
+#if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION <= 4000
+      if (i != b && m[0].first == pm)
+        break;
+
+      pm = m[0].first;
+#endif
 
       // Copy the preceeding unmatched substring, save the beginning of the
       // one that follows.
