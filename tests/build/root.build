@@ -1,4 +1,4 @@
-# file      : build/root.build
+# file      : tests/build/root.build
 # copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
@@ -6,8 +6,13 @@ cxx.std = experimental
 
 using cxx
 
-mxx{*}: extension = mxx
 hxx{*}: extension = hxx
-ixx{*}: extension = ixx
-txx{*}: extension = txx
 cxx{*}: extension = cxx
+
+# Every exe{} in this subproject is by default a test.
+#
+exe{*}: test = true
+
+# Specify the test target for cross-testing.
+#
+test.target = $cxx.target
