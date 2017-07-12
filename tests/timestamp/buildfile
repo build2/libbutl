@@ -2,6 +2,6 @@
 # copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
-exe{driver}: cxx{driver} ../../libbutl/lib{butl}
+exe{driver}: cxx{*} ../../libbutl/lib{butl}
 
 include ../../libbutl/
