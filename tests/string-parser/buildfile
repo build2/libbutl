@@ -2,6 +2,6 @@
 # copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
-exe{driver}: cxx{*} ../../libbutl/lib{butl} test{testscript}
+import libs = libbutl%lib{butl}
 
-include ../../libbutl/
+exe{driver}: cxx{*} $libs test{testscript}
