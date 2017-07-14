@@ -1,4 +1,5 @@
-butl/sha256c.c, butl/strptime.c, butl/timelocal.h, butl/timelocal.c:
+libbutl/sha256c.c, libbutl/strptime.c, libbutl/timelocal.h,
+libbutl/timelocal.c:
 
 2-clause BSD, see the file headers for details.
 
