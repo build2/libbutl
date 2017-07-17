@@ -15,9 +15,7 @@ else
 # (strptime.c timelocal.h timelocal.c), so treat them as files to exclude from
 # the compilation.
 #
-# @@ Change to 'file{*.c *.h}' when supported.
-#
-lib{butl}: file{*.c +*.h}
+lib{butl}: file{*.c *.h}
 
 hxx{version}: in{version} $src_root/file{manifest}
 hxx{version}: dist = true
