@@ -222,8 +222,7 @@ namespace butl
     // the child process. If not NULL, it must contain strings in the
     // "name=value" (set) or "name" (unset) forms and be terminated with
     // NULL. Note that all other variables are inherited from the parent
-    // process. Also note that currently is not supported on Windows so must be
-    // NULL.
+    // process.
     //
     // Throw process_error if anything goes wrong. Note that some of the
     // exceptions (e.g., if exec() failed) can be thrown in the child

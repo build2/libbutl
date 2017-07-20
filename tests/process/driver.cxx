@@ -51,14 +51,12 @@ exec (const path& p,
     // sure that the child process will not see the variable that is requested
     // to be unset, and will see the other one unaffected.
     //
-    // Note that we don't support (un)setting environment variables for the
-    // child process on Windows.
-    //
 #ifndef _WIN32
     assert (setenv ("DEF", "2", 1) == 0);
     assert (setenv ("XYZ", "3", 1) == 0);
 #else
-    assert (false);
+    assert (_putenv ("DEF=2") == 0);
+    assert (_putenv ("XYZ=3") == 0);
 #endif
   }
 
@@ -328,12 +326,7 @@ main (int argc, const char* argv[])
 
   // Passing environment variables to the child process.
   //
-  // Note that we don't support (un)setting environment variables for the
-  // child process on Windows.
-  //
-#ifndef _WIN32
   assert (exec (p, string (), false, false, false, dir_path (), true));
-#endif
 
   // Transmit large binary data through the child.
   //

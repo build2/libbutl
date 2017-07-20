@@ -23,10 +23,12 @@
 #    pragma warning (pop)
 #  endif
 
-#  include <io.h>        // _get_osfhandle(), _close()
-#  include <stdlib.h>    // _MAX_PATH
-#  include <sys/types.h> // stat
-#  include <sys/stat.h>  // stat(), S_IS*
+#  include <io.h>         // _get_osfhandle(), _close()
+#  include <stdlib.h>     // _MAX_PATH
+#  include <sys/types.h>  // stat
+#  include <sys/stat.h>   // stat(), S_IS*
+#  include <processenv.h> // GetEnvironmentStringsA(),
+                          // FreeEnvironmentStringsA()
 
 #  ifdef _MSC_VER // Unlikely to be fixed in newer versions.
 #    define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
@@ -47,7 +49,7 @@
 #include <ios>      // ios_base::failure
 #include <cassert>
 #include <cstddef>  // size_t
-#include <cstring>  // strlen(), strchr()
+#include <cstring>  // strlen(), strchr(), strncmp()
 #include <utility>  // move()
 #include <ostream>
 
@@ -944,10 +946,87 @@ namespace butl
            const char* cwd,
            const char* const* envvars)
   {
-    // Currently we don't support (un)setting environment variables for the
-    // child process.
+    auto fail = [] (const char* m = nullptr)
+    {
+      throw process_error (m == nullptr ? last_error_msg () : m);
+    };
+
+    // (Un)set the environment variables for the child process.
     //
-    assert (envvars == nullptr);
+    // Note that we can not do it incrementally, as for POSIX implementation.
+    // Instead we need to create the full environment block and pass it to the
+    // CreateProcess() function call. So we will copy variables from the
+    // environment block of the current process, but only those that are not
+    // requested to be (un)set. After that we will additionally copy variables
+    // that need to be set.
+    //
+    vector<char> new_env;
+
+    if (envvars != nullptr)
+    {
+      // The environment block contains the variables in the following format:
+      //
+      // name=value\0...\0
+      //
+      // Note the trailing NULL character that follows the last variable
+      // (null-terminated) string.
+      //
+      unique_ptr<char, void (*)(char*)> cvars (
+        GetEnvironmentStringsA (),
+        [] (char* p)
+        {
+          // We should be able to successfully free the valid environment
+          // variables memory block, unless something is severely damaged.
+          //
+          if (p != nullptr && !FreeEnvironmentStringsA (p))
+            assert (false);
+        });
+
+      if (cvars.get () == nullptr)
+        fail ();
+
+      const char* cv (cvars.get ());
+
+      // Copy the current environment variables.
+      //
+      while (*cv != '\0')
+      {
+        // Lookup the existing variable among those that are requested to be
+        // (un)set. If not present, than copy it to the new block.
+        //
+        // Note that we don't expect the number of variables to (un)set to be
+        // large, so the linear search is OK.
+        //
+        size_t n (strlen (cv) + 1); // Includes NULL character.
+
+        const char* eq (strchr (cv, '='));
+        size_t nn (eq != nullptr ? eq - cv : n - 1);
+        const char* const* ev (envvars);
+
+        for (; *ev != nullptr; ++ev)
+        {
+          const char* v (*ev);
+          if (strncmp (cv, v, nn) == 0 && (v[nn] == '=' || v[nn] == '\0'))
+            break;
+        }
+
+        if (*ev == nullptr)
+          new_env.insert (new_env.end (), cv, cv + n);
+
+        cv += n;
+      }
+
+      // Copy the environment variables that are requested to be set.
+      //
+      for (const char* const* ev (envvars); *ev != nullptr; ++ev)
+      {
+        const char* v (*ev);
+        if (strchr (v, '=') != nullptr)
+          new_env.insert (new_env.end (), v, v + strlen (v) + 1);
+      }
+
+      new_env.push_back ('\0'); // Terminate the new environment block.
+    }
 
     // Figure out if this is a batch file since running them requires starting
     // cmd.exe and passing the batch file as an argument (see CreateProcess()
@@ -989,11 +1068,6 @@ namespace butl
         //
         throw process_error (EMFILE);
       }
-    };
-
-    auto fail = [](const char* m = nullptr)
-    {
-      throw process_error (m == nullptr ? last_error_msg () : m);
     };
 
     auto open_null = [] () -> auto_fd
@@ -1315,7 +1389,7 @@ namespace butl
               0,    // Primary thread security attributes.
               true, // Inherit handles.
               0,    // Creation flags.
-              0,    // Use our environment.
+              envvars != nullptr ? new_env.data () : nullptr,
               cwd != nullptr && *cwd != '\0' ? cwd : nullptr,
               &si,
               &pi))
