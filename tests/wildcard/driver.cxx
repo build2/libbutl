@@ -65,6 +65,8 @@ int
 main (int argc, const char* argv[])
 try
 {
+  using butl::optional;
+
   assert (argc >= 2);
 
   string op (argv[1]);
