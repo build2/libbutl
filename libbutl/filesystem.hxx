@@ -157,21 +157,22 @@ namespace butl
   LIBBUTL_SYMEXPORT rmfile_status
   try_rmfile (const path&, bool ignore_error = false);
 
-  // Automatically try to remove the path on destruction unless cancelled.
-  // Since the non-cancelled destruction will normally happen as a result
-  // of an exception, the failure to remove the path is silently ignored.
+  // Automatically try to remove a non-empty the path on destruction unless
+  // cancelled. Since the non-cancelled destruction will normally happen as a
+  // result of an exception, the failure to remove the path is silently
+  // ignored.
   //
   template <typename P>
   struct auto_rm
   {
+    P path;
+    bool active;
+
     explicit
-    auto_rm (P p = P ()): path_ (std::move (p)) {}
+    auto_rm (P p = P (), bool a = true): path (std::move (p)), active (a) {}
 
     void
-    cancel () {path_ = P ();}
-
-    const P&
-    path () const {return path_;}
+    cancel () {active = false;}
 
     // Movable-only type. Move-assignment cancels the lhs object.
     //
@@ -181,9 +182,6 @@ namespace butl
     auto_rm& operator= (const auto_rm&) = delete;
 
     ~auto_rm ();
-
-  private:
-    P path_;
   };
 
   using auto_rmfile = auto_rm<path>;

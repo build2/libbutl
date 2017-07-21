@@ -44,9 +44,9 @@ namespace butl
   template <typename P>
   inline auto_rm<P>::
   auto_rm (auto_rm&& x)
-      : path_ (std::move (x.path_))
+      : path (std::move (x.path)), active (x.active)
   {
-    x.cancel ();
+    x.active = false;
   }
 
   template <typename P>
@@ -55,8 +55,9 @@ namespace butl
   {
     if (this != &x)
     {
-      path_ = std::move (x.path_);
-      x.cancel ();
+      path = std::move (x.path);
+      active = x.active;
+      x.active = false;
     }
 
     return *this;
@@ -64,11 +65,11 @@ namespace butl
 
   template <>
   inline auto_rm<path>::
-  ~auto_rm () {if (!path_.empty ()) try_rmfile (path_, true);}
+  ~auto_rm () {if (active && !path.empty ()) try_rmfile (path, true);}
 
   template <>
   inline auto_rm<dir_path>::
-  ~auto_rm () {if (!path_.empty ()) try_rmdir_r (path_, true);}
+  ~auto_rm () {if (active && !path.empty ()) try_rmdir_r (path, true);}
 
   // cpflags
   //
