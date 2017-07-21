@@ -4,7 +4,7 @@
 
 #include <libbutl/regex.hxx>
 
-#if defined(_MSC_VER) && _MSC_VER <= 1910
+#if defined(_MSC_VER) && _MSC_VER <= 1911
 #  include <cstring> // strstr()
 #endif
 
@@ -27,7 +27,7 @@ namespace std
   {
     const char* d (e.what ());
 
-#if defined(_MSC_VER) && _MSC_VER <= 1910
+#if defined(_MSC_VER) && _MSC_VER <= 1911
     const char* rd (strstr (d, "): "));
     if (rd != nullptr)
       d = rd + 3;

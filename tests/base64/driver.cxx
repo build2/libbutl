@@ -26,7 +26,7 @@ encode (const string& i, const string& o)
 
     // VC15 seekg() doesn't clear eofbit.
     //
-#if defined(_MSC_VER) && _MSC_VER <= 1910
+#if defined(_MSC_VER) && _MSC_VER <= 1911
     is.clear ();
 #endif
 
