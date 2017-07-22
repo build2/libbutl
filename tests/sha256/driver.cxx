@@ -26,18 +26,31 @@ main ()
   assert (string (sha256 ("123", 3).string ()) ==
           "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3");
 
-  sha256 h;
-  h.append ("1");
-  h.append (string ("2"));
-  h.append ("3", 1);
+  {
+    sha256 h;
+    h.append ("1");
+    h.append (string ("2"));
+    h.append ("3", 1);
 
-  auto& b (h.binary ());
-  assert (b[0] == 0x20 && b[31] == 0x9d);
+    auto& b (h.binary ());
+    assert (b[0] == 0x20 && b[31] == 0x9d);
 
-  string s (h.string ());
-  assert (s ==
-          "204d9db65789fbede7829ed77f72ba1f0fe21a833d95abad4849b82f33a69b9d");
+    string s (h.string ());
+    assert (s ==
+            "204d9db65789fbede7829ed77f72ba1f0fe21a833d95abad4849b82f33a69b9d");
+  }
 
+  // Test fast path.
+  //
+  {
+    char c ('X');
+    sha256 h;
+    h.append (c);
+    assert (string (h.string ()) == sha256 (&c, 1).string ());
+  }
+
+  //
+  //
   string fp ("F4:9D:C0:02:C6:B6:62:06:A5:48:AE:87:35:32:95:64:C2:B8:C9:6D:9B:"
              "28:85:6D:EF:CA:FA:7F:04:B5:4F:A6");
 

@@ -6,9 +6,10 @@
 #define LIBBUTL_SHA256_HXX
 
 #include <string>
-#include <cstring> // strlen()
+#include <cstring>     // strlen(), memcpy()
 #include <cstdint>
-#include <cstddef> // size_t
+#include <cstddef>     // size_t
+#include <type_traits> // enable_if, is_integral
 
 #include <libbutl/export.hxx>
 
@@ -49,6 +50,39 @@ namespace butl
 
     explicit
     sha256 (const char* s): sha256 () {append (s);}
+
+    // Append an integral type with a fast path optimization (see
+    // SHA256_Update() for details).
+    //
+    void
+    append (char c)
+    {
+      std::uint32_t r ((ctx_.count >> 3) & 0x3f);
+
+      if (1 < 64 - r)
+      {
+        ctx_.buf[r] = static_cast<std::uint8_t> (c);
+        ctx_.count += 8;
+      }
+      else
+        append (&c, 1);
+    }
+
+    template <typename T>
+    typename std::enable_if<std::is_integral<T>::value>::type
+    append (T x)
+    {
+      const std::size_t len (sizeof (x));
+      std::uint32_t r ((ctx_.count >> 3) & 0x3f);
+
+      if (len < 64 - r)
+      {
+        std::memcpy (&ctx_.buf[r], &x, sizeof (x));
+        ctx_.count += len << 3;
+      }
+      else
+        append (&x, len);
+    }
 
     // Extract result.
     //
