@@ -104,6 +104,14 @@ namespace butl
   bool
   file_empty (const path&);
 
+  // Set the file access and modification times to the current time. If the
+  // file does not exist and create is true, create it and fail otherwise.
+  // Return true if the file was created and false otherwise. Errors are
+  // reported by throwing std::system_error.
+  //
+  LIBBUTL_SYMEXPORT bool
+  touch_file (const path&, bool create = true);
+
   // Try to create a directory unless it already exists. If you expect
   // the directory to exist and performance is important, then you
   // should first call dir_exists() above since that's what this

@@ -6,6 +6,7 @@
 
 #ifndef _WIN32
 #  include <stdio.h>     // rename()
+#  include <utime.h>     // utime()
 #  include <dirent.h>    // struct dirent, *dir()
 #  include <unistd.h>    // symlink(), link(), stat(), rmdir(), unlink()
 #  include <sys/time.h>  // utimes()
@@ -18,6 +19,7 @@
 #  include <direct.h>    // _mkdir(), _rmdir()
 #  include <sys/types.h> // _stat
 #  include <sys/stat.h>  // _stat(), S_I*
+#  include <sys/utime.h> // _utime()
 
 #  ifdef _MSC_VER // Unlikely to be fixed in newer versions.
 #    define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
@@ -152,6 +154,33 @@ namespace butl
     return make_pair (true, entry_stat {et, es});
   }
 #endif
+
+  bool
+  touch_file (const path& p, bool create)
+  {
+    if (file_exists (p))
+    {
+#ifndef _WIN32
+      if (utime  (p.string ().c_str (), nullptr) == -1)
+#else
+      if (_utime (p.string ().c_str (), nullptr) == -1)
+#endif
+        throw_generic_error (errno);
+
+      return false;
+    }
+
+    if (create && !entry_exists (p))
+    {
+      // Assuming the file access and modification times are set to the
+      // current time automatically.
+      //
+      fdopen (p, fdopen_mode::out | fdopen_mode::create);
+      return true;
+    }
+
+    throw_generic_error (ENOENT); // Does not exist or not a file.
+  }
 
   mkdir_status
 #ifndef _WIN32
