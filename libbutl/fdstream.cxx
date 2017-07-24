@@ -881,22 +881,22 @@ namespace butl
        : fdstream_mode::blocking);
   }
 
-  fdstream_mode
-  stdin_fdmode (fdstream_mode m)
+  int
+  stdin_fd ()
   {
-    return fdmode (STDIN_FILENO, m);
+    return STDIN_FILENO;
   }
 
-  fdstream_mode
-  stdout_fdmode (fdstream_mode m)
+  int
+  stdout_fd ()
   {
-    return fdmode (STDOUT_FILENO, m);
+    return STDOUT_FILENO;
   }
 
-  fdstream_mode
-  stderr_fdmode (fdstream_mode m)
+  int
+  stderr_fd ()
   {
-    return fdmode (STDERR_FILENO, m);
+    return STDERR_FILENO;
   }
 
   fdpipe
@@ -1064,34 +1064,34 @@ namespace butl
        : fdstream_mode::text);
   }
 
-  fdstream_mode
-  stdin_fdmode (fdstream_mode m)
+  int
+  stdin_fd ()
   {
     int fd (_fileno (stdin));
     if (fd == -1)
       throw_ios_failure (errno);
 
-    return fdmode (fd, m);
+    return fd;
   }
 
-  fdstream_mode
-  stdout_fdmode (fdstream_mode m)
+  int
+  stdout_fd ()
   {
     int fd (_fileno (stdout));
     if (fd == -1)
       throw_ios_failure (errno);
 
-    return fdmode (fd, m);
+    return fd;
   }
 
-  fdstream_mode
-  stderr_fdmode (fdstream_mode m)
+  int
+  stderr_fd ()
   {
     int fd (_fileno (stderr));
     if (fd == -1)
       throw_ios_failure (errno);
 
-    return fdmode (fd, m);
+    return fd;
   }
 
   fdpipe

@@ -286,4 +286,24 @@ namespace butl
       static_cast<std::uint16_t> (x) |
       static_cast<std::uint16_t> (y));
   }
+
+  // std*_fdmode()
+  //
+  inline fdstream_mode
+  stdin_fdmode (fdstream_mode m)
+  {
+    return fdmode (stdin_fd (), m);
+  }
+
+  inline fdstream_mode
+  stdout_fdmode (fdstream_mode m)
+  {
+    return fdmode (stdout_fd (), m);
+  }
+
+  inline fdstream_mode
+  stderr_fdmode (fdstream_mode m)
+  {
+    return fdmode (stderr_fd (), m);
+  }
 }
