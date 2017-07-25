@@ -49,7 +49,7 @@
 #include <ios>      // ios_base::failure
 #include <cassert>
 #include <cstddef>  // size_t
-#include <cstring>  // strlen(), strchr(), strncmp()
+#include <cstring>  // strlen(), strchr()
 #include <utility>  // move()
 #include <ostream>
 
@@ -994,8 +994,10 @@ namespace butl
         // Lookup the existing variable among those that are requested to be
         // (un)set. If not present, than copy it to the new block.
         //
-        // Note that we don't expect the number of variables to (un)set to be
-        // large, so the linear search is OK.
+        // Note that on Windows variable names are case-insensitive.
+        //
+        // Alse note that we don't expect the number of variables to (un)set
+        // to be large, so the linear search is OK.
         //
         size_t n (strlen (cv) + 1); // Includes NULL character.
 
@@ -1006,7 +1008,7 @@ namespace butl
         for (; *ev != nullptr; ++ev)
         {
           const char* v (*ev);
-          if (strncmp (cv, v, nn) == 0 && (v[nn] == '=' || v[nn] == '\0'))
+          if (casecmp (cv, v, nn) == 0 && (v[nn] == '=' || v[nn] == '\0'))
             break;
         }
 
