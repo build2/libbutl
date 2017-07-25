@@ -1133,7 +1133,23 @@ namespace std
     size_t
     operator() (const butl::basic_path<C, K>& p) const noexcept
     {
+#ifndef _WIN32
       return hash<basic_string<C>>::operator() (p.string ());
+#else
+      // Case-insensitive FNV hash.
+      //
+      const auto& s (p.string ());
+
+      size_t hash (static_cast<size_t> (2166136261UL));
+      for (size_t i (0), n (s.size ()); i != n; ++i)
+      {
+        hash ^= static_cast<size_t> (butl::lcase (s[i]));
+        hash *= sizeof (size_t) == 4
+          ? static_cast<size_t>(16777619UL)
+          : static_cast<size_t>(1099511628211ULL);
+      }
+      return hash;
+#endif
     }
   };
 }
