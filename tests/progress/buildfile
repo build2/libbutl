@@ -1,5 +1,7 @@
-# file      : tests/buildfile
+# file      : tests/progress/buildfile
 # copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
-./: {*/ -build/ -curl/ -openssl/ -sendmail/ -progress/}
+import libs = libbutl%lib{butl}
+
+exe{driver}: {hxx cxx}{*} $libs

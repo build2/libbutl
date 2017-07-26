@@ -23,8 +23,8 @@ namespace butl
   // Diagnostics destination stream (std::cerr by default). Note that its
   // modification is not MT-safe. Also note that concurrent writing to the
   // stream from multiple threads can result in interleaved characters. To
-  // prevent this an object of diag_lock type (see below) must be created prior
-  // to write operation.
+  // prevent this an object of diag_stream_lock type (see below) must be
+  // created prior to write operation.
   //
   LIBBUTL_SYMEXPORT extern std::ostream* diag_stream;
 
@@ -32,12 +32,51 @@ namespace butl
   // An object of the type must be created prior to writing to diag_stream (see
   // above).
   //
-  struct LIBBUTL_SYMEXPORT diag_lock
+  struct LIBBUTL_SYMEXPORT diag_stream_lock
   {
-    diag_lock ();
-    ~diag_lock ();
+    diag_stream_lock ();
+    ~diag_stream_lock ();
+
+    // Support for one-liners, for example:
+    //
+    // diag_stream_lock () << "Hello, World!" << endl;
+    //
+    template <typename T>
+    std::ostream&
+    operator<< (const T& x) const
+    {
+      return *diag_stream << x;
+    }
   };
 
+  // Progress line facility.
+  //
+  // The idea is to keep a progress line at the bottom of the terminal with
+  // other output scrolling above it. The printing of the progress line is
+  // integrated into diag_stream_lock and diag_progress_lock. To print or
+  // update the progress acquire diag_progress_lock and update the
+  // diag_progress string. To remove the progress line, set this string to
+  // empty. For better readability start the progress line with a space
+  // (which is where the cursor will be parked). Should only be used if
+  // diag_stream points to std::cerr.
+  //
+  // Note that child processes writing to the same stream may not completely
+  // overwrite the progress line so in this case it makes sense to keep the
+  // line as short as possible.
+  //
+  // To restore the progress line being overwritten by an independent writer
+  // (such as a child process), create and destroy the diag_progress_lock.
+  //
+  LIBBUTL_SYMEXPORT extern std::string diag_progress;
+
+  struct LIBBUTL_SYMEXPORT diag_progress_lock
+  {
+    diag_progress_lock ();
+    ~diag_progress_lock ();
+  };
+
+  //
+  //
   struct diag_record;
   template <typename> struct diag_prologue;
   template <typename> struct diag_mark;
@@ -47,11 +86,11 @@ namespace butl
   struct LIBBUTL_SYMEXPORT diag_record
   {
     template <typename T>
-    friend const diag_record&
-    operator<< (const diag_record& r, const T& x)
+    const diag_record&
+    operator<< (const T& x) const
     {
-      r.os << x;
-      return r;
+      os << x;
+      return *this;
     }
 
     diag_record ()

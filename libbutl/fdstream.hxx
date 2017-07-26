@@ -596,6 +596,8 @@ namespace butl
   fdmode (int, fdstream_mode);
 
   // Portable functions for obtaining file descriptors of standard streams.
+  // Throw ios::failure on the underlying OS error.
+  //
   // Note that you normally wouldn't want to close them using fddup() to
   // convert them to auto_fd, for example:
   //

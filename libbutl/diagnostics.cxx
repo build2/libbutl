@@ -4,8 +4,22 @@
 
 #include <libbutl/diagnostics.hxx>
 
+#ifndef _WIN32
+#  include <unistd.h> // write()
+#else
+#  include <libbutl/win32-utility.hxx>
+
+#  include <io.h> //_write()
+#endif
+
+#include <ios>      // ios::failure
 #include <mutex>
+#include <string>
+#include <cassert>
+#include <cstddef>  // size_t
 #include <iostream> // cerr
+
+#include <libbutl/fdstream.hxx> // stderr_fd()
 
 using namespace std;
 
@@ -15,13 +29,82 @@ namespace butl
 
   static mutex diag_mutex;
 
-  diag_lock::diag_lock ()
+  string diag_progress;
+  static string diag_progress_blank; // Being printed blanks out the line.
+  static size_t diag_progress_size;  // Size of the last printed progress.
+
+  // Print the progress string to STDERR. Ignore underlying OS errors (this is
+  // a progress bar after all, and throwing from dtors wouldn't be nice). Must
+  // be called with the diag_mutex being aquired.
+  //
+  // Note that the output will not interleave with that of independent writers,
+  // given that the printed strings are not longer than PIPE_BUF for POSIX
+  // (which is at least 512 bytes on all platforms).
+  //
+  // @@ Is there any atomicity guarantees on Windows?
+  //
+  static inline void
+  progress_print (string& s)
   {
+    // If the new progress string is shorter than the printed one, then we will
+    // complement it with the required number of spaces (to overwrite the
+    // trailing junk) prior to printing, and restore it afterwards.
+    //
+    size_t n (s.size ());
+
+    if (n < diag_progress_size)
+      s.append (diag_progress_size - n, ' ');
+
+    if (!s.empty ())
+    {
+      s += '\r'; // Position the cursor at the beginning of the line.
+
+      try
+      {
+#ifndef _WIN32
+        write (stderr_fd(), s.c_str (), s.size ());
+#else
+        _write (stderr_fd(), s.c_str (), static_cast<unsigned int> (s.size ()));
+#endif
+      }
+      catch (const ios::failure&) {}
+
+      s.resize (n);           // Restore the progress string.
+      diag_progress_size = n; // Save the size of the printed progress string.
+    }
+  }
+
+  diag_stream_lock::diag_stream_lock ()
+  {
+    diag_mutex.lock ();
+
+    // If diagnostics shares the output stream with the progress bar, then
+    // blank out the line prior to printing the diagnostics, if required.
+    //
+    if (diag_stream == &cerr && diag_progress_size != 0)
+      progress_print (diag_progress_blank);
+  }
+
+  diag_stream_lock::~diag_stream_lock ()
+  {
+    // If diagnostics shares output stream with the progress bar, then reprint
+    // the current progress string, that was overwritten with the diagnostics.
+    //
+    if (diag_stream == &cerr && !diag_progress.empty ())
+      progress_print (diag_progress);
+
+    diag_mutex.unlock ();
+  }
+
+  diag_progress_lock::diag_progress_lock ()
+  {
+    assert (diag_stream == &cerr);
     diag_mutex.lock ();
   }
 
-  diag_lock::~diag_lock ()
+  diag_progress_lock::~diag_progress_lock ()
   {
+    progress_print (diag_progress);
     diag_mutex.unlock ();
   }
 
@@ -33,11 +116,7 @@ namespace butl
       if (epilogue_ == nullptr)
       {
         os.put ('\n');
-
-        {
-          diag_lock l;
-          *diag_stream << os.str ();
-        }
+        diag_stream_lock () << os.str ();
 
         // We can endup flushing the result of several writes. The last one may
         // possibly be incomplete, but that's not a problem as it will also be
