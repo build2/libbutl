@@ -70,10 +70,14 @@ main (int argc, const char* argv[])
     auto print = [] (const string& s)
     {
 #ifndef _WIN32
-      write (stderr_fd(), s.c_str (), s.size ());
+      ssize_t r (write (stderr_fd(), s.c_str (), s.size ()));
 #else
-      _write (stderr_fd(), s.c_str (), static_cast<unsigned int> (s.size ()));
+      int r (_write (stderr_fd(),
+                     s.c_str (),
+                     static_cast<unsigned int> (s.size ())));
 #endif
+
+      assert (r != -1);
     };
 
     for (size_t i (50); i != 0; --i)
@@ -89,7 +93,7 @@ main (int argc, const char* argv[])
   //    warns about calls ambiguity).
   //
   process pr (!no_child
-              ? process_start (fdnull (), fdnull (), stderr_fd (),
+              ? process_start (fdnull (), fdnull (), 2,
                                process_env (argv[0]), "-c")
               : process (process_exit (0))); // Exited normally.
 

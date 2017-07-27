@@ -77,7 +77,8 @@ namespace butl
               const recipients_type& bcc,
               O&&... options);
 
-    // Version with the command line callback (see process_run() for details).
+    // Version with the command line callback (see process_run_callback() for
+    // details).
     //
     template <typename C, typename E>
     sendmail (const C&,

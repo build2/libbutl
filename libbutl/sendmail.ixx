@@ -62,14 +62,14 @@ namespace butl
     fdpipe pipe (fdopen_pipe ()); // Text mode seems appropriate.
 
     process& p (*this);
-    p = process_start (cmdc,
-                       pipe.in,
-                       2, // No output expected so redirect to stderr.
-                       std::forward<E> (err),
-                       "sendmail",
-                       "-i", // Don't treat '.' as the end of input.
-                       "-t", // Read recipients from headers.
-                       std::forward<O> (options)...);
+    p = process_start_callback (cmdc,
+                                pipe.in,
+                                2, // No output expected so redirect to stderr.
+                                std::forward<E> (err),
+                                "sendmail",
+                                "-i", // Don't treat '.' as the end of input.
+                                "-t", // Read recipients from headers.
+                                std::forward<O> (options)...);
 
     // Close the reading end of the pipe not to block on writing if sendmail
     // terminates before that.

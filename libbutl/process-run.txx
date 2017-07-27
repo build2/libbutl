@@ -108,12 +108,12 @@ namespace butl
             typename E,
             typename... A>
   inline process
-  process_start (const C& cmdc,
-                 I&& in,
-                 O&& out,
-                 E&& err,
-                 const process_env& env,
-                 A&&... args)
+  process_start_callback (const C& cmdc,
+                          I&& in,
+                          O&& out,
+                          E&& err,
+                          const process_env& env,
+                          A&&... args)
   {
     return process_start (std::index_sequence_for<A...> (),
                           cmdc,
@@ -135,12 +135,12 @@ namespace butl
                  const process_env& env,
                  A&&... args)
   {
-    return process_start ([] (const char* [], std::size_t) {},
-                          std::forward<I> (in),
-                          std::forward<O> (out),
-                          std::forward<E> (err),
-                          env,
-                          std::forward<A> (args)...);
+    return process_start_callback ([] (const char* [], std::size_t) {},
+                                   std::forward<I> (in),
+                                   std::forward<O> (out),
+                                   std::forward<E> (err),
+                                   env,
+                                   std::forward<A> (args)...);
   }
 
   template <typename C,
@@ -149,20 +149,20 @@ namespace butl
             typename E,
             typename... A>
   inline process_exit
-  process_run (const C& cmdc,
-               I&& in,
-               O&& out,
-               E&& err,
-               const process_env& env,
-               A&&... args)
+  process_run_callback (const C& cmdc,
+                        I&& in,
+                        O&& out,
+                        E&& err,
+                        const process_env& env,
+                        A&&... args)
   {
     process pr (
-      process_start (cmdc,
-                     std::forward<I> (in),
-                     std::forward<O> (out),
-                     std::forward<E> (err),
-                     env,
-                     std::forward<A> (args)...));
+      process_start_callback (cmdc,
+                              std::forward<I> (in),
+                              std::forward<O> (out),
+                              std::forward<E> (err),
+                              env,
+                              std::forward<A> (args)...));
 
     pr.wait ();
     return *pr.exit;
@@ -179,11 +179,11 @@ namespace butl
                const process_env& env,
                A&&... args)
   {
-    return process_run ([] (const char* [], std::size_t) {},
-                        std::forward<I> (in),
-                        std::forward<O> (out),
-                        std::forward<E> (err),
-                        env,
-                        std::forward<A> (args)...);
+    return process_run_callback ([] (const char* [], std::size_t) {},
+                                 std::forward<I> (in),
+                                 std::forward<O> (out),
+                                 std::forward<E> (err),
+                                 env,
+                                 std::forward<A> (args)...);
   }
 }

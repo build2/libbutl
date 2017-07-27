@@ -397,7 +397,7 @@ namespace butl
   // read from /dev/null, stdout redirect to stderr, and inherit the parent's
   // stderr.
   //
-  // process_run (..., fdnull (), 2, 2, ...)
+  // process_run (fdnull (), 2, 2, ...)
   //
   // The P argument is the program path. It can be anything that can be passed
   // to process::path_search() (const char*, std::string, path) or the
@@ -504,12 +504,12 @@ namespace butl
             typename E,
             typename... A>
   process_exit
-  process_run (const C&,
-               I&& in,
-               O&& out,
-               E&& err,
-               const process_env&,
-               A&&... args);
+  process_run_callback (const C&,
+                        I&& in,
+                        O&& out,
+                        E&& err,
+                        const process_env&,
+                        A&&... args);
 
   // Versions that start the process without waiting.
   //
@@ -530,12 +530,12 @@ namespace butl
             typename E,
             typename... A>
   process
-  process_start (const C&,
-                 I&& in,
-                 O&& out,
-                 E&& err,
-                 const process_env&,
-                 A&&... args);
+  process_start_callback (const C&,
+                          I&& in,
+                          O&& out,
+                          E&& err,
+                          const process_env&,
+                          A&&... args);
 
   // Conversion of types to their C string representations. Can be overloaded
   // (including via ADL) for custom types. The default implementation calls

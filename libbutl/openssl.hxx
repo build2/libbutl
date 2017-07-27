@@ -96,7 +96,8 @@ namespace butl
              const std::string& command,
              A&&... options);
 
-    // Version with the command line callback (see process_run() for details).
+    // Version with the command line callback (see process_run_callback() for
+    // details).
     //
     template <typename C,
               typename I,

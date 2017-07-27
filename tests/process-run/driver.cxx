@@ -65,14 +65,14 @@ main (int argc, const char* argv[])
   assert (run (0, 1, 2, p));
   assert (run (0, 1, 2, p, "-c"));
 
-  process_run ([] (const char* c[], size_t n)
-               {
-                 process::print (cout, c, n);
-                 cout << endl;
-               },
-               0, 1, 2,
-               p,
-               "-c");
+  process_run_callback ([] (const char* c[], size_t n)
+                        {
+                          process::print (cout, c, n);
+                          cout << endl;
+                        },
+                        0, 1, 2,
+                        p,
+                        "-c");
 
   // Stream conversion and redirection.
   //

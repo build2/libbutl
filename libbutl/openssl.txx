@@ -38,15 +38,15 @@ namespace butl
     io_data out_data;
 
     process& p (*this);
-    p = process_start (cmdc,
-                       map_in  (std::forward<I> (in),  in_data),
-                       map_out (std::forward<O> (out), out_data),
-                       std::forward<E> (err),
-                       env,
-                       command,
-                       in_data.options,
-                       out_data.options,
-                       std::forward<A> (options)...);
+    p = process_start_callback (cmdc,
+                                map_in  (std::forward<I> (in),  in_data),
+                                map_out (std::forward<O> (out), out_data),
+                                std::forward<E> (err),
+                                env,
+                                command,
+                                in_data.options,
+                                out_data.options,
+                                std::forward<A> (options)...);
 
     // Note: leaving this scope closes any open ends of the pipes in io_data.
   }

@@ -79,7 +79,7 @@ namespace butl
     io_data out_data;
 
     process& p (*this);
-    p = process_start (
+    p = process_start_callback (
       cmdc,
       map_in  (std::forward<I> (in),  mp, in_data),
       map_out (std::forward<O> (out), mp, out_data),
