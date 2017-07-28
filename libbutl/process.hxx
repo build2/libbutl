@@ -313,8 +313,14 @@ namespace butl
     // This, for example, can be used to implement the Windows "search in the
     // parent executable's directory" semantics across platforms.
     //
+    // If path_only is true then only search in the PATH environment variable
+    // (or in CWD if there is a directory component) ignorting other places
+    // (like calling process' directory and, gasp, CWD on Windows).
+    //
     static process_path
-    path_search (const char*& args0, const dir_path& fallback = dir_path ());
+    path_search (const char*& args0,
+                 const dir_path& fallback = dir_path (),
+                 bool path_only = false);
 
     // This version is primarily useful when you want to pre-search the
     // executable before creating the args[] array. In this case you will
@@ -330,25 +336,31 @@ namespace butl
     // the same).
     //
     static process_path
-    path_search (const char* file, bool init, const dir_path& = dir_path ());
+    path_search (const char* file, bool init,
+                 const dir_path& = dir_path (), bool = false);
 
     static process_path
-    path_search (const std::string&, bool, const dir_path& = dir_path ());
+    path_search (const std::string&, bool,
+                 const dir_path& = dir_path (), bool = false);
 
     static process_path
-    path_search (const path&, bool, const dir_path& = dir_path ());
+    path_search (const path&, bool,
+                 const dir_path& = dir_path (), bool = false);
 
     // As above but if not found return empty process_path instead of
     // throwing.
     //
     static process_path
-    try_path_search (const char*, bool, const dir_path& = dir_path ());
+    try_path_search (const char*, bool,
+                     const dir_path& = dir_path (), bool = false);
 
     static process_path
-    try_path_search (const std::string&, bool, const dir_path& = dir_path ());
+    try_path_search (const std::string&, bool,
+                     const dir_path& = dir_path (), bool = false);
 
     static process_path
-    try_path_search (const path&, bool, const dir_path& = dir_path ());
+    try_path_search (const path&, bool,
+                     const dir_path& = dir_path (), bool = false);
 
     // Print process commmand line. If the number of elements is specified,
     // then it will print the piped multi-process command line, if present.

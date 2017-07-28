@@ -90,9 +90,9 @@ namespace butl
 #endif
 
   inline process_path process::
-  path_search (const char*& a0, const dir_path& fb)
+  path_search (const char*& a0, const dir_path& fb, bool po)
   {
-    process_path r (path_search (a0, true, fb));
+    process_path r (path_search (a0, true, fb, po));
 
     if (!r.recall.empty ())
     {
@@ -104,27 +104,27 @@ namespace butl
   }
 
   inline process_path process::
-  path_search (const std::string& f, bool i, const dir_path& fb)
+  path_search (const std::string& f, bool i, const dir_path& fb, bool po)
   {
-    return path_search (f.c_str (), i, fb);
+    return path_search (f.c_str (), i, fb, po);
   }
 
   inline process_path process::
-  path_search (const path& f, bool i, const dir_path& fb)
+  path_search (const path& f, bool i, const dir_path& fb, bool po)
   {
-    return path_search (f.string ().c_str (), i, fb);
+    return path_search (f.string ().c_str (), i, fb, po);
   }
 
   inline process_path process::
-  try_path_search (const std::string& f, bool i, const dir_path& fb)
+  try_path_search (const std::string& f, bool i, const dir_path& fb, bool po)
   {
-    return try_path_search (f.c_str (), i, fb);
+    return try_path_search (f.c_str (), i, fb, po);
   }
 
   inline process_path process::
-  try_path_search (const path& f, bool i, const dir_path& fb)
+  try_path_search (const path& f, bool i, const dir_path& fb, bool po)
   {
-    return try_path_search (f.string ().c_str (), i, fb);
+    return try_path_search (f.string ().c_str (), i, fb, po);
   }
 
   inline process::

@@ -72,12 +72,12 @@ namespace butl
   // process
   //
   static process_path
-  path_search (const char*, const dir_path&);
+  path_search (const char*, const dir_path&, bool);
 
   process_path process::
-  path_search (const char* f, bool init, const dir_path& fb)
+  path_search (const char* f, bool init, const dir_path& fb, bool po)
   {
-    process_path r (try_path_search (f, init, fb));
+    process_path r (try_path_search (f, init, fb, po));
 
     if (r.empty ())
       throw process_error (ENOENT);
@@ -86,9 +86,9 @@ namespace butl
   }
 
   process_path process::
-  try_path_search (const char* f, bool init, const dir_path& fb)
+  try_path_search (const char* f, bool init, const dir_path& fb, bool po)
   {
-    process_path r (butl::path_search (f, fb));
+    process_path r (butl::path_search (f, fb, po));
 
     if (!init && !r.empty ())
     {
@@ -150,7 +150,7 @@ namespace butl
 #ifndef _WIN32
 
   static process_path
-  path_search (const char* f, const dir_path& fb)
+  path_search (const char* f, const dir_path& fb, bool)
   {
     // Note that there is a similar version for Win32.
 
@@ -614,7 +614,7 @@ namespace butl
 #else // _WIN32
 
   static process_path
-  path_search (const char* f, const dir_path& fb)
+  path_search (const char* f, const dir_path& fb, bool po)
   {
     // Note that there is a similar version for Win32.
 
@@ -731,6 +731,7 @@ namespace butl
     // The search order is documented in CreateProcess(). First we look in the
     // directory of the parent executable.
     //
+    if (!po)
     {
       char d[_MAX_PATH + 1];
       DWORD n (GetModuleFileName (NULL, d, _MAX_PATH + 1));
@@ -778,6 +779,7 @@ namespace butl
     // The recall path is the same as initial, though it might not be a bad
     // idea to prepend .\ for clarity.
     //
+    if (!po)
     {
       const string& d (traits::current_directory ());
 
