@@ -89,12 +89,8 @@ main (int argc, const char* argv[])
     return 0;
   }
 
-  // @@ Can't compile unless convert to process_env() explicitly (GCC still
-  //    warns about calls ambiguity).
-  //
   process pr (!no_child
-              ? process_start (fdnull (), fdnull (), 2,
-                               process_env (argv[0]), "-c")
+              ? process_start (fdnull (), fdnull (), 2, argv[0], "-c")
               : process (process_exit (0))); // Exited normally.
 
   for (size_t i (100); i != 0; --i)
