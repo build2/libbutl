@@ -48,7 +48,8 @@ if ($cxx.target.class == "windows")
 else
   cxx.libs += -lpthread
 
-# Install into the libbutl/ subdirectory of, say, /usr/include/.
+# Install into the libbutl/ subdirectory of, say, /usr/include/ recreating
+# subdirectories.
 #
-install.include = $install.include/libbutl/
-install.include.subdirs = true # Recreate subdirectories.
+{hxx ixx txx}{*}: install         = include/libbutl/
+{hxx ixx txx}{*}: install.subdirs = true
