@@ -213,6 +213,14 @@ main ()
                 ": 1\na: c:\\\\\n"));
   assert (test ({{"","1"},{"a","c:\\\nd:\\"},{"",""},{"",""}},
                 ": 1\na: \\\nc:\\\\\nd:\\\\\n\\\n"));
+
+  // Manifest value/comment merging.
+  //
+  assert (manifest_serializer::merge_comment ("value; text", "comment") ==
+          "value\\; text; comment");
+
+  assert (manifest_serializer::merge_comment ("value text", "") ==
+          "value text");
 }
 
 static string

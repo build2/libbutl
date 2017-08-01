@@ -51,6 +51,13 @@ namespace butl
     void
     comment (const std::string&);
 
+    // Merge the manifest value and a comment into the single string, having
+    // the '<value>; <comment>' form. Escape ';' characters in the value with
+    // the backslash.
+    //
+    static std::string
+    merge_comment (const std::string& value, const std::string& comment);
+
   private:
     void
     check_name (const std::string&);

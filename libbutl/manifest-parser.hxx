@@ -8,6 +8,7 @@
 #include <string>
 #include <iosfwd>
 #include <cstdint>   // uint64_t
+#include <utility>   // pair
 #include <stdexcept> // runtime_error
 
 #include <libbutl/export.hxx>
@@ -70,6 +71,13 @@ namespace butl
     //
     manifest_name_value
     next ();
+
+    // Split the manifest value, optionally followed by ';' character and a
+    // comment into the value/comment pair. Note that ';' characters in the
+    // value must be escaped by the backslash.
+    //
+    static std::pair<std::string, std::string>
+    split_comment (const std::string&);
 
   private:
     void

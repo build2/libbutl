@@ -125,6 +125,48 @@ namespace butl
     return r;
   }
 
+  pair<string, string> manifest_parser::
+  split_comment (const string& v)
+  {
+    using iterator = string::const_iterator;
+
+    auto space = [] (char c) -> bool {return c == ' ' || c == '\t';};
+
+    iterator i (v.begin ());
+    iterator e (v.end ());
+
+    string r;
+    size_t n (0);
+    for (char c; i != e && (c = *i) != ';'; ++i)
+    {
+      // Unescape ';' character.
+      //
+      if (c == '\\' && i + 1 != e && *(i + 1) == ';')
+        c = *++i;
+
+      r += c;
+
+      if (!space (c))
+        n = r.size ();
+    }
+
+    // Strip the value trailing spaces.
+    //
+    if (r.size () != n)
+      r.resize (n);
+
+    // Find beginning of a comment (i).
+    //
+    if (i != e)
+    {
+      // Skip spaces.
+      //
+      for (++i; i != e && space (*i); ++i);
+    }
+
+    return make_pair (move (r), string (i, e));
+  }
+
   void manifest_parser::
   parse_name (name_value& r)
   {

@@ -130,6 +130,23 @@ main ()
                 {{"","1"},{"a","x\\"},{"b",""},{"",""},{"",""}}));
   assert (test (":1\na:\\\nx\\\\\\\n\\\nb:",
                 {{"","1"},{"a","x\\\\"},{"b",""},{"",""},{"",""}}));
+
+  // Manifest value splitting (into the value/comment pair).
+  //
+  {
+    auto p (manifest_parser::split_comment ("value\\; text ; comment text"));
+    assert (p.first == "value; text" && p.second == "comment text");
+  }
+
+  {
+    auto p (manifest_parser::split_comment ("value"));
+    assert (p.first == "value" && p.second == "");
+  }
+
+  {
+    auto p (manifest_parser::split_comment ("; comment"));
+    assert (p.first == "" && p.second == "comment");
+  }
 }
 
 static ostream&

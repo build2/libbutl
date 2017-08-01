@@ -133,6 +133,31 @@ namespace butl
     os_ << endl;
   }
 
+  string manifest_serializer::
+  merge_comment (const string& value, const string& comment)
+  {
+    string r;
+    for (char c: value)
+    {
+      // Escape ';' character.
+      //
+      if (c == ';')
+        r += '\\';
+
+      r += c;
+    }
+
+    // Add the comment.
+    //
+    if (!comment.empty ())
+    {
+      r += "; ";
+      r += comment;
+    }
+
+    return r;
+  }
+
   void manifest_serializer::
   check_name (const string& n)
   {
