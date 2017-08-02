@@ -51,5 +51,5 @@ else
 # Install into the libbutl/ subdirectory of, say, /usr/include/ recreating
 # subdirectories.
 #
-{hxx ixx txx}{*}: install         = include/libbutl/
-{hxx ixx txx}{*}: install.subdirs = true
+{mxx hxx ixx txx}{*}: install         = include/$project/
+{mxx hxx ixx txx}{*}: install.subdirs = true
