@@ -62,7 +62,7 @@ namespace butl
       try
       {
 #ifndef _WIN32
-        write (stderr_fd(), s.c_str (), s.size ());
+        if (write (stderr_fd(), s.c_str (), s.size ())) {} // Suppress warning.
 #else
         _write (stderr_fd(), s.c_str (), static_cast<unsigned int> (s.size ()));
 #endif
