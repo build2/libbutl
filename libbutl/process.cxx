@@ -1266,7 +1266,7 @@ namespace butl
       // 3. Apparently switching from 32 to 64-bit should help (less chance
       //    for address collisions).
       //
-      // 4. Rebase all the Cygwin DLLs (this is a topic for a another episode).
+      // 4. Rebase all the Cygwin DLLs (this is a topic for another episode).
       //
       // To add to this list, we also have our own remedy (which is not
       // generally applicable):
@@ -1296,8 +1296,8 @@ namespace butl
       // 2. We can only load an image of the same width as us (32/64-bit).
       //
       // 3. If something goes wrong (width mismatch, failed to load, etc),
-      //    then we assume it is MSYS for safety. Better run slow than not run
-      //    at all, right?
+      //    then we assume it is not MSYS (we used to do it the other way
+      //    around for safety but that proved to be too slow).
       //
       auto detect_msys = [] (const char* p) -> bool
       {
@@ -1311,7 +1311,7 @@ namespace butl
           ImageLoad (p, nullptr), deleter);
 
         if (img == nullptr)
-          return true;
+          return false;
 
         if (img->FileHeader->OptionalHeader.NumberOfRvaAndSizes < 2)
           return false;
@@ -1355,7 +1355,7 @@ namespace butl
               img->FileHeader->OptionalHeader.DataDirectory[1].VirtualAddress)));
 
         if (imp == nullptr)
-          return true;
+          return false;
 
         for (; imp->Name != 0 || imp->TimeDateStamp != 0; ++imp)
         {
