@@ -146,6 +146,46 @@ namespace butl
     }
 
     static bool
+    normalized (const string_type& s, bool sep)
+    {
+      return normalized (s.c_str (), s.size (), sep);
+    }
+
+    static bool
+    normalized (const C* s, size_type n, bool sep)
+    {
+      size_t j (0); // Beginning of path component.
+
+      for (size_t i (0); i != n; ++i)
+      {
+        char c (s[i]);
+
+        if (is_separator (c))
+        {
+          if (sep && c != directory_separator)
+            return false;
+
+          const char* p (s + j);
+          size_t m (i - j);
+          j = i + 1;
+
+          if (j != n && is_separator (s[j]))
+            return false;
+
+          if (current (p, m) || parent (p, m))
+            return false;
+        }
+      }
+
+      // Last component.
+      //
+      const char* p (s + j);
+      size_t m (n - j);
+
+      return !(current (p, m) || parent (p, m));
+    }
+
+    static bool
     root (const string_type& s)
     {
       return root (s.c_str (), s.size ());
@@ -656,6 +696,14 @@ namespace butl
 
     bool
     parent () const;
+
+    // Return true if the path is normalized, that is, does not contain any
+    // current or parent directory components or multiple consecutive and,
+    // unless sep is false, non-canonical directory separators. Empty path
+    // is considered normalized.
+    //
+    bool
+    normalized (bool sep = true) const;
 
     // Test, based on the presence/absence of the trailing separator, if the
     // path is to a directory.

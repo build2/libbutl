@@ -102,6 +102,14 @@ namespace butl
 
   template <typename C, typename K>
   inline bool basic_path<C, K>::
+  normalized (bool sep) const
+  {
+    return (!sep || this->tsep_ <= 1) &&
+      traits::normalized (this->path_, sep);
+  }
+
+  template <typename C, typename K>
+  inline bool basic_path<C, K>::
   root () const
   {
     return traits::root (this->path_);
