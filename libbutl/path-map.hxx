@@ -14,18 +14,17 @@ namespace butl
 {
   // prefix_map for filesystem paths
   //
-  // Important: the paths should be normalized but can use different case
-  // on case-insensitive platforms.
+  // Important: the paths should be normalized but can use different directory
+  // separators and different case on case-insensitive platforms.
   //
-  // Note that the path's representation of POSIX root ('/') is
-  // inconsistent in that we have a trailing delimiter at the end of
-  // the path (its "proper" representation would have been an empty
-  // string but that would have clashed with empty paths). To work
-  // around this snag, this implementation, during key comparison,
-  // detects '/' and treats it as empty. Note that the map will
-  // still store the key as you have first inserted it. So if you
-  // want a particular representation (i.e., empty or '/'), pre-
-  // populate the map with it.
+  // Note that the path's representation of POSIX root ('/') is inconsistent
+  // in that we have a trailing delimiter at the end of the path (its "proper"
+  // representation would have been an empty string but that would have
+  // clashed with empty paths). To work around this snag, this implementation,
+  // during key comparison, detects '/' and treats it as empty. Note that the
+  // map will still store the key as you have first inserted it. So if you
+  // want a particular representation (i.e., empty or '/'), pre- populate the
+  // map with it.
   //
   template <typename C, typename K>
   struct compare_prefix<basic_path<C, K>>
@@ -118,10 +117,10 @@ namespace butl
     using iterator = typename base::iterator;
     using const_iterator = typename base::const_iterator;
 
-    // Find the most qualified entry of which this path is a sub-path.
+    // Find the most qualified entry that is a superpath of this path.
     //
     iterator
-    find_sub (const P& p)
+    find_sup (const P& p)
     {
       // Get the greatest less than, if any. We might still not be a sub. Note
       // also that we still have to check the last element if upper_bound()
@@ -132,7 +131,7 @@ namespace butl
     }
 
     const_iterator
-    find_sub (const P& p) const
+    find_sup (const P& p) const
     {
       auto i (this->upper_bound (p));
       return i == this->begin () || !p.sub ((--i)->first) ? this->end () : i;
