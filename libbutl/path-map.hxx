@@ -109,12 +109,41 @@ namespace butl
   // Note that the delimiter character is not used (is_delimiter() from
   // path_traits is used instead).
   //
-  template <typename T>
-  using path_map = prefix_map<path, T, path::traits::directory_separator>;
+  template <typename P, typename T>
+  struct path_map_impl: prefix_map<P, T, P::traits::directory_separator>
+  {
+    using base = prefix_map<P, T, P::traits::directory_separator>;
+    using base::base;
+
+    using iterator = typename base::iterator;
+    using const_iterator = typename base::const_iterator;
+
+    // Find the most qualified entry of which this path is a sub-path.
+    //
+    iterator
+    find_sub (const P& p)
+    {
+      // Get the greatest less than, if any. We might still not be a sub. Note
+      // also that we still have to check the last element if upper_bound()
+      // returned end().
+      //
+      auto i (this->upper_bound (p));
+      return i == this->begin () || !p.sub ((--i)->first) ? this->end () : i;
+    }
+
+    const_iterator
+    find_sub (const P& p) const
+    {
+      auto i (this->upper_bound (p));
+      return i == this->begin () || !p.sub ((--i)->first) ? this->end () : i;
+    }
+  };
 
   template <typename T>
-  using dir_path_map =
-    prefix_map<dir_path, T, dir_path::traits::directory_separator>;
+  using path_map = path_map_impl<path, T>;
+
+  template <typename T>
+  using dir_path_map = path_map_impl<dir_path, T>;
 }
 
 #endif // LIBBUTL_PATH_MAP_HXX
