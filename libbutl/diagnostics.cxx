@@ -19,7 +19,8 @@
 #include <cstddef>  // size_t
 #include <iostream> // cerr
 
-#include <libbutl/fdstream.hxx> // stderr_fd()
+#include <libbutl/optional.hxx>
+#include <libbutl/fdstream.hxx> // stderr_fd(), fdterm()
 
 using namespace std;
 
@@ -32,6 +33,8 @@ namespace butl
   string diag_progress;
   static string diag_progress_blank; // Being printed blanks out the line.
   static size_t diag_progress_size;  // Size of the last printed progress.
+
+  static optional<bool> diag_term;
 
   // Print the progress string to STDERR. Ignore underlying OS errors (this is
   // a progress bar after all, and throwing from dtors wouldn't be nice). Must
@@ -46,18 +49,31 @@ namespace butl
   static inline void
   progress_print (string& s)
   {
-    // If the new progress string is shorter than the printed one, then we will
-    // complement it with the required number of spaces (to overwrite the
-    // trailing junk) prior to printing, and restore it afterwards.
+    if (!diag_term)
+    try
+    {
+      diag_term = fdterm (stderr_fd());
+    }
+    catch (const ios::failure&)
+    {
+      diag_term = false;
+    }
+
+    // If we print to a terminal, and the new progress string is shorter than
+    // the printed one, then we will complement it with the required number of
+    // spaces (to overwrite the trailing junk) prior to printing, and restore
+    // it afterwards.
     //
     size_t n (s.size ());
 
-    if (n < diag_progress_size)
+    if (*diag_term && n < diag_progress_size)
       s.append (diag_progress_size - n, ' ');
 
     if (!s.empty ())
     {
-      s += '\r'; // Position the cursor at the beginning of the line.
+      s += *diag_term
+        ? '\r'  // Position the cursor at the beginning of the line.
+        : '\n';
 
       try
       {

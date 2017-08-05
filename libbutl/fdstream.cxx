@@ -7,7 +7,7 @@
 #ifndef _WIN32
 #  include <fcntl.h>     // open(), O_*, fcntl()
 #  include <unistd.h>    // close(), read(), write(), lseek(), dup(), pipe(),
-                         // ssize_t, STD*_FILENO
+                         // isatty(), ssize_t, STD*_FILENO
 #  include <sys/uio.h>   // writev(), iovec
 #  include <sys/stat.h>  // stat(), S_I*
 #  include <sys/types.h> // stat, off_t
@@ -20,6 +20,8 @@
 #  include <stdio.h>    // _fileno(), stdin, stdout, stderr
 #  include <fcntl.h>    // _O_*
 #  include <sys/stat.h> // S_I*
+
+#  include <cwchar> // wcsncmp(), wcsstr()
 #endif
 
 #include <errno.h> // errno, E*
@@ -928,6 +930,26 @@ namespace butl
     return r;
   }
 
+  bool
+  fdterm (int fd)
+  {
+    int r (isatty (fd));
+
+    if (r == 1)
+      return true;
+
+    // POSIX specifies ENOTTY errno code for an indication that the descriptor
+    // doesn't refer to a terminal. However, both Linux and FreeBSD man pages
+    // also mention EINVAL for this case.
+    //
+    assert (r == 0);
+
+    if (errno == ENOTTY || errno == EINVAL)
+      return false;
+
+    throw_ios_failure (errno);
+  }
+
 #else
 
   auto_fd
@@ -1107,6 +1129,98 @@ namespace butl
       throw_ios_failure (errno);
 
     return {auto_fd (pd[0]), auto_fd (pd[1])};
+  }
+
+  bool
+  fdterm (int fd)
+  {
+    // Resolve file descriptor to HANDLE. Note that the handle is closed either
+    // when CloseHandle() is called for it or when _close() is called for the
+    // associated file descriptor. So we don't need to close it.
+    //
+    HANDLE h (reinterpret_cast<HANDLE> (_get_osfhandle (fd)));
+    if (h == INVALID_HANDLE_VALUE)
+      throw_ios_failure (errno);
+
+    // Obtain the descriptor type.
+    //
+    DWORD t (GetFileType (h));
+    DWORD e;
+
+    if (t == FILE_TYPE_UNKNOWN && (e = GetLastError ()) != 0)
+      throw_ios_system_failure (e);
+
+    if (t == FILE_TYPE_CHAR) // Terminal.
+      return true;
+
+    if (t != FILE_TYPE_PIPE) // Pipe still can be a terminal (see below).
+      return false;
+
+    // MSYS2 terminal file descriptor has the pipe type. To distinguish it
+    // from other pipes we will try to obtain the associated file name and
+    // heuristically decide if it is a terminal or not. If we fail to obtain
+    // the name (for any reason), then we consider the descriptor as not
+    // referring to a terminal.
+    //
+    // Note that the API we need to use is only available starting with
+    // Windows Vista/Server 2008. To allow programs linked to libbutl to run
+    // on earlier Windows versions we will link the API in run-time and will
+    // fallback to the non-terminal descriptor type on failure. We also need
+    // to partially reproduce the original API types.
+    //
+    HMODULE kh (GetModuleHandle ("kernel32.dll"));
+    if (kh == nullptr)
+      return false;
+
+    // The original type is FILE_INFO_BY_HANDLE_CLASS enum.
+    //
+    enum file_info
+    {
+      file_name = 2
+    };
+
+    using func = BOOL (*) (HANDLE, file_info, LPVOID, DWORD);
+
+    func f (reinterpret_cast<func> (
+      GetProcAddress (kh, "GetFileInformationByHandleEx")));
+
+    if (f == nullptr)
+      return false;
+
+    // The original type is FILE_NAME_INFO structure.
+    //
+    struct
+    {
+      DWORD length;
+      wchar_t name[_MAX_PATH + 1];
+    } fn;
+
+    // Reserve space for the trailing NULL character.
+    //
+    if (!f (h, file_name, &fn, sizeof (fn) - sizeof (wchar_t)))
+      return false;
+
+    // Add the trailing NULL character. Sounds strange, but the name length is
+    // expressed in bytes.
+    //
+    fn.name[fn.length / sizeof (wchar_t)] = L'\0';
+
+    // The MSYS2 terminal descriptor file name looks like this:
+    //
+    // \msys-dd50a72ab4668b33-pty0-to-master
+    //
+    // We will recognize it by the '\msys-' prefix and the presence of the
+    // '-ptyN' entry.
+    //
+    if (wcsncmp (fn.name, L"\\msys-", 6) == 0)
+    {
+      const wchar_t* e (wcsstr (fn.name, L"-pty"));
+
+      return e != nullptr && e[4] >= L'0' && e[4] <= L'9' &&
+        (e[5] == L'-' || e[5] == L'\0');
+    }
+
+    return false;
   }
 #endif
 }

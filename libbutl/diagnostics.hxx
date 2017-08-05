@@ -52,13 +52,14 @@ namespace butl
   // Progress line facility.
   //
   // The idea is to keep a progress line at the bottom of the terminal with
-  // other output scrolling above it. The printing of the progress line is
-  // integrated into diag_stream_lock and diag_progress_lock. To print or
-  // update the progress acquire diag_progress_lock and update the
-  // diag_progress string. To remove the progress line, set this string to
-  // empty. For better readability start the progress line with a space
-  // (which is where the cursor will be parked). Should only be used if
-  // diag_stream points to std::cerr.
+  // other output scrolling above it. For a non-terminal STDERR the progress
+  // line is printed as a regular one terminated with the newline character.
+  // The printing of the progress line is integrated into diag_stream_lock and
+  // diag_progress_lock. To print or update the progress acquire
+  // diag_progress_lock and update the diag_progress string. To remove the
+  // progress line, set this string to empty. For better readability start the
+  // progress line with a space (which is where the cursor will be parked).
+  // Should only be used if diag_stream points to std::cerr.
   //
   // Note that child processes writing to the same stream may not completely
   // overwrite the progress line so in this case it makes sense to keep the

@@ -686,6 +686,12 @@ namespace butl
   //
   LIBBUTL_SYMEXPORT fdpipe
   fdopen_pipe (fdopen_mode = fdopen_mode::none);
+
+  // Test whether a file descriptor refers to a terminal. Throw ios::failure on
+  // the underlying OS error.
+  //
+  LIBBUTL_SYMEXPORT bool
+  fdterm (int);
 }
 
 #include <libbutl/fdstream.ixx>
