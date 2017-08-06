@@ -103,10 +103,11 @@ namespace butl
 
   diag_stream_lock::~diag_stream_lock ()
   {
-    // If diagnostics shares output stream with the progress bar, then reprint
-    // the current progress string, that was overwritten with the diagnostics.
+    // If diagnostics shares output stream with the progress bar and we use
+    // same-line progress style, then reprint the current progress string
+    // that was overwritten with the diagnostics.
     //
-    if (diag_stream == &cerr && !diag_progress.empty ())
+    if (diag_stream == &cerr && *diag_term && !diag_progress.empty ())
       progress_print (diag_progress);
 
     diag_mutex.unlock ();
