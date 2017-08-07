@@ -1,3 +1,16 @@
+Version 0.6.0
+
+  * Various new functionality in the path, timestamp, manifest, process,
+    fdstream, and filesystem facilities.
+
+  * Character scanner improvements and optimizations.
+
+  * New openssl process wrapper classes.
+
+  * New regex utility functions.
+
+  * Fast-path SHA256 functions.
+
 Version 0.5.0
 
   * Various new functionality in the process, fdstream, and filesystem
