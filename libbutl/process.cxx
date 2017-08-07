@@ -513,10 +513,15 @@ namespace butl
     //
     static const process_exit::status_type status_code (0xFF00);
 
+    // On Cygwin/MSYS WIFEXITED() is not constexpr. So we will just hope
+    // of the best.
+    //
+#if !defined(__MSYS__) && !defined(__CYGWIN__)
     static_assert (WIFEXITED    (status_code) &&
                    WEXITSTATUS  (status_code) == 0xFF &&
                    !WIFSIGNALED (status_code),
                    "unexpected process exit status bits layout");
+#endif
   }
 
   bool process_exit::
