@@ -1192,9 +1192,13 @@ namespace std
       for (size_t i (0), n (s.size ()); i != n; ++i)
       {
         hash ^= static_cast<size_t> (butl::lcase (s[i]));
+
+        // We are using C-style cast to suppress VC warning for 32-bit target
+        // (the value is compiled but not used).
+        //
         hash *= sizeof (size_t) == 4
-          ? static_cast<size_t>(16777619UL)
-          : static_cast<size_t>(1099511628211ULL);
+          ? static_cast<size_t> (16777619UL)
+          : (size_t) 1099511628211ULL;
       }
       return hash;
 #endif
