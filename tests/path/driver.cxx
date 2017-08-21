@@ -490,10 +490,7 @@ main ()
 #endif
 
   assert (path::temp_directory ().absolute ());
-  //assert (wpath::temp_directory ().absolute ());
-
   assert (path::home_directory ().absolute ());
-  //assert (wpath::home_directory ().absolute ());
 
   // normalize and actualize
   //

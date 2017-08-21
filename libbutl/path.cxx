@@ -8,14 +8,14 @@
 #  include <libbutl/win32-utility.hxx>
 
 #  include <io.h>       // _find*()
-#  include <stdlib.h>   // _MAX_PATH, _wgetenv()
-#  include <direct.h>   // _[w]getcwd(), _[w]chdir()
+#  include <stdlib.h>   // _MAX_PATH
+#  include <direct.h>   // _getcwd(), _chdir()
 #  include <shlobj.h>   // SHGetFolderPath*(), CSIDL_PROFILE
 #  include <winerror.h> // SUCCEEDED()
 #else
 #  include <pwd.h>       // struct passwd, getpwuid_r()
 #  include <errno.h>     // EINVAL
-#  include <stdlib.h>    // mbstowcs(), wcstombs(), realpath(), getenv()
+#  include <stdlib.h>    // realpath(), getenv()
 #  include <limits.h>    // PATH_MAX
 #  include <unistd.h>    // getcwd(), chdir()
 #  include <string.h>    // strlen(), strcpy()
@@ -224,140 +224,7 @@ namespace butl
 
     s = r;
   }
-#endif
-
-  //
-  // wchar_t
-  //
-
-  template <>
-  LIBBUTL_SYMEXPORT path_traits<wchar_t>::string_type path_traits<wchar_t>::
-  current_directory ()
-  {
-#ifdef _WIN32
-    wchar_t wcwd[_MAX_PATH];
-    if (_wgetcwd (wcwd, _MAX_PATH) == 0)
-      throw_generic_error (errno);
-    wcwd[0] = toupper (wcwd[0]); // Canonicalize.
 #else
-    char cwd[PATH_MAX];
-    if (getcwd (cwd, PATH_MAX) == 0)
-      throw_generic_error (errno);
-
-    wchar_t wcwd[PATH_MAX];
-    if (mbstowcs (wcwd, cwd, PATH_MAX) == size_type (-1))
-      throw_generic_error (EINVAL);
-#endif
-
-    return wcwd;
-  }
-
-  template <>
-  LIBBUTL_SYMEXPORT void path_traits<wchar_t>::
-  current_directory (string_type const& s)
-  {
-#ifdef _WIN32
-    // Append the trailing directory separator for the root directory (read
-    // the comment in path_traits<char>::current_directory() for
-    // justification).
-    //
-    string_type const& d (!root (s)
-                          ? s
-                          : string_type (s + directory_separator));
-
-    if (_wchdir (d.c_str ()) != 0)
-      throw_generic_error (errno);
-#else
-    char ns[PATH_MAX + 1];
-
-    if (wcstombs (ns, s.c_str (), PATH_MAX) == size_type (-1))
-      throw_generic_error (EINVAL);
-
-    ns[PATH_MAX] = '\0';
-
-    if (chdir (ns) != 0)
-      throw_generic_error (errno);
-#endif
-  }
-
-  template <>
-  LIBBUTL_SYMEXPORT path_traits<wchar_t>::string_type path_traits<wchar_t>::
-  temp_directory ()
-  {
-#ifdef _WIN32
-    wchar_t d[_MAX_PATH + 1];
-    if (GetTempPathW (_MAX_PATH + 1, d) == 0)
-      throw_system_error (GetLastError ());
-#else
-    wchar_t d[PATH_MAX];
-
-    // The usage of mbstowcs() supposes the program's C-locale is set to the
-    // proper locale before the call (can be done with setlocale(LC_ALL, "...")
-    // call). Otherwise mbstowcs() fails with EILSEQ errno for non-ASCII
-    // directory paths.
-    //
-    size_t r (mbstowcs (d, butl::temp_directory (), PATH_MAX));
-
-    if (r == size_t (-1))
-      throw_generic_error (EINVAL);
-
-    if (r == PATH_MAX)
-      throw_generic_error (ENOTSUP);
-#endif
-
-    return d;
-  }
-
-  template <>
-  LIBBUTL_SYMEXPORT path_traits<wchar_t>::string_type path_traits<wchar_t>::
-  temp_name (string_type const& prefix)
-  {
-    return prefix +
-      L"-" + to_wstring (process::current_id ()) +
-      L"-" + to_wstring (temp_name_count++);
-  }
-
-  template <>
-  LIBBUTL_SYMEXPORT path_traits<wchar_t>::string_type path_traits<wchar_t>::
-  home_directory ()
-  {
-#ifndef _WIN32
-    wchar_t d[PATH_MAX];
-    size_t r (mbstowcs (d, home ().c_str (), PATH_MAX));
-
-    if (r == size_t (-1))
-      throw_generic_error (EINVAL);
-
-    if (r == PATH_MAX)
-      throw_generic_error (ENOTSUP);
-
-    return d;
-#else
-    // Could be set by, e.g., MSYS and Cygwin shells.
-    //
-    if (const wchar_t* h = _wgetenv (L"HOME"))
-      return h;
-
-    wchar_t h[_MAX_PATH];
-    HRESULT r (SHGetFolderPathW (NULL, CSIDL_PROFILE, NULL, 0, h));
-
-    if (!SUCCEEDED (r))
-      throw_system_error (r);
-
-    return h;
-#endif
-  }
-
-#ifndef _WIN32
-  template <>
-  LIBBUTL_SYMEXPORT void path_traits<wchar_t>::
-  realize (string_type&)
-  {
-    assert (false); // Implement if/when needed.
-  }
-#endif
-
-#ifdef _WIN32
   template <>
   LIBBUTL_SYMEXPORT bool
   basic_path_append_actual_name<char> (string& r,
@@ -384,16 +251,6 @@ namespace butl
 
     r += fi.name;
     return true;
-  }
-
-  template <>
-  LIBBUTL_SYMEXPORT bool
-  basic_path_append_actual_name<wchar_t> (wstring&,
-                                          const wstring&,
-                                          const wstring&)
-  {
-    assert (false); // Implement if/when needed.
-    return false;
   }
 #endif
 }

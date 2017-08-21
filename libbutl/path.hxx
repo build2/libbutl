@@ -54,6 +54,8 @@ namespace butl
     invalid_basic_path (const string_type& p): path (p) {}
   };
 
+  // The only currently available specialization is for the char type.
+  //
   template <typename C>
   struct path_traits
   {
