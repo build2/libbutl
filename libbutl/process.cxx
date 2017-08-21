@@ -902,24 +902,46 @@ namespace butl
   // handles to non-inheritable state back) will be performed after aquiring
   // the process_spawn_mutex (that is released afterwards).
   //
-  class inheritability_guard
+  class inheritability_lock
   {
   public:
     // Require the proof that the mutex is pre-acquired for exclusive access.
+    // Create locked.
     //
-    inheritability_guard (const ulock&) {}
+    inheritability_lock (const ulock&) {}
 
-    ~inheritability_guard ()
+    ~inheritability_lock ()
     {
-      for (auto h: handles_)
-        inheritable (h, false); // Can't throw.
+      unlock (); // Can't throw.
     }
 
     void
     inheritable (HANDLE h)
     {
+      assert (locked_);
+
       inheritable (h, true);  // Can throw.
       handles_.push_back (h);
+    }
+
+    void
+    unlock ()
+    {
+      if (locked_)
+      {
+        inheritable (false);
+        locked_ = false;
+      }
+    }
+
+    void
+    lock ()
+    {
+      if (!locked_)
+      {
+        inheritable (true);
+        locked_ = true;
+      }
     }
 
   private:
@@ -939,8 +961,16 @@ namespace butl
       }
     }
 
+    void
+    inheritable (bool state)
+    {
+      for (auto h: handles_)
+        inheritable (h, state);
+    }
+
   private:
     small_vector<HANDLE, 3> handles_;
+    bool locked_ = true;
   };
 
   // Protected by process_spawn_mutex. See below for the gory details.
@@ -1180,7 +1210,7 @@ namespace butl
 
     {
       ulock l (process_spawn_mutex);
-      inheritability_guard ig (l);
+      inheritability_lock il (l);
 
       // Resolve file descriptor to HANDLE and make sure it is inherited. Note
       // that the handle is closed either when CloseHandle() is called for it
@@ -1188,7 +1218,7 @@ namespace butl
       // sure that either the original file descriptor or the resulting HANDLE
       // is closed but not both of them.
       //
-      auto get_osfhandle = [&fail, &ig] (int fd) -> HANDLE
+      auto get_osfhandle = [&fail, &il] (int fd) -> HANDLE
       {
         HANDLE h (reinterpret_cast<HANDLE> (_get_osfhandle (fd)));
         if (h == INVALID_HANDLE_VALUE)
@@ -1205,7 +1235,7 @@ namespace butl
         // fails for standard handles and their duplicates.
         //
         if ((f & HANDLE_FLAG_INHERIT) == 0)
-          ig.inheritable (h);
+          il.inheritable (h);
 
         return h;
       };
@@ -1406,10 +1436,6 @@ namespace butl
 
         auto_handle (pi.hThread).reset (); // Close.
 
-        // @@ Should we unlock and re-lock the mutex? To be able to do that we
-        //    will have to revert handles to non-inheritable and, in case of
-        //    retry, back to inheritable. Still might be worth the pain.
-
         if (msys)
         {
           // Wait a bit and check if the process has terminated. If it is
@@ -1417,6 +1443,13 @@ namespace butl
           // this is the DLL initialization error.
           //
           DWORD r;
+
+          // Unlock the mutex to let other processes to be spawned while we are
+          // waiting. We also need to revert handles to non-inheritable state
+          // to prevent their leakage.
+          //
+          il.unlock ();
+          l.unlock ();
 
           // Wait in small increments to get (approximate) time elapsed.
           //
@@ -1431,7 +1464,14 @@ namespace butl
           if (r == WAIT_OBJECT_0                   &&
               GetExitCodeProcess (pi.hProcess, &r) &&
               r == STATUS_DLL_INIT_FAILED)
+          {
+            // Re-lock the mutex and revert handles to inheritable state prior
+            // to re-spawning the child process.
+            //
+            l.lock ();
+            il.lock ();
             continue;
+          }
         }
 
         break;
