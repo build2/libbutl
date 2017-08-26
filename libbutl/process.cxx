@@ -1453,7 +1453,7 @@ namespace butl
 
           // Wait in small increments to get (approximate) time elapsed.
           //
-          for (size_t i (0); i != 6; ++i, timeout -= 50) // 6 * 50 = 300ms.
+          for (size_t i (0); i != 10; ++i, timeout -= 50) // 10 * 50 = 500ms.
           {
             r = WaitForSingleObject (pi.hProcess, 50);
 
