@@ -39,8 +39,10 @@
 #  endif // _MSC_VER
 
 #  include <map>
+#  include <chrono>
 #  include <cstdlib> // getenv(), __argv[]
 
+#  include <libbutl/timestamp.hxx>
 #  include <libbutl/small-vector.hxx>
 #endif
 
@@ -1419,7 +1421,7 @@ namespace butl
           msys = i->second;
       }
 
-      for (DWORD timeout (10500); timeout != 0; ) // Try for about 10s.
+      for (duration timeout (10500ms);;) // Try for about 10s.
       {
         if (!CreateProcess (
               batch != nullptr ? batch : pp.effect_string (),
@@ -1442,7 +1444,7 @@ namespace butl
           // still running then we assume all is good. Otherwise, retry if
           // this is the DLL initialization error.
           //
-          DWORD r;
+          timestamp st (timestamp::clock::now ());
 
           // Unlock the mutex to let other processes to be spawned while we are
           // waiting. We also need to revert handles to non-inheritable state
@@ -1451,26 +1453,32 @@ namespace butl
           il.unlock ();
           l.unlock ();
 
-          // Wait in small increments to get (approximate) time elapsed.
-          //
-          for (size_t i (0); i != 10; ++i, timeout -= 50) // 10 * 50 = 500ms.
-          {
-            r = WaitForSingleObject (pi.hProcess, 50);
-
-            if (r != WAIT_TIMEOUT)
-              break;
-          }
+          DWORD r (WaitForSingleObject (pi.hProcess, 250));
 
           if (r == WAIT_OBJECT_0                   &&
               GetExitCodeProcess (pi.hProcess, &r) &&
               r == STATUS_DLL_INIT_FAILED)
           {
-            // Re-lock the mutex and revert handles to inheritable state prior
-            // to re-spawning the child process.
+            timestamp now (timestamp::clock::now ());
+
+            // Assume we were waiting for 250 ms if the time adjustment is
+            // detected.
             //
-            l.lock ();
-            il.lock ();
-            continue;
+            duration d (now > st ? now - st : 250ms);
+
+            // Re-spawn the process if timeout is not fully exhausted.
+            //
+            if (timeout > d)
+            {
+              timeout -= d;
+
+              // Re-lock the mutex and revert handles to inheritable state
+              // prior to re-spawning the child process.
+              //
+              l.lock ();
+              il.lock ();
+              continue;
+            }
           }
         }
 
