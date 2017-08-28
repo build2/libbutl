@@ -1444,7 +1444,7 @@ namespace butl
           // still running then we assume all is good. Otherwise, retry if
           // this is the DLL initialization error.
           //
-          timestamp st (timestamp::clock::now ());
+          timestamp st (system_clock::now ());
 
           // Unlock the mutex to let other processes to be spawned while we are
           // waiting. We also need to revert handles to non-inheritable state
@@ -1459,7 +1459,7 @@ namespace butl
               GetExitCodeProcess (pi.hProcess, &r) &&
               r == STATUS_DLL_INIT_FAILED)
           {
-            timestamp now (timestamp::clock::now ());
+            timestamp now (system_clock::now ());
 
             // Assume we were waiting for 250 ms if the time adjustment is
             // detected.
