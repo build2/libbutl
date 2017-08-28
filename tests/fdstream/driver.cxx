@@ -67,7 +67,7 @@ template <typename S, typename T>
 static duration
 write_time (const path& p, const T& s, size_t n)
 {
-  timestamp t (timestamp::clock::now ());
+  timestamp t (system_clock::now ());
   S os (p.string (), ofstream::out);
   os.exceptions (S::failbit | S::badbit);
 
@@ -80,7 +80,7 @@ write_time (const path& p, const T& s, size_t n)
   }
 
   os.close ();
-  return timestamp::clock::now () - t;
+  return system_clock::now () - t;
 }
 
 template <typename S, typename T>
@@ -89,7 +89,7 @@ read_time (const path& p, const T& s, size_t n)
 {
   vector<T> v (n);
 
-  timestamp t (timestamp::clock::now ());
+  timestamp t (system_clock::now ());
   S is (p.string (), ofstream::in);
   is.exceptions (S::failbit | S::badbit);
 
@@ -99,7 +99,7 @@ read_time (const path& p, const T& s, size_t n)
   assert (is.eof ());
 
   is.close ();
-  duration d (timestamp::clock::now () - t);
+  duration d (system_clock::now () - t);
 
   for (const auto& ve: v)
     assert (ve == s);
