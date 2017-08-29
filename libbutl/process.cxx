@@ -1453,7 +1453,7 @@ namespace butl
           il.unlock ();
           l.unlock ();
 
-          DWORD r (WaitForSingleObject (pi.hProcess, 250));
+          DWORD r (WaitForSingleObject (pi.hProcess, 350));
 
           if (r == WAIT_OBJECT_0                   &&
               GetExitCodeProcess (pi.hProcess, &r) &&
@@ -1461,20 +1461,17 @@ namespace butl
           {
             timestamp now (system_clock::now ());
 
-            // Assume we were waiting for 250 ms if the time adjustment is
+            // Assume we have waited the full amount if the time adjustment is
             // detected.
             //
-            duration d (now > st ? now - st : 250ms);
+            duration d (now > st ? now - st : 350ms);
 
-            // Re-spawn the process if timeout is not fully exhausted.
+            // If timeout is not fully exhausted, re-lock the mutex, revert
+            // handles to inheritable state and re-spawn the process.
             //
             if (timeout > d)
             {
               timeout -= d;
-
-              // Re-lock the mutex and revert handles to inheritable state
-              // prior to re-spawning the child process.
-              //
               l.lock ();
               il.lock ();
               continue;
