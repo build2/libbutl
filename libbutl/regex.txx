@@ -7,11 +7,12 @@
 
 namespace butl
 {
-  template <typename C>
-  std::pair<std::basic_string<C>, bool>
+  template <typename C, typename F>
+  bool
   regex_replace_ex (const std::basic_string<C>& s,
                     const std::basic_regex<C>& re,
                     const std::basic_string<C>& fmt,
+                    F&& append,
                     std::regex_constants::match_flag_type flags)
   {
     using namespace std;
@@ -24,7 +25,6 @@ namespace butl
     bool no_copy ((flags & std::regex_constants::format_no_copy) != 0);
 
     locale cl; // Copy of the global C++ locale.
-    string_type r;
 
     // Beginning of the last unmatched substring.
     //
@@ -59,7 +59,7 @@ namespace butl
       //
       if (!no_copy)
       {
-        r.append (ub, m.prefix ().second);
+        append (ub, m.prefix ().second);
         ub = m.suffix ().first;
       }
 
@@ -68,7 +68,7 @@ namespace butl
         // Append matched substring.
         //
         if (!no_copy)
-          r.append (m[0].first, m[0].second);
+          append (m[0].first, m[0].second);
       }
       else
       {
@@ -99,6 +99,8 @@ namespace butl
           }
           return c;
         };
+
+        string_type r;
 
         auto append_chr = [&r, &conv_chr] (C c)
         {
@@ -233,14 +235,16 @@ namespace butl
             }
           }
         }
+
+        append (r.begin (), r.end ());
       }
     }
 
     // Append the rightmost non-matched substring.
     //
     if (!no_copy)
-      r.append (ub, s.end ());
+      append (ub, s.end ());
 
-    return make_pair (move (r), match);
+    return match;
   }
 }

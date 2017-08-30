@@ -1,0 +1,7 @@
+# file      : tests/regex/buildfile
+# copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+import libs = libbutl%lib{butl}
+
+exe{driver}: {hxx cxx}{*} $libs test{testscript}

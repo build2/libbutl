@@ -1,0 +1,54 @@
+# file      : tests/regex/testscript
+# copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+: match
+:
+{
+  $*      abcbd b x >axcxd : all
+  $* -ffo abcbd b x >axcbd : first-only
+  $* -fnc abcbd b x >xx    : no-copy
+
+  : ecma-escape
+  :
+  {
+    $* xay a '$b'      >'x$by'  : none
+    $* xay a '$'       >'x$y'   : none-term
+    $* xay a '$$'      >'x$y'   : self
+    $* xay a 'b$&c'    >'xbacy' : match
+    $* xay a 'b$`c'    >'xbxcy' : match-precede
+    $* xay a "b\\\$'c" >'xbycy' : match-follow
+
+    : capture
+    :
+    $* abcdefghij '(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)' '$1$10' >aj
+  }
+
+  : perl-escape
+  :
+  {
+    $* xay a '\b' >'xby' : none
+    $* xay a '\'  >'xy'  : none-term
+    $* xay a '\\' >'x\y' : self
+
+    : capture
+    :
+    $* abcdefghij '(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)' '\1\10' >aa0
+
+    : upper
+    :
+    {
+      $* xay a       '\U'     >xy   : none
+      $* xay a       '\Uvz'   >xVZy : repl
+      $* xay a       '\Uv\Ez' >xVzy : end
+      $* aa  a       'v\Uz'   >vZvZ : locality
+      $* xay '(a)'   '\U\1'   >xAy  : capt
+      $* x-y '(a?)-' '\U\1z'  >xZy  : capt-empty
+      $* xay a       '\uvz'   >xVzy : once
+    }
+
+    : lower
+    :
+    $* xay a '\lVZ' >xvZy
+  }
+}
