@@ -21,7 +21,10 @@
 
     : capture
     :
-    $* abcdefghij '(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)' '$1$10' >aj
+    {
+      $* abcdefghij '(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)' '$1$10'  >aj : matched
+      $* a          '(a)|(b)'                        '$1$2$3' >a  : unmatched
+    }
   }
 
   : perl-escape
@@ -33,7 +36,10 @@
 
     : capture
     :
-    $* abcdefghij '(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)' '\1\10' >aa0
+    {
+      $* abcdefghij '(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)' '\1\10'  >aa0 : matched
+      $* a          '(a)|(b)'                        '\1\2\3' >a   : unmatched
+    }
 
     : upper
     :

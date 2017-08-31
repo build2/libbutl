@@ -169,9 +169,10 @@ namespace butl
 
                   if (si > 0)
                   {
-                    // m[0] refers to the matched substring.
+                    // m[0] refers to the matched substring. Note that we
+                    // ignore unmatched sub-expression references.
                     //
-                    if (static_cast<size_t> (si) < m.size ())
+                    if (static_cast<size_t> (si) < m.size () && m[si].matched)
                       append_str (m[si].first, m[si].second);
                   }
                   else
@@ -212,9 +213,10 @@ namespace butl
                   int si (digit (c));
                   if (si > 0)
                   {
-                    // m[0] refers to the matched substring.
+                    // m[0] refers to the matched substring. Note that we
+                    // ignore unmatched sub-expression references.
                     //
-                    if (static_cast<size_t> (si) < m.size ())
+                    if (static_cast<size_t> (si) < m.size () && m[si].matched)
                       append_str (m[si].first, m[si].second);
                   }
                   else
