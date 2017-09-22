@@ -32,7 +32,7 @@ LIBBUTL_MODEXPORT namespace butl
 #if defined(__cpp_modules) && defined(__clang__) //@@ MOD Clang duplicate sym.
   inline
 #endif
-  const/*expr*/ nullopt_t nullopt (1); //@@ MOD VC multiple defs.
+  constexpr nullopt_t nullopt (1);
 
   template <typename T>
   class optional

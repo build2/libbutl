@@ -32,7 +32,7 @@ extern "C"
 #include <cstddef>
 #include <cstdint>
 
-#include <cctype>    // isxdigit(), toupper(), tolower()
+#include <cctype>    // isxdigit()
 #include <stdexcept> // invalid_argument
 #endif
 
@@ -52,6 +52,9 @@ import std.core;
 #endif
 #endif
 
+import butl.utility; // *case()
+#else
+#include <libbutl/utility.mxx>
 #endif
 
 using namespace std;
@@ -128,7 +131,7 @@ namespace butl
       if (i > 0 && i % 2 == 0)
         f += ":";
 
-      f += toupper (c); //@@ MOD revert to ucase()
+      f += ucase (c);
     }
 
     return f;
@@ -158,7 +161,7 @@ namespace butl
         if (!isxdigit (c))
           bad ();
 
-        s += tolower (c); //@@ MOD revert to lcase()
+        s += lcase (c);
       }
     }
 

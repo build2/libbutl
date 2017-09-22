@@ -112,8 +112,7 @@ namespace butl
     string_type const& d (
       !root (s)
       ? s
-      //@@ MOD VC ADL does not seem to kick in for some reason...
-      : string_type (std::operator+ (s, directory_separator)));
+      : string_type (s + directory_separator));
 
     if (_chdir (d.c_str ()) != 0)
       throw_generic_error (errno);

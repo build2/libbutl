@@ -131,7 +131,6 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   // Throw system_error in case of other failures. Result and dir can be the
   // same instance.
   //
-  LIBBUTL_MODEXPORT //@@ MOD VC doesn't "see" it in impl unit unless exported.
   template <typename C>
   bool
   basic_path_append_actual_name (std::basic_string<C>& result,

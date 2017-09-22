@@ -18,7 +18,6 @@
 
 #include <vector>
 #ifdef _WIN32
-#include <cctype>    // toupper/lower() @@ MOD TMP
 #include <algorithm> // replace()
 #endif
 #endif
@@ -548,8 +547,6 @@ LIBBUTL_MODEXPORT namespace butl
       base_type (path_data<C>&& d): path_data<C> (std::move (d)) {}
     };
 
-    //using base_type = path_data<C>; // @@ MOD VC-ICE
-
     using dir_type = basic_path<C, dir_path_kind<C>>;
 
     // Init and cast.
@@ -589,8 +586,6 @@ LIBBUTL_MODEXPORT namespace butl
     static void
     cast (data_type&);
   };
-
-  struct exact_path_type {}; //@@ MOD TMP
 
   template <typename C, typename K>
   class basic_path: public K::base_type
@@ -638,9 +633,8 @@ LIBBUTL_MODEXPORT namespace butl
     // untouched. Note that no exception is thrown if the path is invalid. See
     // also representation()&& below.
     //
-    //@@ MOD VC-ICE enum exact_type {exact};
-    static const exact_path_type exact;
-    basic_path (string_type&& s, exact_path_type)
+    enum exact_type {exact};
+    basic_path (string_type&& s, exact_type)
         : base_type (K::init (std::move (s), true)) {}
 
     // Create a path as a sub-path identified by the [begin, end) range of
@@ -1084,9 +1078,7 @@ LIBBUTL_MODEXPORT namespace butl
     explicit
     basic_path (data_type&& d): base_type (std::move (d)) {}
 
-    #ifndef _MSC_VER //@@ MOD VC ICE
     using base_type::_size;
-    #endif
 
     // Common implementation for operator/= and operator+=.
     //

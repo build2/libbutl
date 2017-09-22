@@ -75,14 +75,14 @@ LIBBUTL_MODEXPORT namespace butl
   // http://pubs.opengroup.org/onlinepubs/009695399/basedefs/xbd_chap07.html#tag_07_02)
   //
   char ucase (char);
-  std::string ucase (const char*, std::size_t = -1 /*@@ MOD VC ICE = std::string::npos*/);
+  std::string ucase (const char*, std::size_t = std::string::npos);
 
   std::string ucase (const std::string&);
   std::string& ucase (std::string&);
   void ucase (char*, std::size_t);
 
   char lcase (char);
-  std::string lcase (const char*, std::size_t = -1 /*@@ MOD VC ICE = std::string::npos*/);
+  std::string lcase (const char*, std::size_t = std::string::npos);
   std::string lcase (const std::string&);
   std::string& lcase (std::string&);
   void lcase (char*, std::size_t);
@@ -100,12 +100,12 @@ LIBBUTL_MODEXPORT namespace butl
   int casecmp (char, char);
 
   int casecmp (const std::string&, const std::string&,
-               std::size_t = -1 /*@@ MOD VC ICE std::string::npos*/);
+               std::size_t = std::string::npos);
 
   int casecmp (const std::string&, const char*,
-               std::size_t = -1 /*@@ MOD VC ICE std::string::npos*/);
+               std::size_t = std::string::npos);
 
-  int casecmp (const char*, const char*, std::size_t = -1 /*MOD VC ICE std::string::npos*/);
+  int casecmp (const char*, const char*, std::size_t = std::string::npos);
 
   // Case-insensitive key comparators (i.e., to be used in sets, maps, etc).
   //

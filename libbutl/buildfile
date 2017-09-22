@@ -62,7 +62,7 @@ if ($cxx.target.class == "windows")
 else
   cxx.libs += -lpthread
 
-#@@ MOD bogus warning if module and dll-exported function called within DLL.
+#@@ MOD VC bogus warning if module and dll-exported function called within DLL.
 #
 if ($cxx.features.modules && $cxx.id == 'msvc')
   cxx.loptions += /ignore:4217

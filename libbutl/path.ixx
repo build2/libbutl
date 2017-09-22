@@ -6,21 +6,17 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 {
 #ifdef _WIN32
   template <>
-  LIBBUTL_SYMEXPORT //@@ MOD VC needs it for some reason.
   inline char path_traits<char>::
   tolower (char c)
   {
-    //@@ MOD VC-ICE return lcase (c);
-    return std::tolower (c);
+    return lcase (c);
   }
 
   template <>
-  LIBBUTL_SYMEXPORT //@@ MOD VC needs it for some reason.
   inline char path_traits<char>::
   toupper (char c)
   {
-    //@@ MOD VC-ICE return ucase (c);
-    return std::toupper (c);
+    return ucase (c);
   }
 #endif
 

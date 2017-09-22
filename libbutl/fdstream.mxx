@@ -46,10 +46,9 @@ LIBBUTL_MODEXPORT namespace butl
   //
   struct nullfd_t {constexpr explicit nullfd_t (int) {}};
 #if defined(__cpp_modules) && defined(__clang__) //@@ MOD Clang duplicate sym.
-  inline constexpr nullfd_t nullfd (-1);
-#else
-  const/*expr*/ nullfd_t nullfd (-1); //@@ MOD VC multiple defs.
+  inline
 #endif
+  constexpr nullfd_t nullfd (-1);
 
   class LIBBUTL_SYMEXPORT auto_fd
   {
