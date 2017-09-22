@@ -1,19 +1,34 @@
-// file      : libbutl/tab-parser.hxx -*- C++ -*-
+// file      : libbutl/tab-parser.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_TAB_PARSER_HXX
-#define LIBBUTL_TAB_PARSER_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
+// C includes.
+
+#ifndef __cpp_lib_modules
+#include <iosfwd>
 #include <string>
 #include <vector>
-#include <istream>
 #include <cstdint>   // uint64_t
 #include <stdexcept> // runtime_error
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.tab_parser;
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+#endif
 
 #include <libbutl/export.hxx>
 
-namespace butl
+LIBBUTL_MODEXPORT namespace butl
 {
   class LIBBUTL_SYMEXPORT tab_parsing: public std::runtime_error
   {
@@ -68,5 +83,3 @@ namespace butl
     std::uint64_t line_ = 0;
   };
 }
-
-#endif // LIBBUTL_TAB_PARSER_HXX

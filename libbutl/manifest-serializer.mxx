@@ -1,18 +1,33 @@
-// file      : libbutl/manifest-serializer.hxx -*- C++ -*-
+// file      : libbutl/manifest-serializer.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_MANIFEST_SERIALIZER_HXX
-#define LIBBUTL_MANIFEST_SERIALIZER_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
+// C includes.
+
+#ifndef __cpp_lib_modules
 #include <string>
 #include <iosfwd>
 #include <cstddef>   // size_t
 #include <stdexcept> // runtime_error
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.manifest_serializer;
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+#endif
 
 #include <libbutl/export.hxx>
 
-namespace butl
+LIBBUTL_MODEXPORT namespace butl
 {
   class LIBBUTL_SYMEXPORT manifest_serialization: public std::runtime_error
   {
@@ -78,5 +93,3 @@ namespace butl
     const std::string name_;
   };
 }
-
-#endif // LIBBUTL_MANIFEST_SERIALIZER_HXX

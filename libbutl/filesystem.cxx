@@ -2,7 +2,11 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <libbutl/filesystem.hxx>
+#ifndef __cpp_modules
+#include <libbutl/filesystem.mxx>
+#endif
+
+#include <errno.h> // errno, E*
 
 #ifndef _WIN32
 #  include <stdio.h>     // rename()
@@ -25,25 +29,46 @@
 #    define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
 #    define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
 #  endif
-
-#  include <libbutl/utility.hxx> // lcase()
 #endif
 
-#include <errno.h> // errno, E*
+#include <cassert>
+
+#ifndef __cpp_lib_modules
+#include <cstddef>
+#include <cstdint>
+#include <utility>
+#include <iterator>
+#include <functional>
 
 #include <string>
 #include <vector>
 #include <memory>       // unique_ptr
-#include <cstddef>      // size_t
-#include <utility>      // pair
-#include <iterator>     // reverse_iterator
 #include <system_error>
+#endif
 
+// Other includes.
 
-#include <libbutl/path.hxx>
-#include <libbutl/utility.hxx>      // throw_generic_error()
-#include <libbutl/fdstream.hxx>
-#include <libbutl/small-vector.hxx>
+#ifdef __cpp_modules
+module butl.filesystem;
+
+// Only imports additional to interface.
+#ifdef __clang__
+#ifdef __cpp_lib_modules
+import std.core;
+#endif
+import butl.path;
+import butl.timestamp;
+#endif
+
+import butl.utility;      // throw_generic_error(), lcase()[_WIN32]
+import butl.fdstream;
+import butl.small_vector;
+#else
+#include <libbutl/path.mxx>
+#include <libbutl/utility.mxx>
+#include <libbutl/fdstream.mxx>
+#include <libbutl/small-vector.mxx>
+#endif
 
 using namespace std;
 

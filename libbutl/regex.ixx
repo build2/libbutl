@@ -2,9 +2,7 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <utility> // move(), make_pair()
-
-namespace butl
+LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 {
   template <typename C>
   inline std::pair<std::basic_string<C>, bool>

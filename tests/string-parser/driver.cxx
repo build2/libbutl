@@ -2,17 +2,30 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <ios>      // ios::failbit, ios::badbit
-#include <vector>
-#include <string>
 #include <cassert>
-#include <iostream>
 
-#include <libbutl/utility.hxx>       // operator<<(ostream,exception)
-#include <libbutl/string-parser.hxx>
+#ifndef __cpp_lib_modules
+#include <string>
+#include <vector>
+#include <iostream>
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.utility;       // operator<<(ostream,exception)
+import butl.string_parser;
+#else
+#include <libbutl/utility.mxx>
+#include <libbutl/string-parser.mxx>
+#endif
 
 using namespace std;
-using namespace butl;
+using namespace butl::string_parser;
 
 // Usage: argv[0] [-l] [-u] [-p]
 //
@@ -54,8 +67,7 @@ try
   string l;
   while (getline (cin, l))
   {
-    vector<pair<string, size_t>> v (
-      string_parser::parse_quoted_position (l, unquote));
+    vector<pair<string, size_t>> v (parse_quoted_position (l, unquote));
 
     if (!spl)
     {

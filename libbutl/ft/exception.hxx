@@ -5,8 +5,11 @@
 #ifndef LIBBUTL_FT_EXCEPTION_HXX
 #define LIBBUTL_FT_EXCEPTION_HXX
 
-#include <cstddef>   // _LIBCPP_VERSION
-#include <exception>
+#if defined(__clang__)
+#  if __has_include(<__config>)
+#    include <__config>          // _LIBCPP_VERSION
+#  endif
+#endif
 
 // __cpp_lib_uncaught_exceptions
 //

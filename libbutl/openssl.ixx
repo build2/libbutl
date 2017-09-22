@@ -2,10 +2,7 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <cstddef> // size_t
-#include <utility> // move(), forward()
-
-namespace butl
+LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 {
   template <typename I,
             typename O,

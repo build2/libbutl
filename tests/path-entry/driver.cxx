@@ -2,11 +2,26 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
+#include <cassert>
+
+#ifndef __cpp_lib_modules
 #include <iostream>
 #include <system_error>
+#endif
 
-#include <libbutl/utility.hxx>    // operator<<(ostream, exception)
-#include <libbutl/filesystem.hxx>
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.utility;    // operator<<(ostream, exception)
+import butl.filesystem;
+#else
+#include <libbutl/utility.mxx>
+#include <libbutl/filesystem.mxx>
+#endif
 
 using namespace std;
 using namespace butl;

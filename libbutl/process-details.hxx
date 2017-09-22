@@ -2,14 +2,17 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_PROCESS_DETAILS_HXX
-#define LIBBUTL_PROCESS_DETAILS_HXX
-
-#include <mutex>
+#pragma once
 
 #include <libbutl/ft/shared_mutex.hxx>
+
+#ifdef __cpp_lib_modules
+import std.core; //@@ MOD std.threading
+#else
+#include <mutex>
 #if defined(__cpp_lib_shared_mutex) || defined(__cpp_lib_shared_timed_mutex)
 #  include <shared_mutex>
+#endif
 #endif
 
 namespace butl
@@ -45,5 +48,3 @@ namespace butl
   //
   extern shared_mutex process_spawn_mutex;
 }
-
-#endif // LIBBUTL_PROCESS_DETAILS_HXX

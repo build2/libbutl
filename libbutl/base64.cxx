@@ -2,13 +2,37 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <libbutl/base64.hxx>
+#ifndef __cpp_modules
+#include <libbutl/base64.mxx>
+#endif
+
+// C includes.
+
+#ifndef __cpp_lib_modules
+#include <string>
+#include <vector>
 
 #include <cstddef>   // size_t
 #include <istream>
 #include <ostream>
 #include <iterator>  // {istreambuf, ostreambuf, back_insert}_iterator
 #include <stdexcept> // invalid_argument
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+module butl.base64;
+
+// Only imports additional to interface.
+#ifdef __clang__
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+#endif
+
+#endif
 
 using namespace std;
 

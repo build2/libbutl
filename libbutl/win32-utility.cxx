@@ -9,7 +9,11 @@
 //
 #ifdef _WIN32
 
+#ifndef __cpp_lib_modules
 #include <memory> // unique_ptr
+#else
+import std.core;
+#endif
 
 using namespace std;
 

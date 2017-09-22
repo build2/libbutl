@@ -1,29 +1,52 @@
-// file      : libbutl/process.hxx -*- C++ -*-
+// file      : libbutl/process.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_PROCESS_HXX
-#define LIBBUTL_PROCESS_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
 #ifndef _WIN32
 #  include <sys/types.h> // pid_t
 #endif
 
+#include <cassert>
+
+#ifndef __cpp_lib_modules
 #include <string>
 #include <vector>
 #include <iosfwd>
-#include <cassert>
+#include <cstddef>      // size_t
 #include <cstdint>      // uint32_t
 #include <system_error>
 
-#include <libbutl/path.hxx>
-#include <libbutl/export.hxx>
-#include <libbutl/optional.hxx>
-#include <libbutl/fdstream.hxx>     // auto_fd, fdpipe
-#include <libbutl/vector-view.hxx>
-#include <libbutl/small-vector.hxx>
+#include <utility> // move(), forward(), index_sequence
+#endif
 
-namespace butl
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.process;
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.path;
+import butl.optional;
+import butl.fdstream;     // auto_fd, fdpipe
+import butl.vector_view;
+import butl.small_vector;
+#else
+#include <libbutl/path.mxx>
+#include <libbutl/optional.mxx>
+#include <libbutl/fdstream.mxx>
+#include <libbutl/vector-view.mxx>
+#include <libbutl/small-vector.mxx>
+#endif
+
+#include <libbutl/export.hxx>
+
+LIBBUTL_MODEXPORT namespace butl
 {
   struct process_error: std::system_error
   {
@@ -643,7 +666,4 @@ namespace butl
 }
 
 #include <libbutl/process.ixx>
-
 #include <libbutl/process-run.txx>
-
-#endif // LIBBUTL_PROCESS_HXX

@@ -2,17 +2,42 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <libbutl/regex.hxx>
-
-#if defined(_MSC_VER) && _MSC_VER <= 1911
-#  include <cstring> // strstr()
+#ifndef __cpp_modules
+#include <libbutl/regex.mxx>
 #endif
+
+// C includes.
+
+#ifndef __cpp_lib_modules
+#include <regex>
+#include <string>
 
 #include <ostream>
 #include <sstream>
 #include <stdexcept> // runtime_error
+#if defined(_MSC_VER) && _MSC_VER <= 1911
+#  include <cstring> // strstr()
+#endif
+#endif
 
-#include <libbutl/utility.hxx> // operator<<(ostream, exception)
+// Other includes.
+
+#ifdef __cpp_modules
+module butl.regex;
+
+// Only imports additional to interface.
+#ifdef __clang__
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+//@@ MOD TODO import std.regex;
+#endif
+#endif
+
+import butl.utility; // operator<<(ostream, exception)
+#else
+#include <libbutl/utility.mxx>
+#endif
 
 namespace std
 {

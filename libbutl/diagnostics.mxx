@@ -1,21 +1,33 @@
-// file      : libbutl/diagnostics.hxx -*- C++ -*-
+// file      : libbutl/diagnostics.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_DIAGNOSTICS_HXX
-#define LIBBUTL_DIAGNOSTICS_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
 #include <cassert>
+
+#ifndef __cpp_lib_modules
 #include <ostream>
 #include <sstream>
-#include <utility>                  // move(), forward()
+#include <utility>   // move(), forward()
+#include <exception> // uncaught_exception[s]()
+#endif
+
 #include <libbutl/ft/exception.hxx> // uncaught_exceptions
-#include <exception>                // uncaught_exception(s)()
+
+#ifdef __cpp_modules
+export module butl.diagnostics;
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+#endif
 
 #include <libbutl/export.hxx>
-#include <libbutl/utility.hxx>
 
-namespace butl
+LIBBUTL_MODEXPORT namespace butl
 {
   // Diagnostic facility base infrastructure.
   //
@@ -261,5 +273,3 @@ namespace butl
     }
   };
 }
-
-#endif // LIBBUTL_DIAGNOSTICS_HXX

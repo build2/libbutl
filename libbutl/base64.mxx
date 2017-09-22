@@ -1,17 +1,32 @@
-// file      : libbutl/base64.hxx -*- C++ -*-
+// file      : libbutl/base64.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_BASE64_HXX
-#define LIBBUTL_BASE64_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
+// C includes.
+
+#ifndef __cpp_lib_modules
 #include <iosfwd>
 #include <string>
 #include <vector>
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.base64;
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+#endif
 
 #include <libbutl/export.hxx>
 
-namespace butl
+LIBBUTL_MODEXPORT namespace butl
 {
   // Base64-encode a stream or a buffer. Split the output into 76 char-long
   // lines (new line is the 77th). If reading from a stream, check if it has
@@ -46,5 +61,3 @@ namespace butl
   LIBBUTL_SYMEXPORT std::vector<char>
   base64_decode (const std::string&);
 }
-
-#endif // LIBBUTL_BASE64_HXX

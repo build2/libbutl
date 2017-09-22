@@ -5,8 +5,11 @@
 #ifndef LIBBUTL_FT_SHARED_MUTEX_HXX
 #define LIBBUTL_FT_SHARED_MUTEX_HXX
 
-#include <cstddef>      // _LIBCPP_VERSION
-#include <shared_mutex>
+#if defined(__clang__)
+#  if __has_include(<__config>)
+#    include <__config>          // _LIBCPP_VERSION
+#  endif
+#endif
 
 // __cpp_lib_shared_mutex
 //

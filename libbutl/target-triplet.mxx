@@ -1,16 +1,31 @@
-// file      : libbutl/target-triplet.hxx -*- C++ -*-
+// file      : libbutl/target-triplet.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_TARGET_TRIPLET_HXX
-#define LIBBUTL_TARGET_TRIPLET_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
+// C includes.
+
+#ifndef __cpp_lib_modules
 #include <string>
 #include <ostream>
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.target_triplet;
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+#endif
 
 #include <libbutl/export.hxx>
 
-namespace butl
+LIBBUTL_MODEXPORT namespace butl
 {
   // This is the ubiquitous 'target triplet' that loosely has the CPU-VENDOR-OS
   // form which, these days, quite often takes the CPU-VENDOR-OS-ABI form. Plus
@@ -130,7 +145,8 @@ namespace butl
     explicit
     target_triplet (const std::string&);
 
-    target_triplet () = default;
+    //target_triplet () = default;
+    target_triplet () {} //@@ MOD (VC ICE)
   };
 
   inline bool
@@ -151,5 +167,3 @@ namespace butl
     return o << x.string ();
   }
 }
-
-#endif // LIBBUTL_TARGET_TRIPLET_HXX

@@ -1,21 +1,37 @@
-// file      : libbutl/manifest-parser.hxx -*- C++ -*-
+// file      : libbutl/manifest-parser.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_MANIFEST_PARSER_HXX
-#define LIBBUTL_MANIFEST_PARSER_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
+// C includes.
+
+#ifndef __cpp_lib_modules
 #include <string>
 #include <iosfwd>
 #include <cstdint>   // uint64_t
 #include <utility>   // pair
 #include <stdexcept> // runtime_error
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.manifest_parser;
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.char_scanner;
+#else
+#include <libbutl/char-scanner.mxx>
+#endif
 
 #include <libbutl/export.hxx>
 
-#include <libbutl/char-scanner.hxx>
-
-namespace butl
+LIBBUTL_MODEXPORT namespace butl
 {
   class LIBBUTL_SYMEXPORT manifest_parsing: public std::runtime_error
   {
@@ -98,5 +114,3 @@ namespace butl
     std::string version_; // Current format version.
   };
 }
-
-#endif // LIBBUTL_MANIFEST_PARSER_HXX

@@ -1,19 +1,39 @@
-// file      : libbutl/sendmail.hxx -*- C++ -*-
+// file      : libbutl/sendmail.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_SENDMAIL_HXX
-#define LIBBUTL_SENDMAIL_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
+// C includes.
+
+#ifndef __cpp_lib_modules
 #include <string>
+
+#include <cstddef> // size_t
+#include <utility> // move(), forward()
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.sendmail;
+#ifdef __cpp_lib_modules
+import std.core;
+#endif
+import butl.process;
+import butl.fdstream;
+import butl.small_vector;
+#else
+#include <libbutl/process.mxx>
+#include <libbutl/fdstream.mxx>
+#include <libbutl/small-vector.mxx>
+#endif
 
 #include <libbutl/export.hxx>
 
-#include <libbutl/process.hxx>
-#include <libbutl/fdstream.hxx>
-#include <libbutl/small-vector.hxx>
-
-namespace butl
+LIBBUTL_MODEXPORT namespace butl
 {
   // Send email using the sendmail(1) program.
   //
@@ -116,5 +136,3 @@ namespace butl
 }
 
 #include <libbutl/sendmail.ixx>
-
-#endif // LIBBUTL_SENDMAIL_HXX

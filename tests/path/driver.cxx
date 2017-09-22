@@ -3,11 +3,25 @@
 // license   : MIT; see accompanying LICENSE file
 
 #include <cassert>
+
+#ifndef __cpp_lib_modules
 #include <iostream>
 #include <type_traits>
+#endif
 
-#include <libbutl/path.hxx>
-#include <libbutl/path-io.hxx>
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.path;
+import butl.path_io;
+#else
+#include <libbutl/path.mxx>
+#include <libbutl/path-io.mxx>
+#endif
 
 using namespace std;
 using namespace butl;

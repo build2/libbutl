@@ -2,14 +2,27 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
+#include <cassert>
+
+#ifndef __cpp_lib_modules
 #include <vector>
 #include <string>
 #include <utility> // pair
-#include <cassert>
 #include <sstream>
 #include <iostream>
+#endif
 
-#include <libbutl/manifest-serializer.hxx>
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.manifest_serializer;
+#else
+#include <libbutl/manifest-serializer.mxx>
+#endif
 
 using namespace std;
 using namespace butl;

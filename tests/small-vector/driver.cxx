@@ -2,11 +2,25 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <string>
 #include <cassert>
-#include <iostream>
 
-#include <libbutl/small-vector.hxx>
+#ifndef __cpp_lib_modules
+#include <string>
+#include <vector>
+#include <iostream>
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.small_vector;
+#else
+#include <libbutl/small-vector.mxx>
+#endif
 
 using namespace std;
 using namespace butl;

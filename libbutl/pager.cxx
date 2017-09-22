@@ -2,24 +2,59 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <libbutl/pager.hxx>
+#ifndef __cpp_modules
+#include <libbutl/pager.mxx>
+#endif
+
+#include <errno.h> // E*
 
 #ifndef _WIN32
 #  include <unistd.h>    // STDOUT_FILENO
 #  include <sys/ioctl.h> // ioctl()
-
-#  include <chrono>
-#  include <thread> // this_thread::sleep_for()
 #else
 #  include <libbutl/win32-utility.hxx>
 #endif
 
-#include <cstring>      // strchr()
-#include <utility>      // move()
+#ifndef __cpp_lib_modules
+#include <string>
+#include <vector>
+#include <iostream>
 
-#include <libbutl/utility.hxx>  // operator<<(ostream, exception),
-                                // throw_generic_error()
-#include <libbutl/fdstream.hxx> // fdclose()
+#include <cstring> // strchr()
+#include <utility> // move()
+#ifndef _WIN32
+#  include <chrono>
+#  include <thread> // this_thread::sleep_for()
+#endif
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+module butl.pager;
+
+// Only imports additional to interface.
+#ifdef __clang__
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.process;
+import butl.fdstream;
+#endif
+
+#ifndef _WIN32
+import std.core; //@@ MOD TODO: import std.threading.
+#endif
+
+import butl.utility;  // operator<<(ostream, exception), throw_generic_error()
+import butl.optional;
+import butl.fdstream; // fdclose()
+#else
+#include <libbutl/utility.mxx>
+#include <libbutl/optional.mxx>
+#include <libbutl/fdstream.mxx>
+#endif
 
 using namespace std;
 

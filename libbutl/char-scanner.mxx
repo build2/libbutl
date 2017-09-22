@@ -1,19 +1,35 @@
-// file      : libbutl/char-scanner.hxx -*- C++ -*-
+// file      : libbutl/char-scanner.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_CHAR_SCANNER_HXX
-#define LIBBUTL_CHAR_SCANNER_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
+// C includes.
+
+#ifndef __cpp_lib_modules
 #include <string>  // char_traits
 #include <cstdint> // uint64_t
 #include <istream>
+#endif
 
-#include <libbutl/fdstream.hxx>
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.char_scanner;
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.fdstream;
+#else
+#include <libbutl/fdstream.mxx>
+#endif
 
 #include <libbutl/export.hxx>
 
-namespace butl
+LIBBUTL_MODEXPORT namespace butl
 {
   // Low-level character stream scanner. Normally used as a base for
   // higher-level lexers.
@@ -123,5 +139,3 @@ namespace butl
 }
 
 #include <libbutl/char-scanner.ixx>
-
-#endif // LIBBUTL_CHAR_SCANNER_HXX

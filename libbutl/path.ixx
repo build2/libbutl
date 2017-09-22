@@ -2,39 +2,25 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifdef _WIN32
-#  include <cwctype> // towlower(), towupper()
-#endif
-
-namespace butl
+LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 {
 #ifdef _WIN32
   template <>
+  LIBBUTL_SYMEXPORT //@@ MOD VC needs it for some reason.
   inline char path_traits<char>::
   tolower (char c)
   {
-    return lcase (c);
+    //@@ MOD VC-ICE return lcase (c);
+    return std::tolower (c);
   }
 
   template <>
-  inline wchar_t path_traits<wchar_t>::
-  tolower (wchar_t c)
-  {
-    return std::towlower (c);
-  }
-
-  template <>
+  LIBBUTL_SYMEXPORT //@@ MOD VC needs it for some reason.
   inline char path_traits<char>::
   toupper (char c)
   {
-    return ucase (c);
-  }
-
-  template <>
-  inline wchar_t path_traits<wchar_t>::
-  toupper (wchar_t c)
-  {
-    return std::towupper (c);
+    //@@ MOD VC-ICE return ucase (c);
+    return std::toupper (c);
   }
 #endif
 

@@ -1,18 +1,34 @@
-// file      : libbutl/standard-version.hxx -*- C++ -*-
+// file      : libbutl/standard-version.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_STANDARD_VERSION_HXX
-#define LIBBUTL_STANDARD_VERSION_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
+// C includes.
+
+#ifndef __cpp_lib_modules
 #include <string>
 #include <cstdint> // uint*_t
 #include <cstddef> // size_t
 #include <ostream>
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.standard_version;
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.optional;
+#else
+#include <libbutl/optional.mxx>
+#endif
 
 #include <libbutl/export.hxx>
-
-#include <libbutl/optional.hxx>
 
 // FreeBSD defines these macros in its <sys/types.h>.
 //
@@ -24,7 +40,7 @@
 #  undef minor
 #endif
 
-namespace butl
+LIBBUTL_MODEXPORT namespace butl
 {
   // The build2 "standard version" (specific, earliest and stub):
   //
@@ -263,5 +279,3 @@ namespace butl
 }
 
 #include <libbutl/standard-version.ixx>
-
-#endif // LIBBUTL_STANDARD_VERSION_HXX

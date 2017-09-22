@@ -2,7 +2,33 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <libbutl/char-scanner.hxx>
+#ifndef __cpp_modules
+#include <libbutl/char-scanner.mxx>
+#endif
+
+// C includes.
+
+#ifndef __cpp_lib_modules
+#include <string>  // char_traits
+#include <cstdint> // uint64_t
+#include <istream>
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+module butl.char_scanner;
+
+// Only imports additional to interface.
+#ifdef __clang__
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.fdstream;
+#endif
+
+#endif
 
 using namespace std;
 

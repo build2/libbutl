@@ -2,8 +2,6 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <utility> // move()
-
 namespace butl
 {
   // process_path
@@ -35,14 +33,21 @@ namespace butl
   inline process_path& process_path::
   operator= (process_path&& p)
   {
+
     if (this != &p)
     {
       if (args0_ != nullptr)
         *args0_ = initial;
 
       initial = p.initial;
+
+#if defined(__cpp_modules) && defined(__clang__) //@@ MOD Clang ICE
+      recall = p.recall;
+      effect = p.effect;
+#else
       recall = std::move (p.recall);
       effect = std::move (p.effect);
+#endif
       args0_ = p.args0_;
 
       p.args0_ = nullptr;

@@ -2,19 +2,21 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <libbutl/sha256.hxx>
+#ifndef __cpp_modules
+#include <libbutl/sha256.mxx>
+#endif
 
 // C interface for sha256c.
 //
 #include <stdint.h>
 #include <stddef.h> // size_t
 
-#include <cctype>    // isxdigit()
-#include <stdexcept> // invalid_argument
-
-#include <libbutl/utility.hxx> // ucase(), lcase()
-
-using SHA256_CTX = butl::sha256::context;
+struct SHA256_CTX
+{
+  uint32_t state[8];
+  uint64_t count;
+  uint8_t buf[64];
+};
 
 extern "C"
 {
@@ -25,23 +27,48 @@ extern "C"
 #include "sha256c.c"
 }
 
+#ifndef __cpp_lib_modules
+#include <string>
+#include <cstddef>
+#include <cstdint>
+
+#include <cctype>    // isxdigit(), toupper(), tolower()
+#include <stdexcept> // invalid_argument
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+module butl.sha256;
+
+// Only imports additional to interface.
+#ifdef __cpp_lib_modules
+import std.io;
+#endif
+
+#ifdef __clang__
+#ifdef __cpp_lib_modules
+import std.core;
+#endif
+#endif
+
+#endif
+
 using namespace std;
 
 namespace butl
 {
-  // sha256
-  //
   sha256::
   sha256 ()
       : done_ (false)
   {
-    SHA256_Init (&ctx_);
+    SHA256_Init (reinterpret_cast<SHA256_CTX*> (buf_));
   }
 
   void sha256::
   append (const void* b, size_t n)
   {
-    SHA256_Update (&ctx_, b, n);
+    SHA256_Update (reinterpret_cast<SHA256_CTX*> (buf_), b, n);
   }
 
   const sha256::digest_type& sha256::
@@ -49,9 +76,9 @@ namespace butl
   {
     if (!done_)
     {
-      SHA256_Final (bin_, &ctx_);
+      SHA256_Final (bin_, reinterpret_cast<SHA256_CTX*> (buf_));
       done_ = true;
-      str_[0] = '\0'; // Indicate we haven't computed the string yet.
+      buf_[0] = '\0'; // Indicate we haven't computed the string yet.
     }
 
     return bin_;
@@ -67,22 +94,20 @@ namespace butl
     if (!done_)
       binary ();
 
-    if (str_[0] == '\0')
+    if (buf_[0] == '\0')
     {
       for (size_t i (0); i != 32; ++i)
       {
-        str_[i * 2]     = hex_map[bin_[i] >> 4];
-        str_[i * 2 + 1] = hex_map[bin_[i] & 0x0f];
+        buf_[i * 2]     = hex_map[bin_[i] >> 4];
+        buf_[i * 2 + 1] = hex_map[bin_[i] & 0x0f];
       }
 
-      str_[64] = '\0';
+      buf_[64] = '\0';
     }
 
-    return str_;
+    return buf_;
   }
 
-  // Conversion functions
-  //
   string
   sha256_to_fingerprint (const string& s)
   {
@@ -103,7 +128,7 @@ namespace butl
       if (i > 0 && i % 2 == 0)
         f += ":";
 
-      f += ucase (c);
+      f += toupper (c); //@@ MOD revert to ucase()
     }
 
     return f;
@@ -133,7 +158,7 @@ namespace butl
         if (!isxdigit (c))
           bad ();
 
-        s += lcase (c);
+        s += tolower (c); //@@ MOD revert to lcase()
       }
     }
 

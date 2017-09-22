@@ -1,13 +1,29 @@
-// file      : libbutl/const-ptr.hxx -*- C++ -*-
+// file      : libbutl/const-ptr.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_CONST_PTR_HXX
-#define LIBBUTL_CONST_PTR_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
+// C includes.
+
+#ifndef __cpp_lib_modules
 #include <cstddef> // nullptr_t
+#endif
 
-namespace butl
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.const_ptr;
+#ifdef __cpp_lib_modules
+import std.core; // @@ MOD std.fundamental.
+#endif
+#endif
+
+#include <libbutl/export.hxx>
+
+LIBBUTL_MODEXPORT namespace butl
 {
   // Const-propagating pointer.
   //
@@ -76,5 +92,3 @@ namespace butl
     T* p_;
   };
 }
-
-#endif // LIBBUTL_CONST_PTR_HXX

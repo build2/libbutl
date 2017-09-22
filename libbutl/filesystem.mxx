@@ -1,9 +1,12 @@
-// file      : libbutl/filesystem.hxx -*- C++ -*-
+// file      : libbutl/filesystem.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_FILESYSTEM_HXX
-#define LIBBUTL_FILESYSTEM_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
+
+#include <errno.h> // E*
 
 #ifndef _WIN32
 #  include <dirent.h> // DIR
@@ -11,7 +14,7 @@
 #  include <stddef.h> // intptr_t
 #endif
 
-// VC's sys/types.h header file doesn't define mode_t type. So let's define it
+// VC's sys/types.h header file doesn't define mode_t type. So we define it
 // ourselves according to the POSIX specification.
 //
 #ifndef _MSC_VER
@@ -20,18 +23,38 @@
    typedef int mode_t;
 #endif
 
+#ifndef __cpp_lib_modules
 #include <cstddef>    // ptrdiff_t
 #include <cstdint>    // uint16_t, etc
 #include <utility>    // move(), pair
 #include <iterator>
 #include <functional>
 
+#include <chrono>     //@@ MOD needed by timestamp module.
+#endif
+
+// Other includes.
+#ifdef __cpp_modules
+export module butl.filesystem;
+
+#ifdef __cpp_lib_modules
+import std.core;
+#endif
+
+import butl.path;
+import butl.timestamp;
+
+import butl.utility;
+#else
+#include <libbutl/path.mxx>
+#include <libbutl/timestamp.mxx>
+
+#include <libbutl/utility.mxx>
+#endif
+
 #include <libbutl/export.hxx>
 
-#include <libbutl/path.hxx>
-#include <libbutl/timestamp.hxx>
-
-namespace butl
+LIBBUTL_MODEXPORT namespace butl
 {
   // Return true if the path is to an existing regular file. Note that by
   // default this function follows symlinks.
@@ -622,5 +645,3 @@ namespace butl
 }
 
 #include <libbutl/filesystem.ixx>
-
-#endif // LIBBUTL_FILESYSTEM_HXX

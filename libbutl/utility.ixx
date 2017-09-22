@@ -2,14 +2,6 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef _WIN32
-#  include <strings.h> // strcasecmp(), strncasecmp()
-#else
-#  include <string.h> // _stricmp(), _strnicmp()
-#endif
-
-#include <cctype> // toupper(), tolower(), isalpha(), isdigit(), isalnum()
-
 namespace butl
 {
   inline char

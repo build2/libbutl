@@ -2,9 +2,35 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <libbutl/openssl.hxx>
+#ifndef __cpp_modules
+#include <libbutl/openssl.mxx>
+#endif
+
+#include <cassert>
+
+#ifndef __cpp_lib_modules
+#include <string>
 
 #include <utility> // move()
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+module butl.openssl;
+
+// Only imports additional to interface.
+#ifdef __clang__
+#ifdef __cpp_lib_modules
+import std.core;
+#endif
+import butl.path;
+import butl.process;
+import butl.fdstream;
+import butl.small_vector;
+#endif
+
+#endif
 
 using namespace std;
 

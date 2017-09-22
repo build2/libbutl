@@ -4,20 +4,43 @@
 
 #ifndef _WIN32
 #  include <unistd.h> // write()
-
-#  include <thread> // this_thread::sleep_for()
 #else
 #  include <libbutl/win32-utility.hxx>
-
 #  include <io.h> //_write()
 #endif
 
+#include <cassert>
+
+#ifndef __cpp_lib_modules
+#include <string>
 #include <cstddef>  // size_t
 #include <iostream>
+#ifndef _WIN32
+#  include <thread> // this_thread::sleep_for()
+#endif
+#endif
 
-#include <libbutl/process.hxx>
-#include <libbutl/fdstream.hxx>    // fdnull(), stderr_fd()
-#include <libbutl/diagnostics.hxx>
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#ifndef _WIN32
+//@@ MOD TODO import std.threading;
+#endif
+#endif
+import butl.process;
+import butl.fdstream;
+import butl.diagnostics;
+
+import butl.optional;     // @@ MOD Clang should not be necessary.
+import butl.small_vector; // @@ MOD Clang should not be necessary.
+#else
+#include <libbutl/process.mxx>
+#include <libbutl/fdstream.mxx>    // fdnull(), stderr_fd()
+#include <libbutl/diagnostics.mxx>
+#endif
 
 using namespace std;
 using namespace butl;

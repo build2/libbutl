@@ -1,19 +1,38 @@
-// file      : libbutl/optional.hxx -*- C++ -*-
+// file      : libbutl/optional.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_OPTIONAL_HXX
-#define LIBBUTL_OPTIONAL_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
+// C includes.
+
+#ifndef __cpp_lib_modules
 #include <utility>    // move()
 #include <functional> // hash
+#endif
 
-namespace butl
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.optional;
+#ifdef __cpp_lib_modules
+import std.core;
+#endif
+#endif
+
+#include <libbutl/export.hxx>
+
+LIBBUTL_MODEXPORT namespace butl
 {
   // Simple optional class template while waiting for std::optional.
   //
   struct nullopt_t {constexpr explicit nullopt_t (int) {}};
-  constexpr const nullopt_t nullopt (1);
+#if defined(__cpp_modules) && defined(__clang__) //@@ MOD Clang duplicate sym.
+  inline
+#endif
+  const/*expr*/ nullopt_t nullopt (1); //@@ MOD VC multiple defs.
 
   template <typename T>
   class optional
@@ -92,5 +111,3 @@ namespace std
     }
   };
 }
-
-#endif // LIBBUTL_OPTIONAL_HXX

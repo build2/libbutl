@@ -2,10 +2,7 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <locale>
-#include <cstddef> // size_t, _LIBCPP_VERSION
-
-namespace butl
+LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 {
   template <typename C, typename F>
   bool

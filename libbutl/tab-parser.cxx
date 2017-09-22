@@ -2,12 +2,39 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <libbutl/tab-parser.hxx>
+#ifndef __cpp_modules
+#include <libbutl/tab-parser.mxx>
+#endif
 
 #include <cassert>
-#include <sstream>
 
-#include <libbutl/string-parser.hxx>
+#ifndef __cpp_lib_modules
+#include <string>
+#include <vector>
+#include <cstdint>
+#include <stdexcept>
+
+#include <istream>
+#include <sstream>
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+module butl.tab_parser;
+
+// Only imports additional to interface.
+#ifdef __clang__
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+#endif
+
+import butl.string_parser;
+#else
+#include <libbutl/string-parser.mxx>
+#endif
 
 using namespace std;
 
@@ -53,7 +80,7 @@ namespace butl
       {
         sp = string_parser::parse_quoted_position (s, false);
       }
-      catch (const invalid_string& e)
+      catch (const string_parser::invalid_string& e)
       {
         throw parsing (name_, line_, e.position + 1, e.what ());
       }
@@ -69,7 +96,7 @@ namespace butl
 
   // tab_parsing
   //
-  static string
+  static inline string
   format (const string& n, uint64_t l, uint64_t c, const string& d)
   {
     ostringstream os;

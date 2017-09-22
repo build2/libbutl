@@ -3,12 +3,29 @@
 // license   : MIT; see accompanying LICENSE file
 
 #include <cassert>
-#include <iostream>
 
-#include <libbutl/utility.hxx>             // operator<<(ostream, exception)
-#include <libbutl/fdstream.hxx>
-#include <libbutl/manifest-parser.hxx>
-#include <libbutl/manifest-serializer.hxx>
+#ifndef __cpp_lib_modules
+#include <string>
+#include <iostream>
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.utility;             // operator<<(ostream, exception)
+import butl.fdstream;
+import butl.manifest_parser;
+import butl.manifest_serializer;
+#else
+#include <libbutl/utility.mxx>
+#include <libbutl/fdstream.mxx>
+#include <libbutl/manifest-parser.mxx>
+#include <libbutl/manifest-serializer.mxx>
+#endif
 
 using namespace std;
 using namespace butl;

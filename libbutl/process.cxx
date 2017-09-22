@@ -2,7 +2,11 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <libbutl/process.hxx>
+#ifndef __cpp_modules
+#include <libbutl/process.mxx>
+#endif
+
+#include <errno.h>
 
 #ifndef _WIN32
 #  include <stdlib.h>    // setenv(), unsetenv()
@@ -27,8 +31,7 @@
 #  include <stdlib.h>     // _MAX_PATH
 #  include <sys/types.h>  // stat
 #  include <sys/stat.h>   // stat(), S_IS*
-#  include <processenv.h> // GetEnvironmentStringsA(),
-                          // FreeEnvironmentStringsA()
+#  include <processenv.h> // {Get,Free}EnvironmentStringsA()
 
 #  ifdef _MSC_VER // Unlikely to be fixed in newer versions.
 #    define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
@@ -37,29 +40,66 @@
 #    define STDOUT_FILENO 1
 #    define STDERR_FILENO 2
 #  endif // _MSC_VER
-
-#  include <map>
-#  include <chrono>
-#  include <cstdlib> // getenv(), __argv[]
-
-#  include <libbutl/timestamp.hxx>
-#  include <libbutl/small-vector.hxx>
 #endif
 
-#include <errno.h>
+#include <cassert>
+
+#ifndef __cpp_lib_modules
+#include <string>
+#include <vector>
+#include <cstdint>
+#include <cstddef>
+#include <system_error>
 
 #include <ios>      // ios_base::failure
-#include <cassert>
-#include <cstddef>  // size_t
 #include <cstring>  // strlen(), strchr()
 #include <utility>  // move()
 #include <ostream>
 
-#include <libbutl/utility.hxx>         // casecmp()
-#include <libbutl/fdstream.hxx>        // fdnull()
+#ifdef _WIN32
+#include <map>
+#include <chrono>
+#include <cstdlib> // getenv(), __argv[]
+#endif
+#endif
+
 #include <libbutl/process-details.hxx>
 
-#include <iostream>
+namespace butl
+{
+  shared_mutex process_spawn_mutex; // Out of module purview.
+}
+
+#ifdef __cpp_modules
+module butl.process;
+
+// Only imports additional to interface.
+#ifdef __clang__
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.path;
+import butl.optional;
+import butl.fdstream;
+import butl.vector_view;
+import butl.small_vector;
+#endif
+
+import butl.utility;  // casecmp()
+import butl.fdstream; // fdnull()
+#ifdef _WIN32
+import butl.timestamp;
+#endif
+
+#else
+#include <libbutl/utility.mxx>
+#include <libbutl/fdstream.mxx>
+
+#ifdef _WIN32
+#include <libbutl/timestamp.mxx>
+#endif
+#endif
 
 using namespace std;
 
@@ -69,8 +109,6 @@ using namespace butl::win32;
 
 namespace butl
 {
-  shared_mutex process_spawn_mutex;
-
   // process
   //
   static process_path

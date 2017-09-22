@@ -2,14 +2,7 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <vector>
-#include <cassert>
-
-#ifdef _WIN32
-#  include <algorithm> // replace()
-#endif
-
-namespace butl
+LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 {
   template <typename C, typename K>
   basic_path<C, K> basic_path<C, K>::
@@ -138,6 +131,7 @@ namespace butl
   // Throw system_error in case of other failures. Result and dir can be the
   // same instance.
   //
+  LIBBUTL_MODEXPORT //@@ MOD VC doesn't "see" it in impl unit unless exported.
   template <typename C>
   bool
   basic_path_append_actual_name (std::basic_string<C>& result,

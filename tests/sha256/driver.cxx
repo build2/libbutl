@@ -1,12 +1,25 @@
-// file      : tests/triplet/driver.cxx -*- C++ -*-
+// file      : tests/sha256/driver.cxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <string>
 #include <cassert>
-#include <iostream>
 
-#include <libbutl/sha256.hxx>
+#ifndef __cpp_lib_modules
+#include <string>
+#include <iostream>
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.sha256;
+#else
+#include <libbutl/sha256.mxx>
+#endif
 
 using namespace std;
 using namespace butl;

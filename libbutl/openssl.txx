@@ -2,9 +2,7 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <utility> // move(), forward()
-
-namespace butl
+LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 {
   template <typename I>
   typename std::enable_if<openssl::is_other<I>::value, I>::type openssl::

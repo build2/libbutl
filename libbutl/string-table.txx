@@ -2,10 +2,6 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <limits>  // numeric_limits
-#include <cstddef> // size_t
-#include <cassert>
-
 namespace butl
 {
   template <typename I, typename D>

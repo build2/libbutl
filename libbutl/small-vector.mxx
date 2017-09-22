@@ -1,17 +1,32 @@
-// file      : libbutl/small-vector.hxx -*- C++ -*-
+// file      : libbutl/small-vector.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_SMALL_VECTOR_HXX
-#define LIBBUTL_SMALL_VECTOR_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
-#include <vector>
 #include <cassert>
-#include <cstddef>     // size_t
-#include <utility>     // more(), forward()
-#include <type_traits> // true_type
 
-namespace butl
+#ifndef __cpp_lib_modules
+#include <vector>
+#include <cstddef>     // size_t
+#include <utility>     // move(), forward()
+#include <type_traits> // true_type
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.small_vector;
+#ifdef __cpp_lib_modules
+import std.core;
+#endif
+#endif
+
+#include <libbutl/export.hxx>
+
+LIBBUTL_MODEXPORT namespace butl
 {
   template <typename T, std::size_t N>
   struct small_vector_buffer
@@ -293,5 +308,3 @@ namespace butl
     }
   };
 }
-
-#endif // LIBBUTL_SMALL_VECTOR_HXX

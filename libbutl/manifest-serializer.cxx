@@ -2,10 +2,35 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <libbutl/manifest-serializer.hxx>
+#ifndef __cpp_modules
+#include <libbutl/manifest-serializer.mxx>
+#endif
+
+#include <cassert>
+
+#ifndef __cpp_lib_modules
+#include <string>
+#include <cstddef>
+#include <stdexcept>
 
 #include <ostream>
-#include <cassert>
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+module butl.manifest_serializer;
+
+// Only imports additional to interface.
+#ifdef __clang__
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.char_scanner;
+#endif
+
+#endif
 
 using namespace std;
 
@@ -257,7 +282,7 @@ namespace butl
   // manifest_serialization
   //
 
-  static string
+  static inline string
   format (const string& n, const string& d)
   {
     string r;

@@ -2,7 +2,11 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <libbutl/fdstream.hxx>
+#ifndef __cpp_modules
+#include <libbutl/fdstream.mxx>
+#endif
+
+#include <errno.h> // errno, E*
 
 #ifndef _WIN32
 #  include <fcntl.h>     // open(), O_*, fcntl()
@@ -21,22 +25,45 @@
 #  include <fcntl.h>    // _O_*
 #  include <sys/stat.h> // S_I*
 
-#  include <cwchar> // wcsncmp(), wcsstr()
+#  include <wchar.h> // wcsncmp(), wcsstr()
 #endif
 
-#include <errno.h> // errno, E*
+#include <cassert>
+
+#ifndef __cpp_lib_modules
+#include <vector>
+#include <string>
+#include <istream>
+#include <ostream>
+#include <utility>
+#include <cstdint>
 
 #include <ios>          // ios_base::openmode, ios_base::failure
 #include <new>          // bad_alloc
 #include <limits>       // numeric_limits
-#include <cassert>
 #include <cstring>      // memcpy(), memmove()
 #include <exception>    // uncaught_exception()
 #include <stdexcept>    // invalid_argument
 #include <type_traits>
 #include <system_error>
+#endif
 
 #include <libbutl/process-details.hxx>
+
+#ifdef __cpp_modules
+module butl.fdstream;
+
+// Only imports additional to interface.
+#ifdef __clang__
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.path;
+import butl.filesystem;
+#endif
+
+#endif
 
 using namespace std;
 

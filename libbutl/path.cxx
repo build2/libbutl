@@ -2,7 +2,9 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <libbutl/path.hxx>
+#ifndef __cpp_modules
+#include <libbutl/path.mxx>
+#endif
 
 #ifdef _WIN32
 #  include <libbutl/win32-utility.hxx>
@@ -21,18 +23,37 @@
 #  include <string.h>    // strlen(), strcpy()
 #  include <sys/stat.h>  // stat(), S_IS*
 #  include <sys/types.h> // stat
-
-#  include <vector>
 #endif
 
-#include <atomic>
 #include <cassert>
+
+#ifndef __cpp_lib_modules
+#include <string>
+#include <cstddef>
+#include <utility>
+
+#include <atomic>
 #include <cstring> // strcpy()
+#endif
+
+#ifdef __cpp_modules
+module butl.path;
+
+// Only imports additional to interface.
+#ifdef __clang__
+#ifdef __cpp_lib_modules
+import std.core;
+#endif
+#endif
+
+import butl.utility; // throw_*_error()
+import butl.process; // process::current_id()
+#else
+#include <libbutl/utility.mxx>
+#include <libbutl/process.mxx>
+#endif
 
 #include <libbutl/export.hxx>
-
-#include <libbutl/utility.hxx> // throw_*_error()
-#include <libbutl/process.hxx>
 
 #ifndef _WIN32
 #  ifndef PATH_MAX
@@ -88,9 +109,11 @@ namespace butl
     // one of the drive requires the trailing directory separator to be
     // present.
     //
-    string_type const& d (!root (s)
-                          ? s
-                          : string_type (s + directory_separator));
+    string_type const& d (
+      !root (s)
+      ? s
+      //@@ MOD VC ADL does not seem to kick in for some reason...
+      : string_type (std::operator+ (s, directory_separator)));
 
     if (_chdir (d.c_str ()) != 0)
       throw_generic_error (errno);
@@ -168,7 +191,7 @@ namespace butl
 #endif
   }
 
-  static atomic<size_t> temp_name_count;
+  static atomic<size_t> temp_name_count (0);
 
   template <>
   LIBBUTL_SYMEXPORT path_traits<char>::string_type path_traits<char>::

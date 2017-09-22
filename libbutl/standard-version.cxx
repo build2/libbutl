@@ -2,15 +2,41 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <libbutl/standard-version.hxx>
+#ifndef __cpp_modules
+#include <libbutl/standard-version.mxx>
+#endif
 
 #include <cassert>
+
+#ifndef __cpp_lib_modules
+#include <string>
+#include <cstdint>
+#include <cstddef>
+#include <ostream>
+
 #include <cstdlib>   // strtoull()
-#include <cstddef>   // size_t
 #include <utility>   // move()
 #include <stdexcept> // invalid_argument
+#endif
 
-#include <libbutl/utility.hxx> // alnum()
+// Other includes.
+
+#ifdef __cpp_modules
+module butl.standard_version;
+
+// Only imports additional to interface.
+#ifdef __clang__
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.optional;
+#endif
+
+import butl.utility;
+#else
+#include <libbutl/utility.mxx> // alnum()
+#endif
 
 using namespace std;
 

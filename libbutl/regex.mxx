@@ -1,18 +1,42 @@
-// file      : libbutl/regex.hxx -*- C++ -*-
+// file      : libbutl/regex.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_REGEX_HXX
-#define LIBBUTL_REGEX_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
+// C includes.
+
+#ifndef __cpp_lib_modules
 #include <regex>
 #include <iosfwd>
-#include <string>  // basic_string
+#include <string>
 #include <utility> // pair
+
+#include <locale>
+#include <cstddef> // size_t
+#include <utility> // move(), make_pair()
+#endif
+
+#if defined(__clang__) && __has_include(<__config>)
+#  include <__config> // _LIBCPP_VERSION
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.regex;
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+//@@ MOD TODO import std.regex;
+#endif
+#endif
 
 #include <libbutl/export.hxx>
 
-namespace butl
+LIBBUTL_MODEXPORT namespace butl
 {
   // Call specified append() function for non-matched substrings and matched
   // substring replacements returning true if search succeeded. The function
@@ -61,7 +85,7 @@ namespace butl
                       std::regex_constants::match_default);
 }
 
-namespace std
+LIBBUTL_MODEXPORT namespace std
 {
   // Print regex error description but only if it is meaningful (this is also
   // why we have to print leading colon).
@@ -72,5 +96,3 @@ namespace std
 
 #include <libbutl/regex.ixx>
 #include <libbutl/regex.txx>
-
-#endif // LIBBUTL_REGEX_HXX

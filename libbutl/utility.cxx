@@ -2,15 +2,39 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <libbutl/utility.hxx>
-
-#ifdef _WIN32
-#  include <libbutl/win32-utility.hxx>
+#ifndef __cpp_modules
+#include <libbutl/utility.mxx>
 #endif
 
+#ifdef _WIN32
+#include <libbutl/win32-utility.hxx>
+#endif
+
+#ifndef __cpp_lib_modules
 #include <string>
+#include <cstddef>
+#include <utility>
+
 #include <ostream>
 #include <system_error>
+#endif
+
+#include <libbutl/ft/lang.hxx>
+#include <libbutl/ft/exception.hxx>
+
+#ifdef __cpp_modules
+module butl.utility;
+
+// Only imports additional to interface.
+#ifdef __clang__
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+#endif
+
+#endif
+
 
 namespace butl
 {

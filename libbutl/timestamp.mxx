@@ -1,18 +1,35 @@
-// file      : libbutl/timestamp.hxx -*- C++ -*-
+// file      : libbutl/timestamp.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_TIMESTAMP_HXX
-#define LIBBUTL_TIMESTAMP_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
-#include <chrono>
+// C includes.
+
+#ifndef __cpp_lib_modules
 #include <iosfwd>
+#include <string>
+#include <chrono>
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.timestamp;
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+#endif
+
+//@@ MOD TODO: should't we re-export chrono (for somparison operator, etc)?
+//   or ADL should kick in?
 
 #include <libbutl/export.hxx>
 
-#include <libbutl/path.hxx>
-
-namespace butl
+LIBBUTL_MODEXPORT namespace butl
 {
   // On all three main platforms that we target (GNU/Linux, Windows (both
   // VC++ and GCC/MinGW64), and MacOS X) with recent C++ runtimes,
@@ -42,10 +59,17 @@ namespace butl
   // Generally-useful special values. Note that unknown is less than
   // nonexistent and is less than any non-special value.
   //
+#if defined(__cpp_modules) && defined(__clang__) //@@ MOD Clang duplicate sym.
+  inline const timestamp::rep timestamp_unknown_rep     = -1;
+  inline const timestamp      timestamp_unknown         = timestamp (duration (-1));
+  inline const timestamp::rep timestamp_nonexistent_rep = 0;
+  inline const timestamp      timestamp_nonexistent     = timestamp (duration (0));
+#else
   const timestamp::rep timestamp_unknown_rep     = -1;
   const timestamp      timestamp_unknown         = timestamp (duration (-1));
   const timestamp::rep timestamp_nonexistent_rep = 0;
   const timestamp      timestamp_nonexistent     = timestamp (duration (0));
+#endif
 
   // Print human-readable representation of the timestamp.
   //
@@ -165,5 +189,3 @@ namespace butl
                bool local,
                const char** end = nullptr);
 }
-
-#endif // LIBBUTL_TIMESTAMP_HXX

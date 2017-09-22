@@ -2,13 +2,27 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <string>
 #include <cassert>
+
+#ifndef __cpp_lib_modules
+#include <string>
 #include <iostream>
 #include <exception>
+#endif
 
-#include <libbutl/regex.hxx>
-#include <libbutl/utility.hxx> // operator<<(ostream, exception)
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.regex;
+import butl.utility; // operator<<(ostream, exception)
+#else
+#include <libbutl/regex.mxx>
+#include <libbutl/utility.mxx>
+#endif
 
 using namespace std;
 using namespace butl;

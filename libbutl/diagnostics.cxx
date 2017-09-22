@@ -2,25 +2,52 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <libbutl/diagnostics.hxx>
+#ifndef __cpp_modules
+#include <libbutl/diagnostics.mxx>
+#endif
 
 #ifndef _WIN32
 #  include <unistd.h> // write()
 #else
 #  include <libbutl/win32-utility.hxx>
-
 #  include <io.h> //_write()
 #endif
+
+#include <cassert>
+
+#ifndef __cpp_lib_modules
+#include <utility>
+#include <exception>
 
 #include <ios>      // ios::failure
 #include <mutex>
 #include <string>
-#include <cassert>
 #include <cstddef>  // size_t
 #include <iostream> // cerr
+#endif
 
-#include <libbutl/optional.hxx>
-#include <libbutl/fdstream.hxx> // stderr_fd(), fdterm()
+// Other includes.
+
+#ifdef __cpp_modules
+module butl.diagnostics;
+
+// Only imports additional to interface.
+#ifdef __clang__
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+#endif
+
+//@@ MOD TODO: std.threading
+import butl.utility;
+import butl.optional;
+import butl.fdstream; // stderr_fd(), fdterm()
+#else
+#include <libbutl/utility.mxx>
+#include <libbutl/optional.mxx>
+#include <libbutl/fdstream.mxx>
+#endif
 
 using namespace std;
 

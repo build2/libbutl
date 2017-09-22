@@ -2,9 +2,33 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <libbutl/target-triplet.hxx>
+#ifndef __cpp_modules
+#include <libbutl/target-triplet.mxx>
+#endif
+
+// C includes.
+
+#ifndef __cpp_lib_modules
+#include <string>
+#include <ostream>
 
 #include <stdexcept> // invalid_argument
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+module butl.target_triplet;
+
+// Only imports additional to interface.
+#ifdef __clang__
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+#endif
+
+#endif
 
 using namespace std;
 

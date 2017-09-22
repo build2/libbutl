@@ -4,17 +4,34 @@
 
 #include <stdlib.h> // getenv(), setenv(), _putenv()
 
+#include <cassert>
+
+#ifndef __cpp_lib_modules
 #include <ios>
 #include <string>
 #include <vector>
-#include <cassert>
-#include <iostream>
 #include <iterator>  // istreambuf_iterator, ostream_iterator
 #include <algorithm> // copy()
+#include <iostream>
+#endif
 
-#include <libbutl/path.hxx>
-#include <libbutl/process.hxx>
-#include <libbutl/fdstream.hxx>
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.path;
+import butl.process;
+import butl.optional;
+import butl.fdstream;
+#else
+#include <libbutl/path.mxx>
+#include <libbutl/process.mxx>
+#include <libbutl/optional.mxx>
+#include <libbutl/fdstream.mxx>
+#endif
 
 using namespace std;
 using namespace butl;

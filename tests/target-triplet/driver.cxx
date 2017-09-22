@@ -3,10 +3,24 @@
 // license   : MIT; see accompanying LICENSE file
 
 #include <cassert>
+
+#ifndef __cpp_lib_modules
+#include <string>
 #include <iostream>
 #include <stdexcept> // invalid_argument
+#endif
 
-#include <libbutl/target-triplet.hxx>
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.target_triplet;
+#else
+#include <libbutl/target-triplet.mxx>
+#endif
 
 using namespace std;
 using namespace butl;

@@ -2,12 +2,39 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <libbutl/curl.hxx>
+#ifndef __cpp_modules
+#include <libbutl/curl.mxx>
+#endif
+
+// C includes.
+
+#ifndef __cpp_lib_modules
+#include <string>
 
 #include <utility>   // move()
 #include <exception> // invalid_argument
+#endif
 
-#include <libbutl/utility.hxx> // casecmp()
+// Other includes.
+
+#ifdef __cpp_modules
+module butl.curl;
+
+// Only imports additional to interface.
+#ifdef __clang__
+#ifdef __cpp_lib_modules
+import std.core;
+#endif
+import butl.path;
+import butl.process;
+import butl.fdstream;
+import butl.small_vector;
+#endif
+
+import butl.utility; // casecmp()
+#else
+#include <libbutl/utility.mxx>
+#endif
 
 using namespace std;
 

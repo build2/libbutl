@@ -2,11 +2,24 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <string>
 #include <cassert>
-#include <iostream>
 
-#include <libbutl/prefix-map.hxx>
+#ifndef __cpp_lib_modules
+#include <string>
+#include <iostream>
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.prefix_map;
+#else
+#include <libbutl/prefix-map.mxx>
+#endif
 
 using namespace std;
 using namespace butl;

@@ -4,4 +4,10 @@
 
 import libs = libbutl%lib{butl}
 
+if ($cxx.features.modules && ($force_std_modules == true || $cxx.id != 'msvc'))
+{
+  import libs += libstd-modules%liba{std-modules}
+  cxx.poptions += -D__cpp_lib_modules
+}
+
 exe{driver}: {hxx cxx}{*} $libs

@@ -2,14 +2,28 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
+#include <cassert>
+
+#ifndef __cpp_lib_modules
 #include <ios>       // ios::failbit, ios::badbit
 #include <string>
-#include <cassert>
 #include <iostream>
 #include <stdexcept> // invalid_argument
+#endif
 
-#include <libbutl/utility.hxx>          // operator<<(ostream,exception)
-#include <libbutl/standard-version.hxx>
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.utility;          // operator<<(ostream,exception)
+import butl.standard_version;
+#else
+#include <libbutl/utility.mxx>
+#include <libbutl/standard-version.mxx>
+#endif
 
 using namespace std;
 using namespace butl;

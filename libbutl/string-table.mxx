@@ -1,24 +1,42 @@
-// file      : libbutl/string-table.hxx -*- C++ -*-
+// file      : libbutl/string-table.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_STRING_TABLE_HXX
-#define LIBBUTL_STRING_TABLE_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
-#include <vector>
+#include <cassert>
+
+#ifndef __cpp_lib_modules
 #include <string>
+#include <vector>
 #include <unordered_map>
+
+#include <limits>  // numeric_limits
+#include <cstddef> // size_t
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.string_table;
+#ifdef __cpp_lib_modules
+import std.core;
+#endif
+import butl.multi_index;
+#else
+#include <libbutl/multi-index.mxx>
+#endif
 
 #include <libbutl/export.hxx>
 
-#include <libbutl/multi-index.hxx>
-
-namespace butl
+LIBBUTL_MODEXPORT namespace butl
 {
-  // A pool of strings and, optionally, other accompanying data in which
-  // each entry is assigned an individual index (or id) of type I (e.g.,
-  // uint8_t, uint16_t, etc., depending on how many entries are expected).
-  // Index value 0 is reserved to indicate the "no entry" condition.
+  // A pool of strings and, optionally, other accompanying data in which each
+  // entry is assigned an individual index (or id) of type I (e.g., uint8_t,
+  // uint16_t, etc., depending on how many entries are expected).  Index value
+  // 0 is reserved to indicate the "no entry" condition.
   //
   template <typename I, typename D>
   struct string_table_element
@@ -94,5 +112,3 @@ namespace butl
 }
 
 #include <libbutl/string-table.txx>
-
-#endif // LIBBUTL_STRING_TABLE_HXX

@@ -2,12 +2,34 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
+#include <cassert>
+
+#ifndef __cpp_lib_modules
 #include <iostream>
 #include <system_error>
+#endif
 
-#include <libbutl/path.hxx>
-#include <libbutl/utility.hxx>  // operator<<(ostream, exception)
-#include <libbutl/sendmail.hxx>
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.path;
+import butl.process;
+import butl.utility;  // operator<<(ostream, exception)
+import butl.sendmail;
+import butl.fdstream;
+
+import butl.optional;     // @@ MOD Clang should not be necessary.
+import butl.small_vector; // @@ MOD Clang should not be necessary.
+#else
+#include <libbutl/path.mxx>
+#include <libbutl/process.mxx>
+#include <libbutl/utility.mxx>
+#include <libbutl/sendmail.mxx>
+#endif
 
 using namespace std;
 using namespace butl;

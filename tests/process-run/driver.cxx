@@ -2,12 +2,31 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <iostream>
+#include <cassert>
 
-#include <libbutl/path.hxx>
-#include <libbutl/process.hxx>
-#include <libbutl/fdstream.hxx>
-#include <libbutl/small-vector.hxx>
+#ifndef __cpp_lib_modules
+#include <string>
+#include <iostream>
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.path;
+import butl.process;
+import butl.optional; // @@ MOD Clang shouldn't be needed.
+import butl.fdstream;
+import butl.small_vector;
+#else
+#include <libbutl/path.mxx>
+#include <libbutl/process.mxx>
+#include <libbutl/fdstream.mxx>
+#include <libbutl/small-vector.mxx>
+#endif
 
 using namespace std;
 using namespace butl;

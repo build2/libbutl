@@ -1,24 +1,46 @@
-// file      : libbutl/utility.hxx -*- C++ -*-
+// file      : libbutl/utility.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_UTILITY_HXX
-#define LIBBUTL_UTILITY_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
+#ifndef _WIN32
+#if !defined(__cpp_lib_modules) || !defined(__clang__) //@@ MOD Clang ICE
+#  include <strings.h> // strcasecmp(), strncasecmp()
+#endif
+#else
+#  include <string.h> // _stricmp(), _strnicmp()
+#endif
+
+#ifndef __cpp_lib_modules
 #include <string>
-#include <iosfwd>                   // ostream
-#include <cstddef>                  // size_t
-#include <utility>                  // move(), forward()
-#include <cstring>                  // strcmp(), strlen()
-#include <libbutl/ft/exception.hxx> // uncaught_exceptions
-#include <exception>                // exception, uncaught_exception(s)()
-#include <libbutl/ft/lang.hxx>      // thread_local
-
+#include <iosfwd>       // ostream
+#include <cstddef>      // size_t
+#include <utility>      // move(), forward()
+#include <cstring>      // strcmp(), strlen()
+#include <exception>    // exception, uncaught_exception(s)()
 //#include <functional> // hash
+
+#include <cctype> // toupper(), tolower(), isalpha(), isdigit(), isalnum()
+#endif
+
+#include <libbutl/ft/lang.hxx>      // thread_local
+#include <libbutl/ft/exception.hxx> // uncaught_exceptions
+
+#ifdef __cpp_modules
+export module butl.utility;
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+#endif
 
 #include <libbutl/export.hxx>
 
-namespace butl
+
+LIBBUTL_MODEXPORT namespace butl
 {
   // Throw std::system_error with generic_category or system_category,
   // respectively.
@@ -53,13 +75,14 @@ namespace butl
   // http://pubs.opengroup.org/onlinepubs/009695399/basedefs/xbd_chap07.html#tag_07_02)
   //
   char ucase (char);
-  std::string ucase (const char*, std::size_t = std::string::npos);
+  std::string ucase (const char*, std::size_t = -1 /*@@ MOD VC ICE = std::string::npos*/);
+
   std::string ucase (const std::string&);
   std::string& ucase (std::string&);
   void ucase (char*, std::size_t);
 
   char lcase (char);
-  std::string lcase (const char*, std::size_t = std::string::npos);
+  std::string lcase (const char*, std::size_t = -1 /*@@ MOD VC ICE = std::string::npos*/);
   std::string lcase (const std::string&);
   std::string& lcase (std::string&);
   void lcase (char*, std::size_t);
@@ -77,12 +100,12 @@ namespace butl
   int casecmp (char, char);
 
   int casecmp (const std::string&, const std::string&,
-               std::size_t = std::string::npos);
+               std::size_t = -1 /*@@ MOD VC ICE std::string::npos*/);
 
   int casecmp (const std::string&, const char*,
-               std::size_t = std::string::npos);
+               std::size_t = -1 /*@@ MOD VC ICE std::string::npos*/);
 
-  int casecmp (const char*, const char*, std::size_t = std::string::npos);
+  int casecmp (const char*, const char*, std::size_t = -1 /*MOD VC ICE std::string::npos*/);
 
   // Case-insensitive key comparators (i.e., to be used in sets, maps, etc).
   //
@@ -246,7 +269,7 @@ namespace butl
 #endif
 }
 
-namespace std
+LIBBUTL_MODEXPORT namespace std
 {
   // Sanitize the exception description before printing. This includes:
   //
@@ -260,5 +283,3 @@ namespace std
 }
 
 #include <libbutl/utility.ixx>
-
-#endif // LIBBUTL_UTILITY_HXX

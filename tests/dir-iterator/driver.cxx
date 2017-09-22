@@ -2,14 +2,30 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <cstddef> // size_t
 #include <cassert>
-#include <iostream>
 
-#include <libbutl/path.hxx>
-#include <libbutl/path-io.hxx>
-#include <libbutl/utility.hxx>    // operator<<(ostream, exception)
-#include <libbutl/filesystem.hxx>
+#ifndef __cpp_lib_modules
+#include <cstddef> // size_t
+#include <iostream>
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.path;
+import butl.path_io;
+import butl.utility;
+import butl.filesystem;
+#else
+#include <libbutl/path.mxx>
+#include <libbutl/path-io.mxx>
+#include <libbutl/utility.mxx>    // operator<<(ostream, exception)
+#include <libbutl/filesystem.mxx>
+#endif
 
 using namespace std;
 using namespace butl;

@@ -2,8 +2,7 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_MANIFEST_FORWARD_HXX
-#define LIBBUTL_MANIFEST_FORWARD_HXX
+#pragma once
 
 namespace butl
 {
@@ -21,5 +20,3 @@ namespace butl
     fail
   };
 }
-
-#endif // LIBBUTL_MANIFEST_FORWARD_HXX

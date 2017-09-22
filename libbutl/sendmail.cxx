@@ -2,7 +2,32 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <libbutl/sendmail.hxx>
+#ifndef __cpp_modules
+#include <libbutl/sendmail.mxx>
+#endif
+
+// C includes.
+
+#ifndef __cpp_lib_modules
+#include <string>
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+module butl.sendmail;
+
+// Only imports additional to interface.
+#ifdef __clang__
+#ifdef __cpp_lib_modules
+import std.core;
+#endif
+import butl.process;
+import butl.fdstream;
+import butl.small_vector;
+#endif
+
+#endif
 
 using namespace std;
 

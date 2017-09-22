@@ -2,7 +2,16 @@
 # copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
-lib{butl}: {hxx ixx txx cxx}{** -win32-utility -version} {hxx}{version}
+int_libs =
+
+if ($cxx.features.modules && ($force_std_modules == true || $cxx.id != 'msvc'))
+{
+  import int_libs += libstd-modules%liba{std-modules}
+  cxx.poptions += -D__cpp_lib_modules
+}
+
+lib{butl}: {mxx hxx ixx txx cxx}{** -win32-utility -version} {hxx}{version} \
+  $int_libs
 
 # Exclude these from compilation on non-Windows targets.
 #
@@ -33,7 +42,7 @@ if $version.pre_release
 else
   lib{butl}: bin.lib.version = @"-$version.major.$version.minor"
 
-bmi{*}: cxx.poptions += -DLIBBUTL_MODULE_BUILD
+lib{butl}: cxx.export.libs = $int_libs
 
 cxx.poptions =+ "-I$out_root" "-I$src_root"
 obja{*} bmia{*}: cxx.poptions += -DLIBBUTL_STATIC_BUILD
@@ -52,6 +61,11 @@ if ($cxx.target.class == "windows")
 }
 else
   cxx.libs += -lpthread
+
+#@@ MOD bogus warning if module and dll-exported function called within DLL.
+#
+if ($cxx.features.modules && $cxx.id == 'msvc')
+  cxx.loptions += /ignore:4217
 
 # Install into the libbutl/ subdirectory of, say, /usr/include/ recreating
 # subdirectories.

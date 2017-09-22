@@ -1,16 +1,34 @@
-// file      : libbutl/path-map.hxx -*- C++ -*-
+// file      : libbutl/path-map.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_PATH_MAP_HXX
-#define LIBBUTL_PATH_MAP_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
+// C includes.
+
+#ifndef __cpp_lib_modules
 #include <algorithm> // min()
+#endif
 
-#include <libbutl/path.hxx>
-#include <libbutl/prefix-map.hxx>
+// Other includes.
 
-namespace butl
+#ifdef __cpp_modules
+export module butl.path_map;
+#ifdef __cpp_lib_modules
+import std.core;
+#endif
+import butl.path;
+import butl.prefix_map;
+#else
+#include <libbutl/path.mxx>
+#include <libbutl/prefix-map.mxx>
+#endif
+
+#include <libbutl/export.hxx>
+
+LIBBUTL_MODEXPORT namespace butl
 {
   // prefix_map for filesystem paths
   //
@@ -144,5 +162,3 @@ namespace butl
   template <typename T>
   using dir_path_map = path_map_impl<dir_path, T>;
 }
-
-#endif // LIBBUTL_PATH_MAP_HXX

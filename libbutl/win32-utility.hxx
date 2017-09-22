@@ -2,8 +2,7 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_WIN32_UTILITY_HXX
-#define LIBBUTL_WIN32_UTILITY_HXX
+#pragma once
 
 // Use this header to include <windows.h> and a couple of Win32-specific
 // utilities.
@@ -33,7 +32,11 @@
 #  endif
 #endif
 
+#ifndef __cpp_lib_modules
 #include <string>
+#else
+import std.core;
+#endif
 
 #include <libbutl/export.hxx>
 
@@ -50,5 +53,3 @@ namespace butl
 };
 
 #endif // _WIN32
-
-#endif // LIBBUTL_WIN32_UTILITY_HXX

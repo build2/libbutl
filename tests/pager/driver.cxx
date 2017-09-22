@@ -2,15 +2,28 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
+#include <cassert>
+
+#ifndef __cpp_lib_modules
 #include <ios>      // ios_base::failure
 #include <vector>
 #include <string>
 #include <utility>  // move()
-#include <cassert>
 #include <sstream>
 #include <iostream>
+#endif
 
-#include <libbutl/pager.hxx>
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.pager;
+#else
+#include <libbutl/pager.mxx>
+#endif
 
 using namespace std;
 using namespace butl;

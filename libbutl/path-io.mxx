@@ -1,15 +1,33 @@
-// file      : libbutl/path-io.hxx -*- C++ -*-
+// file      : libbutl/path-io.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_PATH_IO_HXX
-#define LIBBUTL_PATH_IO_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
+// C includes.
+
+#ifndef __cpp_lib_modules
 #include <ostream>
+#endif
 
-#include <libbutl/path.hxx>
+// Other includes.
 
-namespace butl
+#ifdef __cpp_modules
+export module butl.path_io;
+#ifdef __cpp_lib_modules
+import std.core; //@@ MOD TMP (should not be needed).
+import std.io;
+#endif
+import butl.path;
+#else
+#include <libbutl/path.mxx>
+#endif
+
+#include <libbutl/export.hxx>
+
+LIBBUTL_MODEXPORT namespace butl
 {
   // This is the default path IO implementation. The reason it is
   // separate is because one often wants a custom implementation.
@@ -25,5 +43,3 @@ namespace butl
     return os << p.string ();
   }
 }
-
-#endif // LIBBUTL_PATH_IO_HXX

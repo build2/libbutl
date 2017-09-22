@@ -1,17 +1,33 @@
-// file      : libbutl/vector-view.hxx -*- C++ -*-
+// file      : libbutl/vector-view.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_VECTOR_VIEW_HXX
-#define LIBBUTL_VECTOR_VIEW_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
+// C includes.
+
+#ifndef __cpp_lib_modules
 #include <vector>
 #include <cstddef>   // size_t, ptrdiff_t
 #include <utility>   // swap()
 #include <iterator>  // reverse_iterator
 #include <stdexcept> // out_of_range
+#endif
 
-namespace butl
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.vector_view;
+#ifdef __cpp_lib_modules
+import std.core;
+#endif
+#endif
+
+#include <libbutl/export.hxx>
+
+LIBBUTL_MODEXPORT namespace butl
 {
   // In our version a const view allows the modification of the elements
   // unless T is made const (the same semantics as in smart pointers).
@@ -116,5 +132,3 @@ namespace butl
   template<typename T> bool operator<= (vector_view<T> l, vector_view<T> r);
   template<typename T> bool operator>= (vector_view<T> l, vector_view<T> r);
 }
-
-#endif // LIBBUTL_VECTOR_VIEW_HXX

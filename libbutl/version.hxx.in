@@ -2,7 +2,7 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_VERSION // Note: using the version macro itself.
+#pragma once
 
 // Note: using build2 standard versioning scheme. The numeric version format
 // is AAABBBCCCDDDE where:
@@ -36,5 +36,3 @@
 
 #define LIBBUTL_SNAPSHOT      $libbutl.version.snapshot_sn$ULL
 #define LIBBUTL_SNAPSHOT_ID   "$libbutl.version.snapshot_id$"
-
-#endif // LIBBUTL_VERSION

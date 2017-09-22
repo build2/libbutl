@@ -2,6 +2,9 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
+#include <cassert>
+
+#ifndef __cpp_lib_modules
 #ifndef _WIN32
 #  include <chrono>
 #  include <thread> // this_thread::sleep_for()
@@ -11,18 +14,35 @@
 #include <string>
 #include <vector>
 #include <iomanip>
-#include <cassert>
 #include <sstream>
 #include <fstream>
 #include <utility>   // move()
 #include <iostream>
 #include <exception>
+#endif
 
-#include <libbutl/path.hxx>
-#include <libbutl/process.hxx>
-#include <libbutl/fdstream.hxx>
-#include <libbutl/timestamp.hxx>
-#include <libbutl/filesystem.hxx>
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#ifndef _WIN32
+//@@ MOD TODO import std.threading;
+#endif
+#endif
+import butl.path;
+import butl.process;
+import butl.fdstream;
+import butl.timestamp;
+import butl.filesystem;
+#else
+#include <libbutl/path.mxx>
+#include <libbutl/process.mxx>
+#include <libbutl/fdstream.mxx>
+#include <libbutl/timestamp.mxx>
+#include <libbutl/filesystem.mxx>
+#endif
 
 using namespace std;
 using namespace butl;

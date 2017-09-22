@@ -2,12 +2,11 @@
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_EXPORT_HXX
-#define LIBBUTL_EXPORT_HXX
+#pragma once
 
-// If we are compiling a module interface, setup the module export.
+// If modules are available, setup the module export.
 //
-#ifdef LIBBUTL_MODULE_BUILD
+#ifdef __cpp_modules
 #  define LIBBUTL_MODEXPORT export
 #else
 #  define LIBBUTL_MODEXPORT
@@ -45,5 +44,3 @@
 //
 #  define LIBBUTL_SYMEXPORT         // Using static or shared.
 #endif
-
-#endif // LIBBUTL_EXPORT_HXX

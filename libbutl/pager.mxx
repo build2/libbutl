@@ -1,20 +1,37 @@
-// file      : libbutl/pager.hxx -*- C++ -*-
+// file      : libbutl/pager.mxx -*- C++ -*-
 // copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef LIBBUTL_PAGER_HXX
-#define LIBBUTL_PAGER_HXX
+#ifndef __cpp_modules
+#pragma once
+#endif
 
+// C includes.
+
+#ifndef __cpp_lib_modules
 #include <string>
 #include <vector>
 #include <iostream>
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.pager;
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.process;
+import butl.fdstream;
+#else
+#include <libbutl/process.mxx>
+#include <libbutl/fdstream.mxx>
+#endif
 
 #include <libbutl/export.hxx>
 
-#include <libbutl/process.hxx>
-#include <libbutl/fdstream.hxx>
-
-namespace butl
+LIBBUTL_MODEXPORT namespace butl
 {
   // Try to run the output through a pager program, such as more or less (no
   // pun intended, less is used by default). If the default pager program is
@@ -84,5 +101,3 @@ namespace butl
     std::streambuf* buf_ = nullptr;
   };
 }
-
-#endif // LIBBUTL_PAGER_HXX

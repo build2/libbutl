@@ -4,15 +4,28 @@
 
 #include <time.h> // tzset() (POSIX), _tzset() (Windows)
 
+#include <cassert>
+
+#ifndef __cpp_lib_modules
 #include <chrono>
 #include <locale>
 #include <clocale>
-#include <cassert>
 #include <sstream>
 #include <iomanip>
 #include <system_error>
+#endif
 
-#include <libbutl/timestamp.hxx>
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.timestamp;
+#else
+#include <libbutl/timestamp.mxx>
+#endif
 
 using namespace std;
 using namespace butl;
