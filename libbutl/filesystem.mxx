@@ -30,7 +30,7 @@
 #include <iterator>
 #include <functional>
 
-#include <chrono>     //@@ MOD needed by timestamp module.
+#include <chrono>     //@@ MOD needed by timestamp module (no re-export).
 #endif
 
 // Other includes.

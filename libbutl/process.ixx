@@ -40,14 +40,8 @@ namespace butl
         *args0_ = initial;
 
       initial = p.initial;
-
-#if defined(__cpp_modules) && defined(__clang__) //@@ MOD Clang ICE
-      recall = p.recall;
-      effect = p.effect;
-#else
       recall = std::move (p.recall);
       effect = std::move (p.effect);
-#endif
       args0_ = p.args0_;
 
       p.args0_ = nullptr;

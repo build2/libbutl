@@ -7,9 +7,7 @@
 #endif
 
 #ifndef _WIN32
-#if !defined(__cpp_lib_modules) || !defined(__clang__) //@@ MOD Clang ICE
 #  include <strings.h> // strcasecmp(), strncasecmp()
-#endif
 #else
 #  include <string.h> // _stricmp(), _strnicmp()
 #endif
