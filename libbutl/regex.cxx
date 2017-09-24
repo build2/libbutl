@@ -30,7 +30,7 @@ module butl.regex;
 #ifdef __cpp_lib_modules
 import std.core;
 import std.io;
-//@@ MOD TODO import std.regex;
+import std.regex;
 #endif
 #endif
 

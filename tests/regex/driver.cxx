@@ -16,6 +16,7 @@
 #ifdef __cpp_lib_modules
 import std.core;
 import std.io;
+import std.regex; // @@ MOD TODO: shouldn't be necessary (re-export).
 #endif
 import butl.regex;
 import butl.utility; // operator<<(ostream, exception)

@@ -44,7 +44,7 @@ import butl.fdstream;
 #endif
 
 #ifndef _WIN32
-import std.core; //@@ MOD TODO: import std.threading.
+import std.threading;
 #endif
 
 import butl.utility;  // operator<<(ostream, exception), throw_generic_error()

@@ -28,7 +28,7 @@
 import std.core;
 import std.io;
 #ifndef _WIN32
-//@@ MOD TODO import std.threading;
+import std.threading;
 #endif
 #endif
 import butl.path;

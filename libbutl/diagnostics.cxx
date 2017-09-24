@@ -39,7 +39,7 @@ import std.io;
 #endif
 #endif
 
-//@@ MOD TODO: std.threading
+import std.threading;
 import butl.utility;
 import butl.optional;
 import butl.fdstream; // stderr_fd(), fdterm()

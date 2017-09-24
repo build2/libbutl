@@ -78,6 +78,7 @@ module butl.process;
 #ifdef __cpp_lib_modules
 import std.core;
 import std.io;
+import std.threading; // Clang wants it in purview (see process-details.hxx).
 #endif
 import butl.path;
 import butl.optional;
