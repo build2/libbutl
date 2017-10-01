@@ -4,8 +4,11 @@
 
 int_libs =
 
-if ($cxx.features.modules && ($force_std_modules == true || $cxx.id != 'msvc'))
+if ($force_std_modules == true)
 {
+  #@@ MOD is it really an interface dependency? I guess if we re-export
+  #       then it is? Or maybe it is special?
+  #
   import int_libs += libstd-modules%liba{std-modules}
   cxx.poptions += -D__cpp_lib_modules
 }

@@ -2,14 +2,13 @@
 # copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
-using cxx.guess
-
-if ($force_modules != true && $cxx.id == 'clang')
-  cxx.features.modules = false
-
 cxx.std = experimental
+cxx.features.modules = ($force_modules == true)
 
 using cxx
+
+if ($force_modules == true && !$cxx.features.modules)
+  fail 'c++ compiler does not support modules'
 
 mxx{*}: extension = mxx
 hxx{*}: extension = hxx
