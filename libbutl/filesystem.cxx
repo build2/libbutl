@@ -75,34 +75,34 @@ using namespace std;
 namespace butl
 {
   bool
-  file_exists (const char* p, bool fl)
+  file_exists (const char* p, bool fl, bool ie)
   {
-    auto pe (path_entry (p, fl));
+    auto pe (path_entry (p, fl, ie));
     return pe.first && (pe.second.type == entry_type::regular ||
                         (!fl && pe.second.type == entry_type::symlink));
   }
 
   bool
-  entry_exists (const char* p, bool fl)
+  entry_exists (const char* p, bool fl, bool ie)
   {
-    return path_entry (p, fl).first;
+    return path_entry (p, fl, ie).first;
   }
 
   bool
-  dir_exists (const char* p)
+  dir_exists (const char* p, bool ie)
   {
-    auto pe (path_entry (p, true));
+    auto pe (path_entry (p, true, ie));
     return pe.first && pe.second.type == entry_type::directory;
   }
 
 #ifndef _WIN32
   pair<bool, entry_stat>
-  path_entry (const char* p, bool fl)
+  path_entry (const char* p, bool fl, bool ie)
   {
     struct stat s;
     if ((fl ? stat (p, &s) : lstat (p, &s)) != 0)
     {
-      if (errno == ENOENT || errno == ENOTDIR)
+      if (errno == ENOENT || errno == ENOTDIR || ie)
         return make_pair (false, entry_stat {entry_type::unknown, 0});
       else
         throw_generic_error (errno);
@@ -124,7 +124,7 @@ namespace butl
   }
 #else
   pair<bool, entry_stat>
-  path_entry (const char* p, bool)
+  path_entry (const char* p, bool, bool ie)
   {
     // A path like 'C:', while being a root path in our terminology, is not as
     // such for Windows, that maintains current directory for each drive, and
@@ -157,7 +157,7 @@ namespace butl
 
       if (_stat64 (p, &s) != 0)
       {
-        if (errno == ENOENT || errno == ENOTDIR)
+        if (errno == ENOENT || errno == ENOTDIR || ie)
           return make_pair (false, entry_stat {entry_type::unknown, 0});
         else
           throw_generic_error (errno);

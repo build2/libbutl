@@ -57,33 +57,41 @@ import butl.utility;
 LIBBUTL_MODEXPORT namespace butl
 {
   // Return true if the path is to an existing regular file. Note that by
-  // default this function follows symlinks.
+  // default this function follows symlinks. Underlying OS errors are reported
+  // by throwing std::system_error, unless ignore_error is true.
   //
   LIBBUTL_SYMEXPORT bool
-  file_exists (const char*, bool follow_symlinks = true);
+  file_exists (const char*,
+               bool follow_symlinks = true,
+               bool ignore_error = false);
 
   inline bool
-  file_exists (const path& p, bool fs = true) {
-    return file_exists (p.string ().c_str (), fs);}
+  file_exists (const path& p, bool fs = true, bool ie = false) {
+    return file_exists (p.string ().c_str (), fs, ie);}
 
   // Return true if the path is to an existing directory. Note that this
-  // function follows symlinks.
+  // function follows symlinks. Underlying OS errors are reported by throwing
+  // std::system_error, unless ignore_error is true.
   //
   LIBBUTL_SYMEXPORT bool
-  dir_exists (const char*);
+  dir_exists (const char*, bool ignore_error = false);
 
   inline bool
-  dir_exists (const path& p) {return dir_exists (p.string ().c_str ());}
+  dir_exists (const path& p, bool ie = false) {
+    return dir_exists (p.string ().c_str (), ie);}
 
   // Return true if the path is to an existing file system entry. Note that by
-  // default this function doesn't follow symlinks.
+  // default this function doesn't follow symlinks. Underlying OS errors are
+  // reported by throwing std::system_error, unless ignore_error is true.
   //
   LIBBUTL_SYMEXPORT bool
-  entry_exists (const char*, bool follow_symlinks = false);
+  entry_exists (const char*,
+                bool follow_symlinks = false,
+                bool ignore_error = false);
 
   inline bool
-  entry_exists (const path& p, bool fs = false) {
-    return entry_exists (p.string ().c_str (), fs);}
+  entry_exists (const path& p, bool fs = false, bool ie = false) {
+    return entry_exists (p.string ().c_str (), fs, ie);}
 
   // Filesystem entry type.
   //
@@ -106,14 +114,17 @@ LIBBUTL_MODEXPORT namespace butl
 
   // Return a flag indicating if the path is to an existing file system entry
   // and its type if so. Note that by default this function doesn't follow
-  // symlinks.
+  // symlinks. Underlying OS errors are reported by throwing std::system_error,
+  // unless ignore_error is true.
   //
   LIBBUTL_SYMEXPORT std::pair<bool, entry_stat>
-  path_entry (const char*, bool follow_symlinks = false);
+  path_entry (const char*,
+              bool follow_symlinks = false,
+              bool ignore_error = false);
 
   inline std::pair<bool, entry_stat>
-  path_entry (const path& p, bool fs = false) {
-    return path_entry (p.string ().c_str (), fs);}
+  path_entry (const path& p, bool fs = false, bool ie = false) {
+    return path_entry (p.string ().c_str (), fs, ie);}
 
   // Return true if the directory is empty. Note that the path must exist
   // and be a directory. This function follows symlinks.
