@@ -19,8 +19,10 @@
 #include <utility> // move(), make_pair()
 #endif
 
-#if defined(__clang__) && __has_include(<__config>)
-#  include <__config> // _LIBCPP_VERSION
+#if defined(__clang__)
+#  if __has_include(<__config>)
+#    include <__config>          // _LIBCPP_VERSION
+#  endif
 #endif
 
 // Other includes.

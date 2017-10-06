@@ -58,6 +58,7 @@
 
 #ifdef _WIN32
 #include <map>
+#include <ratio>   // milli
 #include <chrono>
 #include <cstdlib> // getenv(), __argv[]
 #endif
@@ -89,17 +90,9 @@ import butl.small_vector;
 
 import butl.utility;  // casecmp()
 import butl.fdstream; // fdnull()
-#ifdef _WIN32
-import butl.timestamp;
-#endif
-
 #else
 #include <libbutl/utility.mxx>
 #include <libbutl/fdstream.mxx>
-
-#ifdef _WIN32
-#include <libbutl/timestamp.mxx>
-#endif
 #endif
 
 using namespace std;
@@ -1460,7 +1453,9 @@ namespace butl
           msys = i->second;
       }
 
-      for (duration timeout (10500ms);;) // Try for about 10s.
+      using namespace chrono;
+
+      for (system_clock::duration timeout (10500ms);;) // Try for about 10s.
       {
         if (!CreateProcess (
               batch != nullptr ? batch : pp.effect_string (),
@@ -1483,7 +1478,7 @@ namespace butl
           // still running then we assume all is good. Otherwise, retry if
           // this is the DLL initialization error.
           //
-          timestamp st (system_clock::now ());
+          system_clock::time_point st (system_clock::now ());
 
           // Unlock the mutex to let other processes to be spawned while we are
           // waiting. We also need to revert handles to non-inheritable state
@@ -1492,18 +1487,22 @@ namespace butl
           il.unlock ();
           l.unlock ();
 
-          DWORD r (WaitForSingleObject (pi.hProcess, 400));
+          // Hidden by butl::duration that is introduced via fdstream.mxx.
+          //
+          const chrono::duration<DWORD, milli> wd (500);
+
+          DWORD r (WaitForSingleObject (pi.hProcess, wd.count ()));
 
           if (r == WAIT_OBJECT_0                   &&
               GetExitCodeProcess (pi.hProcess, &r) &&
               r == STATUS_DLL_INIT_FAILED)
           {
-            timestamp now (system_clock::now ());
+            system_clock::time_point now (system_clock::now ());
 
             // Assume we have waited the full amount if the time adjustment is
             // detected.
             //
-            duration d (now > st ? now - st : 400ms);
+            system_clock::duration d (now > st ? now - st : wd);
 
             // If timeout is not fully exhausted, re-lock the mutex, revert
             // handles to inheritable state and re-spawn the process.
