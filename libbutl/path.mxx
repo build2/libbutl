@@ -793,8 +793,8 @@ LIBBUTL_MODEXPORT namespace butl
     basic_path
     base () const;
 
-    // Return the extension or NULL if not present. If not empty, then the
-    // result starts with the character past the dot.
+    // Return the extension or empty string if not present. If not empty, then
+    // the result starts with the character past the dot.
     //
     string_type
     extension () const;
