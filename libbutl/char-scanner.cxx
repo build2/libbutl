@@ -35,8 +35,10 @@ using namespace std;
 namespace butl
 {
   char_scanner::
-  char_scanner (istream& is, bool crlf)
-      : is_ (is),
+  char_scanner (istream& is, bool crlf, uint64_t l)
+      : line (l),
+        column (1),
+        is_ (is),
         buf_ (dynamic_cast<fdbuf*> (is.rdbuf ())),
         gptr_ (nullptr),
         egptr_ (nullptr),

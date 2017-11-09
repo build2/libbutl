@@ -52,12 +52,31 @@ namespace butl
   inline void char_scanner::
   get_ ()
   {
+    int_type c;
+
     if (gptr_ != egptr_)
     {
       buf_->gbump (1);
-      ++gptr_;
+      c = *gptr_++;
     }
     else
-      is_.get (); // About as fast as ignore() and way faster than tellg().
+      c = is_.get (); // About as fast as ignore() and way faster than tellg().
+
+    if (save_ != nullptr && c != xchar::traits_type::eof ())
+      save_->push_back (static_cast<char_type> (c));
+  }
+
+  inline void char_scanner::
+  save_start (std::string& b)
+  {
+    assert (save_ == nullptr);
+    save_ = &b;
+  }
+
+  inline void char_scanner::
+  save_stop ()
+  {
+    assert (save_ != nullptr);
+    save_ = nullptr;
   }
 }

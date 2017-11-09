@@ -6,7 +6,7 @@
 #pragma once
 #endif
 
-// C includes.
+#include <cassert>
 
 #ifndef __cpp_lib_modules
 #include <string>  // char_traits
@@ -45,7 +45,10 @@ LIBBUTL_MODEXPORT namespace butl
     // a number of optimizations that assume nobody else is messing with the
     // stream.
     //
-    char_scanner (std::istream& is, bool crlf = true);
+    // The line argument can be used to override the start line in the stream
+    // (useful when re-scanning data saved with the save_* facility).
+    //
+    char_scanner (std::istream& is, bool crlf = true, std::uint64_t line = 1);
 
     char_scanner (const char_scanner&) = delete;
     char_scanner& operator= (const char_scanner&) = delete;
@@ -107,8 +110,32 @@ LIBBUTL_MODEXPORT namespace butl
     // Line and column of the next character to be extracted from the stream
     // by peek() or get().
     //
-    std::uint64_t line = 1;
-    std::uint64_t column = 1;
+    std::uint64_t line;
+    std::uint64_t column;
+
+    // Ability to save raw data as it is being scanned. Note that the
+    // character is only saved when it is got, not peeked.
+    //
+  public:
+    void
+    save_start (std::string&);
+
+    void
+    save_stop ();
+
+    struct save_guard
+    {
+      explicit
+      save_guard (char_scanner& s, std::string& b): s_ (&s) {s.save_start (b);}
+
+      void
+      stop () {if (s_ != nullptr) {s_->save_stop (); s_ = nullptr;}}
+
+      ~save_guard () {stop ();}
+
+    private:
+      char_scanner* s_;
+    };
 
   protected:
     using int_type = xchar::int_type;
@@ -123,9 +150,14 @@ LIBBUTL_MODEXPORT namespace butl
   protected:
     std::istream& is_;
 
+    // Note that if you are reading from the buffer directly, then it is
+    // also your responsibility to save the data.
+    //
     fdbuf* buf_; // NULL if not ifdstream.
     const char_type* gptr_;
     const char_type* egptr_;
+
+    std::string* save_ = nullptr;
 
     bool crlf_;
     bool eos_ = false;
