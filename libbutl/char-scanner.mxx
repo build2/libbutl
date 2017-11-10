@@ -118,10 +118,18 @@ LIBBUTL_MODEXPORT namespace butl
     //
   public:
     void
-    save_start (std::string&);
+    save_start (std::string& b)
+    {
+      assert (save_ == nullptr);
+      save_ = &b;
+    }
 
     void
-    save_stop ();
+    save_stop ()
+    {
+      assert (save_ != nullptr);
+      save_ = nullptr;
+    }
 
     struct save_guard
     {
