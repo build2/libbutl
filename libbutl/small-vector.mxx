@@ -34,7 +34,7 @@ LIBBUTL_MODEXPORT namespace butl
     // Size keeps track of the number of elements that are constructed in
     // the buffer. Size equal N + 1 means the buffer is not allocated.
     //
-    // Note that the names are decorated in order no to conflict with
+    // Note that the names are decorated in order not to conflict with
     // std::vector interface.
     //
     alignas (alignof (T)) char data_[sizeof (T) * N];
