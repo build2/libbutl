@@ -4,6 +4,18 @@
 
 namespace butl
 {
+  inline bool
+  eof (std::istream& is)
+  {
+    if (!is.fail ())
+      return false;
+
+    if (is.eof ())
+      return true;
+
+    throw std::istream::failure ("");
+  }
+
   inline char
   ucase (char c)
   {

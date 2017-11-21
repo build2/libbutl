@@ -15,6 +15,7 @@
 #ifndef __cpp_lib_modules
 #include <string>
 #include <iosfwd>       // ostream
+#include <istream>
 #include <cstddef>      // size_t
 #include <utility>      // move(), forward()
 #include <cstring>      // strcmp(), strlen()
@@ -37,7 +38,6 @@ import std.io;
 
 #include <libbutl/export.hxx>
 
-
 LIBBUTL_MODEXPORT namespace butl
 {
   // Throw std::system_error with generic_category or system_category,
@@ -55,6 +55,21 @@ LIBBUTL_MODEXPORT namespace butl
 
   [[noreturn]] LIBBUTL_SYMEXPORT void
   throw_system_error (int system_code, int fallback_errno_code = 0);
+
+  // If an input stream is in a failed state, then return true if this is
+  // because of the eof and throw istream::failure otherwise. If the stream
+  // is not in a failed state, return false. This helper function is normally
+  // used like this:
+  //
+  // is.exceptions (istream::badbit);
+  //
+  // for (string l; !eof (getline (is, l)); )
+  // {
+  //   ...
+  // }
+  //
+  bool
+  eof (std::istream&);
 
   // Convert ASCII character/string case. If there is no upper/lower case
   // counterpart, leave the character unchanged. The POSIX locale (also known
