@@ -85,7 +85,7 @@ LIBBUTL_MODEXPORT namespace butl
       {
         assert (n >= N); // We should never be asked for less than N.
 
-        if (n <= N)
+        if (n == N)
         {
           buf_->free_ = false;
           return reinterpret_cast<T*> (buf_->data_);
