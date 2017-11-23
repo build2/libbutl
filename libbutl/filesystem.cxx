@@ -468,21 +468,21 @@ namespace butl
   // so use the second argument to not end up with the same signatures.
   //
   template <typename S>
-  inline constexpr auto
+  static inline constexpr auto
   mnsec (const S* s, bool) -> decltype(s->st_mtim.tv_nsec)
   {
     return s->st_mtim.tv_nsec; // POSIX (GNU/Linux, Solaris).
   }
 
   template <typename S>
-  inline constexpr auto
+  static inline constexpr auto
   mnsec (const S* s, int) -> decltype(s->st_mtimespec.tv_nsec)
   {
     return s->st_mtimespec.tv_nsec; // *BSD, MacOS.
   }
 
   template <typename S>
-  inline constexpr auto
+  static inline constexpr auto
   mnsec (const S* s, float) -> decltype(s->st_mtime_n)
   {
     return s->st_mtime_n; // AIX 5.2 and later.
@@ -492,32 +492,32 @@ namespace butl
   // let's make it a compile error.
   //
   // template <typename S>
-  // inline constexpr int
+  // static inline constexpr int
   // mnsec (...) {return 0;}
 
   template <typename S>
-  inline constexpr auto
+  static inline constexpr auto
   ansec (const S* s, bool) -> decltype(s->st_atim.tv_nsec)
   {
     return s->st_atim.tv_nsec; // POSIX (GNU/Linux, Solaris).
   }
 
   template <typename S>
-  inline constexpr auto
+  static inline constexpr auto
   ansec (const S* s, int) -> decltype(s->st_atimespec.tv_nsec)
   {
     return s->st_atimespec.tv_nsec; // *BSD, MacOS.
   }
 
   template <typename S>
-  inline constexpr auto
+  static inline constexpr auto
   ansec (const S* s, float) -> decltype(s->st_atime_n)
   {
     return s->st_atime_n; // AIX 5.2 and later.
   }
 
   // template <typename S>
-  // inline constexpr int
+  // static inline constexpr int
   // ansec (...) {return 0;}
 
   void
@@ -813,7 +813,8 @@ namespace butl
   }
 
   template <typename D>
-  inline /*constexpr*/ entry_type d_type (const D* d, decltype(d->d_type)*)
+  static inline /*constexpr*/ entry_type
+  d_type (const D* d, decltype(d->d_type)*)
   {
     switch (d->d_type)
     {
@@ -845,7 +846,8 @@ namespace butl
   }
 
   template <typename D>
-  inline constexpr entry_type d_type (...) {return entry_type::unknown;}
+  static inline constexpr entry_type
+  d_type (...) {return entry_type::unknown;}
 
   void dir_iterator::
   next ()
