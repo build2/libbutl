@@ -19,7 +19,7 @@
 #include <cstddef>      // size_t
 #include <utility>      // move(), forward()
 #include <cstring>      // strcmp(), strlen()
-#include <exception>    // exception, uncaught_exception(s)()
+#include <exception>    // exception, uncaught_exception[s]()
 //#include <functional> // hash
 
 #include <cctype> // toupper(), tolower(), isalpha(), isdigit(), isalnum()

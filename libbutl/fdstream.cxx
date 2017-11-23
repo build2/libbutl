@@ -42,12 +42,13 @@
 #include <new>          // bad_alloc
 #include <limits>       // numeric_limits
 #include <cstring>      // memcpy(), memmove()
-#include <exception>    // uncaught_exception()
+#include <exception>    // uncaught_exception[s]()
 #include <stdexcept>    // invalid_argument
 #include <type_traits>
 #include <system_error>
 #endif
 
+#include <libbutl/ft/exception.hxx>     // uncaught_exceptions
 #include <libbutl/process-details.hxx>
 
 #ifdef __cpp_modules
@@ -651,7 +652,14 @@ namespace butl
     // using ofdstream in a dtor being called while unwinding the stack due to
     // an exception.
     //
+    // C++17 deprecated uncaught_exception() so use uncaught_exceptions() if
+    // available.
+    //
+#ifdef __cpp_lib_uncaught_exceptions
+    assert (!is_open () || !good () || uncaught_exceptions () != 0);
+#else
     assert (!is_open () || !good () || uncaught_exception ());
+#endif
   }
 
   void ofdstream::
