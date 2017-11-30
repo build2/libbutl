@@ -67,7 +67,7 @@ else
 
 #@@ MOD VC bogus warning if module and dll-exported function called within DLL.
 #
-if ($cxx.features.modules && $cxx.id == 'msvc')
+if ($cxx.features.modules && $cxx.class == 'msvc')
   cxx.loptions += /ignore:4217
 
 # Install into the libbutl/ subdirectory of, say, /usr/include/ recreating
