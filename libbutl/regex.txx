@@ -88,9 +88,9 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
         {
           switch (mode)
           {
-          case case_conv::upper_once: mode = case_conv::none;
+          case case_conv::upper_once: mode = case_conv::none; // Fall through.
           case case_conv::upper:      c = toupper (c, cl); break;
-          case case_conv::lower_once: mode = case_conv::none;
+          case case_conv::lower_once: mode = case_conv::none; // Fall through.
           case case_conv::lower:      c = tolower (c, cl); break;
           case case_conv::none:       break;
           }
