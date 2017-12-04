@@ -83,7 +83,8 @@ namespace butl
       {
         // See if this is one of the well-known non-vendors.
         //
-        if (s.compare (f, n, "linux") == 0 ||
+        if (s.compare (f, n, "linux") == 0   ||
+            s.compare (f, n, "windows") == 0 ||
             s.compare (f, n, "kfreebsd") == 0)
         {
           l = f - 1;
@@ -134,9 +135,13 @@ namespace butl
       class_ = "linux";
     else if (vendor == "apple" && system == "darwin")
       class_ = "macos";
-    else if (system == "freebsd" || system == "openbsd" || system == "netbsd")
+    else if (system == "freebsd" ||
+             system == "openbsd" ||
+             system == "netbsd")
       class_ = "bsd";
-    else if (system.compare (0, 5, "win32") == 0 || system == "mingw32")
+    else if (system.compare (0, 5, "win32") == 0   ||
+             system.compare (0, 7, "windows") == 0 ||
+             system == "mingw32")
       class_ = "windows";
     else
       class_ = "other";

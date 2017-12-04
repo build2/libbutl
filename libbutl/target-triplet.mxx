@@ -92,6 +92,7 @@ LIBBUTL_MODEXPORT namespace butl
   // x86_64-unknown-linux-gnu         x86_64             linux-gnu
   // x86_64-linux-gnux32              x86_64             linux-gnux32
   // x86_64-microsoft-win32-msvc14.0  x86_64  microsoft  win32-msvc     14.0
+  // x86_64-pc-windows-msvc           x86_64             windows-msvc
   //
   // Similar to version splitting, for certain commonly-used targets we also
   // derive the "target class" which can be used as a shorthand, more
@@ -102,7 +103,7 @@ LIBBUTL_MODEXPORT namespace butl
   // linux     *-*-linux-*
   // macos     *-apple-darwin*
   // bsd       *-*-(freebsd|openbsd|netbsd)*
-  // windows   *-*-win32-* | *-*-mingw32
+  // windows   *-*-win32-* | *-*-windows-* | *-*-mingw32
   //
   // References:
   //
