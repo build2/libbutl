@@ -1489,7 +1489,7 @@ namespace butl
 
           // Hidden by butl::duration that is introduced via fdstream.mxx.
           //
-          const chrono::duration<DWORD, milli> wd (500);
+          const chrono::duration<DWORD, milli> wd (1000);
 
           DWORD r (WaitForSingleObject (pi.hProcess, wd.count ()));
 
