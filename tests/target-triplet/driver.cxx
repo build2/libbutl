@@ -122,9 +122,17 @@ main ()
                 "x86_64-microsoft-win32-msvc14.0",
                 "x86_64", "microsoft", "win32-msvc", "14.0", "windows"));
 
+  assert (test ("x86_64-windows-msvc",
+                "x86_64-windows-msvc",
+                "x86_64", "", "windows-msvc", "", "windows"));
+
   assert (test ("x86_64-pc-windows-msvc",
                 "x86_64-windows-msvc",
                 "x86_64", "", "windows-msvc", "", "windows"));
+
+  assert (test ("x86_64-pc-windows-msvc19.11.25547",
+                "x86_64-windows-msvc19.11.25547",
+                "x86_64", "", "windows-msvc", "19.11.25547", "windows"));
 }
 
 static bool

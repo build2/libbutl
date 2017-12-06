@@ -79,20 +79,21 @@ LIBBUTL_MODEXPORT namespace butl
   //
   // Some examples of canonicalization and splitting:
   //
-  // x86_64-apple-darwin14.5.0        x86_64  apple      darwin         14.5.0
-  // x86_64-unknown-freebsd10.2       x86_64             freebsd        10.2
-  // i686-elf                         i686               elf
-  // arm-eabi                         arm                eabi
-  // arm-none-eabi                    arm                eabi
-  // arm-none-linux-gnueabi           arm                linux-gnueabi
-  // arm-softfloat-linux-gnu          arm     softfloat  linux-gnu
-  // i686-pc-mingw32                  i686               mingw32
-  // i686-w64-mingw32                 i686    w64        mingw32
-  // i686-lfs-linux-gnu               i686    lfs        linux-gnu
-  // x86_64-unknown-linux-gnu         x86_64             linux-gnu
-  // x86_64-linux-gnux32              x86_64             linux-gnux32
-  // x86_64-microsoft-win32-msvc14.0  x86_64  microsoft  win32-msvc     14.0
-  // x86_64-pc-windows-msvc           x86_64             windows-msvc
+  // x86_64-apple-darwin14.5.0         x86_64  apple      darwin         14.5.0
+  // x86_64-unknown-freebsd10.2        x86_64             freebsd        10.2
+  // i686-elf                          i686               elf
+  // arm-eabi                          arm                eabi
+  // arm-none-eabi                     arm                eabi
+  // arm-none-linux-gnueabi            arm                linux-gnueabi
+  // arm-softfloat-linux-gnu           arm     softfloat  linux-gnu
+  // i686-pc-mingw32                   i686               mingw32
+  // i686-w64-mingw32                  i686    w64        mingw32
+  // i686-lfs-linux-gnu                i686    lfs        linux-gnu
+  // x86_64-unknown-linux-gnu          x86_64             linux-gnu
+  // x86_64-linux-gnux32               x86_64             linux-gnux32
+  // x86_64-microsoft-win32-msvc14.0   x86_64  microsoft  win32-msvc     14.0
+  // x86_64-pc-windows-msvc            x86_64             windows-msvc
+  // x86_64-pc-windows-msvc19.11.25547 x86_64             windows-msvc   19.11.25547
   //
   // Similar to version splitting, for certain commonly-used targets we also
   // derive the "target class" which can be used as a shorthand, more
