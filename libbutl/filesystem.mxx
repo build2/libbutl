@@ -199,7 +199,7 @@ LIBBUTL_MODEXPORT namespace butl
   LIBBUTL_SYMEXPORT rmfile_status
   try_rmfile (const path&, bool ignore_error = false);
 
-  // Automatically try to remove a non-empty the path on destruction unless
+  // Automatically try to remove a non-empty path on destruction unless
   // cancelled. Since the non-cancelled destruction will normally happen as a
   // result of an exception, the failure to remove the path is silently
   // ignored.
