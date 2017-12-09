@@ -114,9 +114,9 @@ LIBBUTL_MODEXPORT namespace butl
   private:
     struct context // Note: identical to SHA256_CTX.
     {
-      uint32_t state[8];
-      uint64_t count;
-      uint8_t buf[64];
+      std::uint32_t state[8];
+      std::uint64_t count;
+      std::uint8_t buf[64];
     };
 
     union
