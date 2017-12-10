@@ -22,7 +22,8 @@
 #include <exception>    // exception, uncaught_exception[s]()
 //#include <functional> // hash
 
-#include <cctype> // toupper(), tolower(), isalpha(), isdigit(), isalnum()
+#include <cctype>  // toupper(), tolower(), is*()
+#include <cwctype> // isw*()
 #endif
 
 #include <libbutl/ft/lang.hxx>      // thread_local
@@ -138,14 +139,15 @@ LIBBUTL_MODEXPORT namespace butl
     }
   };
 
-  bool
-  alpha (char);
+  bool alpha  (char);
+  bool digit  (char);
+  bool alnum  (char);
+  bool xdigit (char);
 
-  bool
-  digit (char);
-
-  bool
-  alnum (char);
+  bool alpha  (wchar_t);
+  bool digit  (wchar_t);
+  bool alnum  (wchar_t);
+  bool xdigit (wchar_t);
 
   // Key comparators (i.e., to be used in sets, maps, etc).
   //

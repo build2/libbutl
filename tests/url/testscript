@@ -1,0 +1,378 @@
+# file      : tests/url/testscript
+# copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+:basic
+:
+$*
+
+: components
+:
+{
+  : all
+  :
+  $* 'https://user@stage.b2.org:443/libbutl?f=full#description' >>EOO
+  https
+  user@stage.b2.org:443 name
+  libbutl
+  f=full
+  description
+  EOO
+
+  : empty-url
+  :
+  $* '' >>EOO
+  [null]
+  [null]
+  [null]
+  [null]
+  [null]
+  EOO
+
+  : no-id
+  :
+  {
+    $* 'file:#f'  2>'no authority, path or query' != 0 : fragment
+    $* 'file:aaa' 2>'no authority, path or query' != 0 : junk
+    $* 'file:'    2>'no authority, path or query' != 0 : none
+  }
+
+  : scheme
+  :
+  {
+    : detected
+    :
+    $* 'http://build2.org' >>EOO
+    http
+    @build2.org:0 name
+    [null]
+    [null]
+    [null]
+    EOO
+
+    : deduced
+    :
+    $* 'c:/a' >>EOO
+    file
+    [null]
+    c:/a
+    [null]
+    [null]
+    EOO
+
+    $* ':/a'           2>'no scheme'      != 0 : none
+    $* 'http'          2>'no scheme'      != 0 : unterminated
+    $* 'ht~tp://a.com' 2>'invalid scheme' != 0 : invalid-char
+    $* '1http://a.com' 2>'invalid scheme' != 0 : invalid-first-char
+  }
+
+  : authority
+  {
+    : absent
+    :
+    $* 'file:/tmp/a' >>EOO
+    file
+    [null]
+    tmp/a
+    [null]
+    [null]
+    EOO
+
+    : empty
+    :
+    $* 'file:///tmp/a' >>EOO
+    file
+    @:0 name
+    tmp/a
+    [null]
+    [null]
+    EOO
+
+    : trailing
+    :
+    $* 'http://localhost' >>EOO
+    http
+    @localhost:0 name
+    [null]
+    [null]
+    [null]
+    EOO
+
+    : user
+    :
+    {
+      : non-empty
+      :
+      $* 'http://admin@localhost' >>EOO
+      http
+      admin@localhost:0 name
+      [null]
+      [null]
+      [null]
+      EOO
+
+      : empty
+      :
+      $* 'http://@localhost' >>EOO
+      http
+      @localhost:0 name
+      [null]
+      [null]
+      [null]
+      EOO
+    }
+
+    : host
+    :
+    {
+      : ipv6
+      :
+      {
+        : port
+        :
+        $* 'http://[1:23]:443' >>EOO
+        http
+        @1:23:443 ipv6
+        [null]
+        [null]
+        [null]
+        EOO
+
+        : no-port
+        :
+        $* 'http://[1:23]' >>EOO
+        http
+        @1:23:0 ipv6
+        [null]
+        [null]
+        [null]
+        EOO
+
+        $* 'http://[123'      2>'invalid IPv6 address' != 0 : missed-bracket
+        $* 'http://[123] :80' 2>'invalid IPv6 address' != 0 : extra-char
+      }
+
+      : ipv4
+      :
+      {
+        : valid
+        :
+        $* 'http://0.10.200.255' >>EOO
+        http
+        @0.10.200.255:0 ipv4
+        [null]
+        [null]
+        [null]
+        EOO
+
+        : long
+        :
+        $* 'http://0.10.200.255.30' >>EOO
+        http
+        @0.10.200.255.30:0 name
+        [null]
+        [null]
+        [null]
+        EOO
+
+        : short
+        :
+        $* 'http://0.10.200' >>EOO
+        http
+        @0.10.200:0 name
+        [null]
+        [null]
+        [null]
+        EOO
+
+        : missed
+        :
+        $* 'http://0.10..200' >>EOO
+        http
+        @0.10..200:0 name
+        [null]
+        [null]
+        [null]
+        EOO
+
+        : out-of-range
+        :
+        $* 'http://0.10.200.256' >>EOO
+        http
+        @0.10.200.256:0 name
+        [null]
+        [null]
+        [null]
+        EOO
+      }
+
+      : name
+      :
+      {
+        : valid
+        :
+        $* 'https://www.b2.org' >>EOO
+        https
+        @www.b2.org:0 name
+        [null]
+        [null]
+        [null]
+        EOO
+
+        : encoded
+        :
+        {
+          : valid
+          :
+          $* 'https://www.%62%32.org' >>EOO
+          https
+          @www.b2.org:0 name
+          [null]
+          [null]
+          [null]
+          EOO
+
+          $* 'https://www.%62%3.org'  2>'invalid URL-encoding' != 0 : short
+          $* 'https://www.%62%3x.org' 2>'invalid URL-encoding' != 0 : invalid
+          $* 'https://www.%62%.org'   2>'invalid URL-encoding' != 0 : absent
+        }
+
+        $* 'https://www.b|2.org' 2>'invalid host name' != 0 : invalid-char
+      }
+
+      $* 'http://admin@:80?q=' 2>'no host' != 0: no-host
+    }
+
+    : port
+    :
+    {
+      : valid
+      :
+      $* 'http://build2.org:443' >>EOO
+      http
+      @build2.org:443 name
+      [null]
+      [null]
+      [null]
+      EOO
+
+      $* 'http://build2.org:-433'  2>'invalid port' != 0 : invalid-char
+      $* 'http://build2.org:70000' 2>'invalid port' != 0 : exceeds-max
+      $* 'http://build2.org:0'     2>'invalid port' != 0 : zero
+    }
+  }
+
+  : path
+  :
+  {
+    : absent
+    :
+    $* 'http://b2.org' >>EOO
+    http
+    @b2.org:0 name
+    [null]
+    [null]
+    [null]
+    EOO
+
+    : empty
+    :
+    $* 'http://b2.org/' >>EOO
+    http
+    @b2.org:0 name
+
+    [null]
+    [null]
+    EOO
+
+    : non-empty
+    :
+    $* 'http://b2.org/s/q' >>EOO
+    http
+    @b2.org:0 name
+    s/q
+    [null]
+    [null]
+    EOO
+
+    : encoded
+    :
+    $* 'http://b2.org/%6F/s' >>EOO
+    http
+    @b2.org:0 name
+    o/s
+    [null]
+    [null]
+    EOO
+  }
+
+  : query
+  :
+  {
+    : no-fragment
+    :
+    $* 'http://b2.org/a?x=foo&y=bar' >>EOO
+    http
+    @b2.org:0 name
+    a
+    x=foo&y=bar
+    [null]
+    EOO
+
+    : fragment
+    :
+    $* 'http://b2.org/a?foo#bar' >>EOO
+    http
+    @b2.org:0 name
+    a
+    foo
+    bar
+    EOO
+  }
+
+  : fragment
+  :
+  {
+    $* 'http://b2.org#foo' >>EOO
+    http
+    @b2.org:0 name
+    [null]
+    [null]
+    foo
+    EOO
+  }
+}
+
+: string
+{
+  test.options += -s
+
+  : authority
+  :
+  {
+    : host
+    :
+    {
+      $* 'file:///a'       >'file:///a'       : empty
+      $* 'http://1.1.1.1'  >'http://1.1.1.1'  : ipv4
+      $* 'https://[1:2:3]' >'https://[1:2:3]' : ipv6
+      $* 'file://a%d1%84'  >'file://a%D1%84'  : name
+    }
+
+    $* 'http://admin@localhost' >'http://admin@localhost' : user
+    $* 'http://localhost:8080'  >'http://localhost:8080'  : port
+    $* 'file:/a'                >'file:/a'                : absent
+  }
+
+  $* ''            >''            : empty
+  $* 'file:/b%7C2' >'file:/b%7C2' : path
+  $* 'http://a?q=' >'http://a?q=' : query
+  $* 'http://a#f'  >'http://a#f'  : fragment
+}
+
+: wstring
+:
+{
+  u = 'https://user@stage.b2.org:443/libbutl?f=full#description'
+  $* -w "$u" >"$u"
+}

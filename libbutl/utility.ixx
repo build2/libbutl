@@ -137,4 +137,34 @@ namespace butl
   {
     return std::isalnum (c);
   }
+
+  inline bool
+  xdigit (char c)
+  {
+    return std::isxdigit (c);
+  }
+
+  inline bool
+  alpha (wchar_t c)
+  {
+    return std::iswalpha (c);
+  }
+
+  inline bool
+  digit (wchar_t c)
+  {
+    return std::iswdigit (c);
+  }
+
+  inline bool
+  alnum (wchar_t c)
+  {
+    return std::iswalnum (c);
+  }
+
+  inline bool
+  xdigit (wchar_t c)
+  {
+    return std::iswxdigit (c);
+  }
 }
