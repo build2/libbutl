@@ -74,6 +74,11 @@ try
 
   return r.second ? 0 : 1;
 }
+catch (const regex_error& e)
+{
+  cerr << "invalid regex" << e << endl; // Print sanitized.
+  return 2;
+}
 catch (const exception& e)
 {
   cerr << e << endl;
