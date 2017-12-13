@@ -1246,13 +1246,13 @@ namespace butl
       ulock l (process_spawn_mutex);
       inheritability_lock il (l);
 
-      // Resolve file descriptor to HANDLE and make sure it is inherited. Note
-      // that the handle is closed either when CloseHandle() is called for it
-      // or when _close() is called for the associated file descriptor. Make
-      // sure that either the original file descriptor or the resulting HANDLE
-      // is closed but not both of them.
+      // Resolve file descriptor to HANDLE and make sure it is inherited (if
+      // requested). Note that the handle is closed either when CloseHandle()
+      // is called for it or when _close() is called for the associated file
+      // descriptor. Make sure that either the original file descriptor or the
+      // resulting HANDLE is closed but not both of them.
       //
-      auto get_osfhandle = [&fail, &il] (int fd) -> HANDLE
+      auto get_osfhandle = [&fail, &il] (int fd, bool inherit = true) -> HANDLE
       {
         HANDLE h (reinterpret_cast<HANDLE> (_get_osfhandle (fd)));
         if (h == INVALID_HANDLE_VALUE)
@@ -1261,15 +1261,18 @@ namespace butl
         // Make the handle inheritable by the child unless it is already
         // inheritable.
         //
-        DWORD f;
-        if (!GetHandleInformation (h, &f))
-          fail ();
+        if (inherit)
+        {
+          DWORD f;
+          if (!GetHandleInformation (h, &f))
+            fail ();
 
-        // Note that the flag check is essential as SetHandleInformation()
-        // fails for standard handles and their duplicates.
-        //
-        if ((f & HANDLE_FLAG_INHERIT) == 0)
-          il.inheritable (h);
+          // Note that the flag check is essential as SetHandleInformation()
+          // fails for standard handles and their duplicates.
+          //
+          if ((f & HANDLE_FLAG_INHERIT) == 0)
+            il.inheritable (h);
+        }
 
         return h;
       };
@@ -1474,9 +1477,15 @@ namespace butl
 
         if (msys)
         {
-          // Wait a bit and check if the process has terminated. If it is
-          // still running then we assume all is good. Otherwise, retry if
-          // this is the DLL initialization error.
+          // Wait a bit and check if the process has terminated, or has written
+          // some data to stdout or stderr. If it is still running then we
+          // assume all is good. Otherwise, retry if this is the DLL
+          // initialization error.
+          //
+          // Note that the process standard output streams probing is possible
+          // only if they are connected to pipes created by us. We assume that
+          // data presence at the reading end of any of these pipes means that
+          // DLLs initialization successfully passed.
           //
           system_clock::time_point st (system_clock::now ());
 
@@ -1487,11 +1496,32 @@ namespace butl
           il.unlock ();
           l.unlock ();
 
-          // Hidden by butl::duration that is introduced via fdstream.mxx.
-          //
-          const chrono::duration<DWORD, milli> wd (1000);
+          auto probe_fd = [&get_osfhandle] (int fd) -> bool
+          {
+            if (fd == -1)
+              return false;
 
-          DWORD r (WaitForSingleObject (pi.hProcess, wd.count ()));
+            char c;
+            DWORD n;
+            HANDLE h (get_osfhandle (fd, false));
+            return PeekNamedPipe (h, &c, 1, &n, nullptr, nullptr) && n == 1;
+          };
+
+          DWORD r;
+          system_clock::duration twd (0);  // Total wait time.
+          for (size_t n (0); n != 10; ++n) // Wait n times by 200ms.
+          {
+            // Hidden by butl::duration that is introduced via fdstream.mxx.
+            //
+            const chrono::duration<DWORD, milli> wd (200);
+
+            r = WaitForSingleObject (pi.hProcess, wd.count ());
+            twd += wd;
+
+            if (r != WAIT_TIMEOUT ||
+                probe_fd (in_ofd.in.get ()) || probe_fd (in_efd.in.get ()))
+              break;
+          }
 
           if (r == WAIT_OBJECT_0                   &&
               GetExitCodeProcess (pi.hProcess, &r) &&
@@ -1502,7 +1532,7 @@ namespace butl
             // Assume we have waited the full amount if the time adjustment is
             // detected.
             //
-            system_clock::duration d (now > st ? now - st : wd);
+            system_clock::duration d (now > st ? now - st : twd);
 
             // If timeout is not fully exhausted, re-lock the mutex, revert
             // handles to inheritable state and re-spawn the process.
