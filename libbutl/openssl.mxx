@@ -152,26 +152,26 @@ LIBBUTL_MODEXPORT namespace butl
       small_vector<const char*, 2> options;
     };
 
-    int
+    pipe
     map_in (nullfd_t, io_data&);
 
-    int
+    pipe
     map_in (const path&, io_data&);
 
-    int
+    pipe
     map_in (fdstream_mode, io_data&);
 
     template <typename I>
     typename std::enable_if<is_other<I>::value, I>::type
     map_in (I&&, io_data&);
 
-    int
+    pipe
     map_out (nullfd_t, io_data&);
 
-    int
+    pipe
     map_out (const path&, io_data&);
 
-    int
+    pipe
     map_out (fdstream_mode, io_data&);
 
     template <typename O>

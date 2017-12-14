@@ -60,7 +60,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
     process& p (*this);
     p = process_start_callback (cmdc,
-                                pipe.in,
+                                pipe,
                                 2, // No output expected so redirect to stderr.
                                 std::forward<E> (err),
                                 "sendmail",

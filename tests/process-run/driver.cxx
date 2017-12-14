@@ -99,6 +99,13 @@ main (int argc, const char* argv[])
   assert (run (fdnull (), 2, 2, p, "-c", "-o", "abc"));
   assert (run (fdnull (), 1, 1, p, "-c", "-e", "abc"));
 
+  {
+    fdpipe pipe (fdopen_pipe ());
+    process pr (process_start (pipe, process::pipe (-1, 1), 2, p, "-c", "-i"));
+    pipe.close ();
+    assert (pr.wait ());
+  }
+
   // Argument conversion.
   //
   assert (run (0, 1, 2, p, "-c", "-o", "abc"));

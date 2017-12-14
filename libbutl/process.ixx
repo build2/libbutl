@@ -137,11 +137,35 @@ namespace butl
   }
 
   inline process::
+  process (const process_path& pp, const char* args[],
+           int in, int out, int err,
+           const char* cwd,
+           const char* const* envvars)
+      : process (pp,
+                 args,
+                 pipe (in, -1), pipe (-1, out), pipe (-1, err),
+                 cwd,
+                 envvars)
+  {
+  }
+
+  inline process::
   process (const char* args[],
            int in, int out, int err,
            const char* cwd,
            const char* const* envvars)
       : process (path_search (args[0]), args, in, out, err, cwd, envvars) {}
+
+  inline process::
+  process (const process_path& pp, const char* args[],
+           process& in, int out, int err,
+           const char* cwd,
+           const char* const* envvars)
+      : process (pp, args, in.in_ofd.get (), out, err, cwd, envvars)
+  {
+    assert (in.in_ofd.get () != -1); // Should be a pipe.
+    in.in_ofd.reset (); // Close it on our side.
+  }
 
   inline process::
   process (const char* args[],

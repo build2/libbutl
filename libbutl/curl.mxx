@@ -169,20 +169,20 @@ LIBBUTL_MODEXPORT namespace butl
       std::string storage;
     };
 
-    int
+    pipe
     map_in (nullfd_t, method_proto, io_data&);
 
-    int
+    pipe
     map_in (const path&, method_proto, io_data&);
 
     template <typename I>
     typename std::enable_if<is_other<I>::value, I>::type
     map_in (I&&, method_proto, io_data&);
 
-    int
+    pipe
     map_out (nullfd_t, method_proto, io_data&);
 
-    int
+    pipe
     map_out (const path&, method_proto, io_data&);
 
     template <typename O>

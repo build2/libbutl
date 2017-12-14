@@ -41,9 +41,9 @@ namespace butl
                  const process_path& pp,
                  const char* cmd[],
                  const char* const* envvars,
-                 int in,
-                 int out,
-                 int err)
+                 process::pipe in,
+                 process::pipe out,
+                 process::pipe err)
   {
     try
     {

@@ -255,12 +255,35 @@ LIBBUTL_MODEXPORT namespace butl
     // temporarily change args[0] (see path_search() for details).
     //
     process (const char* [],
-             int = 0, int = 1, int = 2,
+             int in = 0, int out = 1, int err = 2,
              const char* cwd = nullptr,
              const char* const* envvars = nullptr);
 
     process (const process_path&, const char* [],
-             int = 0, int = 1, int = 2,
+             int in = 0, int out = 1, int err = 2,
+             const char* cwd = nullptr,
+             const char* const* envvars = nullptr);
+
+    // If the descriptors are pipes that you have created, then you should use
+    // this constructor instead to communicate this information.
+    //
+    // For generality, if the "other" end of the pipe is -1, then assume this
+    // is not a pipe.
+    //
+    struct pipe
+    {
+      int in  = -1;
+      int out = -1;
+
+      pipe () = default;
+      pipe (int i, int o): in (i), out (o) {}
+
+      explicit
+      pipe (const fdpipe& p): in (p.in.get ()), out (p.out.get ()) {}
+    };
+
+    process (const process_path&, const char* [],
+             pipe in, pipe out, pipe err,
              const char* cwd = nullptr,
              const char* const* envvars = nullptr);
 
@@ -273,12 +296,12 @@ LIBBUTL_MODEXPORT namespace butl
     // lhs.wait ();
     //
     process (const char* [],
-             process&, int = 1, int = 2,
+             process&, int out = 1, int err = 2,
              const char* cwd = nullptr,
              const char* const* envvars = nullptr);
 
     process (const process_path&, const char* [],
-             process&, int = 1, int = 2,
+             process&, int out = 1, int err = 2,
              const char* cwd = nullptr,
              const char* const* envvars = nullptr);
 
@@ -427,10 +450,10 @@ LIBBUTL_MODEXPORT namespace butl
   // exit status.
   //
   // The I/O/E arguments determine the child's stdin/stdout/stderr. They can
-  // be of type int, auto_fd (and, in the future, perhaps also fd_pipe,
-  // string, buffer, etc). For example, the following call will make stdin
-  // read from /dev/null, stdout redirect to stderr, and inherit the parent's
-  // stderr.
+  // be of type int, auto_fd, fd_pipe and process::pipe (and, in the future,
+  // perhaps also string, buffer, etc). For example, the following call will
+  // make stdin read from /dev/null, stdout redirect to stderr, and inherit
+  // the parent's stderr.
   //
   // process_run (fdnull (), 2, 2, ...)
   //

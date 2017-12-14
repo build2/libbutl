@@ -170,17 +170,6 @@ namespace butl
     } while (*p != nullptr);
   }
 
-  process::
-  process (const process_path& pp, const char* args[],
-           process& in, int out, int err,
-           const char* cwd,
-           const char* const* envvars)
-      : process (pp, args, in.in_ofd.get (), out, err, cwd, envvars)
-  {
-    assert (in.in_ofd.get () != -1); // Should be a pipe.
-    in.in_ofd.reset (); // Close it on our side.
-  }
-
 #ifndef _WIN32
 
   static process_path
@@ -303,10 +292,14 @@ namespace butl
 
   process::
   process (const process_path& pp, const char* args[],
-           int in, int out, int err,
+           pipe pin, pipe pout, pipe perr,
            const char* cwd,
            const char* const* envvars)
   {
+    int in  (pin.in);
+    int out (pout.out);
+    int err (perr.out);
+
     fdpipe out_fd;
     fdpipe in_ofd;
     fdpipe in_efd;
@@ -1013,10 +1006,14 @@ namespace butl
 
   process::
   process (const process_path& pp, const char* args[],
-           int in, int out, int err,
+           pipe pin, pipe pout, pipe perr,
            const char* cwd,
            const char* const* envvars)
   {
+    int in  (pin.in);
+    int out (pout.out);
+    int err (perr.out);
+
     auto fail = [] (const char* m = nullptr)
     {
       throw process_error (m == nullptr ? last_error_msg () : m);
@@ -1487,6 +1484,31 @@ namespace butl
           // data presence at the reading end of any of these pipes means that
           // DLLs initialization successfully passed.
           //
+          // If the process output stream is redirected to a pipe, check that
+          // we have access to its reading end to probe it for data presence.
+          //
+          // @@ Unfortunately we can't distinguish a pipe that erroneously
+          //    missing the reading end from the pipelined program output
+          //    stream.
+#if 0
+          auto bad_pipe = [&get_osfhandle] (const pipe& p) -> bool
+          {
+            if (p.in != -1  ||  // Pipe provided by the user.
+                p.out == -1 ||  // Pipe created by ctor.
+                p.out == -2 ||  // Null device.
+                fdterm (p.out)) // Terminal.
+              return false;
+
+            // No reading end, so make sure that the file descriptor is a pipe.
+            //
+            return GetFileType (get_osfhandle (p.out, false)) ==
+                   FILE_TYPE_PIPE;
+          };
+
+          if (bad_pipe (pout) || bad_pipe (perr))
+            assert (false);
+#endif
+
           system_clock::time_point st (system_clock::now ());
 
           // Unlock the mutex to let other processes to be spawned while we are
@@ -1496,14 +1518,22 @@ namespace butl
           il.unlock ();
           l.unlock ();
 
-          auto probe_fd = [&get_osfhandle] (int fd) -> bool
+          // Probe for data presence the reading end of the pipe that is
+          // connected to the process standard output/error stream. Note that
+          // the pipe can be created by us or provided by the user.
+          //
+          auto probe_fd = [&get_osfhandle] (int fd, int ufd) -> bool
           {
-            if (fd == -1)
+            // Can't be both created by us and provided by the user.
+            //
+            assert (fd == -1 || ufd == -1);
+
+            if (fd == -1 && ufd == -1)
               return false;
 
             char c;
             DWORD n;
-            HANDLE h (get_osfhandle (fd, false));
+            HANDLE h (get_osfhandle (fd != -1 ? fd : ufd, false));
             return PeekNamedPipe (h, &c, 1, &n, nullptr, nullptr) && n == 1;
           };
 
@@ -1519,7 +1549,8 @@ namespace butl
             twd += wd;
 
             if (r != WAIT_TIMEOUT ||
-                probe_fd (in_ofd.in.get ()) || probe_fd (in_efd.in.get ()))
+                probe_fd (in_ofd.in.get (), pout.in) ||
+                probe_fd (in_efd.in.get (), perr.in))
               break;
           }
 

@@ -20,27 +20,101 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     }
   }
 
-  inline int process_stdin  (int v) {assert (v >= 0); return v;}
-  inline int process_stdout (int v) {assert (v >= 0); return v;}
-  inline int process_stderr (int v) {assert (v >= 0); return v;}
+  inline process::pipe
+  process_stdin  (int v)
+  {
+    assert (v >= 0);
+    return process::pipe (v, -1);
+  }
 
-  inline int
-  process_stdin (const auto_fd& v) {assert (v.get () >= 0); return v.get ();}
+  inline process::pipe
+  process_stdout (int v)
+  {
+    assert (v >= 0);
+    return process::pipe (-1, v);
+  }
 
-  inline int
-  process_stdout (const auto_fd& v) {assert (v.get () >= 0); return v.get ();}
+  inline process::pipe
+  process_stderr (int v)
+  {
+    assert (v >= 0);
+    return process::pipe (-1, v);
+  }
 
-  inline int
-  process_stderr (const auto_fd& v) {assert (v.get () >= 0); return v.get ();}
+  inline process::pipe
+  process_stdin (const auto_fd& v)
+  {
+    assert (v.get () >= 0);
+    return process::pipe (v.get (), -1);
+  }
+
+  inline process::pipe
+  process_stdout (const auto_fd& v)
+  {
+    assert (v.get () >= 0);
+    return process::pipe (-1, v.get ());
+  }
+
+  inline process::pipe
+  process_stderr (const auto_fd& v)
+  {
+    assert (v.get () >= 0);
+    return process::pipe (-1, v.get ());
+  }
+
+  inline process::pipe
+  process_stdin (const fdpipe& v)
+  {
+    assert (v.in.get () >= 0 && v.out.get () >= 0);
+    return process::pipe (v);
+  }
+
+  inline process::pipe
+  process_stdout (const fdpipe& v)
+  {
+    assert (v.in.get () >= 0 && v.out.get () >= 0);
+    return process::pipe (v);
+  }
+
+  inline process::pipe
+  process_stderr (const fdpipe& v)
+  {
+    assert (v.in.get () >= 0 && v.out.get () >= 0);
+    return process::pipe (v);
+  }
+
+  // Not necessarily a real pipe, so only a single end is constrained to be a
+  // valid file descriptor.
+  //
+  inline process::pipe
+  process_stdin (const process::pipe& v)
+  {
+    assert (v.in >= 0);
+    return v;
+  }
+
+  inline process::pipe
+  process_stdout (const process::pipe& v)
+  {
+    assert (v.out >= 0);
+    return v;
+  }
+
+  inline process::pipe
+  process_stderr (const process::pipe& v)
+  {
+    assert (v.out >= 0);
+    return v;
+  }
 
   LIBBUTL_SYMEXPORT process
   process_start (const dir_path* cwd,
                  const process_path& pp,
                  const char* cmd[],
                  const char* const* envvars,
-                 int in,
-                 int out,
-                 int err);
+                 process::pipe in,
+                 process::pipe out,
+                 process::pipe err);
 
   template <typename V, typename T>
   inline const char*
@@ -68,9 +142,9 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     // Map stdin/stdout/stderr arguments to their integer values, as expected
     // by the process constructor.
     //
-    int in_i  (process_stdin  (std::forward<I> (in)));
-    int out_i (process_stdout (std::forward<O> (out)));
-    int err_i (process_stderr (std::forward<E> (err)));
+    process::pipe in_i  (process_stdin  (std::forward<I> (in)));
+    process::pipe out_i (process_stdout (std::forward<O> (out)));
+    process::pipe err_i (process_stderr (std::forward<E> (err)));
 
     // Construct the command line array.
     //

@@ -8,6 +8,8 @@
 
 // C includes.
 
+#include <cassert>
+
 #ifndef __cpp_lib_modules
 #include <string>
 
@@ -40,7 +42,7 @@ using namespace std;
 
 namespace butl
 {
-  int curl::
+  process::pipe curl::
   map_in (nullfd_t, method_proto mp, io_data& d)
   {
     switch (mp)
@@ -53,16 +55,18 @@ namespace butl
     case http_get:
       {
         d.pipe.in = fdnull (); // /dev/null
-        return d.pipe.in.get ();
+        return pipe (d.pipe);
       }
     }
 
-    return -1;
+    assert (false); // Can't be here.
+    return pipe ();
   }
 
-  int curl::
+  process::pipe curl::
   map_in (const path& f, method_proto mp, io_data& d)
   {
+    pipe r;
     switch (mp)
     {
     case ftp_put:
@@ -84,12 +88,17 @@ namespace butl
         if (f.string () == "-")
         {
           d.pipe = fdopen_pipe (fdopen_mode::binary);
+          r = pipe (d.pipe);
+
           out.open (move (d.pipe.out));
         }
         else
+        {
           d.pipe.in = fdnull (); // /dev/null
+          r = pipe (d.pipe);
+        }
 
-        return d.pipe.in.get ();
+        return r;
       }
     case ftp_get:
     case http_get:
@@ -98,10 +107,11 @@ namespace butl
       }
     }
 
-    return -1;
+    assert (false); // Can't be here.
+    return r;
   }
 
-  int curl::
+  process::pipe curl::
   map_out (nullfd_t, method_proto mp, io_data& d)
   {
     switch (mp)
@@ -113,16 +123,18 @@ namespace butl
     case http_post: // May or may not produce output.
       {
         d.pipe.out = fdnull ();
-        return d.pipe.out.get (); // /dev/null
+        return pipe (d.pipe); // /dev/null
       }
     }
 
-    return -1;
+    assert (false); // Can't be here.
+    return pipe ();
   }
 
-  int curl::
+  process::pipe curl::
   map_out (const path& f, method_proto mp, io_data& d)
   {
+    pipe r;
     switch (mp)
     {
     case ftp_get:
@@ -134,6 +146,8 @@ namespace butl
           // Note: no need for any options, curl writes to stdout by default.
           //
           d.pipe = fdopen_pipe (fdopen_mode::binary);
+          r = pipe (d.pipe);
+
           in.open (move (d.pipe.in));
         }
         else
@@ -141,9 +155,10 @@ namespace butl
           d.options.push_back ("-o");
           d.options.push_back (f.string ().c_str ());
           d.pipe.out = fdnull (); // /dev/null
+          r = pipe (d.pipe);
         }
 
-        return d.pipe.out.get ();
+        return r;
       }
     case ftp_put:
       {
@@ -151,7 +166,8 @@ namespace butl
       }
     }
 
-    return -1;
+    assert (false); // Can't be here.
+    return r;
   }
 
   curl::method_proto curl::
