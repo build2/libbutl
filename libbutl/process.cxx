@@ -1541,17 +1541,17 @@ namespace butl
           DWORD r;
           system_clock::duration twd (0);  // Total wait time.
 
-          // We will wait for non-whitelisted program indefinitely, until it
-          // terminates or prints to stdout/stderr. Note that any MSYS program
-          // that reads from stdin prior to writing to stdout/stderr must be
-          // whitelisted.
+          // We wait for non-whitelisted programs indefinitely, until it
+          // terminates or prints to stdout/stderr. For whitelisted we wait
+          // for half a second. Any MSYS program that reads from stdin prior
+          // to writing to piped stdout/stderr must be whitelisted.
           //
-          const vector<path> wl ({path ("less.exe")});
+          const char* wl[] = {"less.exe"};
+          const char** wle = wl + sizeof (wl) / sizeof (wl[0]);
 
-          bool w (find (wl.begin (), wl.end (), pp.effect.leaf ()) !=
-                  wl.end ());
+          bool w (find (wl, wle, pp.effect.leaf ().string ()) != wle);
 
-          for (size_t n (0);;) // Wait n times by 100ms.
+          for (size_t n (0);; ++n) // Wait n times by 100ms.
           {
             // Hidden by butl::duration that is introduced via fdstream.mxx.
             //
@@ -1563,7 +1563,7 @@ namespace butl
             if (r != WAIT_TIMEOUT ||
                 probe_fd (in_ofd.in.get (), pout.in) ||
                 probe_fd (in_efd.in.get (), perr.in) ||
-                (w && ++n == 5))
+                (w && n == 4))
               break;
           }
 
