@@ -58,9 +58,10 @@
 
 #ifdef _WIN32
 #include <map>
-#include <ratio>   // milli
+#include <ratio>     // milli
 #include <chrono>
-#include <cstdlib> // getenv(), __argv[]
+#include <cstdlib>   // getenv(), __argv[]
+#include <algorithm> // find()
 #endif
 #endif
 
@@ -1455,7 +1456,7 @@ namespace butl
 
       using namespace chrono;
 
-      for (system_clock::duration timeout (10500ms);;) // Try for about 10s.
+      for (system_clock::duration timeout (1h);;) // Try for about 1 hour.
       {
         if (!CreateProcess (
               batch != nullptr ? batch : pp.effect_string (),
@@ -1539,18 +1540,30 @@ namespace butl
 
           DWORD r;
           system_clock::duration twd (0);  // Total wait time.
-          for (size_t n (0); n != 10; ++n) // Wait n times by 200ms.
+
+          // We will wait for non-whitelisted program indefinitely, until it
+          // terminates or prints to stdout/stderr. Note that any MSYS program
+          // that reads from stdin prior to writing to stdout/stderr must be
+          // whitelisted.
+          //
+          const vector<path> wl ({path ("less.exe")});
+
+          bool w (find (wl.begin (), wl.end (), pp.effect.leaf ()) !=
+                  wl.end ());
+
+          for (size_t n (0);;) // Wait n times by 100ms.
           {
             // Hidden by butl::duration that is introduced via fdstream.mxx.
             //
-            const chrono::duration<DWORD, milli> wd (200);
+            const chrono::duration<DWORD, milli> wd (100);
 
             r = WaitForSingleObject (pi.hProcess, wd.count ());
             twd += wd;
 
             if (r != WAIT_TIMEOUT ||
                 probe_fd (in_ofd.in.get (), pout.in) ||
-                probe_fd (in_efd.in.get (), perr.in))
+                probe_fd (in_efd.in.get (), perr.in) ||
+                (w && ++n == 5))
               break;
           }
 
