@@ -15,7 +15,7 @@
 #ifndef __cpp_lib_modules
 #include <string>
 #include <vector>
-#include <iosfwd>
+#include <ostream>
 #include <cstddef>      // size_t
 #include <cstdint>      // uint32_t
 #include <system_error>
@@ -200,7 +200,7 @@ LIBBUTL_MODEXPORT namespace butl
     description () const;
   };
 
-  // Print canonical exit status diagnostics:
+  // Canonical exit status description:
   //
   // "terminated abnormally: <...> (core dumped)"
   // "exited with code <...>"
@@ -209,8 +209,14 @@ LIBBUTL_MODEXPORT namespace butl
   //
   // cerr << "process " << args[0] << " " << *pr.exit << endl;
   //
-  LIBBUTL_SYMEXPORT std::ostream&
-  operator<< (std::ostream&, process_exit);
+  LIBBUTL_SYMEXPORT std::string
+  to_string (process_exit);
+
+  inline std::ostream&
+  operator<< (std::ostream& os, process_exit pe)
+  {
+    return os << to_string (pe);
+  }
 
   class LIBBUTL_SYMEXPORT process
   {

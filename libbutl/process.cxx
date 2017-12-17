@@ -106,19 +106,25 @@ namespace butl
 {
   // process_exit
   //
-  ostream&
-  operator<< (ostream& os, process_exit pe)
+  LIBBUTL_SYMEXPORT string
+  to_string (process_exit pe)
   {
+    string r;
+
     if (pe.normal ())
-      os << "exited with code " << static_cast<uint16_t> (pe.code ());
+    {
+      r  = "exited with code ";
+      r += std::to_string (pe.code ());
+    }
     else
     {
-      os << "terminated abnormally: " << pe.description ();
+      r  = "terminated abnormally: ";
+      r += pe.description ();
       if (pe.core ())
-        os << " (core dumped)";
+        r += " (core dumped)";
     }
 
-    return os;
+    return r;
   }
 
   // process
