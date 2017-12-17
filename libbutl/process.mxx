@@ -200,6 +200,18 @@ LIBBUTL_MODEXPORT namespace butl
     description () const;
   };
 
+  // Print canonical exit status diagnostics:
+  //
+  // "terminated abnormally: <...> (core dumped)"
+  // "exited with code <...>"
+  //
+  // So you would normally do:
+  //
+  // cerr << "process " << args[0] << " " << *pr.exit << endl;
+  //
+  LIBBUTL_SYMEXPORT std::ostream&
+  operator<< (std::ostream&, process_exit);
+
   class LIBBUTL_SYMEXPORT process
   {
   public:

@@ -104,6 +104,23 @@ using namespace butl::win32;
 
 namespace butl
 {
+  // process_exit
+  //
+  ostream&
+  operator<< (ostream& os, process_exit pe)
+  {
+    if (pe.normal ())
+      os << "exited with code " << static_cast<uint16_t> (pe.code ());
+    else
+    {
+      os << "terminated abnormally: " << pe.description ();
+      if (pe.core ())
+        os << " (core dumped)";
+    }
+
+    return os;
+  }
+
   // process
   //
   static process_path
