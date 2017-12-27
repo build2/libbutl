@@ -137,6 +137,8 @@ int
 main (int argc, const char* argv[])
 try
 {
+  using butl::nullopt; // Disambiguate with std::nullopt.
+
   using wurl           = basic_url<scheme>;
   using wurl_authority = wurl::authority_type;
   using wurl_host      = wurl::host_type;
