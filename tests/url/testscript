@@ -88,6 +88,26 @@ $*
     [null]
     EOO
 
+    : query
+    :
+    $* 'http://localhost?q' >>EOO
+    http
+    @localhost:0 name
+    [null]
+    q
+    [null]
+    EOO
+
+    : fragment
+    :
+    $* 'http://localhost#master' >>EOO
+    http
+    @localhost:0 name
+    [null]
+    [null]
+    master
+    EOO
+
     : trailing
     :
     $* 'http://localhost' >>EOO
