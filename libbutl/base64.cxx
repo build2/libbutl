@@ -54,14 +54,16 @@ namespace butl
       if (n && n % 19 == 0)
         *o++ = '\n'; // Split into lines, like the base64 utility does.
 
-      char c (*i++);
+      auto next = [&i] () {return static_cast<unsigned char> (*i++);};
+
+      unsigned char c (next ());
       size_t i1 ((c >> 2) & 0x3F);
       size_t i2 ((c << 4) & 0x30);
 
       size_t i3 (un);
       if (i != e)
       {
-        c = *i++;
+        c = next ();
         i2 |= (c >> 4) & 0xF;
         i3 = (c << 2) & 0x3C;
       }
@@ -69,7 +71,7 @@ namespace butl
       size_t i4 (un);
       if (i != e)
       {
-        c = *i++;
+        c = next ();
         i3 |= (c >> 6) & 0x3;
         i4 = c & 0x3F;
       }
