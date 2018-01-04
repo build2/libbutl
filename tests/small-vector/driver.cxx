@@ -6,7 +6,6 @@
 
 #ifndef __cpp_lib_modules
 #include <string>
-#include <vector>
 #include <iostream>
 #endif
 
@@ -25,7 +24,7 @@ import butl.small_vector;
 using namespace std;
 using namespace butl;
 
-// Return if v.data() points to somewhere inside v.
+// Return true if v.data() points to somewhere inside v.
 //
 template <typename T, size_t N>
 inline bool

@@ -6,13 +6,10 @@
 #pragma once
 #endif
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules
 #include <vector>
 #include <cstddef>     // size_t
-#include <utility>     // move(), forward()
-#include <type_traits> // true_type
+#include <utility>     // move()
 #endif
 
 // Other includes.
@@ -22,139 +19,15 @@ export module butl.small_vector;
 #ifdef __cpp_lib_modules
 import std.core;
 #endif
+import butl.small_allocator;
+#else
+#include <libbutl/small-allocator.mxx>
 #endif
 
 #include <libbutl/export.hxx>
 
 LIBBUTL_MODEXPORT namespace butl
 {
-  template <typename T, std::size_t N>
-  struct small_vector_buffer
-  {
-    // Size keeps track of the number of elements that are constructed in
-    // the buffer. Size equal N + 1 means the buffer is not allocated.
-    //
-    // Note that the names are decorated in order not to conflict with
-    // std::vector interface.
-    //
-    alignas (alignof (T)) char data_[sizeof (T) * N];
-    bool free_ = true;
-
-    // Note that the buffer should be constructed before std::vector and
-    // destroyed after (since std::vector's destructor will be destroying
-    // elements potentially residing in the buffer). This means that the
-    // buffer should be inherited from and before std::vector.
-    //
-    small_vector_buffer () = default;
-
-    small_vector_buffer (small_vector_buffer&&) = delete;
-    small_vector_buffer (const small_vector_buffer&) = delete;
-
-    small_vector_buffer& operator= (small_vector_buffer&&) = delete;
-    small_vector_buffer& operator= (const small_vector_buffer&) = delete;
-  };
-
-  template <typename T, std::size_t N>
-  class small_vector_allocator
-  {
-  public:
-    using buffer_type = small_vector_buffer<T, N>;
-
-    explicit
-    small_vector_allocator (buffer_type* b) noexcept: buf_ (b) {}
-
-    // Required by VC15u3 when _ITERATOR_DEBUG_LEVEL is not 0. It allocates
-    // some extra stuff which cannot possibly come from the static buffer.
-    //
-#if defined(_MSC_VER) && _MSC_VER >= 1911
-    template <typename U>
-    explicit
-    small_vector_allocator (const small_vector_allocator<U, N>&) noexcept
-      : buf_ (nullptr) {}
-#endif
-
-    // Allocator interface.
-    //
-  public:
-    using value_type = T;
-
-    T*
-    allocate(std::size_t n)
-    {
-      if (buf_ != nullptr)
-      {
-        assert (n >= N); // We should never be asked for less than N.
-
-        if (n == N)
-        {
-          buf_->free_ = false;
-          return reinterpret_cast<T*> (buf_->data_);
-        }
-        // Fall through.
-      }
-
-      return static_cast<T*> (::operator new (sizeof (T) * n));
-    }
-
-    void
-    deallocate (void* p, std::size_t) noexcept
-    {
-      if (buf_ != nullptr && p == buf_->data_)
-        buf_->free_ = true;
-      else
-        ::operator delete (p);
-    }
-
-    friend bool
-    operator== (small_vector_allocator x, small_vector_allocator y) noexcept
-    {
-      // We can use y to deallocate x's allocations if they use the same small
-      // buffer or neither uses its small buffer (which means all allocations,
-      // if any, have been from the shared heap). Of course this assumes no
-      // copy will be called to deallocate what has been allocated after said
-      // copy was made:
-      //
-      // A x;
-      // A y (x);
-      // p = x.allocate ();
-      // y.deallocate (p);  // Ouch.
-      //
-      return (x.buf_ == y.buf_) || (x.buf_->free_ && y.buf_->free_);
-    }
-
-    friend bool
-    operator!= (small_vector_allocator x, small_vector_allocator y) noexcept
-    {
-      return !(x == y);
-    }
-
-    // It might get instantiated but should not be called.
-    //
-    small_vector_allocator
-    select_on_container_copy_construction () const noexcept
-    {
-      return small_vector_allocator (nullptr);
-    }
-
-    // propagate_on_container_copy_assignment = false
-    // propagate_on_container_move_assignment = false
-
-    // Swap is not supported (see explanation in small_vector::swap()).
-    //
-    using propagate_on_container_swap = std::true_type;
-
-    void
-    swap (small_vector_allocator&) = delete;
-
-    // Shouldn't be needed except to satisfy some static_assert's.
-    //
-    template <typename U>
-    struct rebind {using other = small_vector_allocator<U, N>;};
-
-  private:
-    buffer_type* buf_;
-  };
-
   // Issues and limitations.
   //
   // - vector::reserve() may allocate more per the spec. But the three main
@@ -167,13 +40,13 @@ LIBBUTL_MODEXPORT namespace butl
   // - swap() is deleted (see notes below).
   //
   template <typename T, std::size_t N>
-  class small_vector: private small_vector_buffer<T, N>,
-                      public std::vector<T, small_vector_allocator<T, N>>
+  class small_vector: private small_allocator_buffer<T, N>,
+                      public std::vector<T, small_allocator<T, N>>
   {
   public:
-    using allocator_type = small_vector_allocator<T, N>;
-    using buffer_type = small_vector_buffer<T, N>;
-    using base_type = std::vector<T, small_vector_allocator<T, N>>;
+    using buffer_type = small_allocator_buffer<T, N>;
+    using allocator_type = small_allocator<T, N>;
+    using base_type = std::vector<T, allocator_type>;
 
     small_vector ()
       : base_type (allocator_type (this))
@@ -263,7 +136,7 @@ LIBBUTL_MODEXPORT namespace butl
       // VC15U1).
       //
 #if defined(_MSC_VER) && _MSC_VER <= 1910
-      if (v.size () < N)
+      if (v.size () <= N)
       {
         clear ();
         for (T& x: v)
