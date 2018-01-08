@@ -135,6 +135,11 @@ LIBBUTL_MODEXPORT namespace butl
     process_path (const char* i, path&& r, path&& e);
     ~process_path ();
 
+    // Manual copying. Should not use args[0] RAII. See path_search() for the
+    // init semantics.
+    //
+    process_path (const process_path&, bool init);
+
   private:
     friend class process;
     const char** args0_ = nullptr;

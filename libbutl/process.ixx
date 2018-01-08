@@ -22,32 +22,50 @@ namespace butl
 
   inline process_path::
   process_path (process_path&& p)
-      : initial (p.initial),
-        recall (std::move (p.recall)),
+      : recall (std::move (p.recall)),
         effect (std::move (p.effect)),
         args0_ (p.args0_)
   {
+    initial = p.initial != p.recall.string ().c_str ()
+      ? p.initial
+      : recall.string ().c_str ();
+
     p.args0_ = nullptr;
   }
 
   inline process_path& process_path::
   operator= (process_path&& p)
   {
-
     if (this != &p)
     {
       if (args0_ != nullptr)
-        *args0_ = initial;
+        *args0_ = initial; // Restore.
 
-      initial = p.initial;
       recall = std::move (p.recall);
       effect = std::move (p.effect);
       args0_ = p.args0_;
+
+      initial = p.initial != p.recall.string ().c_str ()
+        ? p.initial
+        : recall.string ().c_str ();
 
       p.args0_ = nullptr;
     }
 
     return *this;
+  }
+
+  inline process_path::
+  process_path (const process_path& p, bool init)
+      : recall (p.recall), effect (p.effect)
+  {
+    assert (p.args0_ == nullptr);
+
+    if (!p.empty ())
+    {
+      assert (init == (p.initial != p.recall.string ().c_str ()));
+      initial = init ? p.initial : recall.string ().c_str ();
+    }
   }
 
   inline const char* process_path::
