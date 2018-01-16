@@ -681,7 +681,9 @@ LIBBUTL_MODEXPORT namespace butl
     static basic_path
     temp_path (const string_type& prefix)
     {
-      return temp_directory () / traits::temp_name (prefix);
+      basic_path r (temp_directory ());
+      r /= traits::temp_name (prefix);
+      return r;
     }
 
   public:
