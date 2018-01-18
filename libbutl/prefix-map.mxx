@@ -28,18 +28,18 @@ import std.core;
 
 LIBBUTL_MODEXPORT namespace butl
 {
-  // A map of hierarchical "paths", e.g., 'foo.bar' or 'foo/bar' with
-  // the ability to retrieve a range of entries that have a specific
-  // prefix. The '.' and '/' above are the delimiter characters.
+  // A map of hierarchical "paths", e.g., 'foo.bar' or 'foo/bar' with the
+  // ability to retrieve a range of entries that have a specific prefix as
+  // well as finding the most qualified entry for specific path. The '.' and
+  // '/' above are the delimiter characters.
   //
-  // Note that as a special rule, the default implementation of
-  // compare_prefix treats empty key as everyone's prefix even if
-  // the paths don't start with the delimiter (useful to represent
-  // a "root path").
+  // Note that as a special rule, the default implementation of compare_prefix
+  // treats empty key as everyone's prefix even if the paths don't start with
+  // the delimiter (useful to represent a "root path").
   //
-  // Implementation-wise, the idea is to pretend that each key ends
-  // with the delimiter. This way we automatically avoid matching
-  // 'foobar' as having a prefix 'foo'.
+  // Implementation-wise, the idea is to pretend that each key ends with the
+  // delimiter. This way we automatically avoid matching 'foobar' as having a
+  // prefix 'foo'.
   //
   template <typename K>
   struct compare_prefix;
@@ -120,11 +120,22 @@ LIBBUTL_MODEXPORT namespace butl
     prefix_map_common (std::initializer_list<value_type> i, delimiter_type d)
         : map_type (std::move (i), compare_type (d)) {}
 
+    // Find all the entries that are sub-prefixes of the specified prefix.
+    //
     std::pair<iterator, iterator>
-    find_prefix (const key_type&);
+    find_sub (const key_type&);
 
     std::pair<const_iterator, const_iterator>
-    find_prefix (const key_type&) const;
+    find_sub (const key_type&) const;
+
+    // Find the most qualified entry that is a super-prefix of the specified
+    // prefix.
+    //
+    iterator
+    find_sup (const key_type&);
+
+    const_iterator
+    find_sup (const key_type&) const;
   };
 
   template <typename M, typename prefix_map_common<M>::delimiter_type D>

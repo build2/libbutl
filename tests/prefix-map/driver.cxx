@@ -33,12 +33,12 @@ main ()
     const pm m;
 
     {
-      auto r (m.find_prefix (""));
+      auto r (m.find_sub (""));
       assert (r.first == r.second);
     }
 
     {
-      auto r (m.find_prefix ("foo"));
+      auto r (m.find_sub ("foo"));
       assert (r.first == r.second);
     }
   }
@@ -47,33 +47,33 @@ main ()
     pm m {{{"foo", 1}}};
 
     {
-      auto r (m.find_prefix (""));
+      auto r (m.find_sub (""));
       assert (r.first != r.second && r.first->second == 1 &&
               ++r.first == r.second);
     }
 
     {
-      auto r (m.find_prefix ("fo"));
+      auto r (m.find_sub ("fo"));
       assert (r.first == r.second);
     }
 
     {
-      auto r (m.find_prefix ("fox"));
+      auto r (m.find_sub ("fox"));
       assert (r.first == r.second);
     }
 
     {
-      auto r (m.find_prefix ("fooo"));
+      auto r (m.find_sub ("fooo"));
       assert (r.first == r.second);
     }
 
     {
-      auto r (m.find_prefix ("foo.bar"));
+      auto r (m.find_sub ("foo.bar"));
       assert (r.first == r.second);
     }
 
     {
-      auto r (m.find_prefix ("foo"));
+      auto r (m.find_sub ("foo"));
       assert (r.first != r.second && r.first->second == 1 &&
               ++r.first == r.second);
     }
@@ -83,40 +83,40 @@ main ()
     pm m {{{"foo", 1}, {"bar", 2}}};
 
     {
-      auto r (m.find_prefix (""));
+      auto r (m.find_sub (""));
       assert (r.first != r.second && r.first->second == 2 &&
               ++r.first != r.second && r.first->second == 1 &&
               ++r.first == r.second);
     }
 
     {
-      auto r (m.find_prefix ("fo"));
+      auto r (m.find_sub ("fo"));
       assert (r.first == r.second);
     }
 
     {
-      auto r (m.find_prefix ("fox"));
+      auto r (m.find_sub ("fox"));
       assert (r.first == r.second);
     }
 
     {
-      auto r (m.find_prefix ("fooo"));
+      auto r (m.find_sub ("fooo"));
       assert (r.first == r.second);
     }
 
     {
-      auto r (m.find_prefix ("foo.bar"));
+      auto r (m.find_sub ("foo.bar"));
       assert (r.first == r.second);
     }
 
     {
-      auto r (m.find_prefix ("foo"));
+      auto r (m.find_sub ("foo"));
       assert (r.first != r.second && r.first->second == 1 &&
               ++r.first == r.second);
     }
 
     {
-      auto r (m.find_prefix ("bar"));
+      auto r (m.find_sub ("bar"));
       assert (r.first != r.second && r.first->second == 2 &&
               ++r.first == r.second);
     }
@@ -129,38 +129,76 @@ main ()
        {"xoo", 5}});
 
     {
-      auto r (m.find_prefix ("fo"));
+      auto r (m.find_sub ("fo"));
       assert (r.first == r.second);
     }
 
     {
-      auto r (m.find_prefix ("fox"));
+      auto r (m.find_sub ("fox"));
       assert (r.first == r.second);
     }
 
     {
-      auto r (m.find_prefix ("fooo"));
+      auto r (m.find_sub ("fooo"));
       assert (r.first == r.second);
     }
 
     {
-      auto r (m.find_prefix ("foo.bar"));
+      auto r (m.find_sub ("foo.bar"));
       assert (r.first != r.second && r.first->second == 4 &&
               ++r.first == r.second);
     }
 
     {
-      auto r (m.find_prefix ("foo.fox"));
+      auto r (m.find_sub ("foo.fox"));
       assert (r.first != r.second && r.first->second == 5 &&
               ++r.first == r.second);
     }
 
     {
-      auto r (m.find_prefix ("foo"));
+      auto r (m.find_sub ("foo"));
       assert (r.first != r.second && r.first->second == 2 &&
               ++r.first != r.second && r.first->second == 4 &&
               ++r.first != r.second && r.first->second == 5 &&
               ++r.first == r.second);
+    }
+  }
+
+  {
+    pm m (
+      {{"foo",         1},
+       {"fooa",        2},
+       {"foo.bar",     3},
+       {"foo.baz.aaa", 4},
+       {"foo.baz.bbb", 5},
+       {"foo.baz.xxx", 6},
+       {"xoo",         7}});
+
+    auto e (m.end ());
+
+    {
+      auto i (m.find_sup ("fox"));
+      assert (i == e);
+    }
+
+    {
+      auto i (m.find_sup ("foo.baz.bbb"));
+      assert (i != e && i->second == 5);
+    }
+
+    {
+      auto i (m.find_sup ("foo.baz.ccc"));
+      assert (i != e && i->second == 1);
+    }
+
+    {
+      auto i (m.find_sup ("foo.baz"));
+      assert (i != e && i->second == 1);
+    }
+
+    {
+      auto i (m.find_sup ("xoo.bar"));
+      assert (i != e && i->second == 7);
     }
   }
 }
