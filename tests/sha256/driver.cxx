@@ -33,11 +33,18 @@ main ()
   assert (string (sha256 ("").string ()) !=
           "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
 
-  assert (string (sha256 ("123").string ()) ==
-          "a787b6772e3e4df1b2a04d5eee56f8570ab38825eed1b6a9bda288429b7f29a1");
-
   assert (string (sha256 ("123", 3).string ()) ==
           "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3");
+
+  {
+    sha256 h ("123");
+
+    assert (string (h.string ()) ==
+            "a787b6772e3e4df1b2a04d5eee56f8570ab38825eed1b6a9bda288429b7f29a1");
+
+    assert (h.abbreviated_string (10) == "a787b6772e");
+    assert (h.abbreviated_string (65) == h.string ());
+  }
 
   {
     sha256 h;
@@ -48,8 +55,7 @@ main ()
     auto& b (h.binary ());
     assert (b[0] == 0x20 && b[31] == 0x9d);
 
-    string s (h.string ());
-    assert (s ==
+    assert (string (h.string ()) ==
             "204d9db65789fbede7829ed77f72ba1f0fe21a833d95abad4849b82f33a69b9d");
   }
 
@@ -71,5 +77,8 @@ main ()
     "f49dc002c6b66206a548ae8735329564c2b8c96d9b28856defcafa7f04b54fa6");
 
   assert (fingerprint_to_sha256 (fp) == sh);
+  assert (fingerprint_to_sha256 (fp, 65) == sh);
+  assert (fingerprint_to_sha256 (fp, 10) == sh.substr (0, 10));
+
   assert (sha256_to_fingerprint (sh) == fp);
 }

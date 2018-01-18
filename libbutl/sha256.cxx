@@ -122,7 +122,7 @@ namespace butl
 
     string f;
     f.reserve (n + 31);
-    for (size_t i (0); i < n; ++i)
+    for (size_t i (0); i != n; ++i)
     {
       char c (s[i]);
       if (!isxdigit (c))
@@ -138,7 +138,7 @@ namespace butl
   }
 
   string
-  fingerprint_to_sha256 (const string& f)
+  fingerprint_to_sha256 (const string& f, size_t rn)
   {
     auto bad = []() {throw invalid_argument ("invalid fingerprint");};
 
@@ -146,9 +146,16 @@ namespace butl
     if (n != 32 * 3 - 1)
       bad ();
 
+    if (rn > 64)
+      rn = 64;
+
     string s;
-    s.reserve (64);
-    for (size_t i (0); i < n; ++i)
+    s.reserve (rn);
+
+    // Note that we continue to validate the fingerprint after the result is
+    // ready.
+    //
+    for (size_t i (0); i != n; ++i)
     {
       char c (f[i]);
       if ((i + 1) % 3 == 0)
@@ -161,7 +168,8 @@ namespace butl
         if (!isxdigit (c))
           bad ();
 
-        s += lcase (c);
+        if (s.size () != rn)
+          s += lcase (c);
       }
     }
 

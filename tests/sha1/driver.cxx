@@ -33,11 +33,16 @@ main ()
   assert (string (sha1 ("").string ()) !=
           "da39a3ee5e6b4b0d3255bfef95601890afd80709");
 
-  assert (string (sha1 ("123").string ()) ==
-          "cc320164df1a2130045a28f08d3b88bc5bbcc43a");
-
   assert (string (sha1 ("123", 3).string ()) ==
           "40bd001563085fc35165329ea1ff5c5ecbdbbeef");
+
+  {
+    sha1 h ("123");
+    assert (string (h.string ()) == "cc320164df1a2130045a28f08d3b88bc5bbcc43a");
+
+    assert (h.abbreviated_string (10) == "cc320164df");
+    assert (h.abbreviated_string (41) == h.string ());
+  }
 
   {
     sha1 h;
@@ -48,7 +53,6 @@ main ()
     auto& b (h.binary ());
     assert (b[0] == 0x58 && b[19] == 0xfd);
 
-    string s (h.string ());
-    assert (s == "58c596bafad8d007952934af1db9abc5401d4dfd");
+    assert (string (h.string ()) == "58c596bafad8d007952934af1db9abc5401d4dfd");
   }
 }

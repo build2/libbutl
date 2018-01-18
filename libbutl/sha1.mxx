@@ -77,6 +77,12 @@ LIBBUTL_MODEXPORT namespace butl
     const char*
     string () const;
 
+    std::string
+    abbreviated_string (std::size_t n) const
+    {
+      return std::string (string (), n < 40 ? n : 40);
+    }
+
   private:
     struct context // Note: identical to SHA1_CTX.
     {

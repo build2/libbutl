@@ -111,6 +111,12 @@ LIBBUTL_MODEXPORT namespace butl
     const char*
     string () const;
 
+    std::string
+    abbreviated_string (std::size_t n) const
+    {
+      return std::string (string (), n < 64 ? n : 64);
+    }
+
   private:
     struct context // Note: identical to SHA256_CTX.
     {
@@ -137,10 +143,10 @@ LIBBUTL_MODEXPORT namespace butl
   LIBBUTL_SYMEXPORT std::string
   sha256_to_fingerprint (const std::string&);
 
-  // Convert a fingerprint (32 colon-separated hex digit pairs) to the SHA256
-  // string representation (64 lower case hex digits). Throw invalid_argument
-  // if the argument is not a valid fingerprint.
+  // Convert a fingerprint (32 colon-separated hex digit pairs) to the possibly
+  // abbreviated SHA256 string representation (up to 64 lower case hex digits).
+  // Throw invalid_argument if the first argument is not a valid fingerprint.
   //
   LIBBUTL_SYMEXPORT std::string
-  fingerprint_to_sha256 (const std::string&);
+  fingerprint_to_sha256 (const std::string&, std::size_t = 64);
 }
