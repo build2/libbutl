@@ -487,7 +487,7 @@ LIBBUTL_MODEXPORT namespace butl
   // The A arguments can be anything convertible to const char* via the
   // overloaded process_arg_as() (see below). Out of the box you can use const
   // char*, std::string, path/dir_path, (as well as [small_]vector[_view] of
-  // these), and numeric types.
+  // these), and numeric types (as well as optional<T> of all the above).
   //
   struct process_env
   {
@@ -658,6 +658,14 @@ LIBBUTL_MODEXPORT namespace butl
   process_args_as (V& v, const T& x, std::string& storage)
   {
     v.push_back (process_arg_as (x, storage));
+  }
+
+  template <typename V, typename T>
+  inline void
+  process_args_as (V& v, const optional<T>& x, std::string& storage)
+  {
+    if (x)
+      process_args_as (v, *x, storage);
   }
 
   // [small_]vector[_view]<>
