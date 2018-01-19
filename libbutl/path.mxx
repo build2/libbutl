@@ -811,6 +811,8 @@ LIBBUTL_MODEXPORT namespace butl
     basic_path
     base () const;
 
+    // As above but make the instance itself the base. Return *this.
+    //
     basic_path&
     make_base ();
 
