@@ -150,6 +150,10 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   inline basic_path<C, K> basic_path<C, K>::
   leaf () const
   {
+    // While it would have been simpler to implement this one in term of
+    // make_leaf(), this implementation is potentially more efficient
+    // (think of the small string optimization).
+    //
     const string_type& s (this->path_);
     size_type n (_size ());
 
@@ -163,9 +167,37 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   }
 
   template <typename C, typename K>
+  inline basic_path<C, K>& basic_path<C, K>::
+  make_leaf ()
+  {
+    string_type& s (this->path_);
+    size_type n (_size ());
+
+    size_type p (n != 0
+                 ? traits::rfind_separator (s, n - 1)
+                 : string_type::npos);
+
+    if (p != string_type::npos)
+    {
+      s.erase (0, p + 1);
+
+      // Keep the original tsep unless the path became empty.
+      //
+      if (s.empty ())
+        this->tsep_ = 0;
+    }
+
+    return *this;
+  }
+
+  template <typename C, typename K>
   inline typename basic_path<C, K>::dir_type basic_path<C, K>::
   directory () const
   {
+    // While it would have been simpler to implement this one in term of
+    // make_directory(), this implementation is potentially more efficient
+    // (think of the small string optimization).
+    //
     const string_type& s (this->path_);
     size_type n (_size ());
 
@@ -176,6 +208,23 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     return p != string_type::npos
       ? dir_type (data_type (string_type (s, 0, p + 1))) // Include slash.
       : dir_type ();
+  }
+
+  template <typename C, typename K>
+  inline basic_path<C, K>& basic_path<C, K>::
+  make_directory ()
+  {
+    string_type& s (this->path_);
+    size_type n (_size ());
+
+    size_type p (n != 0
+                 ? traits::rfind_separator (s, n - 1)
+                 : string_type::npos);
+
+    s.resize (p != string_type::npos ? p + 1 : 0); // Include trailing slash.
+    _init ();
+
+    return *this;
   }
 
   template <typename C, typename K>
@@ -279,12 +328,36 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   inline basic_path<C, K> basic_path<C, K>::
   base () const
   {
+    // While it would have been simpler to implement this one in term of
+    // make_base(), this implementation is potentially more efficient (think
+    // of the small string optimization).
+    //
     const string_type& s (this->path_);
     size_type p (traits::find_extension (s));
 
     return p != string_type::npos
       ? basic_path (data_type (string_type (s, 0, p), this->tsep_))
       : *this;
+  }
+
+  template <typename C, typename K>
+  inline basic_path<C, K>& basic_path<C, K>::
+  make_base ()
+  {
+    string_type& s (this->path_);
+    size_type p (traits::find_extension (s));
+
+    if (p != string_type::npos)
+    {
+      s.resize (0, p);
+
+      // Keep the original tsep unless the path became empty.
+      //
+      if (s.empty ())
+        this->tsep_ = 0;
+    }
+
+    return *this;
   }
 
   template <typename C, typename K>

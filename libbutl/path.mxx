@@ -510,14 +510,18 @@ LIBBUTL_MODEXPORT namespace butl
 
     // Constructors.
     //
-    path_data (): tsep_ (0) {}
+    path_data ()
+        : tsep_ (0) {}
 
     path_data (string_type&& p, difference_type ts)
         : path_ (std::move (p)), tsep_ (path_.empty () ? 0 : ts) {}
 
     explicit
     path_data (string_type&& p)
-        : path_ (std::move (p)), tsep_ (0)
+        : path_ (std::move (p)) { _init (); }
+
+    void
+    _init ()
     {
       size_type n (path_.size ()), i;
 
@@ -531,6 +535,8 @@ LIBBUTL_MODEXPORT namespace butl
           path_.pop_back ();
         }
       }
+      else
+        tsep_ = 0;
     }
   };
 
@@ -764,6 +770,11 @@ LIBBUTL_MODEXPORT namespace butl
     basic_path
     leaf () const;
 
+    // As above but make the instance itself the leaf. Return *this.
+    //
+    basic_path&
+    make_leaf ();
+
     // Return the path without the specified directory part. Throws
     // invalid_path if the directory is not a prefix of *this. Expects both
     // paths to be normalized.
@@ -776,6 +787,11 @@ LIBBUTL_MODEXPORT namespace butl
     //
     dir_type
     directory () const;
+
+    // As above but make the instance itself the directory. Return *this.
+    //
+    basic_path&
+    make_directory ();
 
     // Return the directory part of the path without the specified leaf part.
     // Throws invalid_path if the leaf is not a suffix of *this. Expects both
@@ -794,6 +810,9 @@ LIBBUTL_MODEXPORT namespace butl
     //
     basic_path
     base () const;
+
+    basic_path&
+    make_base ();
 
     // Return the extension or empty string if not present. If not empty, then
     // the result starts with the character past the dot.
@@ -1081,6 +1100,7 @@ LIBBUTL_MODEXPORT namespace butl
     basic_path (data_type&& d): base_type (std::move (d)) {}
 
     using base_type::_size;
+    using base_type::_init;
 
     // Common implementation for operator/= and operator+=.
     //
