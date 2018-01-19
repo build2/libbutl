@@ -79,6 +79,16 @@ LIBBUTL_MODEXPORT namespace butl
                      root (ks) ? string_type () : ks);
     }
 
+    bool
+    prefix (key_type& k) const
+    {
+      if (k.empty ())
+        return false;
+
+      k.make_directory ();
+      return true;
+    }
+
   protected:
     bool
     prefix (const string_type& p, const string_type& k) const

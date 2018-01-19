@@ -201,4 +201,16 @@ main ()
       assert (i != e && i->second == 7);
     }
   }
+
+  {
+    // Test the special empty prefix logic.
+    //
+    pm m ({{"", 1}});
+
+    auto e (m.end ());
+
+    assert (m.find_sup ("") != e);
+    assert (m.find_sup ("foo") != e);
+    assert (m.find_sup ("foo.bar") != e);
+  }
 }

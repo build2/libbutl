@@ -71,6 +71,20 @@ LIBBUTL_MODEXPORT namespace butl
          compare (p.c_str (), pn, k.c_str (), pn == kn ? pn : pn + 1) == 0);
     }
 
+    // If the key is not empty, convert the key to its prefix and return
+    // true. Return false otherwise.
+    //
+    bool
+    prefix (K& k) const
+    {
+      if (k.empty ())
+        return false;
+
+      size_type p (k.rfind (d_));
+      k.resize (p != K::npos ? p : 0);
+      return true;
+    }
+
   protected:
     int
     compare (const C* x, size_type xn,
