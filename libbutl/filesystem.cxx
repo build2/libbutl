@@ -299,12 +299,36 @@ namespace butl
   try_rmfile (const path& p, bool ignore_error)
   {
     rmfile_status r (rmfile_status::success);
+    const char* f (p.string ().c_str ());
 
 #ifndef _WIN32
-    if (unlink (p.string ().c_str ()) != 0)
+    int ur (unlink (f));
 #else
-    if (_unlink (p.string ().c_str ()) != 0)
+    int ur (_unlink (f));
+
+    // On Windows a file with the read-only attribute can not be deleted. This
+    // can be the reason if the deletion fails with the 'permission denied'
+    // error code. In such a case we just reset the attribute and repeat the
+    // attempt. If the attempt fails, then we try to restore the attribute.
+    //
+    if (ur != 0 && errno == EACCES)
+    {
+      DWORD a (GetFileAttributes (f));
+      if (a != INVALID_FILE_ATTRIBUTES && (a & FILE_ATTRIBUTE_READONLY) != 0 &&
+          SetFileAttributes (f, a & ~FILE_ATTRIBUTE_READONLY))
+      {
+        ur = _unlink (f);
+
+        // Restoring the attribute is unlikely to fail as we managed to reset
+        // it earlier.
+        //
+        if (ur != 0)
+          SetFileAttributes (f, a);
+      }
+    }
 #endif
+
+    if (ur != 0)
     {
       // Strangely on Linux unlink() removes a dangling symlink but returns
       // ENOENT.

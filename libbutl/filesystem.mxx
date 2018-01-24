@@ -196,6 +196,10 @@ LIBBUTL_MODEXPORT namespace butl
   //
   enum class rmfile_status {success, not_exist};
 
+  // Note that on Windows the read-only attribute is reset prior to the file
+  // removal (as it can't otherwise be deleted). In such a case the operation
+  // is not atomic.
+  //
   LIBBUTL_SYMEXPORT rmfile_status
   try_rmfile (const path&, bool ignore_error = false);
 
