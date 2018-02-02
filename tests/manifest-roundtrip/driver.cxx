@@ -31,40 +31,34 @@ using namespace std;
 using namespace butl;
 
 int
-main (int argc, char* argv[])
+main ()
+try
 {
-  if (argc != 2)
+  // Read/write in binary mode.
+  //
+  stdin_fdmode  (fdstream_mode::binary);
+  stdout_fdmode (fdstream_mode::binary);
+
+  manifest_parser p (cin, "stdin");
+  manifest_serializer s (cout, "stdout");
+
+  for (bool eom (true), eos (false); !eos; )
   {
-    cerr << "usage: " << argv[0] << " <file>" << endl;
-    return 1;
-  }
+    manifest_name_value nv (p.next ());
 
-  try
-  {
-    ifdstream ifs (argv[1]);
-    manifest_parser p (ifs, argv[1]);
-
-    stdout_fdmode (fdstream_mode::binary); // Write in binary mode.
-    manifest_serializer s (cout, "stdout");
-
-    for (bool eom (true), eos (false); !eos; )
+    if (nv.empty ()) // End pair.
     {
-      manifest_name_value nv (p.next ());
-
-      if (nv.empty ()) // End pair.
-      {
-        eos = eom;
-        eom = true;
-      }
-      else
-        eom = false;
-
-      s.next (nv.name, nv.value);
+      eos = eom;
+      eom = true;
     }
+    else
+      eom = false;
+
+    s.next (nv.name, nv.value);
   }
-  catch (const exception& e)
-  {
-    cerr << e << endl;
-    return 1;
-  }
+}
+catch (const exception& e)
+{
+  cerr << e << endl;
+  return 1;
 }

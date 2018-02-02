@@ -6,4 +6,4 @@ import libs = libbutl%lib{butl}
 libs += $stdmod_lib
 
 exe{driver}: {hxx cxx}{*} $libs
-exe{driver}: test.roundtrip = manifest
+exe{driver}: file{manifest}: test.roundtrip = true
