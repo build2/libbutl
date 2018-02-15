@@ -156,7 +156,7 @@ LIBBUTL_MODEXPORT namespace butl
 
     // Create empty version.
     //
-    standard_version () = default;
+    standard_version () {} // = default; @@ MOD VC
 
   private:
     void

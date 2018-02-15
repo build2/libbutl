@@ -147,7 +147,7 @@ LIBBUTL_MODEXPORT namespace butl
     explicit
     target_triplet (const std::string&);
 
-    target_triplet () = default;
+    target_triplet () {} // = default; @@ MOD VC
   };
 
   inline bool
