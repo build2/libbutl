@@ -64,8 +64,13 @@ namespace butl
       eos_ = true;
     else if (crlf_ && v == '\r')
     {
-      get_ ();
-      int_type v1 (peek_ ());
+      int_type v1;
+      do
+      {
+        get_ ();
+        v1 = peek_ ();
+      }
+      while (v1 == '\r');
 
       if (v1 != '\n')
       {
