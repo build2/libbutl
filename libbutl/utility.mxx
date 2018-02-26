@@ -162,7 +162,10 @@ LIBBUTL_MODEXPORT namespace butl
   struct compare_pointer_target
   {
     template <typename P>
-    bool operator() (const P& x, const P& y) const {return *x < *y;}
+    bool operator() (const P& x, const P& y) const
+    {
+      return *x < *y;
+    }
   };
 
   //struct hash_pointer_target
@@ -170,6 +173,17 @@ LIBBUTL_MODEXPORT namespace butl
   //  template <typename P>
   //  std::size_t operator() (const P& x) const {return std::hash (*x);}
   //};
+
+  // Compare two std::reference_wrapper's.
+  //
+  struct compare_reference_target
+  {
+    template <typename R>
+    bool operator() (const R& x, const R& y) const
+    {
+      return x.get () < y.get ();
+    }
+  };
 
   // Combine one or more hash values.
   //
