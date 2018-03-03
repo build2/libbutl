@@ -216,6 +216,17 @@ LIBBUTL_MODEXPORT namespace butl
     //
     static string_type
     translate_path (const path_type& path) {return string_type (path);}
+
+    // Check whether a string looks like a URL by searching for the first ':'
+    // (unless its position is specified with the second argument) and then
+    // making sure it's followed by '/' (e.g., http:// or file:/) and preceded
+    // by the scheme at least 2 characters long (so we don't confuse it with
+    // an absolute Windows path, e.g., c:/).
+    //
+    // Return the start of the URL substring or string_type::npos.
+    //
+    static std::size_t
+    find (const string_type&, std::size_t pos = string_type::npos);
   };
 
   template <typename H, // scheme

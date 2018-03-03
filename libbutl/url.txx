@@ -182,6 +182,40 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     return r;
   }
 
+  // url_traits
+  //
+  template <typename H, typename S, typename P>
+  std::size_t url_traits<H, S, P>::
+  find (const string_type& s, std::size_t p)
+  {
+    if (p == string_type::npos)
+      p = s.find (':');
+
+    if (p == string_type::npos ||
+        p < 2 ||
+        p + 1 == s.size () || s[p + 1] != '/')
+      return string_type::npos;
+
+    // Scan backwards for as long as it is a valid scheme.
+    //
+    std::size_t i (p);
+
+    for (; i != 0; --i)
+    {
+      auto c (s[i - 1]);
+      if (!(alnum (c) || c == '+' || c == '-' || c == '.'))
+        break;
+    }
+
+    if (i != p && !alpha (s[i])) // First must be alpha.
+      ++i;
+
+    if (p - i < 2)
+      return string_type::npos;
+
+    return i;
+  }
+
   // basic_url
   //
   template <typename S, typename T>
@@ -209,7 +243,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
       // Extract scheme.
       //
-      for(char_type c; i != e && (c = *i) != ':'; ++i)
+      for (char_type c; i != e && (c = *i) != ':'; ++i)
       {
         if (!(i == b
               ? alpha (c)
