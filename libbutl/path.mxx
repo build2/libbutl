@@ -775,9 +775,9 @@ LIBBUTL_MODEXPORT namespace butl
     basic_path&
     make_leaf ();
 
-    // Return the path without the specified directory part. Throws
-    // invalid_path if the directory is not a prefix of *this. Expects both
-    // paths to be normalized.
+    // Return the path without the specified directory part. Returns empty
+    // path if the paths are the same. Throws invalid_path if the directory is
+    // not a prefix of *this. Expects both paths to be normalized.
     //
     basic_path
     leaf (basic_path const&) const;
