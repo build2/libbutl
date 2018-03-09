@@ -486,8 +486,9 @@ LIBBUTL_MODEXPORT namespace butl
   //
   // The A arguments can be anything convertible to const char* via the
   // overloaded process_arg_as() (see below). Out of the box you can use const
-  // char*, std::string, path/dir_path, (as well as [small_]vector[_view] of
-  // these), and numeric types (as well as optional<T> of all the above).
+  // char* (with NULL values ignored), std::string, path/dir_path, (as well as
+  // [small_]vector[_view] of these), numeric types, as well as optional<T> of
+  // all the above with absent arguments ignored.
   //
   struct process_env
   {
@@ -642,8 +643,13 @@ LIBBUTL_MODEXPORT namespace butl
 
   // char[N]
   //
-  inline const char*
-  process_arg_as (const char* s, std::string&) {return s;}
+  template <typename V>
+  inline void
+  process_args_as (V& v, const char* s, std::string&)
+  {
+    if (s != nullptr)
+      v.push_back (s);
+  }
 
   template <std::size_t N>
   inline const char*
@@ -699,7 +705,8 @@ LIBBUTL_MODEXPORT namespace butl
   process_args_as (V& v, const std::vector<const char*>& vs, std::string&)
   {
     for (const char* s: vs)
-      v.push_back (s);
+      if (s != nullptr)
+        v.push_back (s);
   }
 
   template <typename V, std::size_t N>
@@ -707,7 +714,8 @@ LIBBUTL_MODEXPORT namespace butl
   process_args_as (V& v, const small_vector<const char*, N>& vs, std::string&)
   {
     for (const char* s: vs)
-      v.push_back (s);
+      if (s != nullptr)
+        v.push_back (s);
   }
 
   template <typename V>
@@ -715,7 +723,8 @@ LIBBUTL_MODEXPORT namespace butl
   process_args_as (V& v, const vector_view<const char*>& vs, std::string&)
   {
     for (const char* s: vs)
-      v.push_back (s);
+      if (s != nullptr)
+        v.push_back (s);
   }
 }
 
