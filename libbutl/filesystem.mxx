@@ -272,8 +272,10 @@ LIBBUTL_MODEXPORT namespace butl
   //
   enum class cpflags: std::uint16_t
   {
-    overwrite_content     = 0x1,
-    overwrite_permissions = 0x2,
+    overwrite_content     = 0x1, // Overwrite content of destination.
+    overwrite_permissions = 0x2, // Overwrite permissions of destination.
+
+    copy_timestamps       = 0x4, // Copy timestamps from source.
 
     none = 0
   };
@@ -283,11 +285,11 @@ LIBBUTL_MODEXPORT namespace butl
   inline cpflags operator&= (cpflags&, cpflags);
   inline cpflags operator|= (cpflags&, cpflags);
 
-  // Copy a regular file, including its permissions. Throw std::system_error
-  // on failure. Fail if the destination file exists and the overwrite_content
-  // flag is not set. Leave permissions of an existing destination file intact
-  // unless the overwrite_permissions flag is set. Delete incomplete copies
-  // before throwing.
+  // Copy a regular file, including its permissions, and optionally timestamps.
+  // Throw std::system_error on failure. Fail if the destination file exists
+  // and the overwrite_content flag is not set. Leave permissions of an
+  // existing destination file intact unless the overwrite_permissions flag is
+  // set. Delete incomplete copies before throwing.
   //
   // Note that in case of overwriting, the existing destination file gets
   // truncated (not deleted) prior to being overwritten. As a side-effect,
@@ -384,16 +386,126 @@ LIBBUTL_MODEXPORT namespace butl
     mventry_into (from, into, f);
   }
 
-  // Return timestamp_nonexistent if the entry at the specified path
-  // does not exist or is not a path. All other errors are reported
-  // by throwing std::system_error. Note that this function resolves
-  // symlinks.
+  struct entry_time
+  {
+    timestamp modification;
+    timestamp access;
+  };
+
+  // Return timestamp_nonexistent for the modification and access times if the
+  // entry at the specified path does not exist or is not a regular file. All
+  // other errors are reported by throwing std::system_error. Note that these
+  // functions resolves symlinks.
   //
-  LIBBUTL_SYMEXPORT timestamp
-  file_mtime (const char*);
+  LIBBUTL_SYMEXPORT entry_time
+  file_time (const char*);
+
+  inline entry_time
+  file_time (const path& p) {return file_time (p.string ().c_str ());}
+
+  inline timestamp
+  file_mtime (const char* p) {return file_time (p).modification;}
 
   inline timestamp
   file_mtime (const path& p) {return file_mtime (p.string ().c_str ());}
+
+  inline timestamp
+  file_atime (const char* p) {return file_time (p).access;}
+
+  inline timestamp
+  file_atime (const path& p) {return file_atime (p.string ().c_str ());}
+
+  // As above but return the directory times.
+  //
+  LIBBUTL_SYMEXPORT entry_time
+  dir_time (const char*);
+
+  inline entry_time
+  dir_time (const dir_path& p) {return dir_time (p.string ().c_str ());}
+
+  inline timestamp
+  dir_mtime (const char* p) {return dir_time (p).modification;}
+
+  inline timestamp
+  dir_mtime (const dir_path& p) {return dir_mtime (p.string ().c_str ());}
+
+  inline timestamp
+  dir_atime (const char* p) {return dir_time (p).access;}
+
+  inline timestamp
+  dir_atime (const dir_path& p) {return dir_atime (p.string ().c_str ());}
+
+  // Set a regular file modification and access times. If a time value is
+  // timestamp_nonexistent then it is left unchanged. All errors are reported
+  // by throwing std::system_error.
+  //
+  LIBBUTL_SYMEXPORT void
+  file_time (const char*, const entry_time&);
+
+  inline void
+  file_time (const path& p, const entry_time& t)
+  {
+    return file_time (p.string ().c_str (), t);
+  }
+
+  inline void
+  file_mtime (const char* p, timestamp t)
+  {
+    return file_time (p, {t, timestamp_nonexistent});
+  }
+
+  inline void
+  file_mtime (const path& p, timestamp t)
+  {
+    return file_mtime (p.string ().c_str (), t);
+  }
+
+  inline void
+  file_atime (const char* p, timestamp t)
+  {
+    return file_time (p, {timestamp_nonexistent, t});
+  }
+
+  inline void
+  file_atime (const path& p, timestamp t)
+  {
+    return file_atime (p.string ().c_str (), t);
+  }
+
+  // As above but set the directory times.
+  //
+  LIBBUTL_SYMEXPORT void
+  dir_time (const char*, const entry_time&);
+
+  inline void
+  dir_time (const dir_path& p, const entry_time& t)
+  {
+    return dir_time (p.string ().c_str (), t);
+  }
+
+  inline void
+  dir_mtime (const char* p, timestamp t)
+  {
+    return dir_time (p, {t, timestamp_nonexistent});
+  }
+
+  inline void
+  dir_mtime (const dir_path& p, timestamp t)
+  {
+    return dir_mtime (p.string ().c_str (), t);
+  }
+
+  inline void
+  dir_atime (const char* p, timestamp t)
+  {
+    return dir_time (p, {timestamp_nonexistent, t});
+  }
+
+  inline void
+  dir_atime (const dir_path& p, timestamp t)
+  {
+    return dir_atime (p.string ().c_str (), t);
+  }
 
   // Path permissions.
   //

@@ -484,6 +484,9 @@ namespace butl
         cpflags::overwrite_permissions)
       path_permissions (to, perm);
 
+    if ((fl & cpflags::copy_timestamps) == cpflags::copy_timestamps)
+      file_time (to, file_time (from));
+
     rm.cancel ();
   }
 
@@ -580,18 +583,7 @@ namespace butl
 
     // Copy file access and modification times.
     //
-    struct stat s;
-    if (stat (f, &s) != 0)
-      throw_generic_error (errno);
-
-    timeval times[2];
-    times[0].tv_sec = s.st_atime;
-    times[0].tv_usec = ansec<struct stat> (&s, true) / 1000;
-    times[1].tv_sec = s.st_mtime;
-    times[1].tv_usec = mnsec<struct stat> (&s, true) / 1000;
-
-    if (utimes (t, times) != 0)
-      throw_generic_error (errno);
+    file_time (t, file_time (f));
 
     // Finally, remove the source file.
     //
@@ -633,8 +625,8 @@ namespace butl
     //
     DWORD ec (GetLastError ());
     if ((ec == ERROR_ALREADY_EXISTS || ec == ERROR_ACCESS_DENIED) && td &&
-	try_rmdir (path_cast<dir_path> (to)) != rmdir_status::not_empty &&
-	MoveFileExA (f, t, mfl))
+        try_rmdir (path_cast<dir_path> (to)) != rmdir_status::not_empty &&
+        MoveFileExA (f, t, mfl))
       return;
 
     throw_system_error (ec);
@@ -642,25 +634,34 @@ namespace butl
 #endif
   }
 
-  timestamp
-  file_mtime (const char* p)
+  // Return the modification and access times of a regular file or directory.
+  //
+  static entry_time
+  entry_tm (const char* p, bool dir)
   {
 #ifndef _WIN32
+
     struct stat s;
     if (stat (p, &s) != 0)
     {
       if (errno == ENOENT || errno == ENOTDIR)
-        return timestamp_nonexistent;
+        return {timestamp_nonexistent, timestamp_nonexistent};
       else
         throw_generic_error (errno);
     }
 
-    if (!S_ISREG (s.st_mode))
-      return timestamp_nonexistent;
+    if (dir ? !S_ISDIR (s.st_mode) : !S_ISREG (s.st_mode))
+      return {timestamp_nonexistent, timestamp_nonexistent};
 
-    return system_clock::from_time_t (s.st_mtime) +
-      chrono::duration_cast<duration> (
-        chrono::nanoseconds (mnsec<struct stat> (&s, true)));
+    auto tm = [] (time_t sec, uint64_t nsec) -> timestamp
+    {
+      return system_clock::from_time_t (sec) +
+        chrono::duration_cast<duration> (chrono::nanoseconds (nsec));
+    };
+
+    return {tm (s.st_mtime, mnsec<struct stat> (&s, true)),
+            tm (s.st_atime, ansec<struct stat> (&s, true))};
+
 #else
 
     WIN32_FILE_ATTRIBUTE_DATA s;
@@ -675,30 +676,160 @@ namespace butl
           ec == ERROR_INVALID_DRIVE  ||
           ec == ERROR_BAD_PATHNAME   ||
           ec == ERROR_BAD_NETPATH)
-        return timestamp_nonexistent;
+        return {timestamp_nonexistent, timestamp_nonexistent};
 
       throw_system_error (ec);
     }
 
-    if ((s.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
-      return timestamp_nonexistent;
+    if ((s.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) !=
+        (dir ? FILE_ATTRIBUTE_DIRECTORY : 0))
+      return {timestamp_nonexistent, timestamp_nonexistent};
 
-    // Time in FILETIME is in 100 nanosecond "ticks" since "Windows epoch"
-    // (1601-01-01T00:00:00Z). To convert it to "UNIX epoch"
-    // (1970-01-01T00:00:00Z) we need to subtract 11644473600 seconds.
-    //
-    const FILETIME& t (s.ftLastWriteTime);
+    auto tm = [] (const FILETIME& t) -> timestamp
+    {
+      // Time in FILETIME is in 100 nanosecond "ticks" since "Windows epoch"
+      // (1601-01-01T00:00:00Z). To convert it to "UNIX epoch"
+      // (1970-01-01T00:00:00Z) we need to subtract 11644473600 seconds.
+      //
+      uint64_t nsec ((static_cast<uint64_t> (t.dwHighDateTime) << 32) |
+                     t.dwLowDateTime);
 
-    uint64_t ns ((static_cast<uint64_t> (t.dwHighDateTime) << 32) |
-                 t.dwLowDateTime);
+      nsec -= 11644473600ULL * 10000000; // Now in UNIX epoch.
+      nsec *= 100;                       // Now in nanoseconds.
 
-    ns -= 11644473600ULL * 10000000; // Now in UNIX epoch.
-    ns *= 100;                       // Now in nanoseconds.
+      return timestamp (
+        chrono::duration_cast<duration> (chrono::nanoseconds (nsec)));
+    };
 
-    return timestamp (
-      chrono::duration_cast<duration> (
-        chrono::nanoseconds (ns)));
+    return {tm (s.ftLastWriteTime), tm (s.ftLastAccessTime)};
+
 #endif
+  }
+
+  entry_time
+  file_time (const char* p)
+  {
+    return entry_tm (p, false);
+  }
+
+  entry_time
+  dir_time (const char* p)
+  {
+    return entry_tm (p, true);
+  }
+
+  // Set the modification and access times for a regular file or directory.
+  //
+  static void
+  entry_tm (const char* p, const entry_time& t, bool dir)
+  {
+#ifndef _WIN32
+
+    struct stat s;
+    if (stat (p, &s) != 0)
+      throw_generic_error (errno);
+
+    // If the entry is of the wrong type, then let's pretend that it doesn't
+    // exists. In other words, the entry of the required type doesn't exist.
+    //
+    if (dir ? !S_ISDIR (s.st_mode) : !S_ISREG (s.st_mode))
+      return throw_generic_error (ENOENT);
+
+    // Note: timeval has the microsecond resolution.
+    //
+    auto tm = [] (timestamp t, long sec, long nsec) -> timeval
+    {
+      if (t == timestamp_nonexistent)
+        return {sec, nsec / 1000}; // Filesystem entry current time.
+
+      uint64_t msec (chrono::duration_cast<chrono::microseconds> (
+                       t.time_since_epoch ()).count ());
+
+      return {static_cast<long> (msec / 1000000),  // Seconds.
+              static_cast<long> (msec % 1000000)}; // Microseconds.
+    };
+
+    timeval times[2];
+    times[0] = tm (t.access, s.st_atime, ansec<struct stat> (&s, true));
+    times[1] = tm (t.modification, s.st_mtime, mnsec<struct stat> (&s, true));
+
+    if (utimes (p, times) != 0)
+      throw_generic_error (errno);
+
+#else
+
+    DWORD attr (GetFileAttributes (p));
+
+    if (attr == INVALID_FILE_ATTRIBUTES)
+      throw_system_error (GetLastError ());
+
+    // If the entry is of the wrong type, then let's pretend that it doesn't
+    // exists.
+    //
+    if ((attr & FILE_ATTRIBUTE_DIRECTORY) !=
+        (dir ? FILE_ATTRIBUTE_DIRECTORY : 0))
+      return throw_generic_error (ENOENT);
+
+    HANDLE h (CreateFile (p,
+                          FILE_WRITE_ATTRIBUTES,
+                          FILE_SHARE_READ | FILE_SHARE_WRITE,
+                          NULL,
+                          OPEN_EXISTING,
+                          dir ? FILE_FLAG_BACKUP_SEMANTICS : 0,
+                          NULL));
+
+    if (h == INVALID_HANDLE_VALUE)
+      throw_system_error (GetLastError ());
+
+    unique_ptr<HANDLE, void (*)(HANDLE*)> deleter (
+      &h, [] (HANDLE* h)
+      {
+        bool r (CloseHandle (*h));
+
+        // The valid file handle that has no IO operations being performed on
+        // it should close successfully, unless something is severely damaged.
+        //
+        assert (r);
+      });
+
+    auto tm = [] (timestamp t, FILETIME& ft) -> const FILETIME*
+    {
+      if (t == timestamp_nonexistent)
+        return NULL;
+
+      // Time in FILETIME is in 100 nanosecond "ticks" since "Windows epoch"
+      // (1601-01-01T00:00:00Z). To convert "UNIX epoch"
+      // (1970-01-01T00:00:00Z) to it we need to add 11644473600 seconds.
+      //
+      uint64_t ticks (chrono::duration_cast<chrono::nanoseconds> (
+                        t.time_since_epoch ()).count ());
+
+      ticks /= 100;                       // Now in 100 nanosecond "ticks".
+      ticks += 11644473600ULL * 10000000; // Now in "Windows epoch".
+
+      ft.dwHighDateTime = (ticks >> 32) & 0xFFFFFFFF;
+      ft.dwLowDateTime = ticks & 0xFFFFFFFF;
+      return &ft;
+    };
+
+    FILETIME at;
+    FILETIME mt;
+    if (!SetFileTime (h, NULL, tm (t.access, at), tm (t.modification, mt)))
+      throw_system_error (GetLastError ());
+
+#endif
+  }
+
+  void
+  file_time (const char* p, const entry_time& t)
+  {
+    entry_tm (p, t, false);
+  }
+
+  void
+  dir_time (const char* p, const entry_time& t)
+  {
+    entry_tm (p, t, true);
   }
 
   permissions

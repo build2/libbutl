@@ -1,0 +1,63 @@
+# file      : tests/entry-time/testscript
+# copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+# Filesystem entry times resolution may vary across OSes and underlying APIs,
+# so the timestamp set for the enty may differ a bit from the one we get for
+# it  afterwards. Thus we will compare with the milliseconds resolution which
+# seems to be reasonable to expect being supported on the platforms we are
+# testing on.
+#
+t = 1521456316789 # Some time point since epoch expressed in milliseconds.
+
+: modification
+:
+{
+  test.options += -m
+
+  : dir
+  :
+  {
+    test.options += -d;
+
+    mkdir d;
+    $* -s $t d;
+    $* -p d >"$t"
+  }
+
+  : file
+  :
+  {
+    test.options += -f;
+
+    touch f;
+    $* -s $t f;
+    $* -p f >"$t"
+  }
+}
+
+: access
+:
+{
+  test.options += -a
+
+  : dir
+  :
+  {
+    test.options += -d;
+
+    mkdir d;
+    $* -s $t d;
+    $* -p d >"$t"
+  }
+
+  : file
+  :
+  {
+    test.options += -f;
+
+    touch f;
+    $* -s $t f;
+    $* -p f >"$t"
+  }
+}
