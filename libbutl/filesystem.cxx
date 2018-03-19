@@ -653,7 +653,7 @@ namespace butl
     if (dir ? !S_ISDIR (s.st_mode) : !S_ISREG (s.st_mode))
       return {timestamp_nonexistent, timestamp_nonexistent};
 
-    auto tm = [] (time_t sec, uint64_t nsec) -> timestamp
+    auto tm = [] (time_t sec, auto nsec) -> timestamp
     {
       return system_clock::from_time_t (sec) +
         chrono::duration_cast<duration> (chrono::nanoseconds (nsec));
@@ -737,16 +737,18 @@ namespace butl
 
     // Note: timeval has the microsecond resolution.
     //
-    auto tm = [] (timestamp t, long sec, long nsec) -> timeval
+    auto tm = [] (timestamp t, time_t sec, auto nsec) -> timeval
     {
-      if (t == timestamp_nonexistent)
-        return {sec, nsec / 1000}; // Filesystem entry current time.
+      using usec_type = decltype (timeval::tv_usec);
 
-      uint64_t msec (chrono::duration_cast<chrono::microseconds> (
+      if (t == timestamp_nonexistent)
+        return {sec, static_cast<usec_type> (nsec / 1000)};
+
+      uint64_t usec (chrono::duration_cast<chrono::microseconds> (
                        t.time_since_epoch ()).count ());
 
-      return {static_cast<long> (msec / 1000000),  // Seconds.
-              static_cast<long> (msec % 1000000)}; // Microseconds.
+      return {static_cast<time_t> (usec / 1000000),     // Seconds.
+              static_cast<usec_type> (usec % 1000000)}; // Microseconds.
     };
 
     timeval times[2];
