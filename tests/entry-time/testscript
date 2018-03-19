@@ -3,12 +3,13 @@
 # license   : MIT; see accompanying LICENSE file
 
 # Filesystem entry times resolution may vary across OSes and underlying APIs,
-# so the timestamp set for the enty may differ a bit from the one we get for
-# it  afterwards. Thus we will compare with the milliseconds resolution which
-# seems to be reasonable to expect being supported on the platforms we are
-# testing on.
+# so the timestamp set for the entry may differ a bit from the one we get for
+# it afterwards. On most of the platforms we are testing on the resolution is
+# at least a millisecond. MacOS has a second resolution on HFS+ file system.
 #
-t = 1521456316789 # Some time point since epoch expressed in milliseconds.
+# Some time point since epoch, expressed in milliseconds.
+#
+t = ($cxx.target.class != 'macos' ? 1521456316789 : 1521456316000)
 
 : modification
 :
