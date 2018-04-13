@@ -133,7 +133,7 @@ main ()
 // "Apr 19:31:10 2016" for the format "%b %d %H:%M:%S %Y" as if the input were
 // "Apr 19 00:31:10 2016".
 //
-#if !defined(_MSC_VER) || _MSC_VER > 1913
+#if !defined(_MSC_VER) || _MSC_VER > 1914
   assert (fail ("Apr 19:31:10 2016", "%b %d %H:%M:%S %Y"));
   assert (fail (":31 2016", "%H:%M %Y"));
 #endif
