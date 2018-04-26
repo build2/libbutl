@@ -423,7 +423,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     //
     switch (ts)
     {
-    case  0: if (!l.empty ()) throw invalid_basic_path<C> (l); break;
+    case  0: if (!l.empty ()) l += path_traits<C>::directory_separator; break;
     case -1: break; // Already in the string.
     default: l += path_traits<C>::directory_separators[ts - 1];
     }

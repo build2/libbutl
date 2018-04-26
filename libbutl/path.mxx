@@ -1104,7 +1104,7 @@ LIBBUTL_MODEXPORT namespace butl
     using base_type::_size;
     using base_type::_init;
 
-    // Common implementation for operator/= and operator+=.
+    // Common implementation for operator/=.
     //
     void
     combine (const C*, size_type, difference_type);
@@ -1197,7 +1197,7 @@ LIBBUTL_MODEXPORT namespace butl
 
 
   // Note that the result of (foo / "bar") is always a path, even if foo
-  // is dir_path. An idiom to force it dir_path is this:
+  // is dir_path. An idiom to force it to dir_path is:
   //
   // dir_path foo_bar (dir_path (foo) /= "bar");
   //
