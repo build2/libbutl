@@ -179,7 +179,7 @@ main ()
   dir_path ld (td / dir_path ("dslink"));
   assert (link_dir (dp, ld, false, true));
 
-  rmsymlink (ld);
+  try_rmsymlink (ld);
 
 #ifndef _WIN32
   // Create the directory symlink using an unexistent directory path.
