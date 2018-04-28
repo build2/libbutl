@@ -139,7 +139,7 @@ LIBBUTL_MODEXPORT namespace butl
 
   // Trim leading/trailing whitespacec, including '\r'.
   //
-  std::string&
+  LIBBUTL_SYMEXPORT std::string&
   trim (std::string&);
 
   // Find the beginning and end poistions of the next word. Return the size

@@ -508,7 +508,7 @@ namespace butl
     if (!dir)
       throw_generic_error (ENOSYS, "file symlinks not supported");
 
-    switch (try_rmdir (path_cast<dir_path> (link, io)))
+    switch (try_rmdir (path_cast<dir_path> (link), io))
     {
     case rmdir_status::success:   return rmfile_status::success;
     case rmdir_status::not_exist: return rmfile_status::not_exist;
