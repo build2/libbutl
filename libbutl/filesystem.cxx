@@ -322,19 +322,34 @@ namespace butl
     // error code. In such a case we just reset the attribute and repeat the
     // attempt. If the attempt fails, then we try to restore the attribute.
     //
+    // Yet another reason for the 'permission denied' failure can be a
+    // directory symlink.
+    //
     if (ur != 0 && errno == EACCES)
     {
       DWORD a (GetFileAttributes (f));
-      if (a != INVALID_FILE_ATTRIBUTES && (a & FILE_ATTRIBUTE_READONLY) != 0 &&
-          SetFileAttributes (f, a & ~FILE_ATTRIBUTE_READONLY))
+      if (a != INVALID_FILE_ATTRIBUTES)
       {
-        ur = _unlink (f);
+        bool readonly ((a & FILE_ATTRIBUTE_READONLY) != 0);
 
-        // Restoring the attribute is unlikely to fail as we managed to reset
-        // it earlier.
+        // Note that we support only directory symlinks on Windows.
         //
-        if (ur != 0)
-          SetFileAttributes (f, a);
+        bool symlink ((a & FILE_ATTRIBUTE_REPARSE_POINT) != 0 &&
+                      (a & FILE_ATTRIBUTE_DIRECTORY) != 0);
+
+        if (readonly || symlink)
+        {
+          bool restore (readonly &&
+                        SetFileAttributes (f, a & ~FILE_ATTRIBUTE_READONLY));
+
+          ur = symlink ? _rmdir (f) : _unlink (f);
+
+          // Restoring the attribute is unlikely to fail as we managed to reset
+          // it earlier.
+          //
+          if (ur != 0 && restore)
+            SetFileAttributes (f, a);
+        }
       }
     }
 #endif
@@ -492,8 +507,8 @@ namespace butl
           FSCTL_SET_REPARSE_POINT,
           &rb,
           sizeof (DWORD) + 2 * sizeof (WORD) + // Size of the header.
-          rb.reparse_data_length,              // Size of mount point reparse.
-          NULL,                                // buffer.
+          rb.reparse_data_length,              // Size of the mount point
+          NULL,                                // reparse buffer.
           0,
           &r,
           NULL))

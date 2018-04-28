@@ -194,6 +194,9 @@ LIBBUTL_MODEXPORT namespace butl
   // it does not exist. Unless ignore_error is true, all other
   // errors are reported by throwing std::system_error.
   //
+  // Note that if it is known that the path refers to a symlink, then usage of
+  // try_rmsymlink() function must be preferred, as a more efficient one.
+  //
   enum class rmfile_status {success, not_exist};
 
   // Note that on Windows the read-only attribute is reset prior to the file
