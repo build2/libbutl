@@ -21,9 +21,12 @@
 
 #  include <io.h>        // _find*(), _unlink(), _chmod()
 #  include <direct.h>    // _mkdir(), _rmdir()
+#  include <winioctl.h>  // FSCTL_SET_REPARSE_POINT
 #  include <sys/types.h> // _stat
 #  include <sys/stat.h>  // _stat(), S_I*
 #  include <sys/utime.h> // _utime()
+
+#  include <cwchar> // mbsrtowcs(), mbstate_t
 
 #  ifdef _MSC_VER // Unlikely to be fixed in newer versions.
 #    define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
@@ -124,7 +127,7 @@ namespace butl
   }
 #else
   pair<bool, entry_stat>
-  path_entry (const char* p, bool, bool ie)
+  path_entry (const char* p, bool fl, bool ie)
   {
     // A path like 'C:', while being a root path in our terminology, is not as
     // such for Windows, that maintains current directory for each drive, and
@@ -140,6 +143,18 @@ namespace butl
       p = d.c_str ();
     }
 
+    struct __stat64 s; // For 64-bit size.
+
+    if (_stat64 (p, &s) != 0)
+    {
+      if (errno == ENOENT || errno == ENOTDIR || ie)
+        return make_pair (false, entry_stat {entry_type::unknown, 0});
+      else
+        throw_generic_error (errno);
+    }
+
+    auto m (s.st_mode);
+
     DWORD attr (GetFileAttributesA (p));
     if (attr == INVALID_FILE_ATTRIBUTES) // Presumably not exists.
       return make_pair (false, entry_stat {entry_type::unknown, 0});
@@ -147,24 +162,11 @@ namespace butl
     entry_type et (entry_type::unknown);
     uint64_t es (0);
 
-    // S_ISLNK/S_IFDIR are not defined for Win32 but it does have symlinks.
-    // We will consider symlink entry to be of the unknown type. Note that
-    // S_ISREG() and S_ISDIR() return as they would do for a symlink target.
+    // Note that we currently support only directory symlinks (see mksymlink()
+    // function description for more details).
     //
     if ((attr & FILE_ATTRIBUTE_REPARSE_POINT) == 0)
     {
-      struct __stat64 s; // For 64-bit size.
-
-      if (_stat64 (p, &s) != 0)
-      {
-        if (errno == ENOENT || errno == ENOTDIR || ie)
-          return make_pair (false, entry_stat {entry_type::unknown, 0});
-        else
-          throw_generic_error (errno);
-      }
-
-      auto m (s.st_mode);
-
       if (S_ISREG (m))
         et = entry_type::regular;
       else if (S_ISDIR (m))
@@ -174,6 +176,15 @@ namespace butl
       //  et = entry_type::symlink;
 
       es = static_cast<uint64_t> (s.st_size);
+    }
+    else
+    {
+      // @@ If we follow symlinks, then we also need to check if the target
+      //    exists. The implementation is a bit hairy, so let's do when
+      //    required.
+      //
+      if (S_ISDIR (m))
+        et = fl ? entry_type::directory : entry_type::symlink;
     }
 
     return make_pair (true, entry_stat {et, es});
@@ -343,11 +354,18 @@ namespace butl
   }
 
 #ifndef _WIN32
+
   void
   mksymlink (const path& target, const path& link, bool)
   {
     if (symlink (target.string ().c_str (), link.string ().c_str ()) == -1)
       throw_generic_error (errno);
+  }
+
+  rmfile_status
+  rmsymlink (const path& link, bool)
+  {
+    return try_rmfile (link);
   }
 
   void
@@ -360,9 +378,145 @@ namespace butl
 #else
 
   void
-  mksymlink (const path&, const path&, bool)
+  mksymlink (const path& target, const path& link, bool dir)
   {
-    throw_generic_error (ENOSYS, "symlinks not supported");
+    if (!dir)
+      throw_generic_error (ENOSYS, "file symlinks not supported");
+
+    dir_path ld (path_cast<dir_path> (link));
+
+    mkdir_status rs (try_mkdir (ld));
+
+    if (rs == mkdir_status::already_exists)
+      throw_generic_error (EEXIST);
+
+    assert (rs == mkdir_status::success);
+
+    // We need to be careful with the directory auto-removal since it is
+    // recursive. So we must cancel it right after the reparse point target
+    // is setup for the directory path.
+    //
+    auto_rmdir rm (ld);
+
+    HANDLE h (CreateFile (link.string ().c_str (),
+                          GENERIC_WRITE,
+                          0,
+                          NULL,
+                          OPEN_EXISTING,
+                          FILE_FLAG_BACKUP_SEMANTICS |
+                          FILE_FLAG_OPEN_REPARSE_POINT,
+                          NULL));
+
+    if (h == INVALID_HANDLE_VALUE)
+      throw_system_error (GetLastError ());
+
+    unique_ptr<HANDLE, void (*)(HANDLE*)> deleter (
+      &h,
+      [] (HANDLE* h)
+      {
+        bool r (CloseHandle (*h));
+
+        // The valid file handle that has no IO operations being performed on
+        // it should close successfully, unless something is severely damaged.
+        //
+        assert (r);
+      });
+
+    // We will fill the uninitialized members later.
+    //
+    struct
+    {
+      // Header.
+      //
+      DWORD   reparse_tag            = IO_REPARSE_TAG_MOUNT_POINT;
+      WORD    reparse_data_length;
+      WORD    reserved               = 0;
+
+      // Mount point reparse buffer.
+      //
+      WORD    substitute_name_offset = 0;
+      WORD    substitute_name_length;
+      WORD    print_name_offset;
+      WORD    print_name_length      = 0;
+
+      // Reserve space for two NULL characters (for the names above).
+      //
+      wchar_t path_buffer[MAX_PATH + 2];
+    } rb;
+
+    // Make the target path absolute, decorate it and convert to a
+    // wide-character string.
+    //
+    path atd (target);
+
+    if (atd.relative ())
+      atd.complete ();
+
+    string td ("\\??\\" + atd.string () + "\\");
+    const char* s (td.c_str ());
+
+    // Zero-initialize the conversion state (and disambiguate with the
+    // function declaration).
+    //
+    mbstate_t state ((mbstate_t ()));
+    size_t n (mbsrtowcs (rb.path_buffer, &s, MAX_PATH + 1, &state));
+
+    if (n == static_cast<size_t> (-1))
+      throw_generic_error (errno);
+
+    if (s != NULL) // Not enough space in the destination buffer.
+      throw_generic_error (ENAMETOOLONG);
+
+    // Fill the rest of the structure and setup the reparse point.
+    //
+    // The path length not including NULL character, in bytes.
+    //
+    WORD nb (static_cast<WORD> (n) * sizeof (wchar_t));
+    rb.substitute_name_length = nb;
+
+    // The print name offset, in bytes.
+    //
+    rb.print_name_offset  = nb + sizeof (wchar_t);
+    rb.path_buffer[n + 1] = L'\0'; // Terminate the (empty) print name.
+
+    // The mount point reparse buffer size.
+    //
+    rb.reparse_data_length =
+      4 * sizeof (WORD)     + // Size of *_name_* fields.
+      nb + sizeof (wchar_t) + // Path length, in bytes.
+      sizeof (wchar_t);       // Print (empty) name length, in bytes.
+
+    DWORD r;
+    if (!DeviceIoControl (
+          h,
+          FSCTL_SET_REPARSE_POINT,
+          &rb,
+          sizeof (DWORD) + 2 * sizeof (WORD) + // Size of the header.
+          rb.reparse_data_length,              // Size of mount point reparse.
+          NULL,                                // buffer.
+          0,
+          &r,
+          NULL))
+      throw_system_error (GetLastError ());
+
+    rm.cancel ();
+  }
+
+  rmfile_status
+  rmsymlink (const path& link, bool dir)
+  {
+    if (!dir)
+      throw_generic_error (ENOSYS, "file symlinks not supported");
+
+    switch (try_rmdir (path_cast<dir_path> (link)))
+    {
+    case rmdir_status::success:   return rmfile_status::success;
+    case rmdir_status::not_exist: return rmfile_status::not_exist;
+    case rmdir_status::not_empty: throw_generic_error (ENOTEMPTY);
+    }
+
+    assert (false); // Can't be here.
+    return rmfile_status::success;
   }
 
   void
@@ -1163,7 +1317,8 @@ namespace butl
 
         e_.p_ = move (p);
 
-        // We do not support symlinks at the moment.
+        // Note that while we support directory symlinks, they are not seen
+        // here (see mksymlink() function description for details).
         //
         e_.t_ = fi.attrib & _A_SUBDIR
           ? entry_type::directory

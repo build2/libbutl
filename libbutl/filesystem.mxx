@@ -236,7 +236,21 @@ LIBBUTL_MODEXPORT namespace butl
   // Create a symbolic link to a file (default) or directory (third argument
   // is true). Throw std::system_error on failures.
   //
-  // Note that Windows symlinks are currently not supported.
+  // Note that on Windows file symlinks are currently not supported. Directory
+  // symlinks are supported via the junction mechanism that doesn't require
+  // a process to have administrative privileges. This choice, however,
+  // introduces the following restrictions:
+  //
+  //  - The relative target path is completed against the current directory.
+  //
+  //  - The target directory must exist. If it doesn't exists at the moment of
+  //    a symlink creation, then mksymlink() call will fail. If the target is
+  //    deleted at a later stage, then the filesystem API functions may fail
+  //    when encounter such a symlink. This includes rmsymlink().
+  //
+  //  - Symlinks are not visible when iterating over a directory with
+  //    dir_iterator. As a result, a directory that contains symlinks can not
+  //    be recursively deleted.
   //
   LIBBUTL_SYMEXPORT void
   mksymlink (const path& target, const path& link, bool dir = false);
@@ -250,12 +264,26 @@ LIBBUTL_MODEXPORT namespace butl
     mksymlink (target, link, true);
   }
 
+  // Remove a symbolic link to a file (default) or directory (third argument
+  // is true). Throw std::system_error on failures.
+  //
+  LIBBUTL_SYMEXPORT rmfile_status
+  rmsymlink (const path&, bool dir = false);
+
+  // Remove a symbolic link to a directory. Throw std::system_error on
+  // failures.
+  //
+  inline rmfile_status
+  rmsymlink (const dir_path& link)
+  {
+    return rmsymlink (link, true);
+  }
+
   // Create a hard link to a file (default) or directory (third argument is
   // true). Throw std::system_error on failures.
   //
-  // Note that on Linix, FreeBSD and some other platforms the target can not
-  // be a directory. While Windows support directories (via junktions), this
-  // is currently not implemented.
+  // Note that on Linix, FreeBSD, Windows and some other platforms the target
+  // can not be a directory.
   //
   LIBBUTL_SYMEXPORT void
   mkhardlink (const path& target, const path& link, bool dir = false);
