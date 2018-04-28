@@ -343,6 +343,9 @@ LIBBUTL_MODEXPORT namespace butl
     static int
     compare (const C* l, size_type ln, const C* r, size_type rn)
     {
+      //@@ TODO: would be nice to ignore difference in trailing slashes
+      //   (except for POSIX root).
+
       for (size_type i (0), n (ln < rn ? ln : rn); i != n; ++i)
       {
 #ifdef _WIN32

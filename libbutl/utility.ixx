@@ -4,18 +4,6 @@
 
 namespace butl
 {
-  inline bool
-  eof (std::istream& is)
-  {
-    if (!is.fail ())
-      return false;
-
-    if (is.eof ())
-      return true;
-
-    throw std::istream::failure ("");
-  }
-
   inline char
   ucase (char c)
   {
@@ -166,5 +154,49 @@ namespace butl
   xdigit (wchar_t c)
   {
     return std::iswxdigit (c);
+  }
+
+  inline std::size_t
+  next_word (const std::string& s, std::size_t& b, std::size_t& e,
+             char d1, char d2)
+  {
+    return next_word (s, s.size (), b, e, d1, d2);
+  }
+
+  inline size_t
+  next_word (const std::string& s,
+             std::size_t n, std::size_t& b, std::size_t& e,
+             char d1, char d2)
+  {
+    if (b != e)
+      b = e;
+
+    // Skip leading delimiters.
+    //
+    for (; b != n && (s[b] == d1 || s[b] == d2); ++b) ;
+
+    if (b == n)
+    {
+      e = n;
+      return 0;
+    }
+
+    // Find first trailing delimiter.
+    //
+    for (e = b + 1; e != n && s[e] != d1 && s[e] != d2; ++e) ;
+
+    return e - b;
+  }
+
+  inline bool
+  eof (std::istream& is)
+  {
+    if (!is.fail ())
+      return false;
+
+    if (is.eof ())
+      return true;
+
+    throw std::istream::failure ("");
   }
 }
