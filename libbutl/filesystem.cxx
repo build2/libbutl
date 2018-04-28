@@ -363,9 +363,9 @@ namespace butl
   }
 
   rmfile_status
-  rmsymlink (const path& link, bool)
+  try_rmsymlink (const path& link, bool, bool io)
   {
-    return try_rmfile (link);
+    return try_rmfile (link, io);
   }
 
   void
@@ -503,20 +503,19 @@ namespace butl
   }
 
   rmfile_status
-  rmsymlink (const path& link, bool dir)
+  try_rmsymlink (const path& link, bool dir, bool io)
   {
     if (!dir)
       throw_generic_error (ENOSYS, "file symlinks not supported");
 
-    switch (try_rmdir (path_cast<dir_path> (link)))
+    switch (try_rmdir (path_cast<dir_path> (link, io)))
     {
     case rmdir_status::success:   return rmfile_status::success;
     case rmdir_status::not_exist: return rmfile_status::not_exist;
-    case rmdir_status::not_empty: throw_generic_error (ENOTEMPTY);
+    case rmdir_status::not_empty: if (io) return rmfile_status::success;
     }
 
-    assert (false); // Can't be here.
-    return rmfile_status::success;
+    throw_generic_error (ENOTEMPTY);
   }
 
   void

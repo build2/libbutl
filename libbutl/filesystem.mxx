@@ -268,15 +268,15 @@ LIBBUTL_MODEXPORT namespace butl
   // is true). Throw std::system_error on failures.
   //
   LIBBUTL_SYMEXPORT rmfile_status
-  rmsymlink (const path&, bool dir = false);
+  try_rmsymlink (const path&, bool dir = false, bool ignore_error = false);
 
   // Remove a symbolic link to a directory. Throw std::system_error on
   // failures.
   //
   inline rmfile_status
-  rmsymlink (const dir_path& link)
+  try_rmsymlink (const dir_path& link, bool ignore_error = false)
   {
-    return rmsymlink (link, true);
+    return try_rmsymlink (link, true, ignore_error);
   }
 
   // Create a hard link to a file (default) or directory (third argument is
