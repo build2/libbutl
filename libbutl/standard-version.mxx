@@ -44,8 +44,8 @@ LIBBUTL_MODEXPORT namespace butl
 {
   // The build2 "standard version" (specific, earliest and stub):
   //
-  // [<epoch>~]<maj>.<min>.<patch>[-(a|b).<num>[.<snapsn>[.<snapid>]]][+<rev>]
-  // [<epoch>~]<maj>.<min>.<patch>-
+  // [+<epoch>-]<maj>.<min>.<patch>[-(a|b).<num>[.<snapsn>[.<snapid>]]][+<rev>]
+  // [+<epoch>-]<maj>.<min>.<patch>-
   // 0[+<revision>]
   //
   struct LIBBUTL_SYMEXPORT standard_version

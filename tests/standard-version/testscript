@@ -51,7 +51,7 @@
   : epoch
   :
   $* <<EOF >>EOF
-  4~1.2.3
+  +4-1.2.3
   EOF
 
   : stub
@@ -71,6 +71,10 @@
 : invalid
 :
 {
+  : epoch
+  :
+  $* <'+1+' 2>"'-' expected after epoch" == 1
+
   : major
   :
   $* <'a' 2>'invalid major version' == 1
@@ -93,7 +97,7 @@
 
   : zero-version
   :
-  $* <'1~0.0.0' 2>'0.0.0 version' == 1
+  $* <'+1-0.0.0' 2>'0.0.0 version' == 1
 
   : a-b-expected
   :
@@ -190,8 +194,8 @@
   : epoch
   :
   {
-    $* '4~1.2.3' '4~1.2.3' >'0' : equal
-    $* '1.2.4'   '4~1.2.3' >'-1': less
+    $* '+4-1.2.3' '+4-1.2.3' >'0' : equal
+    $* '1.2.4'    '+4-1.2.3' >'-1': less
   }
 
   : non-prerelease

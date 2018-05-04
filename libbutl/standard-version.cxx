@@ -137,25 +137,21 @@ namespace butl
   {
     auto bail = [] (const char* m) {throw invalid_argument (m);};
 
-    // Pre-parse the first component to see if the version starts with epoch,
-    // to keep the subsequent parsing straightforward.
-    //
-    bool ep (false);
-    {
-      char* e (nullptr);
-      strtoull (s.c_str (), &e, 10);
-      ep = *e == '~';
-    }
-
     // Note that here and below p is less or equal n, and so s[p] is always
     // valid.
     //
     size_t p (0), n (s.size ());
 
+    bool ep (s[p] == '+'); // Has epoch.
+
     if (ep)
     {
-      epoch = parse_uint16 (s, p, "invalid epoch", 1, uint16_t (~0));
-      ++p; // Skip '~'.
+      epoch = parse_uint16 (s, ++p, "invalid epoch", 1, uint16_t (~0));
+
+      // Skip the terminating character if it is '-', otherwise fail.
+      //
+      if (s[p++] != '-')
+        bail ("'-' expected after epoch");
     }
 
     uint16_t ma, mi, bf, ab (0);
@@ -446,8 +442,9 @@ namespace butl
 
     if (epoch != 0)
     {
-      r  = to_string (epoch);
-      r += '~';
+      r += '+';
+      r += to_string (epoch);
+      r += '-';
     }
 
     r += string_project ();
