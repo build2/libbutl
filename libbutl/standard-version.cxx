@@ -44,31 +44,37 @@ namespace butl
 {
   // Utility functions
   //
-  static uint64_t
+  static bool
   parse_uint64 (const string& s, size_t& p,
-                const char* m,
+                uint64_t& r,
                 uint64_t min, uint64_t max)
   {
     if (s[p] == '-' || s[p] == '+') // strtoull() allows these.
-      throw invalid_argument (m);
+      return false;
 
     const char* b (s.c_str () + p);
     char* e (nullptr);
-    uint64_t r (strtoull (b, &e, 10));
+    uint64_t v (strtoull (b, &e, 10)); // Can't throw.
 
-    if (b == e || r < min || r > max)
-      throw invalid_argument (m);
+    if (errno == ERANGE || b == e || v < min || v > max)
+      return false;
 
     p = e - s.c_str ();
-    return static_cast<uint64_t> (r);
+    r = static_cast<uint64_t> (v);
+    return true;
   }
 
-  static uint16_t
+  static bool
   parse_uint16 (const string& s, size_t& p,
-                const char* m,
+                uint16_t& r,
                 uint16_t min = 0, uint16_t max = 999)
   {
-    return static_cast<uint16_t> (parse_uint64 (s, p, m, min, max));
+    uint64_t v;
+    if (!parse_uint64 (s, p, v, min, max))
+      return false;
+
+    r = static_cast<uint16_t> (v);
+    return true;
   }
 
   static void
@@ -130,12 +136,63 @@ namespace butl
       throw invalid_argument ("invalid project version");
   }
 
-  // standard_version
-  //
-  standard_version::
-  standard_version (const std::string& s, flags f)
+  static bool
+  parse_snapshot (const std::string& s,
+                  size_t& p,
+                  standard_version& r,
+                  std::string& failure_reason)
   {
-    auto bail = [] (const char* m) {throw invalid_argument (m);};
+    // Note that snapshot id must be empty for 'z' snapshot number.
+    //
+    if (s[p] == 'z')
+    {
+      r.snapshot_sn = standard_version::latest_sn;
+      r.snapshot_id = "";
+      ++p;
+      return true;
+    }
+
+    uint64_t sn;
+    if (!parse_uint64 (s, p, sn, 1, standard_version::latest_sn - 1))
+    {
+      failure_reason = "invalid snapshot number";
+      return false;
+    }
+
+    std::string id;
+    if (s[p] == '.')
+    {
+      char c;
+      for (++p; alnum (c = s[p]); ++p)
+        id += c;
+
+      if (id.empty () || id.size () > 16)
+      {
+        failure_reason = "invalid snapshot id";
+        return false;
+      }
+    }
+
+    r.snapshot_sn = sn;
+    r.snapshot_id = move (id);
+    return true;
+  }
+
+  struct parse_result
+  {
+    optional<standard_version> version;
+    string failure_reason;
+  };
+
+  static parse_result
+  parse_version (const std::string& s, standard_version::flags f)
+  {
+    auto bail = [] (string m) -> parse_result
+    {
+      return parse_result {nullopt, move (m)};
+    };
+
+    standard_version r;
 
     // Note that here and below p is less or equal n, and so s[p] is always
     // valid.
@@ -146,47 +203,51 @@ namespace butl
 
     if (ep)
     {
-      epoch = parse_uint16 (s, ++p, "invalid epoch", 1, uint16_t (~0));
+      if (!parse_uint16 (s, ++p, r.epoch, 1, uint16_t (~0)))
+        return bail ("invalid epoch");
 
       // Skip the terminating character if it is '-', otherwise fail.
       //
       if (s[p++] != '-')
-        bail ("'-' expected after epoch");
+        return bail ("'-' expected after epoch");
     }
 
     uint16_t ma, mi, bf, ab (0);
     bool earliest (false);
 
-    ma = parse_uint16 (s, p, "invalid major version");
+    if (!parse_uint16 (s, p, ma))
+      return bail ("invalid major version");
 
     // The only valid version that has no epoch, contains only the major
     // version being equal to zero, that is optionally followed by the plus
     // character, is the stub version, unless forbidden.
     //
-    bool stub ((f & allow_stub) != 0 && !ep && ma == 0 &&
+    bool stub ((f & standard_version::allow_stub) != 0 && !ep && ma == 0 &&
                (p == n || s[p] == '+'));
 
     if (stub)
-      version = uint64_t (~0);
+      r.version = uint64_t (~0);
     else
     {
       if (s[p] != '.')
-        bail ("'.' expected after major version");
+        return bail ("'.' expected after major version");
 
-      mi = parse_uint16 (s, ++p, "invalid minor version");
+      if (!parse_uint16 (s, ++p, mi))
+        return bail ("invalid minor version");
 
       if (s[p] != '.')
-        bail ("'.' expected after minor version");
+        return bail ("'.' expected after minor version");
 
-      bf = parse_uint16 (s, ++p, "invalid patch version");
+      if (!parse_uint16 (s, ++p, bf))
+        return bail ("invalid patch version");
 
-      //           AAABBBCCCDDDE
-      version = ma * 10000000000ULL +
-                mi *    10000000ULL +
-                bf *       10000ULL;
+      //             AAABBBCCCDDDE
+      r.version = ma * 10000000000ULL +
+                  mi *    10000000ULL +
+                  bf *       10000ULL;
 
-      if (version == 0)
-        bail ("0.0.0 version");
+      if (r.version == 0)
+        return bail ("0.0.0 version");
 
       // Parse the pre-release component if present.
       //
@@ -197,17 +258,18 @@ namespace butl
         // If the last character in the string is dash, then this is the
         // earliest version pre-release, unless forbidden.
         //
-        if (k == '\0' && (f & allow_earliest) != 0)
+        if (k == '\0' && (f & standard_version::allow_earliest) != 0)
           earliest = true;
         else
         {
           if (k != 'a' && k != 'b')
-            bail ("'a' or 'b' expected in pre-release");
+            return bail ("'a' or 'b' expected in pre-release");
 
           if (s[++p] != '.')
-            bail ("'.' expected after pre-release letter");
+            return bail ("'.' expected after pre-release letter");
 
-          ab = parse_uint16 (s, ++p, "invalid pre-release", 0, 499);
+          if (!parse_uint16 (s, ++p, ab, 0, 499))
+            return bail ("invalid pre-release");
 
           if (k == 'b')
             ab += 500;
@@ -216,9 +278,13 @@ namespace butl
           // number can't be zero for the final pre-release.
           //
           if (s[p] == '.')
-            parse_snapshot (s, ++p);
+          {
+            string e;
+            if (!parse_snapshot (s, ++p, r, e))
+              return bail (move (e));
+          }
           else if (ab == 0 || ab == 500)
-            bail ("invalid final pre-release");
+            return bail ("invalid final pre-release");
         }
       }
     }
@@ -227,17 +293,39 @@ namespace butl
     {
       assert (!earliest); // Would bail out earlier (a or b expected after -).
 
-      revision = parse_uint16 (s, ++p, "invalid revision", 1, uint16_t (~0));
+      if (!parse_uint16 (s, ++p, r.revision, 1, uint16_t (~0)))
+        return bail ("invalid revision");
     }
 
     if (p != n)
-      bail ("junk after version");
+      return bail ("junk after version");
 
-    if (ab != 0 || snapshot_sn != 0 || earliest)
-      version -= 10000 - ab * 10;
+    if (ab != 0 || r.snapshot_sn != 0 || earliest)
+      r.version -= 10000 - ab * 10;
 
-    if (snapshot_sn != 0 || earliest)
-      version += 1;
+    if (r.snapshot_sn != 0 || earliest)
+      r.version += 1;
+
+    return parse_result {move (r), string () /* failure_reason */};
+  }
+
+  optional<standard_version>
+  parse_standard_version (const std::string& s, standard_version::flags f)
+  {
+    return parse_version (s, f).version;
+  }
+
+  // standard_version
+  //
+  standard_version::
+  standard_version (const std::string& s, flags f)
+  {
+    parse_result r (parse_version (s, f));
+
+    if (r.version)
+      *this = move (*r.version);
+    else
+      throw invalid_argument (r.failure_reason);
   }
 
   standard_version::
@@ -257,7 +345,9 @@ namespace butl
     if (snapshot)
     {
       size_t p (0);
-      parse_snapshot (s, p);
+      std::string e;
+      if (!parse_snapshot (s, p, *this, e))
+        throw invalid_argument (e);
 
       if (p != s.size ())
         throw invalid_argument ("junk after snapshot");
@@ -309,37 +399,6 @@ namespace butl
                                   snapshot_sn == 0 ||
                                   snapshot_sn == latest_sn))
       throw invalid_argument ("invalid snapshot");
-  }
-
-  void standard_version::
-  parse_snapshot (const std::string& s, size_t& p)
-  {
-    // Note that snapshot id must be empty for 'z' snapshot number.
-    //
-    if (s[p] == 'z')
-    {
-      snapshot_sn = latest_sn;
-      ++p;
-      return;
-    }
-
-    uint64_t sn (parse_uint64 (s,
-                               p,
-                               "invalid snapshot number",
-                               1, latest_sn - 1));
-    std::string id;
-    if (s[p] == '.')
-    {
-      char c;
-      for (++p; alnum (c = s[p]); ++p)
-        id += c;
-
-      if (id.empty () || id.size () > 16)
-        throw invalid_argument ("invalid snapshot id");
-    }
-
-    snapshot_sn = sn;
-    snapshot_id = move (id);
   }
 
   string standard_version::
@@ -460,6 +519,70 @@ namespace butl
 
   // standard_version_constraint
   //
+  // Return the maximum version (right hand side) of the range the shortcut
+  // operator translates to:
+  //
+  // ~X.Y.Z  ->  [X.Y.Z  X.Y+1.0-)
+  // ^X.Y.Z  ->  [X.Y.Z  X+1.0.0-)
+  // ^0.Y.Z  ->  [0.Y.Z  0.Y+1.0-)
+  //
+  // If it is impossible to construct such a version due to overflow (see
+  // below) then throw std::invalid_argument, unless requested to ignore in
+  // which case return an empty version.
+  //
+  static standard_version
+  shortcut_max_version (char c,
+                        const standard_version& version,
+                        bool ignore_overflow)
+  {
+    assert (c == '~' || c == '^');
+
+    // Advance major/minor version number by one and make the version earliest
+    // (see standard_version() ctor for details).
+    //
+    uint64_t v;
+
+    if (c == '~' || (c == '^' && version.major () == 0))
+    {
+      // If for ~X.Y.Z Y is 999, then we cannot produce a valid X.Y+1.0-
+      // version (due to an overflow).
+      //
+      if (version.minor () == 999)
+      {
+        if (ignore_overflow)
+          return standard_version ();
+
+        throw invalid_argument ("invalid minor version");
+      }
+
+      //                         AAABBBCCCDDDE
+      v = version.major ()       * 10000000000ULL +
+          (version.minor () + 1) *    10000000ULL;
+    }
+    else
+    {
+      // If for ^X.Y.Z X is 999, then we cannot produce a valid X+1.0.0-
+      // version (due to an overflow).
+      //
+      if (version.major () == 999)
+      {
+        if (ignore_overflow)
+          return standard_version ();
+
+        throw invalid_argument ("invalid major version");
+      }
+
+      //                         AAABBBCCCDDDE
+      v = (version.major () + 1) * 10000000000ULL;
+    }
+
+    return standard_version (version.epoch,
+                             v - 10000 /* no alpha/beta */ + 1 /* earliest */,
+                             string () /* snapshot */,
+                             0 /* revision */,
+                             standard_version::allow_earliest);
+  }
+
   standard_version_constraint::
   standard_version_constraint (const std::string& s)
   {
@@ -522,8 +645,38 @@ namespace butl
 
       // Verify and copy the constraint.
       //
-      *this = standard_version_constraint (min_version, min_open,
-                                           max_version, max_open);
+      *this = standard_version_constraint (move (min_version), min_open,
+                                           move (max_version), max_open);
+    }
+    else if (c == '~' || c == '^')
+    {
+      p = s.find_first_not_of (spaces, ++p);
+      if (p == string::npos)
+        bail ("no version");
+
+      // Can throw.
+      //
+      standard_version min_version (
+        standard_version (s.substr (p), standard_version::allow_earliest));
+
+      // Can throw.
+      //
+      standard_version max_version (
+        shortcut_max_version (c, min_version, false));
+
+      try
+      {
+        *this = standard_version_constraint (
+          move (min_version), false /* min_open */,
+          move (max_version), true  /* max_open */);
+      }
+      catch (const invalid_argument&)
+      {
+        // There shouldn't be a reason for standard_version_constraint()
+        // to throw.
+        //
+        assert (false);
+      }
     }
     else
     {
@@ -636,6 +789,20 @@ namespace butl
 
     if (*min_version == *max_version)
       return "== " + min_version->string ();
+
+    if (!min_open && max_open)
+    {
+      // We try the '^' shortcut first as prefer ^0.2.3 syntax over ~0.2.3.
+      //
+      // In the case of overflow shortcut_max_version() function will return
+      // an empty version, that will never match the max_version.
+      //
+      if (shortcut_max_version ('^', *min_version, true) == *max_version)
+        return '^' + min_version->string ();
+
+      if (shortcut_max_version ('~', *min_version, true) == *max_version)
+        return '~' + min_version->string ();
+    }
 
     return (min_open ? '(' : '[') + min_version->string () + ' ' +
       max_version->string () + (max_open ? ')' : ']');

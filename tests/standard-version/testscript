@@ -66,6 +66,14 @@
   $* <<EOF >>EOF
 
   EOF
+
+  : max
+  :
+  $* <<EOF >>EOF
+  1.2.999
+  1.999.999
+  999.999.999
+  EOF
 }
 
 : invalid
@@ -236,10 +244,12 @@
     [1.2.3 1.2.4]
     (1.2.3 1.2.4)
     [ 1.2.3-  1.2.4- ]
+    [1.999.0 2.0.0)
     EOI
     [1.2.3 1.2.4]
     (1.2.3 1.2.4)
     [1.2.3- 1.2.4-]
+    [1.999.0 2.0.0)
     EOE
 
     : invalid
@@ -262,7 +272,7 @@
 
       : min-gt-max
       :
-      $* <'[1.2.4 1.2.3]' 2>'min version is greater than max version' == 1
+      $* <'[999.0.0 1.0.0)' 2>'min version is greater than max version' == 1
 
       : open-end
       :
@@ -317,6 +327,53 @@
       : junk
       :
       $* <'>= 1.2.3-a.1.1.ads@' 2>'invalid version: junk after version' == 1
+    }
+  }
+
+  : shortcut
+  :
+  {
+    : valid
+    :
+    $* <<EOI >>EOO
+    ~1.2.3
+    ^1.2.3
+    ^0.2.3
+    ~1.2.3-
+    ^1.2.3-
+    ^0.2.3-
+    ~1.2.3-a.1
+    ^1.2.3-a.1
+    ^0.2.3-a.1
+    ~1.2.3-a.1.123
+    ^1.2.3-a.1.123
+    ^0.2.3-a.1.123
+    ~ 1.2.3
+    EOI
+    ~1.2.3
+    ^1.2.3
+    ^0.2.3
+    ~1.2.3-
+    ^1.2.3-
+    ^0.2.3-
+    ~1.2.3-a.1
+    ^1.2.3-a.1
+    ^0.2.3-a.1
+    ~1.2.3-a.1.123
+    ^1.2.3-a.1.123
+    ^0.2.3-a.1.123
+    ~1.2.3
+    EOO
+
+    : invalid
+    :
+    {
+      $* <'-1.2.3'   2>'invalid constraint'               == 1 : bad-char
+      $* <'~'        2>'no version'                       == 1 : no-version
+      $* <'~1.2'     2>"'.' expected after minor version" == 1 : bad-ver
+      $* <'~1.999.0' 2>"invalid minor version"            == 1 : bad-min-tilde
+      $* <'^0.999.0' 2>"invalid minor version"            == 1 : bad-min-caret
+      $* <'^999.0.0' 2>"invalid major version"            == 1 : bad-maj-caret
     }
   }
 }
@@ -399,6 +456,40 @@
     {
       $* '1.2.3' '[1.2.1 1.2.2]' >n : closed
       $* '1.2.3' '[1.2.1 1.2.2)' >n : open
+    }
+  }
+
+  : shortcut
+  :
+  {
+    : tilde
+    :
+    {
+      $* '1.2.3-b.499' '~1.2.3' >n : out-left
+      $* '1.2.3'       '~1.2.3' >y : in-left
+      $* '1.2.4'       '~1.2.3' >y : in
+      $* '1.2.999'     '~1.2.3' >y : in-right
+      $* '1.3.0-'      '~1.2.3' >n : out-right
+    }
+
+    : caret
+    :
+    {
+      $* '1.2.3-b.499' '^1.2.3' >n : out-left
+      $* '1.2.3'       '^1.2.3' >y : in-left
+      $* '1.3.0'       '^1.2.3' >y : in
+      $* '1.999.999'   '^1.2.3' >y : in-right
+      $* '2.0.0-'      '^1.2.3' >n : out-right
+    }
+
+    : caret-zero-major
+    :
+    {
+      $* '0.2.3-b.499' '^0.2.3' >n : out-left
+      $* '0.2.3'       '^0.2.3' >y : in-left
+      $* '0.2.4'       '^0.2.3' >y : in
+      $* '0.2.999'     '^0.2.3' >y : in-right
+      $* '0.3.0-'      '^0.2.3' >n : out-right
     }
   }
 }

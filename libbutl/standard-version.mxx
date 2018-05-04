@@ -157,11 +157,13 @@ LIBBUTL_MODEXPORT namespace butl
     // Create empty version.
     //
     standard_version () {} // = default; @@ MOD VC
-
-  private:
-    void
-    parse_snapshot (const std::string&, std::size_t&);
   };
+
+  // Try to parse a string as a standard version returning nullopt if invalid.
+  //
+  LIBBUTL_SYMEXPORT optional<standard_version>
+  parse_standard_version (const std::string&,
+                          standard_version::flags = standard_version::none);
 
   inline bool
   operator< (const standard_version& x, const standard_version& y) noexcept
@@ -220,6 +222,7 @@ LIBBUTL_MODEXPORT namespace butl
   // The build2 "standard version" constraint:
   //
   // ('==' | '>' | '<' | '>=' | '<=') <version>
+  // ('^' | '~') <version>
   // ('(' | '[') <version> <version> (')' | ']')
   //
   struct LIBBUTL_SYMEXPORT standard_version_constraint

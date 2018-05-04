@@ -76,6 +76,32 @@ version (const string& s,
       assert (r == v);
     }
 
+    if (!r.stub ())
+    {
+      auto max_ver = [&v] (char c) -> string
+      {
+        string e (v.epoch != 0 ? '+' + to_string (v.epoch) + '-' : string ());
+
+        return c == '~' || v.major () == 0
+        ? e + to_string (v.major ()) + '.' + to_string (v.minor () + 1) + ".0-"
+        : e + to_string (v.major () + 1) + ".0.0-";
+      };
+
+      if (v.minor () != 999)
+      {
+        standard_version_constraint c1 ("~" + s);
+        standard_version_constraint c2 ('[' + s + ' ' + max_ver ('~') + ')');
+        assert (c1 == c2);
+      }
+
+      if ((v.major () == 0 && v.minor () != 999) ||
+          (v.major () != 0 && v.major () != 999))
+      {
+        standard_version_constraint c1 ("^" + s);
+        standard_version_constraint c2 ('[' + s + ' ' + max_ver ('^') + ')');
+        assert (c1 == c2);
+      }
+    }
   }
   catch (const invalid_argument& e)
   {
