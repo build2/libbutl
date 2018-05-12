@@ -383,7 +383,7 @@ LIBBUTL_MODEXPORT namespace butl
     // parent executable's directory" semantics across platforms.
     //
     // If path_only is true then only search in the PATH environment variable
-    // (or in CWD if there is a directory component) ignorting other places
+    // (or in CWD if there is a directory component) ignoring other places
     // (like calling process' directory and, gasp, CWD on Windows).
     //
     static process_path
