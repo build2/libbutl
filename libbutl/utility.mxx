@@ -256,28 +256,50 @@ LIBBUTL_MODEXPORT namespace butl
   inline reverse_range<T>
   reverse_iterate (T&& x) {return reverse_range<T> (std::forward<T> (x));}
 
+  // Call a function on destruction.
+  //
+  template <typename F>
+  struct guard_impl;
+
+  template <typename F>
+  inline guard_impl<F>
+  make_guard (F f)
+  {
+    return guard_impl<F> (std::move (f));
+  }
+
+  template <typename F>
+  struct guard_impl
+  {
+    guard_impl (F f): f_ (std::move (f)) {}
+    ~guard_impl () {f_ ();}
+
+  private:
+    F f_;
+  };
+
   // Call a function if there is an exception.
   //
 
   template <typename F>
-  struct exception_guard;
+  struct exception_guard_impl;
 
   template <typename F>
-  inline exception_guard<F>
+  inline exception_guard_impl<F>
   make_exception_guard (F f)
   {
-    return exception_guard<F> (std::move (f));
+    return exception_guard_impl<F> (std::move (f));
   }
 
 #ifdef __cpp_lib_uncaught_exceptions
   template <typename F>
-  struct exception_guard
+  struct exception_guard_impl
   {
-    exception_guard (F f)
+    exception_guard_impl (F f)
         : f_ (std::move (f)),
           u_ (std::uncaught_exceptions ()) {}
 
-    ~exception_guard ()
+    ~exception_guard_impl ()
     {
       if (u_ != std::uncaught_exceptions ())
         f_ ();
@@ -313,10 +335,10 @@ LIBBUTL_MODEXPORT namespace butl
 #endif
 
   template <typename F>
-  struct exception_guard
+  struct exception_guard_impl
   {
-    exception_guard (F f): f_ (std::move (f)) {}
-    ~exception_guard ()
+    exception_guard_impl (F f): f_ (std::move (f)) {}
+    ~exception_guard_impl ()
     {
       if (std::uncaught_exception ())
       {
