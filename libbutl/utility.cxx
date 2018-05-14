@@ -166,9 +166,9 @@ namespace std
 
     // Strip the suffix for system_error thrown by
     // throw_system_error(system_code) on Windows. For example for the
-    // ERROR_INVALID_DATA error code the original description will be
-    // 'Invalid data. : Success' or 'Invalid data. : No error' for MinGW
-    // libstdc++ and 'Invalid data. : Success.' or ". : The operation completed
+    // ERROR_INVALID_DATA error code the original description will be 'Invalid
+    // data. : Success' or 'Invalid data. : No error' for MinGW libstdc++ and
+    // 'Invalid data. : Success.' or ". : The operation completed
     // successfully." for msvcrt.
     //
     // Check if the string ends with the specified suffix and return its
@@ -177,14 +177,15 @@ namespace std
     auto suffix = [s, n] (const char* v) -> size_t
     {
       size_t nv (string::traits_type::length (v));
-      return string::traits_type::compare (s + n - nv, v, nv) == 0 ? nv : 0;
+      return (n >= nv && string::traits_type::compare (s + n - nv, v, nv) == 0
+              ? nv
+              : 0);
     };
 
     size_t ns;
-    if (n >= 11 &&
-        ((ns = suffix (". : Success")) ||
-         (ns = suffix (". : No error")) ||
-         (ns = suffix (". : The operation completed successfully"))))
+    if ((ns = suffix (". : Success"))  ||
+        (ns = suffix (". : No error")) ||
+        (ns = suffix (". : The operation completed successfully")))
       n -= ns;
 
     // Lower-case the first letter if the beginning looks like a word (the
