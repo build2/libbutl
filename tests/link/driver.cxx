@@ -96,11 +96,11 @@ link_dir (const dir_path& target,
   dir_path tp (target.absolute () ? target : link.directory () / target);
 
   set<pair<entry_type, path>> te;
-  for (const dir_entry& de: dir_iterator (tp))
+  for (const dir_entry& de: dir_iterator (tp, false /* ignore_dangling */))
     te.emplace (de.ltype (), de.path ());
 
   set<pair<entry_type, path>> le;
-  for (const dir_entry& de: dir_iterator (link))
+  for (const dir_entry& de: dir_iterator (link, false /* ignore_dangling */))
     le.emplace (de.ltype (), de.path ());
 
   return te == le;

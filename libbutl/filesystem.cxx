@@ -285,7 +285,7 @@ namespace butl
     // An nftw()-based implementation (for platforms that support it)
     // might be a faster way.
     //
-    for (const dir_entry& de: dir_iterator (p))
+    for (const dir_entry& de: dir_iterator (p, false /* ignore_dangling */))
     {
       path ep (p / de.path ()); //@@ Would be good to reuse the buffer.
 
@@ -1083,8 +1083,23 @@ namespace butl
 
       h_ = x.h_;
       x.h_ = nullptr;
+
+      ignore_dangling_ = x.ignore_dangling_;
     }
     return *this;
+  }
+
+  static inline entry_type
+  type (const struct stat& s) noexcept
+  {
+    if (S_ISREG (s.st_mode))
+      return entry_type::regular;
+    else if (S_ISDIR (s.st_mode))
+      return entry_type::directory;
+    else if (S_ISLNK (s.st_mode))
+      return entry_type::symlink;
+    else
+      return entry_type::other;
   }
 
   entry_type dir_entry::
@@ -1095,22 +1110,9 @@ namespace butl
     if ((link
          ? stat (p.string ().c_str (), &s)
          : lstat (p.string ().c_str (), &s)) != 0)
-    {
       throw_generic_error (errno);
-    }
 
-    entry_type r;
-
-    if (S_ISREG (s.st_mode))
-      r = entry_type::regular;
-    else if (S_ISDIR (s.st_mode))
-      r = entry_type::directory;
-    else if (S_ISLNK (s.st_mode))
-      r = entry_type::symlink;
-    else
-      r = entry_type::other;
-
-    return r;
+    return butl::type (s);
   }
 
   // dir_iterator
@@ -1121,7 +1123,8 @@ namespace butl
   };
 
   dir_iterator::
-  dir_iterator (const dir_path& d)
+  dir_iterator (const dir_path& d, bool ignore_dangling)
+    : ignore_dangling_ (ignore_dangling)
   {
     unique_ptr<DIR, dir_deleter> h (opendir (d.string ().c_str ()));
     h_ = h.get ();
@@ -1189,12 +1192,33 @@ namespace butl
 
         // Skip '.' and '..'.
         //
-       if (p.current () || p.parent ())
+        if (p.current () || p.parent ())
           continue;
 
         e_.p_ = move (p);
         e_.t_ = d_type<struct dirent> (de, nullptr);
         e_.lt_ = entry_type::unknown;
+
+        // If requested, we ignore dangling symlinks, skipping ones with
+        // non-existing or inaccessible targets.
+        //
+        // Note that ltype () can potentially lstat() and so throw.
+        //
+        if (ignore_dangling_ && e_.ltype () == entry_type::symlink)
+        {
+          struct stat s;
+          path p (e_.base () / e_.path ());
+
+          if (stat (p.string ().c_str (), &s) != 0)
+          {
+            if (errno == ENOENT || errno == ENOTDIR || errno == EACCES)
+              continue;
+
+            throw_generic_error (errno);
+          }
+
+          e_.lt_ = type (s); // While at it, set the target type.
+        }
       }
       else if (errno == 0)
       {
@@ -1233,6 +1257,8 @@ namespace butl
 
       h_ = x.h_;
       x.h_ = -1;
+
+      ignore_dangling_ = x.ignore_dangling_;
     }
     return *this;
   }
@@ -1283,7 +1309,8 @@ namespace butl
   };
 
   dir_iterator::
-  dir_iterator (const dir_path& d)
+  dir_iterator (const dir_path& d, bool ignore_dangling)
+    : ignore_dangling_ (ignore_dangling)
   {
     auto_dir h (h_);
     e_.b_ = d; // Used by next() to call _findfirst().
@@ -1801,7 +1828,11 @@ namespace butl
         if (!preopen || preopen_ (p))
         {
           dir_path d (start_ / p);
-          i = dir_iterator (!d.empty () ? d : dir_path ("."));
+
+          // If we follow symlinks, then we ignore the dangling ones.
+          //
+          i = dir_iterator (!d.empty () ? d : dir_path ("."),
+                            follow_symlinks_);
         }
 
         iters_.emplace_back (move (i), move (p));

@@ -251,9 +251,17 @@ LIBBUTL_MODEXPORT namespace butl
   //    deleted at a later stage, then the filesystem API functions may fail
   //    when encounter such a symlink. This includes rmsymlink().
   //
-  //  - Symlinks are not visible when iterating over a directory with
-  //    dir_iterator. As a result, a directory that contains symlinks can not
-  //    be recursively deleted.
+  //  - Dangling symlinks are not visible when iterating over a directory with
+  //    dir_iterator. As a result, a directory that contains such symlinks can
+  //    not be recursively deleted.
+  //
+  //  @@ Note that the above restrictions seems to be Wine-specific (as of
+  //     2.20). It is probably make sense to properly support directory
+  //     symlinks when run natively.
+  //
+  //  - Symlinks that refer to existing targets are recognized as ordinary
+  //    directories by dir_iterator. As a result rmdir_r() function removes the
+  //    target directories content, rather then symlinks entries.
   //
   LIBBUTL_SYMEXPORT void
   mksymlink (const path& target, const path& link, bool dir = false);
@@ -629,8 +637,15 @@ LIBBUTL_MODEXPORT namespace butl
     ~dir_iterator ();
     dir_iterator () = default;
 
+    // If it is requested to ignore dangling symlinks, then the increment
+    // operator will skip symlinks that refer to non-existing or inaccessible
+    // targets. That implies that it will always try to stat() symlinks.
+    //
+    // Note that we currently do not fully support symlinks on Windows, so the
+    // ignore_dangling argument is noop there (see mksymlink() for details).
+    //
     explicit
-    dir_iterator (const dir_path&);
+    dir_iterator (const dir_path&, bool ignore_dangling);
 
     dir_iterator (const dir_iterator&) = delete;
     dir_iterator& operator= (const dir_iterator&) = delete;
@@ -658,6 +673,8 @@ LIBBUTL_MODEXPORT namespace butl
 #else
     intptr_t h_ = -1;
 #endif
+
+    bool ignore_dangling_;
   };
 
   // Range-based for loop support.

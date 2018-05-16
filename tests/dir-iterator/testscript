@@ -8,9 +8,24 @@ test.options = -v
 :
 mkdir a;
 touch a/b;
-$* a 2>"reg     b"
+$* a >"reg     b"
 
 : dir
 :
 mkdir -p a/b;
-$* a 2>"dir     b"
+$* a >"dir     b"
+
+: dangling-link
+:
+if ($cxx.target.class != 'windows')
+{
+  +mkdir a
+  +touch --no-cleanup a/b
+  +ln -s a/b a/l
+  +rm a/b
+
+  +touch a/c
+
+  $* ../a     >! 2>!       != 0 : keep
+  $* -i ../a  >'reg     c'      : skip
+}

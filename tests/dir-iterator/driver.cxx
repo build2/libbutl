@@ -41,45 +41,71 @@ operator<< (ostream& os, entry_type e)
   return os << entry_type_string[static_cast<size_t> (e)];
 }
 
-// @@ Should we make the test silent unless -v arg passed. In silen mode could
-// compare the output with a set of predefined dir entries.
+// Usage: argv[0] [-v] [-i] <dir>
+//
+// Iterates over a directory filesystem sub-entries, obtains their types and
+// target types for symlinks.
+//
+// -v
+//    Print the filesystem entries types and names to STDOUT.
+//
+// -i
+//    Ignore dangling symlinks, rather than fail trying to obtain the target
+//    type.
 //
 int
 main (int argc, const char* argv[])
 {
-  if (!(argc == 2 || (argc == 3 && argv[1] == string ("-v"))))
+  assert (argc > 0);
+
+  bool verbose (false);
+  bool ignore_dangling (false);
+
+  int i (1);
+  for (; i != argc; ++i)
   {
-    cerr << "usage: " << argv[0] << " [-v] <dir>" << endl;
+    string v (argv[i]);
+
+    if (v == "-v")
+      verbose = true;
+    else if (v == "-i")
+      ignore_dangling = true;
+    else
+      break;
+  }
+
+  if (i != argc - 1)
+  {
+    cerr << "usage: " << argv[0] << " [-v] [-i] <dir>" << endl;
     return 1;
   }
 
-  bool v (argc == 3);
-  const char* d (argv[argc - 1]);
+  const char* d (argv[i]);
 
   try
   {
-    for (const dir_entry& de: dir_iterator (dir_path (d)))
+    for (const dir_entry& de: dir_iterator (dir_path (d), ignore_dangling))
     {
       entry_type lt (de.ltype ());
-      entry_type t (lt == entry_type::symlink ? de.ltype () : lt);
+      entry_type t (lt == entry_type::symlink ? de.type () : lt);
       const path& p (de.path ());
 
-      if (v)
+      if (verbose)
       {
-        cerr << lt << " ";
+        cout << lt << " ";
 
         if (lt == entry_type::symlink)
-          cerr << t;
+          cout << t;
         else
-          cerr << "   ";
+          cout << "   ";
 
-        cerr << " " << p << endl;
+        cout << " " << p << endl;
       }
     }
   }
   catch (const exception& e)
   {
-    cerr << argv[1] << ": " << e << endl;
+    cerr << e << endl;
     return 1;
   }
 }

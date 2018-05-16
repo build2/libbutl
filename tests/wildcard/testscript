@@ -113,7 +113,7 @@
 
     : absolute
     :
-    : When cross-testing we can't guarantee that host absolute paths are
+    : When cross-testing we cannot guarantee that host absolute paths are
     : recognized by the target process.
     :
     if ($test.target == $build.host)
@@ -565,6 +565,20 @@
         EOO
       }
     }
+  }
+
+  : dangling-link
+  :
+  if ($cxx.target.class != 'windows')
+  {
+    mkdir a;
+    touch --no-cleanup a/b;
+    ln -s a/b a/l;
+    rm a/b;
+
+    touch a/c;
+
+    $* a/* >/'a/c'
   }
 }
 

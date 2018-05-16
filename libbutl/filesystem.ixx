@@ -9,7 +9,7 @@ namespace butl
   {
     // @@ Could 0 size be a valid and faster way?
     //
-    return dir_iterator (d) == dir_iterator ();
+    return dir_iterator (d, false /* ignore_dangling */) == dir_iterator ();
   }
 
   inline bool
@@ -126,7 +126,7 @@ namespace butl
   //
   inline dir_iterator::
   dir_iterator (dir_iterator&& x) noexcept
-      : e_ (std::move (x.e_)), h_ (x.h_)
+    : e_ (std::move (x.e_)), h_ (x.h_), ignore_dangling_ (x.ignore_dangling_)
   {
 #ifndef _WIN32
     x.h_ = nullptr;
