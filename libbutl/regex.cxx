@@ -15,7 +15,7 @@
 #include <ostream>
 #include <sstream>
 #include <stdexcept> // runtime_error
-#if defined(_MSC_VER) && _MSC_VER <= 1914
+#if defined(_MSC_VER) && _MSC_VER < 1920
 #  include <cstring> // strstr()
 #endif
 #endif
@@ -52,7 +52,7 @@ namespace std
   {
     const char* d (e.what ());
 
-#if defined(_MSC_VER) && _MSC_VER <= 1914
+#if defined(_MSC_VER) && _MSC_VER < 1920
     // Note: run the regex test like this to check new VC version:
     //
     // ./driver.exe a '{' b
