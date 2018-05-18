@@ -1132,10 +1132,9 @@ namespace butl
     if (h_ == nullptr)
       throw_generic_error (errno);
 
-    next ();
+    e_.b_ = d; // Used by next() to detect dangling symlinks.
 
-    if (h_ != nullptr)
-      e_.b_ = d;
+    next ();
 
     h.release ();
   }
@@ -1202,14 +1201,15 @@ namespace butl
         // If requested, we ignore dangling symlinks, skipping ones with
         // non-existing or inaccessible targets.
         //
-        // Note that ltype () can potentially lstat() and so throw.
+        // Note that ltype () can potentially lstat() (see d_type() for
+        // details) and so throw.
         //
         if (ignore_dangling_ && e_.ltype () == entry_type::symlink)
         {
           struct stat s;
-          path p (e_.base () / e_.path ());
+          path pe (e_.base () / e_.path ());
 
-          if (stat (p.string ().c_str (), &s) != 0)
+          if (stat (pe.string ().c_str (), &s) != 0)
           {
             if (errno == ENOENT || errno == ENOTDIR || errno == EACCES)
               continue;
