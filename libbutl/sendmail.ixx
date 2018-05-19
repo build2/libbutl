@@ -1,5 +1,5 @@
 // file      : libbutl/sendmail.ixx -*- C++ -*-
-// copyright : Copyright (c) 2014-2017 Code Synthesis Ltd
+// copyright : Copyright (c) 2014-2018 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
 LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
