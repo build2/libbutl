@@ -5,4 +5,4 @@
 import libs = libbutl%lib{butl}
 libs += $stdmod_lib
 
-exe{driver}: {hxx cxx}{*} $libs test{testscript}
+exe{driver}: {hxx cxx}{*} $libs testscript
