@@ -740,6 +740,10 @@ LIBBUTL_MODEXPORT namespace butl
     // unless sep is false, non-canonical directory separators. Empty path
     // is considered normalized.
     //
+    // Note that for a relative path normalize() may produce a path for which
+    // normalized() will still return false (for example, ../foo/../ which
+    // will be normalized to ../).
+    //
     bool
     normalized (bool sep = true) const;
 
@@ -989,6 +993,10 @@ LIBBUTL_MODEXPORT namespace butl
     // spelling is unchanged. This is a potentially expensive operation.
     // Normally one can assume that "well-known" directories (current, home,
     // etc.) are returned in their actual spelling.
+    //
+    // Note that for a relative path normalize() may produce a path for which
+    // normalized() will still return false (for example, ../foo/../ which
+    // will be normalized to ../).
     //
     basic_path&
     normalize (bool actual = false, bool cur_empty = false);
