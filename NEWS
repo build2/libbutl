@@ -1,3 +1,36 @@
+Version 0.7.0
+
+  * Initial attempt at Modules TS-based modularization.
+
+  * Add process::pipe struct, extend process API.
+
+  * Add path::make_{directory,leaf,base}().
+
+  * Relax path combination requirement for LHS to contain trailing slash.
+
+    Now if there is no slash, we automatically add the canonical one. This
+    allows (natural) code like this:
+
+    path f (d / "foo" / "bar");
+
+  * Add support for copying file timestamp by cpfile().
+
+  * Add support for directory symlinks on Windows.
+
+  * Add ignore_dangling parameter to dir_iterator() constructor.
+
+  * Change standard_version epoch syntax from '~' to '+-'.
+
+  * Add support for standard_version constraint shortcut operators (~ and ^).
+
+  * Add support for calculating SHA1 checksums.
+
+  * Implement small_list and small_forward_list.
+
+    Note that with VC small_list is never "small" because of the extra
+    "headnode" that this implementation allocates (see notes in small-list.mxx
+    for details).
+
 Version 0.6.0
 
   * Various new functionality in the path, timestamp, manifest, process,
