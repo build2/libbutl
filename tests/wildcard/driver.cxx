@@ -172,38 +172,45 @@ try
     else
       path_search (pattern, *entry, add, start);
 
-    // Test search in the directory tree represented by the path.
+    // It the search succeeds, then test search in the directory tree
+    // represented by each matched path. Otherwise, if the directory tree is
+    // specified, then make sure that it doesn't match the pattern.
     //
-    for (const auto& p: path_count)
+    if (!path_count.empty ())
     {
-      // Will match multiple times if the pattern contains several recursive
-      // components.
-      //
-      size_t match_count (0);
-
-      auto check = [&p, &match_count] (path&& pe, const string&, bool interim)
+      for (const auto& p: path_count)
       {
-        if (pe == p.first)
+        // Will match multiple times if the pattern contains several recursive
+        // components.
+        //
+        size_t match_count (0);
+
+        auto check = [&p, &match_count] (path&& pe, const string&, bool inter)
         {
-          if (!interim)
-            ++match_count;
-          else
-            // For self-matching the callback is first called in the interim
-            // mode (through the preopen function) with an empty path.
-            //
-            assert (pe.empty ());
-        }
+          if (pe == p.first)
+          {
+            if (!inter)
+              ++match_count;
+            else
+              // For self-matching the callback is first called in the interim
+              // mode (through the preopen function) with an empty path.
+              //
+              assert (pe.empty ());
+          }
 
-        return true;
-      };
+          return true;
+        };
 
-      path_search (pattern, p.first, check, start);
-      assert (match_count == p.second);
+        path_search (pattern, p.first, check, start);
+        assert (match_count == p.second);
 
-      // Test path match.
-      //
-      assert (path_match (pattern, p.first, start));
+        // Test path match.
+        //
+        assert (path_match (pattern, p.first, start));
+      }
     }
+    else if (entry)
+      assert (!path_match (pattern, *entry, start));
 
     // Print the found paths.
     //

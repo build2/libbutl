@@ -2126,21 +2126,13 @@ namespace butl
 
     auto match = [&entry, &r] (path&& p, const std::string&, bool interim)
     {
-      if (p == entry)
+      // If we found the entry (possibly through one of the recursive
+      // components) no need to search further.
+      //
+      if (p == entry && !interim)
       {
-        // If we found the entry (possibly through one of the recursive
-        // components) no need to search further.
-        //
-        if (!interim)
-        {
-          r = true;
-          return false;
-        }
-        else
-          // For self-matching the callback is first called in the interim
-          // mode (through the preopen function) with an empty path.
-          //
-          assert (p.empty ());
+        r = true;
+        return false;
       }
 
       return true;
