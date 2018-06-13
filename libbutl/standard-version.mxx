@@ -62,7 +62,7 @@ LIBBUTL_MODEXPORT namespace butl
     //
     static const std::uint64_t latest_sn = std::uint64_t (~0);
 
-    std::uint16_t epoch        = 0;  // 0 if not specified.
+    std::uint16_t epoch        = 1;  // 0 if a stub, 1 if not specified.
     std::uint64_t version      = 0;  // AAABBBCCCDDDE
     std::uint64_t snapshot_sn  = 0;  // 0 if not specifed, latest_sn if 'z'.
     std::string   snapshot_id;       // Empty if not specified.

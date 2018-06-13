@@ -226,7 +226,10 @@ namespace butl
                (p == n || s[p] == '+'));
 
     if (stub)
+    {
+      r.epoch = 0;
       r.version = uint64_t (~0);
+    }
     else
     {
       if (s[p] != '.')
@@ -499,7 +502,7 @@ namespace butl
   {
     std::string r;
 
-    if (epoch != 0)
+    if (epoch != 1 && !stub ())
     {
       r += '+';
       r += to_string (epoch);

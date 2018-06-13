@@ -49,7 +49,7 @@ version (const string& s,
 
     assert (r == v);
 
-    if (r.epoch == 0 && r.revision == 0)
+    if (r.epoch == 1 && r.revision == 0)
     {
       standard_version v (r.version,
                           r.snapshot ()
@@ -80,7 +80,7 @@ version (const string& s,
     {
       auto max_ver = [&v] (char c) -> string
       {
-        string e (v.epoch != 0 ? '+' + to_string (v.epoch) + '-' : string ());
+        string e (v.epoch != 1 ? '+' + to_string (v.epoch) + '-' : string ());
 
         return c == '~' || v.major () == 0
         ? e + to_string (v.major ()) + '.' + to_string (v.minor () + 1) + ".0-"
