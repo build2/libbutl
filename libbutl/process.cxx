@@ -9,7 +9,6 @@
 #include <errno.h>
 
 #ifndef _WIN32
-#  include <stdlib.h>    // setenv(), unsetenv()
 #  include <signal.h>    // SIG*
 #  include <unistd.h>    // execvp, fork, dup2, pipe, chdir, *_FILENO, getpid
 #  include <sys/wait.h>  // waitpid
@@ -60,7 +59,7 @@
 #include <map>
 #include <ratio>     // milli
 #include <chrono>
-#include <cstdlib>   // getenv(), __argv[]
+#include <cstdlib>   // __argv[]
 #include <algorithm> // find()
 #endif
 #endif
@@ -83,7 +82,6 @@ import std.io;
 import std.threading; // Clang wants it in purview (see process-details.hxx).
 #endif
 import butl.path;
-import butl.optional;
 import butl.fdstream;
 import butl.vector_view;
 import butl.small_vector;
@@ -273,7 +271,8 @@ namespace butl
     // 2. We do not continue searching on EACCES from execve().
     // 3. We do not execute via default shell on ENOEXEC from execve().
     //
-    for (const char* b (getenv ("PATH")), *e;
+    optional<string> p (getenv ("PATH"));
+    for (const char* b (p ? p->c_str () : nullptr), *e;
          b != nullptr;
          b = (e != nullptr ? e + 1 : e))
     {
@@ -460,12 +459,17 @@ namespace butl
           {
             const char* v (strchr (ev, '='));
 
-            int r (v != nullptr
-                   ? setenv (string (ev, v - ev).c_str (), v + 1, 1)
-                   : unsetenv (ev));
-
-            if (r == -1)
-              fail (true);
+            try
+            {
+              if (v != nullptr)
+                setenv (string (ev, v - ev), v + 1);
+              else
+                unsetenv (ev);
+            }
+            catch (const system_error& e)
+            {
+              throw process_child_error (e.code ().value ());
+            }
           }
         }
 
@@ -845,7 +849,8 @@ namespace butl
 
     // Now search in PATH. Recall is unchanged.
     //
-    for (const char* b (getenv ("PATH")), *e;
+    optional<string> p (getenv ("PATH"));
+    for (const char* b (p ? p->c_str () : nullptr), *e;
          b != nullptr;
          b = (e != nullptr ? e + 1 : e))
     {
@@ -1126,7 +1131,7 @@ namespace butl
     // cmd.exe and passing the batch file as an argument (see CreateProcess()
     // for deails).
     //
-    const char* batch (nullptr);
+    optional<string> batch;
     {
       const char* p (pp.effect_string ());
       const char* e (path::traits::find_extension (p, strlen (p)));
@@ -1135,7 +1140,7 @@ namespace butl
       {
         batch = getenv ("COMSPEC");
 
-        if (batch == nullptr)
+        if (!batch)
           batch = "C:\\Windows\\System32\\cmd.exe";
       }
     }
@@ -1240,14 +1245,14 @@ namespace butl
           cmd_line += '"';
       };
 
-      if (batch != nullptr)
+      if (batch)
       {
-        append (batch);
+        append (*batch);
         append ("/c");
         append (pp.effect_string ());
       }
 
-      for (const char* const* p (args + (batch != nullptr ? 1 : 0));
+      for (const char* const* p (args + (batch ? 1 : 0));
            *p != 0;
            ++p)
         append (*p);
@@ -1463,7 +1468,7 @@ namespace butl
       };
 
       bool msys (false);
-      if (batch == nullptr)
+      if (!batch)
       {
         string p (pp.effect_string ());
         auto i (detect_msys_cache_.find (p));
@@ -1482,7 +1487,7 @@ namespace butl
       for (system_clock::duration timeout (1h);;) // Try for about 1 hour.
       {
         if (!CreateProcess (
-              batch != nullptr ? batch : pp.effect_string (),
+              batch ? batch->c_str () : pp.effect_string (),
               const_cast<char*> (cmd_line.c_str ()),
               0,    // Process security attributes.
               0,    // Primary thread security attributes.

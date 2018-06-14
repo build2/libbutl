@@ -35,6 +35,9 @@ export module butl.utility;
 import std.core;
 import std.io;
 #endif
+import butl.optional;
+#else
+#include <libbutl/optional.mxx>
 #endif
 
 #include <libbutl/export.hxx>
@@ -182,6 +185,25 @@ LIBBUTL_MODEXPORT namespace butl
   //
   bool
   eof (std::istream&);
+
+  // Environment variables.
+  //
+  optional<std::string>
+  getenv (const std::string&);
+
+  // Throw system_error on failure.
+  //
+  // Note that on Windows setting an empty value usets the variable.
+  //
+  LIBBUTL_SYMEXPORT
+  void
+  setenv (const std::string& name, const std::string& value);
+
+  // Throw system_error on failure.
+  //
+  LIBBUTL_SYMEXPORT
+  void
+  unsetenv (const std::string&);
 
   // Key comparators (i.e., to be used in sets, maps, etc).
   //

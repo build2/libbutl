@@ -2,8 +2,6 @@
 // copyright : Copyright (c) 2014-2018 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#include <stdlib.h> // getenv(), setenv(), _putenv()
-
 #include <cassert>
 
 #ifndef __cpp_lib_modules
@@ -23,11 +21,13 @@ import std.core;
 import std.io;
 #endif
 import butl.path;
+import butl.utility;  // setenv(), getenv()
 import butl.process;
 import butl.optional;
 import butl.fdstream;
 #else
 #include <libbutl/path.mxx>
+#include <libbutl/utility.mxx>
 #include <libbutl/process.mxx>
 #include <libbutl/optional.mxx>
 #include <libbutl/fdstream.mxx>
@@ -68,13 +68,8 @@ exec (const path& p,
     // sure that the child process will not see the variable that is requested
     // to be unset, and will see the other one unaffected.
     //
-#ifndef _WIN32
-    assert (setenv ("DEF", "2", 1) == 0);
-    assert (setenv ("XYZ", "3", 1) == 0);
-#else
-    assert (_putenv ("DEF=2") == 0);
-    assert (_putenv ("XYZ=3") == 0);
-#endif
+    setenv ("DEF", "2");
+    setenv ("XYZ", "3");
   }
 
   if (cwd != nullptr)
@@ -205,6 +200,9 @@ exec (const path& p,
 int
 main (int argc, const char* argv[])
 {
+  using butl::getenv;
+  using butl::optional;
+
   bool child (false);
   bool bin (false);
   dir_path wd;      // Working directory.
@@ -276,10 +274,9 @@ main (int argc, const char* argv[])
       // Check that the ABC variable is set, the DEF is unset and the XYZ is
       // left unchanged.
       //
-      const char* v;
-      if ((v = getenv ("ABC")) == nullptr || string ("1") != v ||
-          getenv ("DEF") != nullptr ||
-          (v = getenv ("XYZ")) == nullptr || string ("3") != v)
+      if (getenv ("ABC") != optional<string> ("1") ||
+          getenv ("DEF") ||
+          getenv ("XYZ") != optional<string> ("3"))
         return 1;
     }
 
@@ -383,14 +380,10 @@ main (int argc, const char* argv[])
   //
   string paths (fp.directory ().string ());
 
-  if (char const* s = getenv ("PATH"))
-    paths += string (1, path::traits::path_separator) + s;
+  if (optional<string> p = getenv ("PATH"))
+    paths += string (1, path::traits::path_separator) + *p;
 
-#ifndef _WIN32
-  assert (setenv ("PATH", paths.c_str (), 1) == 0);
-#else
-  assert (_putenv (("PATH=" + paths).c_str ()) == 0);
-#endif
+  setenv ("PATH", paths);
 
   dir_path::current_directory (fp.directory () / dir_path (".."));
 
@@ -419,7 +412,7 @@ main (int argc, const char* argv[])
     assert (exec (owd / "test"));
 
     paths = owd.string () + path::traits::path_separator + paths;
-    assert (_putenv (("PATH=" + paths).c_str ()) == 0);
+    setenv ("PATH", paths);
 
     assert (exec (path ("test.bat")));
     assert (exec (path ("test")));

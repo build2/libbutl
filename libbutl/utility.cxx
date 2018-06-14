@@ -10,6 +10,8 @@
 #include <libbutl/win32-utility.hxx>
 #endif
 
+#include <stdlib.h> // setenv(), unsetenv(), _putenv()
+
 #ifndef __cpp_lib_modules
 #include <string>
 #include <cstddef>
@@ -123,6 +125,36 @@ namespace butl
       l.resize (n);
 
     return l;
+  }
+
+  void
+  setenv (const string& name, const string& value)
+  {
+#ifndef _WIN32
+    if (::setenv (name.c_str (), value.c_str (), 1 /* overwrite */) == -1)
+      throw_generic_error (errno);
+#else
+    // The documentation doesn't say how to obtain the failure reason, so we
+    // will assume it to always be EINVAL (as the most probable one).
+    //
+    if (_putenv (string (name + '=' + value).c_str ()) == -1)
+      throw_generic_error (EINVAL);
+#endif
+  }
+
+  void
+  unsetenv (const string& name)
+  {
+#ifndef _WIN32
+    if (::unsetenv (name.c_str ()) == -1)
+      throw_generic_error (errno);
+#else
+    // The documentation doesn't say how to obtain the failure reason, so we
+    // will assume it to always be EINVAL (as the most probable one).
+    //
+    if (_putenv (string (name + '=').c_str ()) == -1)
+      throw_generic_error (EINVAL);
+#endif
   }
 }
 

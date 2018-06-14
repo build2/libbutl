@@ -17,7 +17,7 @@
 #else
 #  include <pwd.h>       // struct passwd, getpwuid_r()
 #  include <errno.h>     // EINVAL
-#  include <stdlib.h>    // realpath(), getenv()
+#  include <stdlib.h>    // realpath()
 #  include <limits.h>    // PATH_MAX
 #  include <unistd.h>    // getcwd(), chdir()
 #  include <string.h>    // strlen(), strcpy()
@@ -29,6 +29,7 @@
 
 #ifndef __cpp_lib_modules
 #include <string>
+#include <vector>
 #include <cstddef>
 #include <utility>
 
@@ -123,33 +124,39 @@ namespace butl
   }
 
 #ifndef _WIN32
-  static const char*
+  static const vector<string> tmp_vars ({"TMPDIR", "TMP", "TEMP", "TEMPDIR"});
+
+  static string
   temp_directory ()
   {
-    const char* dir (nullptr);
-    const char* env[] = {"TMPDIR", "TMP", "TEMP", "TEMPDIR", nullptr};
+    optional<string> dir;
 
-    for (auto e (env); dir == nullptr && *e != nullptr; ++e)
-      dir = getenv (*e);
+    for (const string& v: tmp_vars)
+    {
+      dir = getenv (v);
 
-    if (dir == nullptr)
+      if (dir)
+        break;
+    }
+
+    if (!dir)
       dir = "/tmp";
 
     struct stat s;
-    if (stat (dir, &s) != 0)
+    if (stat (dir->c_str (), &s) != 0)
       throw_generic_error (errno);
 
     if (!S_ISDIR (s.st_mode))
       throw_generic_error (ENOTDIR);
 
-    return dir;
+    return *dir;
   }
 
   static string
   home ()
   {
-    if (const char* h = getenv ("HOME"))
-      return h;
+    if (optional<string> h = getenv ("HOME"))
+      return *h;
 
     // Struct passwd has 5 members that will use this buffer. Two are the
     // home directory and shell paths. The other three are the user login
@@ -214,8 +221,8 @@ namespace butl
 #else
     // Could be set by, e.g., MSYS and Cygwin shells.
     //
-    if (const char* h = getenv ("HOME"))
-      return h;
+    if (optional<string> h = getenv ("HOME"))
+      return *h;
 
     char h[_MAX_PATH];
     HRESULT r (SHGetFolderPathA (NULL, CSIDL_PROFILE, NULL, 0, h));

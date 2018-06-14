@@ -2,6 +2,10 @@
 // copyright : Copyright (c) 2014-2018 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
+#ifndef __cpp_lib_modules
+#include <cstdlib> // getenv()
+#endif
+
 namespace butl
 {
   inline char
@@ -198,5 +202,14 @@ namespace butl
       return true;
 
     throw std::istream::failure ("");
+  }
+
+  inline optional<std::string>
+  getenv (const std::string& name)
+  {
+    if (const char* r = std::getenv (name.c_str ()))
+      return std::string (r);
+
+    return nullopt;
   }
 }
