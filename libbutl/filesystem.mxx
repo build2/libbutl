@@ -674,7 +674,7 @@ LIBBUTL_MODEXPORT namespace butl
     intptr_t h_ = -1;
 #endif
 
-    bool ignore_dangling_;
+    bool ignore_dangling_ = false;
   };
 
   // Range-based for loop support.
