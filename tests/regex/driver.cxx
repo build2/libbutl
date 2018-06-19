@@ -28,10 +28,10 @@ import butl.utility; // operator<<(ostream, exception)
 using namespace std;
 using namespace butl;
 
-// Usage: argv[0] [-ffo] [-fnc] <string> <regex> <format>
+// Usage: argv[0] [-ffo] [-fnc] [-m] <string> <regex> <format>
 //
 // Perform substitution of matched substrings with formatted replacement
-// strings using regex_replace_ex() function. If the string matches the regex
+// strings using regex_replace_*() functions. If the string matches the regex
 // then print the replacement to STDOUT and exit with zero code. Exit with
 // code one if it doesn't match, and with code two on failure (print error
 // description to STDERR).
@@ -42,6 +42,9 @@ using namespace butl;
 // -fnc
 //    Use format_no_copy replacement flag.
 //
+// -m
+//    Match the entire string, rather than its sub-strings.
+//
 int
 main (int argc, const char* argv[])
 try
@@ -49,6 +52,7 @@ try
   regex_constants::match_flag_type fl (regex_constants::match_default);
 
   int i (1);
+  bool match (false);
   for (; i != argc; ++i)
   {
     string op (argv[i]);
@@ -57,6 +61,8 @@ try
       fl |= regex_constants::format_first_only;
     else if (op == "-fnc")
       fl |= regex_constants::format_no_copy;
+    else if (op == "-m")
+      match = true;
     else
       break;
   }
@@ -67,7 +73,9 @@ try
   regex  re  (argv[i++]);
   string fmt (argv[i]);
 
-  auto r (regex_replace_ex (s, re, fmt, fl));
+  auto r (match
+          ? regex_replace_match (s, re, fmt)
+          : regex_replace_search (s, re, fmt, fl));
 
   if (r.second)
     cout << r.first << endl;

@@ -2,7 +2,7 @@
 # copyright : Copyright (c) 2014-2018 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
-: match
+: replace-search
 :
 {
   $*      abcbd b x >axcxd : all
@@ -57,4 +57,13 @@
     :
     $* xay a '\lVZ' >xvZy
   }
+}
+
+: replace-match
+:
+{
+  test.options += -m
+
+  $* abc  'a(b)c' 'x\1y'  >xby : match
+  $* abcd 'a(b)c' 'x\1yd' == 1 : no-match
 }
