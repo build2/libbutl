@@ -104,17 +104,18 @@ namespace butl
     assert (trim (r = "a \r") == "a");
     assert (trim (r = " a ") == "a");
     assert (trim (r = " \ta \r") == "a");
+    assert (trim (r = "\na\n") == "a");
     */
+
+    auto ws = [] (char c )
+    {
+      return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+    };
 
     size_t i (0), n (l.size ());
 
-    for (char c;
-         i != n && ((c = l[i]) == ' ' || c == '\t' || c == '\r');
-         ++i) ;
-
-    for (char c;
-         n != i && ((c = l[n - 1]) == ' ' || c == '\t' || c == '\r');
-         --n) ;
+    for (; i != n && ws (l[i]);     ++i) ;
+    for (; n != i && ws (l[n - 1]); --n) ;
 
     if (i != 0)
     {

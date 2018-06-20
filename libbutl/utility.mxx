@@ -140,7 +140,7 @@ LIBBUTL_MODEXPORT namespace butl
   // Basic string utilities.
   //
 
-  // Trim leading/trailing whitespacec, including '\r'.
+  // Trim leading/trailing whitespaces, including '\n' and '\r'.
   //
   LIBBUTL_SYMEXPORT std::string&
   trim (std::string&);
