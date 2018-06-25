@@ -217,9 +217,10 @@ main ()
   //
   assert (fail ("Apr 08 19:31:10 2016", "%b %d %H:%M:%S %Y %"));
 
-  // Error is not detected on FreeBSD 11 with Clang/libc++ 3.8.0.
+  // Error is not detected on FreeBSD 11 with Clang/libc++ 3.8.0 and on
+  // MacOS 10.13 Clang/libc++ 5.0.
   //
-#ifndef __FreeBSD__
+#if !(defined(__FreeBSD__) || defined(__APPLE__))
   assert (fail ("Apr 08 19:31:10", "%b %d %H:%M:%S %Y"));
 #endif
 
