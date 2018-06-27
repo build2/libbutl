@@ -89,33 +89,36 @@ using namespace std;
 // of the std::tm argument.
 //
 #ifdef __GLIBCXX__
-namespace details
+namespace butl
 {
-  struct put_time_data
+  namespace details
   {
-    const std::tm* tm;
-    const char* fmt;
-  };
+    struct put_time_data
+    {
+      const std::tm* tm;
+      const char* fmt;
+    };
 
-  inline put_time_data
-  put_time (const std::tm* tm, const char* fmt)
-  {
-    return put_time_data {tm, fmt};
-  }
+    inline put_time_data
+    put_time (const std::tm* tm, const char* fmt)
+    {
+      return put_time_data {tm, fmt};
+    }
 
-  inline ostream&
-  operator<< (ostream& os, const put_time_data& d)
-  {
-    char buf[256];
-    if (strftime (buf, sizeof (buf), d.fmt, d.tm) != 0)
-      os << buf;
-    else
-      os.setstate (ostream::badbit);
-    return os;
+    inline ostream&
+    operator<< (ostream& os, const put_time_data& d)
+    {
+      char buf[256];
+      if (strftime (buf, sizeof (buf), d.fmt, d.tm) != 0)
+        os << buf;
+      else
+        os.setstate (ostream::badbit);
+      return os;
+    }
   }
 }
 
-using namespace details;
+using namespace butl::details;
 #endif
 
 // Thread-safe implementations of gmtime() and localtime().
@@ -133,36 +136,39 @@ using namespace details;
 // one common tm structure per thread for the conversion", which mean that they
 // are thread-safe.
 //
-namespace details
+namespace butl
 {
-  static tm*
-  gmtime (const time_t* t, tm* r)
+  namespace details
   {
+    static tm*
+    gmtime (const time_t* t, tm* r)
+    {
 #ifdef _WIN32
-    const tm* gt (::gmtime (t));
-    if (gt == nullptr)
-      return nullptr;
+      const tm* gt (::gmtime (t));
+      if (gt == nullptr)
+        return nullptr;
 
-    *r = *gt;
-    return r;
+      *r = *gt;
+      return r;
 #else
-    return gmtime_r (t, r);
+      return gmtime_r (t, r);
 #endif
-  }
+    }
 
-  static tm*
-  localtime (const time_t* t, tm* r)
-  {
+    static tm*
+    localtime (const time_t* t, tm* r)
+    {
 #ifdef _WIN32
-    const tm* lt (::localtime (t));
-    if (lt == nullptr)
-      return nullptr;
+      const tm* lt (::localtime (t));
+      if (lt == nullptr)
+        return nullptr;
 
-    *r = *lt;
-    return r;
+      *r = *lt;
+      return r;
 #else
-    return localtime_r (t, r);
+      return localtime_r (t, r);
 #endif
+    }
   }
 }
 
@@ -219,7 +225,7 @@ timegm (tm* ctm)
   // offset is effectively the time difference between MSK and GMT time zones.
   //
   tm gtm;
-  if (details::gmtime (&t, &gtm) == nullptr)
+  if (butl::details::gmtime (&t, &gtm) == nullptr)
     return e;
 
   // gmtime() being called for the timepoint t returns 6 AM. So now we have
