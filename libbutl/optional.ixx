@@ -55,24 +55,6 @@ namespace butl
     }
 
     template <typename T>
-    inline optional_data<T, false>::
-    optional_data (const optional_data& o)
-        : v_ (o.v_)
-    {
-      if (v_)
-        new (&d_) T (o.d_);
-    }
-
-    template <typename T>
-    inline optional_data<T, false>::
-    optional_data (optional_data&& o)
-        : v_ (o.v_)
-    {
-      if (v_)
-        new (&d_) T (std::move (o.d_));
-    }
-
-    template <typename T>
     inline optional_data<T, false>& optional_data<T, false>::
     operator= (const optional_data& o)
     {
@@ -155,24 +137,6 @@ namespace butl
       v_ = true;
 
       return *this;
-    }
-
-    template <typename T>
-    inline optional_data<T, true>::
-    optional_data (const optional_data& o)
-        : v_ (o.v_)
-    {
-      if (v_)
-        new (&d_) T (o.d_);
-    }
-
-    template <typename T>
-    inline optional_data<T, true>::
-    optional_data (optional_data&& o)
-        : v_ (o.v_)
-    {
-      if (v_)
-        new (&d_) T (std::move (o.d_));
     }
 
     template <typename T>
