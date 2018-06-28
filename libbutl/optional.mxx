@@ -65,7 +65,7 @@ LIBBUTL_MODEXPORT namespace butl
 #endif
 
 #if (!defined(_MSC_VER) || _MSC_VER > 1900) &&  \
-    (!defined(__GNUC__) || __GNUC__ >= 5)
+    (!defined(__GNUC__) || __GNUC__ > 4 || defined(__clang__))
       constexpr optional_data (const optional_data& o): v_ (o.v_) {if (v_) new (&d_) T (o.d_);}
       constexpr optional_data (optional_data&& o):      v_ (o.v_) {if (v_) new (&d_) T (std::move (o.d_));}
 #else
@@ -108,7 +108,7 @@ LIBBUTL_MODEXPORT namespace butl
 #endif
 
 #if (!defined(_MSC_VER) || _MSC_VER > 1900) && \
-    (!defined(__GNUC__) || __GNUC__ >= 5)
+    (!defined(__GNUC__) || __GNUC__ > 4 || defined(__clang__))
       constexpr optional_data (const optional_data& o): v_ (o.v_) {if (v_) new (&d_) T (o.d_);}
       constexpr optional_data (optional_data&& o):      v_ (o.v_) {if (v_) new (&d_) T (std::move (o.d_));}
 #else
@@ -146,7 +146,7 @@ LIBBUTL_MODEXPORT namespace butl
 #endif
 
 #if (!defined(_MSC_VER) || _MSC_VER > 1900) &&  \
-    (!defined(__GNUC__) || __GNUC__ >= 5)
+    (!defined(__GNUC__) || __GNUC__ > 4 || defined(__clang__))
     constexpr optional (const optional&) = default;
     constexpr optional (optional&&)      = default;
 #else
