@@ -57,15 +57,18 @@ LIBBUTL_MODEXPORT namespace butl
       constexpr optional_data (nullopt_t):  e_ (),              v_ (false) {}
       constexpr optional_data (const T& v): d_ (v),             v_ (true)  {}
       constexpr optional_data (T&& v):      d_ (std::move (v)), v_ (true)  {}
-
-      constexpr optional_data (const optional_data& o): v_ (o.v_) {if (v_) new (&d_) T (o.d_);}
-      constexpr optional_data (optional_data&& o):      v_ (o.v_) {if (v_) new (&d_) T (std::move (o.d_));}
 #else
       optional_data ():           e_ (),              v_ (false) {}
       optional_data (nullopt_t):  e_ (),              v_ (false) {}
       optional_data (const T& v): d_ (v),             v_ (true)  {}
       optional_data (T&& v):      d_ (std::move (v)), v_ (true)  {}
+#endif
 
+#if (!defined(_MSC_VER) || _MSC_VER > 1900) &&  \
+    (!defined(__GNUC__) || __GNUC__ >= 5)
+      constexpr optional_data (const optional_data& o): v_ (o.v_) {if (v_) new (&d_) T (o.d_);}
+      constexpr optional_data (optional_data&& o):      v_ (o.v_) {if (v_) new (&d_) T (std::move (o.d_));}
+#else
       optional_data (const optional_data& o): v_ (o.v_) {if (v_) new (&d_) T (o.d_);}
       optional_data (optional_data&& o):      v_ (o.v_) {if (v_) new (&d_) T (std::move (o.d_));}
 #endif
@@ -97,15 +100,18 @@ LIBBUTL_MODEXPORT namespace butl
       constexpr optional_data (nullopt_t):  e_ (),              v_ (false) {}
       constexpr optional_data (const T& v): d_ (v),             v_ (true)  {}
       constexpr optional_data (T&& v):      d_ (std::move (v)), v_ (true)  {}
-
-      constexpr optional_data (const optional_data& o): v_ (o.v_) {if (v_) new (&d_) T (o.d_);}
-      constexpr optional_data (optional_data&& o):      v_ (o.v_) {if (v_) new (&d_) T (std::move (o.d_));}
 #else
       optional_data ():           e_ (),              v_ (false) {}
       optional_data (nullopt_t):  e_ (),              v_ (false) {}
       optional_data (const T& v): d_ (v),             v_ (true)  {}
       optional_data (T&& v):      d_ (std::move (v)), v_ (true)  {}
+#endif
 
+#if (!defined(_MSC_VER) || _MSC_VER > 1900) && \
+    (!defined(__GNUC__) || __GNUC__ >= 5)
+      constexpr optional_data (const optional_data& o): v_ (o.v_) {if (v_) new (&d_) T (o.d_);}
+      constexpr optional_data (optional_data&& o):      v_ (o.v_) {if (v_) new (&d_) T (std::move (o.d_));}
+#else
       optional_data (const optional_data& o): v_ (o.v_) {if (v_) new (&d_) T (o.d_);}
       optional_data (optional_data&& o):      v_ (o.v_) {if (v_) new (&d_) T (std::move (o.d_));}
 #endif
@@ -132,15 +138,18 @@ LIBBUTL_MODEXPORT namespace butl
     constexpr optional (nullopt_t)                        {}
     constexpr optional (const T& v): base (v)             {}
     constexpr optional (T&& v):      base (std::move (v)) {}
-
-    constexpr optional (const optional&) = default;
-    constexpr optional (optional&&)      = default;
 #else
     optional ()                                 {}
     optional (nullopt_t)                        {}
     optional (const T& v): base (v)             {}
     optional (T&& v):      base (std::move (v)) {}
+#endif
 
+#if (!defined(_MSC_VER) || _MSC_VER > 1900) &&  \
+    (!defined(__GNUC__) || __GNUC__ >= 5)
+    constexpr optional (const optional&) = default;
+    constexpr optional (optional&&)      = default;
+#else
     optional (const optional&) = default;
     optional (optional&&)      = default;
 #endif
