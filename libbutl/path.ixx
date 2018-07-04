@@ -349,7 +349,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
     if (p != string_type::npos)
     {
-      s.resize (0, p);
+      s.resize (p);
 
       // Keep the original tsep unless the path became empty.
       //
