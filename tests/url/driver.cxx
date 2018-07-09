@@ -169,9 +169,8 @@ try
     // Test ctors and operators.
     //
     {
-      wurl u0 ((wstring ()));
+      wurl u0;
       assert (u0.empty ());
-      assert (u0 == wurl ());
 
       wurl u1 (scheme::http,
                wurl_authority {wstring (), wurl_host (L"[123]"), 0},
@@ -288,7 +287,7 @@ try
     {
     case print_mode::str:
       {
-        cout << url (ua) << endl;
+        cout << (*ua != '\0' ? url (ua) : url ()) << endl;
         break;
       }
     case print_mode::wstr:
@@ -297,7 +296,7 @@ try
         //
         wstring s (ua, ua + strlen (ua));
 
-        wcout << wurl (s) << endl;
+        wcout << (!s.empty () ? wurl (s) : wurl ()) << endl;
         break;
       }
     case print_mode::comp:
@@ -305,7 +304,10 @@ try
         // Convert ASCII string to wstring.
         //
         wstring s (ua, ua + strlen (ua));
-        wurl u (s);
+
+        wurl u;
+        if (!s.empty ())
+          u = wurl (s);
 
         if (!u.empty ())
         {

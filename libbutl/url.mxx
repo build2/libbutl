@@ -254,12 +254,11 @@ LIBBUTL_MODEXPORT namespace butl
     //
     basic_url () = default;
 
-    // Create the URL object from its string representation. If the argument is
-    // empty, then create an empty object. Otherwise verify that the string is
-    // compliant to the generic URL syntax. URL-decode and validate components
-    // with common for all schemes syntax (scheme, host, port, path).
-    // Throw std::invalid_argument if the passed string is not a valid URL
-    // representation.
+    // Create the URL object from its string representation. Verify that the
+    // string is compliant to the generic URL syntax. URL-decode and validate
+    // components with common for all schemes syntax (scheme, host, port,
+    // path). Throw std::invalid_argument if the passed string is not a valid
+    // URL representation.
     //
     // Validation and URL-decoding of the scheme-specific components can be
     // provided by a custom url_traits::translate_scheme() implementation.

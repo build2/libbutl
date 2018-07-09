@@ -226,14 +226,11 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
     using iterator  = typename string_type::const_iterator;
 
-    // Create an empty URL object for the empty argument. Note that the scheme
-    // is default-constructed, and so may stay undefined in this case.
-    //
-    if (u.empty ())
-      return;
-
     try
     {
+      if (u.empty ())
+        throw invalid_argument ("empty URL");
+
       // At the end of a component parsing 'i' points to the next component
       // start, and 'b' stays unchanged.
       //
