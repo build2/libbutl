@@ -27,6 +27,8 @@ extern "C"
 #include "sha256c.c"
 }
 
+#include <cassert>
+
 #ifndef __cpp_lib_modules
 #include <string>
 #include <cstddef>
@@ -53,8 +55,10 @@ import std.core;
 #endif
 
 import butl.utility; // *case()
+import butl.fdstream;
 #else
 #include <libbutl/utility.mxx>
+#include <libbutl/fdstream.mxx>
 #endif
 
 using namespace std;
@@ -72,6 +76,20 @@ namespace butl
   append (const void* b, size_t n)
   {
     SHA256_Update (reinterpret_cast<SHA256_CTX*> (buf_), b, n);
+  }
+
+  void sha256::
+  append (ifdstream& is)
+  {
+    fdbuf* buf (dynamic_cast<fdbuf*> (is.rdbuf ()));
+    assert (buf != nullptr);
+
+    while (is.peek () != ifdstream::traits_type::eof () && is.good ())
+    {
+      size_t n (buf->egptr () - buf->gptr ());
+      append (buf->gptr (), n);
+      buf->gbump (static_cast<int> (n));
+    }
   }
 
   const sha256::digest_type& sha256::

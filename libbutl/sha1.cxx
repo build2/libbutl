@@ -42,6 +42,8 @@ extern "C"
 #define SHA1_Update(x, y, z) sha1_loop((x), (const uint8_t *)(y), (z))
 #define SHA1_Final(x, y)     sha1_result((y), (char(&)[20])(x))
 
+#include <cassert>
+
 #ifndef __cpp_lib_modules
 #include <string>
 #include <cstddef>
@@ -53,12 +55,16 @@ extern "C"
 #ifdef __cpp_modules
 module butl.sha1;
 
+// Only imports additional to interface.
 #ifdef __clang__
 #ifdef __cpp_lib_modules
 import std.core;
 #endif
 #endif
 
+import butl.fdstream;
+#else
+#include <libbutl/fdstream.mxx>
 #endif
 
 using namespace std;
@@ -76,6 +82,20 @@ namespace butl
   append (const void* b, size_t n)
   {
     SHA1_Update (reinterpret_cast<SHA1_CTX*> (buf_), b, n);
+  }
+
+  void sha1::
+  append (ifdstream& is)
+  {
+    fdbuf* buf (dynamic_cast<fdbuf*> (is.rdbuf ()));
+    assert (buf != nullptr);
+
+    while (is.peek () != ifdstream::traits_type::eof () && is.good ())
+    {
+      size_t n (buf->egptr () - buf->gptr ());
+      append (buf->gptr (), n);
+      buf->gbump (static_cast<int> (n));
+    }
   }
 
   const sha1::digest_type& sha1::

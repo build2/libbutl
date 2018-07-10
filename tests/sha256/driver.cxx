@@ -6,7 +6,7 @@
 
 #ifndef __cpp_lib_modules
 #include <string>
-#include <iostream>
+#include <cstddef> // size_t
 #endif
 
 // Other includes.
@@ -14,11 +14,16 @@
 #ifdef __cpp_modules
 #ifdef __cpp_lib_modules
 import std.core;
-import std.io;
 #endif
+import butl.path;
 import butl.sha256;
+import butl.fdstream;
+import butl.filesystem;
 #else
+#include <libbutl/path.mxx>
 #include <libbutl/sha256.mxx>
+#include <libbutl/fdstream.mxx>
+#include <libbutl/filesystem.mxx> // auto_rmfile
 #endif
 
 using namespace std;
@@ -35,6 +40,29 @@ main ()
 
   assert (string (sha256 ("123", 3).string ()) ==
           "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3");
+
+  {
+    string s;
+    for (size_t i (0); i < 1024; ++i)
+      s += "0123456789";
+
+    path p (path::temp_path ("butl-sha256"));
+
+    auto_rmfile pr;       // Always remove the file after the stream is closed.
+    ofdstream os (p);
+    pr = auto_rmfile (p);
+
+    os << s;
+    os.close ();
+
+    ifdstream is (p);
+
+    assert (string (sha256 (is).string ()) ==
+            sha256 (s.c_str (), s.size ()).string ());
+
+    assert (is.eof ());
+    is.close ();
+  }
 
   {
     sha256 h ("123");

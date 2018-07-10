@@ -29,6 +29,8 @@ import std.core;
 
 LIBBUTL_MODEXPORT namespace butl
 {
+  class ifdstream;
+
   // SHA256 checksum calculator.
   //
   // For a single chunk of data a sum can be obtained in one line, for
@@ -97,6 +99,14 @@ LIBBUTL_MODEXPORT namespace butl
       else
         append (&x, len);
     }
+
+    // Append stream.
+    //
+    void
+    append (ifdstream&);
+
+    explicit
+    sha256 (ifdstream& i): sha256 () {append (i);}
 
     // Extract result.
     //

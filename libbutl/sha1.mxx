@@ -28,6 +28,8 @@ import std.core;
 
 LIBBUTL_MODEXPORT namespace butl
 {
+  class ifdstream;
+
   // SHA1 checksum calculator.
   //
   // For a single chunk of data a sum can be obtained in one line, for
@@ -63,6 +65,14 @@ LIBBUTL_MODEXPORT namespace butl
 
     explicit
     sha1 (const char* s): sha1 () {append (s);}
+
+    // Append stream.
+    //
+    void
+    append (ifdstream&);
+
+    explicit
+    sha1 (ifdstream& i): sha1 () {append (i);}
 
     // Extract result.
     //
