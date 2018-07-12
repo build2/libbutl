@@ -16,12 +16,11 @@ if ($force_std_modules == true)
 lib{butl}: {mxx hxx ixx txx cxx}{** -win32-utility -version} {hxx}{version} \
   $int_libs
 
+windows = ($cxx.target.class == 'windows')
+
 # Exclude these from compilation on non-Windows targets.
 #
-if ($cxx.target.class == "windows")
-  lib{butl}: {hxx cxx}{win32-utility}
-else
-  lib{butl}: file{win32-utility.?xx}
+lib{butl}: {hxx cxx}{win32-utility}: include = $windows
 
 # The C-files are included into sha256.cxx (sha256c.c) and timestamp.cxx
 # (strptime.c timelocal.h timelocal.c), so treat them as files to exclude from
@@ -55,9 +54,9 @@ lib{butl}: cxx.export.poptions = "-I$out_root" "-I$src_root"
 liba{butl}: cxx.export.poptions += -DLIBBUTL_STATIC
 libs{butl}: cxx.export.poptions += -DLIBBUTL_SHARED
 
-if ($cxx.target.class == "windows")
+if $windows
 {
-  if ($cxx.target.system == "mingw32")
+  if ($cxx.target.system == 'mingw32')
     cxx.libs += -limagehlp
   else
     cxx.libs += imagehlp.lib
