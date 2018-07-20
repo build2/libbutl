@@ -145,6 +145,12 @@ LIBBUTL_MODEXPORT namespace butl
   LIBBUTL_SYMEXPORT std::string&
   trim (std::string&);
 
+  inline std::string
+  trim (std::string&& s)
+  {
+    return move (trim (s));
+  }
+
   // Find the beginning and end poistions of the next word. Return the size
   // of the word or 0 and set b = e = n if there are no more words. For
   // example:
