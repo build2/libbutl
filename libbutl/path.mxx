@@ -619,7 +619,8 @@ LIBBUTL_MODEXPORT namespace butl
 
     // Constructors that initialize a path from a string argument throw the
     // invalid_path exception if the string is not a valid path (e.g., uses
-    // unsupported path notations on Windows).
+    // unsupported path notations on Windows). Note that an empty string
+    // initializes an empty path.
     //
     explicit
     basic_path (C const* s): base_type (K::init (s)) {}
