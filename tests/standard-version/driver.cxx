@@ -18,7 +18,7 @@
 import std.core;
 import std.io;
 #endif
-import butl.utility;          // operator<<(ostream,exception)
+import butl.utility;          // operator<<(ostream,exception), eof()
 import butl.standard_version;
 #else
 #include <libbutl/utility.mxx>
@@ -124,11 +124,11 @@ version (const string& s,
 // -a  output 'y' for alpha-version, 'n' otherwise
 // -b  output 'y' for beta-version, 'n' otherwise
 // -c  output 0 if versions are equal, -1 if the first one is less, 1 otherwise
-// -r  create version constraints from STDIN lines, and print them to STDOUT
+// -r  create version constraints from stdin lines, and print them to stdout
 // -s  output 'y' if version satisfies constraint, 'n' otherwise
 //
-// If no options are specified, then create versions from STDIN lines, and
-// print them to STDOUT.
+// If no options are specified, then create versions from stdin lines, and
+// print them to stdout.
 //
 int
 main (int argc, char* argv[])
@@ -186,7 +186,7 @@ try
   }
 
   string s;
-  while (getline (cin, s))
+  while (!eof (getline (cin, s)))
     cout << (s.empty () ? standard_version () : version (s)) << endl;
 
   return 0;

@@ -1,0 +1,78 @@
+# file      : tests/project-name/testscript
+# copyright : Copyright (c) 2014-2018 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+: string
+{
+  test.arguments += 'string'
+
+  : valid
+  :
+  $* <<EOF >>EOF
+    foo
+    foo1
+    Foo
+    foo_bar
+    foo+bar
+    foo-bar
+    foo.bar
+    build2
+    EOF
+
+  $* <'a'   2>'length is less than two characters'           != 0: short
+  $* <'nul' 2>'illegal name'                                 != 0: illegal-name
+  $* <'1a'  2>'illegal first character (must be alphabetic)' != 0: illegal-first-char
+  $* <'a!b' 2>'illegal character'                            != 0: illegal-char
+
+  : illegal-last-char
+  :
+  $* <'a.' 2>'illegal last character (must be alphabetic, digit, or plus)' != 0
+}
+
+: base
+:
+{
+  test.arguments += 'base';
+
+  $* <<EOI >>EOO
+    libbutl
+    libbutl.bash
+    a.b.c
+    EOI
+    libbutl
+    libbutl
+    a.b
+    EOO
+}
+
+: extension
+:
+{
+  test.arguments += 'extension';
+
+  $* <<EOI >>EOO
+    libbutl
+    libbutl.bash
+    a.b.c
+    EOI
+
+    bash
+    c
+    EOO
+}
+
+: variable
+:
+{
+  test.arguments += 'variable';
+
+  $* <<EOI >>EOO
+    foo-bar
+    libc++
+    libbutl.bash
+    EOI
+    foo_bar
+    libc__
+    libbutl_bash
+    EOO
+}

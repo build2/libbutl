@@ -1,0 +1,84 @@
+// file      : tests/project-name/driver.cxx -*- C++ -*-
+// copyright : Copyright (c) 2014-2018 Code Synthesis Ltd
+// license   : MIT; see accompanying LICENSE file
+
+#include <cassert>
+
+#ifndef __cpp_lib_modules
+#include <ios>       // ios::*bit
+#include <string>
+#include <iostream>
+#include <stdexcept> // invalid_argument
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.utility;      // operator<<(ostream,exception), eof(), *case()
+import butl.project_name;
+#else
+#include <libbutl/utility.mxx>
+#include <libbutl/project-name.mxx>
+#endif
+
+using namespace std;
+using namespace butl;
+
+// Create project_name from string and also perform some tests for the created
+// object.
+//
+static project_name
+name (const string& s)
+{
+  project_name r (s);
+
+  assert (r == project_name (lcase (s)));
+  assert (r == project_name (ucase (s)));
+
+  assert (r > project_name ("!", project_name::raw_string));
+  assert (r < project_name ("~", project_name::raw_string));
+
+  return r;
+}
+
+// Usage: argv[0] (string|base|extension|variable)
+//
+// Create project names from stdin lines, and for each of them print the
+// result of the specified member function to stdout, one per line.
+//
+int
+main (int argc, char* argv[])
+try
+{
+  assert (argc == 2);
+
+  string m (argv[1]);
+  assert (m == "string" || m == "base" || m == "extension" || m == "variable");
+
+  cin.exceptions  (ios::badbit);
+  cout.exceptions (ios::failbit | ios::badbit);
+
+  string l;
+  while (!eof (getline (cin, l)))
+  {
+    project_name n (name (l));
+
+    const string& s (m == "string"    ? n.string ()    :
+                     m == "base"      ? n.base ()      :
+                     m == "extension" ? n.extension () :
+                     n.variable ());
+
+    cout << s << endl;
+  }
+
+  return 0;
+}
+catch (const invalid_argument& e)
+{
+  cerr << e << endl;
+  return 1;
+}

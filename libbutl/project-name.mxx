@@ -1,0 +1,223 @@
+// file      : libbutl/project-name.mxx -*- C++ -*-
+// copyright : Copyright (c) 2014-2018 Code Synthesis Ltd
+// license   : MIT; see accompanying LICENSE file
+
+#ifndef __cpp_modules
+#pragma once
+#endif
+
+// C includes.
+
+#ifndef __cpp_lib_modules
+#include <string>
+#include <utility> // move()
+#include <ostream>
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.project_name;
+#ifdef __cpp_lib_modules
+import std.core;
+import std.io;
+#endif
+import butl.utility; // casecmp()
+#else
+#include <libbutl/utility.mxx>
+#endif
+
+#include <libbutl/export.hxx>
+
+LIBBUTL_MODEXPORT namespace butl
+{
+  class LIBBUTL_SYMEXPORT project_name
+  {
+  public:
+    // Create project name from string verifying that it complied with the
+    // specification and throwing std::invalid_argument if that's not the
+    // case. Note that in this case the passed value is guaranteed to be
+    // unchanged.
+    //
+    explicit
+    project_name (const std::string& s): project_name (std::string (s)) {}
+
+    explicit
+    project_name (std::string&&);
+
+    // Create a special empty project name.
+    //
+    project_name () = default;
+
+    // Create an arbitrary string that can be used in contexts that expect
+    // a project name. For example, a project name pattern for use in ODB query
+    // expressions.
+    //
+    enum raw_string_type {raw_string};
+    project_name (std::string s, raw_string_type): value_ (std::move (s)) {}
+
+    bool
+    empty () const noexcept {return value_.empty ();}
+
+    const std::string&
+    string () const& noexcept {return value_;}
+
+    // Moves the underlying project name string out of the project name object.
+    // The object becomes empty. Usage: std::move (name).string ().
+    //
+    std::string
+    string () && {std::string r; r.swap (this->value_); return r;}
+
+    // Project name base and extension (without the dot). If there is no
+    // extension, then the base name is the same as the full name and the
+    // returned extension is empty.
+    //
+    std::string
+    base () const;
+
+    std::string
+    extension () const;
+
+    // Project name sanitized to a canonical variable name. Specifically,
+    // '.', '-', and '+' are replaced with '_'.
+    //
+    std::string
+    variable () const;
+
+    // Compare ignoring case. Note that a string is not checked to be a valid
+    // project name.
+    //
+    int compare (const project_name& n) const {return compare (n.value_);}
+    int compare (const std::string& n) const {return compare (n.c_str ());}
+    int compare (const char* n) const {return butl::casecmp (value_, n);}
+
+  private:
+    std::string value_;
+  };
+
+  inline bool
+  operator< (const project_name& x, const project_name& y)
+  {
+    return x.compare (y) < 0;
+  }
+
+  inline bool
+  operator> (const project_name& x, const project_name& y)
+  {
+    return x.compare (y) > 0;
+  }
+
+  inline bool
+  operator== (const project_name& x, const project_name& y)
+  {
+    return x.compare (y) == 0;
+  }
+
+  inline bool
+  operator<= (const project_name& x, const project_name& y)
+  {
+    return x.compare (y) <= 0;
+  }
+
+  inline bool
+  operator>= (const project_name& x, const project_name& y)
+  {
+    return x.compare (y) >= 0;
+  }
+
+  inline bool
+  operator!= (const project_name& x, const project_name& y)
+  {
+    return x.compare (y) != 0;
+  }
+
+  template <typename T>
+  inline auto
+  operator< (const project_name& x, const T& y)
+  {
+    return x.compare (y) < 0;
+  }
+
+  template <typename T>
+  inline auto
+  operator> (const project_name& x, const T& y)
+  {
+    return x.compare (y) > 0;
+  }
+
+  template <typename T>
+  inline auto
+  operator== (const project_name& x, const T& y)
+  {
+    return x.compare (y) == 0;
+  }
+
+  template <typename T>
+  inline auto
+  operator<= (const project_name& x, const T& y)
+  {
+    return x.compare (y) <= 0;
+  }
+
+  template <typename T>
+  inline auto
+  operator>= (const project_name& x, const T& y)
+  {
+    return x.compare (y) >= 0;
+  }
+
+  template <typename T>
+  inline auto
+  operator!= (const project_name& x, const T& y)
+  {
+    return x.compare (y) != 0;
+  }
+
+  template <typename T>
+  inline auto
+  operator< (const T& x, const project_name& y)
+  {
+    return y > x;
+  }
+
+  template <typename T>
+  inline auto
+  operator> (const T& x, const project_name& y)
+  {
+    return y < x;
+  }
+
+  template <typename T>
+  inline auto
+  operator== (const T& x, const project_name& y)
+  {
+    return y == x;
+  }
+
+  template <typename T>
+  inline auto
+  operator<= (const T& x, const project_name& y)
+  {
+    return y >= x;
+  }
+
+  template <typename T>
+  inline auto
+  operator>= (const T& x, const project_name& y)
+  {
+    return y <= x;
+  }
+
+  template <typename T>
+  inline auto
+  operator!= (const T& x, const project_name& y)
+  {
+    return y != x;
+  }
+
+  inline std::ostream&
+  operator<< (std::ostream& os, const project_name& v)
+  {
+    return os << v.string ();
+  }
+}
