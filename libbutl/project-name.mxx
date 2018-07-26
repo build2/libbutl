@@ -31,11 +31,18 @@ import butl.utility; // casecmp()
 
 LIBBUTL_MODEXPORT namespace butl
 {
+  // Build system project name.
+  //
+  // Since a build system project is often a package, it is also used as a
+  // package name by the package dependency manager. And since a package is
+  // often a project (in the "collection of related packages" sense), it is
+  // also used as a project name by the project dependency manager.
+  //
   class LIBBUTL_SYMEXPORT project_name
   {
   public:
-    // Create project name from string verifying that it complied with the
-    // specification and throwing std::invalid_argument if that's not the
+    // Create project name from string verifying that it complies with the
+    // specification and throw std::invalid_argument if that's not the
     // case. Note that in this case the passed value is guaranteed to be
     // unchanged.
     //
@@ -49,8 +56,8 @@ LIBBUTL_MODEXPORT namespace butl
     //
     project_name () = default;
 
-    // Create an arbitrary string that can be used in contexts that expect
-    // a project name. For example, a project name pattern for use in ODB query
+    // Create an arbitrary string that can be used in contexts that expect a
+    // project name. For example, a project name pattern for use in ODB query
     // expressions.
     //
     enum raw_string_type {raw_string};
