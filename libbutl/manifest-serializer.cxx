@@ -76,10 +76,13 @@ namespace butl
       {
         if (n.empty ())
         {
-          if (!v.empty ())
-            throw serialization (name_, "non-empty value in end pair");
-
           s_ = start;
+
+          // Start new manifest if the end-of-manifest pair is omitted.
+          //
+          if (!v.empty ())
+            return next (n, v);
+
           break;
         }
 

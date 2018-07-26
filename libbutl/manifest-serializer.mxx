@@ -55,7 +55,8 @@ LIBBUTL_MODEXPORT namespace butl
     // with empty name and value. After that we can either have another
     // start-of-manifest pair (in which case the whole sequence repeats
     // from the beginning) or we get another end-of-manifest pair which
-    // signals the end of stream.
+    // signals the end of stream. The end-of-manifest pair can be omitted
+    // if it is followed by the start-of-manifest pair.
     //
     void
     next (const std::string& name, const std::string& value);
