@@ -45,7 +45,7 @@ name (const string& s)
   return r;
 }
 
-// Usage: argv[0] (string|base|extension|variable)
+// Usage: argv[0] (string|base [ext]|extension|variable)
 //
 // Create project names from stdin lines, and for each of them print the
 // result of the specified member function to stdout, one per line.
@@ -54,13 +54,16 @@ int
 main (int argc, char* argv[])
 try
 {
-  assert (argc == 2);
+  assert (argc <= 3);
 
   string m (argv[1]);
   assert (m == "string" || m == "base" || m == "extension" || m == "variable");
+  assert (m == "base" ? argc <= 3 : argc == 2);
 
   cin.exceptions  (ios::badbit);
   cout.exceptions (ios::failbit | ios::badbit);
+
+  const char* ext (argc == 3 ? argv[2] : nullptr);
 
   string l;
   while (!eof (getline (cin, l)))
@@ -68,7 +71,7 @@ try
     project_name n (name (l));
 
     const string& s (m == "string"    ? n.string ()    :
-                     m == "base"      ? n.base ()      :
+                     m == "base"      ? n.base (ext)   :
                      m == "extension" ? n.extension () :
                      n.variable ());
 

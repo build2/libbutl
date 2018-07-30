@@ -32,8 +32,10 @@
 : base
 :
 {
-  test.arguments += 'base';
+  test.arguments += 'base'
 
+  : no-ext
+  :
   $* <<EOI >>EOO
     libbutl
     libbutl.bash
@@ -43,6 +45,22 @@
     libbutl
     a.b
     EOO
+
+  : ext
+  :
+  {
+    test.arguments += bash;
+
+    $* <<EOI >>EOO
+      libbutl
+      libbutl.bash
+      libbutl.python
+      EOI
+      libbutl
+      libbutl
+      libbutl.python
+      EOO
+  }
 }
 
 : extension
