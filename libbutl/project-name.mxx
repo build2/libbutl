@@ -54,7 +54,7 @@ LIBBUTL_MODEXPORT namespace butl
 
     // Create a special empty project name.
     //
-    project_name () = default;
+    project_name () {} // For Clang 3.8 (const initialization).
 
     // Create an arbitrary string that can be used in contexts that expect a
     // project name. For example, a project name pattern for use in ODB query
