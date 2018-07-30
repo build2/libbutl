@@ -81,11 +81,17 @@ namespace butl
   }
 
   string project_name::
-  base () const
+  base (const char* e) const
   {
     using std::string;
 
     size_t p (path::traits::find_extension (value_));
+
+    if (e != nullptr                            &&
+        p != string::npos                       &&
+        casecmp (value_.c_str () + p + 1, e) != 0)
+      p = string::npos;
+
     return string (value_, 0, p);
   }
 

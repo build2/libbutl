@@ -79,8 +79,12 @@ LIBBUTL_MODEXPORT namespace butl
     // extension, then the base name is the same as the full name and the
     // returned extension is empty.
     //
+    // If the ext argument is not NULL, then only remove the specified
+    // extension. Note that the extension should not include the dot and the
+    // comparison is always case-insensitive.
+    //
     std::string
-    base () const;
+    base (const char* ext = nullptr) const;
 
     std::string
     extension () const;
