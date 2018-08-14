@@ -42,12 +42,17 @@ using namespace std;
 
 namespace butl
 {
-  // Utility functions
+  // Parse uint64_t from the specified string starting at the specified
+  // position and check the min/max constraints. If successful, save the
+  // result, update the position to point to the next character, and return
+  // true. Otherwise return false (result and position are unchanged).
   //
-  static bool
+  // Note: also used for semantic_version parsing.
+  //
+  bool
   parse_uint64 (const string& s, size_t& p,
                 uint64_t& r,
-                uint64_t min, uint64_t max)
+                uint64_t min = 0, uint64_t max = uint64_t (~0))
   {
     if (s[p] == '-' || s[p] == '+') // strtoull() allows these.
       return false;
@@ -59,8 +64,8 @@ namespace butl
     if (errno == ERANGE || b == e || v < min || v > max)
       return false;
 
+    r = v;
     p = e - s.c_str ();
-    r = static_cast<uint64_t> (v);
     return true;
   }
 
