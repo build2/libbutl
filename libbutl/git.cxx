@@ -28,7 +28,7 @@ import std.core;
 #endif
 import butl.path;
 import butl.optional;
-import butl.standard_version
+import butl.semantic_version
 #endif
 
 import butl.utility;    // digit()
@@ -37,7 +37,7 @@ import butl.filesystem; // entry_exists()
 #include <libbutl/utility.mxx>
 #include <libbutl/optional.mxx>
 #include <libbutl/filesystem.mxx>
-#include <libbutl/standard-version.mxx>
+#include <libbutl/semantic-version.mxx>
 #endif
 
 using namespace std;
@@ -55,7 +55,7 @@ namespace butl
                          true /* ignore_errors   */);
   }
 
-  optional<standard_version>
+  optional<semantic_version>
   git_version (const string& s)
   {
     // There is some variety across platforms in the version
@@ -65,24 +65,8 @@ namespace butl
     // MacOS:  git version 2.10.1 (Apple Git-78)
     // MinGit: git version 2.16.1.windows.1
     //
-    // We will consider the first 3 version components that follows the
-    // common 'git version ' prefix.
-    //
-    const size_t b (12);
-    if (s.compare (0, b, "git version ") == 0)
-    {
-      size_t i (b);
-      size_t n (0);
-      for (char c; i != s.size () && (digit (c = s[i]) || c == '.'); ++i)
-      {
-        if (c == '.' && ++n == 3)
-          break;
-      }
-
-      // Returns nullopt if fail to parse.
-      //
-      return parse_standard_version (string (s, b, i - b));
-    }
+    if (s.compare (0, 12, "git version ") == 0)
+      return parse_semantic_version (s, 12, "" /* build_separators */);
 
     return nullopt;
   }

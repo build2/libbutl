@@ -27,7 +27,7 @@ int
 main ()
 {
   using semver = semantic_version;
-  using failed = invalid_argument;
+  using failed = const invalid_argument&;
 
   // Construction.
   //
