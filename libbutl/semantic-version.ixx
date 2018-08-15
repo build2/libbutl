@@ -16,9 +16,11 @@ namespace butl
   {
   }
 
+  // Note: the order is important to MinGW GCC (DLL linkage).
+  //
   inline semantic_version::
-  semantic_version (const std::string& s, bool ab)
-      : semantic_version (s, ab ? "-+" : nullptr)
+  semantic_version (const std::string& s, std::size_t p, bool ab)
+      : semantic_version (s, p, ab ? "-+" : nullptr)
   {
   }
 
@@ -29,18 +31,9 @@ namespace butl
   }
 
   inline semantic_version::
-  semantic_version (const std::string& s, std::size_t p, bool ab)
-      : semantic_version (s, p, ab ? "-+" : nullptr)
+  semantic_version (const std::string& s, bool ab)
+      : semantic_version (s, ab ? "-+" : nullptr)
   {
-  }
-
-  inline int semantic_version::
-  compare (const semantic_version& v, bool ib) const
-  {
-    return (major != v.major ? (major < v.major ? -1 : 1) :
-            minor != v.minor ? (minor < v.minor ? -1 : 1) :
-            patch != v.patch ? (patch < v.patch ? -1 : 1) :
-            ib ? 0 : build.compare (v.build));
   }
 
   struct semantic_version_result

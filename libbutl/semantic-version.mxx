@@ -122,7 +122,13 @@ LIBBUTL_MODEXPORT namespace butl
     // lexicographically.
     //
     int
-    compare (const semantic_version&, bool ignore_build = false) const;
+    compare (const semantic_version& v, bool ignore_build = false) const
+    {
+      return (major != v.major ? (major < v.major ? -1 : 1) :
+              minor != v.minor ? (minor < v.minor ? -1 : 1) :
+              patch != v.patch ? (patch < v.patch ? -1 : 1) :
+              ignore_build ? 0 : build.compare (v.build));
+    }
   };
 
   // Try to parse a string as a semantic version returning nullopt if invalid.
