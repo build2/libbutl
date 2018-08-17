@@ -49,6 +49,7 @@ exec (const path& p,
       bool env = false)          // Set environment variables for the child.
 {
   using cstrings = vector<const char*>;
+  using butl::optional;
 
   assert (!in.empty () || (!out && !err)); // Nothing to output if no input.
   assert (!pipeline || out); // To pipeline need to output something.
@@ -95,8 +96,7 @@ exec (const path& p,
     {
       if (!in.empty ())
       {
-        bool s;
-        r = !pr.try_wait (s); // Couldn't exit as waiting for the input.
+        r = !pr.try_wait (); // Couldn't exit as waiting for the input.
 
         auto bin_mode = [bin](auto_fd fd) -> auto_fd
         {
@@ -170,8 +170,8 @@ exec (const path& p,
       r = false;
     }
 
-    bool s;
-    return pr.wait () && pr.try_wait (s) && s && r;
+    optional<bool> s;
+    return pr.wait () && (s = pr.try_wait ()) && *s && r;
   }
   catch (const process_error& e)
   {

@@ -168,8 +168,7 @@ namespace butl
       Sleep (50);
 #endif
 
-      bool r;
-      if (p_.try_wait (r))
+      if (p_.try_wait ())
       {
         p_.out_fd.reset ();
 

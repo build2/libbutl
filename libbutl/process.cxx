@@ -9,7 +9,7 @@
 #include <errno.h>
 
 #ifndef _WIN32
-#  include <signal.h>    // SIG*
+#  include <signal.h>    // SIG*, kill()
 #  include <unistd.h>    // execvp, fork, dup2, pipe, chdir, *_FILENO, getpid
 #  include <sys/wait.h>  // waitpid
 #  include <sys/types.h> // _stat
@@ -46,6 +46,7 @@
 #ifndef __cpp_lib_modules
 #include <string>
 #include <vector>
+#include <chrono>
 #include <cstdint>
 #include <cstddef>
 #include <system_error>
@@ -55,10 +56,11 @@
 #include <utility>  // move()
 #include <ostream>
 
-#ifdef _WIN32
+#ifndef _WIN32
+#include <thread> // this_thread::sleep_for()
+#else
 #include <map>
 #include <ratio>     // milli
-#include <chrono>
 #include <cstdlib>   // __argv[]
 #include <algorithm> // find()
 #endif
@@ -85,6 +87,10 @@ import butl.path;
 import butl.fdstream;
 import butl.vector_view;
 import butl.small_vector;
+#endif
+
+#ifndef _WIN32
+import std.threading;
 #endif
 
 import butl.utility;  // casecmp()
@@ -509,7 +515,7 @@ namespace butl
     return exit && exit->normal () && exit->code () == 0;
   }
 
-  bool process::
+  optional<bool> process::
   try_wait ()
   {
     if (handle != 0)
@@ -518,7 +524,7 @@ namespace butl
       int r (waitpid (handle, &es, WNOHANG));
 
       if (r == 0) // Not exited yet.
-        return false;
+        return nullopt;
 
       handle = 0; // We have tried.
 
@@ -528,7 +534,39 @@ namespace butl
       exit = process_exit (es, process_exit::as_status);
     }
 
-    return true;
+    return exit ? static_cast<bool> (*exit) : optional<bool> ();
+  }
+
+  template <>
+  optional<bool> process::
+  timed_wait (const chrono::milliseconds& tm)
+  {
+    using namespace chrono;
+
+    // On POSIX this seems to be the best way for multi-threaded processes.
+    //
+    const milliseconds sd (10);
+    for (milliseconds d (tm); !try_wait (); d -= sd)
+    {
+      this_thread::sleep_for (d < sd ? d : sd);
+
+      if (d < sd)
+        break;
+    }
+
+    return try_wait ();
+  }
+
+  void process::
+  kill ()
+  {
+    if (handle != 0)
+    {
+      if (::kill (handle, SIGKILL) == -1)
+        throw process_error (errno);
+
+      wait ();
+    }
   }
 
   process::id_type process::
@@ -1665,14 +1703,14 @@ namespace butl
     return exit && exit->normal () && exit->code () == 0;
   }
 
-  bool process::
+  optional<bool> process::
   try_wait ()
   {
     if (handle != 0)
     {
       DWORD r (WaitForSingleObject (handle, 0));
       if (r == WAIT_TIMEOUT)
-        return false;
+        return nullopt;
 
       DWORD es;
       DWORD e (NO_ERROR);
@@ -1689,7 +1727,20 @@ namespace butl
       exit->status = es;
     }
 
-    return true;
+    return exit ? static_cast<bool> (*exit) : optional<bool> ();
+  }
+
+  template <>
+  optional<bool> process::
+  timed_wait (const chrono::milliseconds&)
+  {
+    throw process_error (ENOTSUP);
+  }
+
+  void process::
+  kill ()
+  {
+    throw process_error (ENOTSUP);
   }
 
   process::id_type process::

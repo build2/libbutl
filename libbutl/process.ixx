@@ -223,14 +223,18 @@ namespace butl
     return *this;
   }
 
-  inline bool process::
-  try_wait (bool& s)
+  // Implement timed_wait() function templates in terms of their milliseconds
+  // specialization.
+  //
+  template <>
+  optional<bool> process::
+  timed_wait (const std::chrono::milliseconds&);
+
+  template <typename R, typename P>
+  inline optional<bool> process::
+  timed_wait (const std::chrono::duration<R, P>& d)
   {
-    bool r (try_wait ());
-
-    if (r)
-      s = exit && exit->normal () && exit->code () == 0;
-
-    return r;
+    using namespace std::chrono;
+    return timed_wait (duration_cast<milliseconds> (d));
   }
 }

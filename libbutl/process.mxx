@@ -15,6 +15,7 @@
 #ifndef __cpp_lib_modules
 #include <string>
 #include <vector>
+#include <chrono>
 #include <ostream>
 #include <cstddef>      // size_t
 #include <cstdint>      // uint32_t
@@ -337,14 +338,32 @@ LIBBUTL_MODEXPORT namespace butl
     bool
     wait (bool ignore_errors = false);
 
-    // Return true if the process has already terminated in which case
-    // optionally set the argument to the result of wait().
+    // Return the same result as wait() if the process has already terminated
+    // and nullopt otherwise.
     //
-    bool
+    optional<bool>
     try_wait ();
 
-    bool
-    try_wait (bool&);
+    // Wait for the process to terminate for up to the specified time
+    // duration. Return the same result as wait() if the process has
+    // terminated in this timeframe and nullopt otherwise.
+    //
+    // Note: not yet implemented on Windows.
+    //
+    template <typename R, typename P>
+    optional<bool>
+    timed_wait (const std::chrono::duration<R, P>&);
+
+    // Terminate the process.
+    //
+    // On POSIX send SIGKILL to the process and wait until it terminates. The
+    // process exit information is available after the call returns. Noop for
+    // an already terminated process.
+    //
+    // Note: not yet implemented on Windows.
+    //
+    void
+    kill ();
 
     // Note that the destructor will wait for the process but will ignore
     // any errors and the exit status.
