@@ -148,37 +148,37 @@ LIBBUTL_MODEXPORT namespace butl
   // NOTE: comparison operators take the build component into account.
   //
   inline bool
-  operator< (const semantic_version& x, const semantic_version& y) noexcept
+  operator< (const semantic_version& x, const semantic_version& y)
   {
     return x.compare (y) < 0;
   }
 
   inline bool
-  operator> (const semantic_version& x, const semantic_version& y) noexcept
+  operator> (const semantic_version& x, const semantic_version& y)
   {
     return x.compare (y) > 0;
   }
 
   inline bool
-  operator== (const semantic_version& x, const semantic_version& y) noexcept
+  operator== (const semantic_version& x, const semantic_version& y)
   {
     return x.compare (y) == 0;
   }
 
   inline bool
-  operator<= (const semantic_version& x, const semantic_version& y) noexcept
+  operator<= (const semantic_version& x, const semantic_version& y)
   {
     return x.compare (y) <= 0;
   }
 
   inline bool
-  operator>= (const semantic_version& x, const semantic_version& y) noexcept
+  operator>= (const semantic_version& x, const semantic_version& y)
   {
     return x.compare (y) >= 0;
   }
 
   inline bool
-  operator!= (const semantic_version& x, const semantic_version& y) noexcept
+  operator!= (const semantic_version& x, const semantic_version& y)
   {
     return !(x == y);
   }
