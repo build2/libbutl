@@ -60,6 +60,15 @@ LIBBUTL_MODEXPORT namespace butl
   [[noreturn]] LIBBUTL_SYMEXPORT void
   throw_system_error (int system_code, int fallback_errno_code = 0);
 
+  // Throw std::ios::failure with the specified description and, if it is
+  // derived from std::system_error (as it should), error code.
+  //
+  [[noreturn]] LIBBUTL_SYMEXPORT void
+  throw_generic_ios_failure (int errno_code, const char* what = nullptr);
+
+  [[noreturn]] LIBBUTL_SYMEXPORT void
+  throw_system_ios_failure (int system_code, const char* what = nullptr);
+
   // Convert ASCII character/string case. If there is no upper/lower case
   // counterpart, leave the character unchanged. The POSIX locale (also known
   // as C locale) must be the current application locale. Otherwise the

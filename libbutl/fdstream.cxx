@@ -44,7 +44,6 @@
 #include <cstring>      // memcpy(), memmove()
 #include <exception>    // uncaught_exception[s]()
 #include <stdexcept>    // invalid_argument
-#include <type_traits>
 #include <system_error>
 #endif
 
@@ -75,63 +74,6 @@ using namespace butl::win32;
 
 namespace butl
 {
-  // throw_ios_failure
-  //
-  template <bool v>
-  [[noreturn]] static inline typename enable_if<v>::type
-  throw_ios_failure (error_code e, const char* m)
-  {
-    // The idea here is to make an error code to be saved into failure
-    // exception and to make a string returned by what() to contain the error
-    // description plus an optional custom message if provided. Unfortunatelly
-    // there is no way to say that the custom message is absent. Passing an
-    // empty string results for libstdc++ (as of version 5.3.1) with a
-    // description like this (note the ': ' prefix):
-    //
-    // : No such file or directory
-    //
-    // Note that our custom operator<<(ostream, exception) strips this prefix.
-    //
-    throw ios_base::failure (m != nullptr ? m : "", e);
-  }
-
-  template <bool v>
-  [[noreturn]] static inline typename enable_if<!v>::type
-  throw_ios_failure (error_code e, const char* m)
-  {
-    throw ios_base::failure (m != nullptr ? m : e.message ().c_str ());
-  }
-
-  // Throw system_error with generic_category.
-  //
-  [[noreturn]] static inline void
-  throw_ios_failure (int errno_code, const char* m = nullptr)
-  {
-    error_code ec (errno_code, generic_category ());
-    throw_ios_failure<is_base_of<system_error, ios_base::failure>::value> (
-      ec, m);
-  }
-
-#ifdef _WIN32
-  // Throw system_error with system_category.
-  //
-  static inline void
-  throw_ios_system_failure (int system_code)
-  {
-    // Here we work around MinGW libstdc++ that interprets Windows system error
-    // codes (for example those returned by GetLastError()) as errno codes.
-    //
-    // Note that the resulting system_error description will have ': Success.'
-    // suffix that is stripped by our custom operator<<(ostream, exception).
-    //
-    error_code ec (0, system_category ());
-    string m (win32::error_msg (system_code));
-
-    throw_ios_failure<is_base_of<system_error, ios_base::failure>::value> (
-      ec, m.c_str ());
-  }
-#endif
-
   // auto_fd
   //
   void auto_fd::
@@ -147,7 +89,7 @@ namespace butl
       fd_ = -1;
 
       if (!r)
-        throw_ios_failure (errno);
+        throw_generic_ios_failure (errno);
     }
   }
 
@@ -169,7 +111,7 @@ namespace butl
     int flags (fcntl (fd.get (), F_GETFL));
 
     if (flags == -1)
-      throw_ios_failure (errno);
+      throw_generic_ios_failure (errno);
 
     non_blocking_ = (flags & O_NONBLOCK) == O_NONBLOCK;
 #endif
@@ -201,7 +143,7 @@ namespace butl
         if (errno == EAGAIN || errno == EINTR)
           return 0;
 
-        throw_ios_failure (errno);
+        throw_generic_ios_failure (errno);
       }
 
       if (n == 0) // EOF.
@@ -230,7 +172,7 @@ namespace butl
       // descriptor.
       //
       if (non_blocking_)
-        throw_ios_failure (ENOTSUP);
+        throw_generic_ios_failure (ENOTSUP);
 
       if (gptr () < egptr () || load ())
         r = traits_type::to_int_type (*gptr ());
@@ -253,7 +195,7 @@ namespace butl
 #endif
 
     if (n == -1)
-      throw_ios_failure (errno);
+      throw_generic_ios_failure (errno);
 
     setg (buf_, buf_, buf_ + n);
     off_ += n;
@@ -273,7 +215,7 @@ namespace butl
       // for a non-blocking file descriptor.
       //
       if (non_blocking_)
-        throw_ios_failure (ENOTSUP);
+        throw_generic_ios_failure (ENOTSUP);
 
       // Store last character in the space we reserved in open(). Note
       // that pbump() doesn't do any checks.
@@ -300,7 +242,7 @@ namespace butl
     // file descriptor.
     //
     if (non_blocking_)
-      throw_ios_failure (ENOTSUP);
+      throw_generic_ios_failure (ENOTSUP);
 
     return save () ? 0 : -1;
   }
@@ -327,7 +269,7 @@ namespace butl
       auto m (write (fd_.get (), buf_, n));
 
       if (m == -1)
-        throw_ios_failure (errno);
+        throw_generic_ios_failure (errno);
 
       off_ += m;
 
@@ -351,7 +293,7 @@ namespace butl
     // blocking behavior for a non-blocking file descriptor.
     //
     if (non_blocking_)
-      throw_ios_failure (ENOTSUP);
+      throw_generic_ios_failure (ENOTSUP);
 
     // To avoid futher 'signed/unsigned comparison' compiler warnings.
     //
@@ -385,7 +327,7 @@ namespace butl
       r = write (fd_.get (), s, n);
 
     if (r == -1)
-      throw_ios_failure (errno);
+      throw_generic_ios_failure (errno);
 
     size_t m (static_cast<size_t> (r));
     off_ += m;
@@ -429,7 +371,7 @@ namespace butl
     int r (wn > 0 ? write (fd_.get (), buf_, wn) : 0);
 
     if (r == -1)
-      throw_ios_failure (errno);
+      throw_generic_ios_failure (errno);
 
     size_t m (static_cast<size_t> (r));
     off_ += m;
@@ -466,7 +408,7 @@ namespace butl
     r = write (fd_.get (), s, n);
 
     if (r == -1)
-      throw_ios_failure (errno);
+      throw_generic_ios_failure (errno);
 
     off_ += r;
 
@@ -622,7 +564,7 @@ namespace butl
     // Throw if any of the newly set bits are present in the exception mask.
     //
     if ((is.rdstate () & eb) != ifdstream::goodbit)
-      throw_ios_failure (EIO, "getline failure");
+      throw_generic_ios_failure (EIO, "getline failure");
 
     if (eb != ifdstream::badbit)
       is.exceptions (eb); // Restore exception mask.
@@ -737,7 +679,7 @@ namespace butl
     {
       struct stat s;
       if (stat (f, &s) == 0 && S_ISDIR (s.st_mode))
-        throw_ios_failure (EISDIR);
+        throw_generic_ios_failure (EISDIR);
     }
 #endif
 
@@ -786,7 +728,7 @@ namespace butl
       // do that as fdopen() wouldn't fail as expected.
       //
       if (of & _O_EXCL)
-        throw_ios_failure (EEXIST);
+        throw_generic_ios_failure (EEXIST);
 
       of &= ~_O_CREAT;
       pass_perm = false;
@@ -803,7 +745,7 @@ namespace butl
 #endif
 
     if (fd == -1)
-      throw_ios_failure (errno);
+      throw_generic_ios_failure (errno);
 
     if (mode (fdopen_mode::at_end))
     {
@@ -820,7 +762,7 @@ namespace butl
       {
         int e (errno);
         fdclose (fd); // Doesn't throw, but can change errno.
-        throw_ios_failure (e);
+        throw_generic_ios_failure (e);
       }
     }
 
@@ -844,14 +786,14 @@ namespace butl
     {
       auto_fd nfd (::dup (fd));
       if (nfd.get () == -1)
-        throw_ios_failure (errno);
+        throw_generic_ios_failure (errno);
 
       return nfd;
     };
 
     int f (fcntl (fd, F_GETFD));
     if (f == -1)
-      throw_ios_failure (errno);
+      throw_generic_ios_failure (errno);
 
     // If the source descriptor has no FD_CLOEXEC flag set then no flag copy is
     // required (as the duplicate will have no flag by default).
@@ -864,7 +806,7 @@ namespace butl
 
     f = fcntl (nfd.get (), F_GETFD);
     if (f == -1 || fcntl (nfd.get (), F_SETFD, f | FD_CLOEXEC) == -1)
-      throw_ios_failure (errno);
+      throw_generic_ios_failure (errno);
 
     return nfd;
   }
@@ -881,7 +823,7 @@ namespace butl
     int fd (open ("/dev/null", O_RDWR | O_CLOEXEC));
 
     if (fd == -1)
-      throw_ios_failure (errno);
+      throw_generic_ios_failure (errno);
 
     return auto_fd (fd);
   }
@@ -892,7 +834,7 @@ namespace butl
     int flags (fcntl (fd, F_GETFL));
 
     if (flags == -1)
-      throw_ios_failure (errno);
+      throw_generic_ios_failure (errno);
 
     if (flag (m, fdstream_mode::blocking) ||
         flag (m, fdstream_mode::non_blocking))
@@ -910,7 +852,7 @@ namespace butl
         : flags & ~O_NONBLOCK);
 
       if (fcntl (fd, F_SETFL, new_flags) == -1)
-        throw_ios_failure (errno);
+        throw_generic_ios_failure (errno);
     }
 
     return fdstream_mode::binary |
@@ -952,7 +894,7 @@ namespace butl
 
     int pd[2];
     if (pipe (pd) == -1)
-      throw_ios_failure (errno);
+      throw_generic_ios_failure (errno);
 
     fdpipe r {auto_fd (pd[0]), auto_fd (pd[1])};
 
@@ -960,7 +902,7 @@ namespace butl
     {
       int f (fcntl (pd[i], F_GETFD));
       if (f == -1 || fcntl (pd[i], F_SETFD, f | FD_CLOEXEC) == -1)
-        throw_ios_failure (errno);
+        throw_generic_ios_failure (errno);
     }
 
     return r;
@@ -983,7 +925,7 @@ namespace butl
     if (errno == ENOTTY || errno == EINVAL)
       return false;
 
-    throw_ios_failure (errno);
+    throw_generic_ios_failure (errno);
   }
 
 #else
@@ -1006,7 +948,7 @@ namespace butl
     {
       HANDLE h (reinterpret_cast<HANDLE> (_get_osfhandle (fd)));
       if (h == INVALID_HANDLE_VALUE)
-        throw_ios_failure (errno); // EBADF (POSIX value).
+        throw_generic_ios_failure (errno); // EBADF (POSIX value).
 
       return h;
     };
@@ -1015,14 +957,14 @@ namespace butl
     {
       auto_fd nfd (_dup (fd));
       if (nfd.get () == -1)
-        throw_ios_failure (errno);
+        throw_generic_ios_failure (errno);
 
       return nfd;
     };
 
     DWORD f;
     if (!GetHandleInformation (handle (fd), &f))
-      throw_ios_system_failure (GetLastError ());
+      throw_system_ios_failure (GetLastError ());
 
     // If the source handle is inheritable then no flag copy is required (as
     // the duplicate handle will be inheritable by default).
@@ -1034,7 +976,7 @@ namespace butl
 
     auto_fd nfd (dup ());
     if (!SetHandleInformation (handle (nfd.get ()), HANDLE_FLAG_INHERIT, 0))
-      throw_ios_system_failure (GetLastError ());
+      throw_system_ios_failure (GetLastError ());
 
     return nfd;
   }
@@ -1055,7 +997,7 @@ namespace butl
       int fd (_sopen ("nul", _O_RDWR | _O_BINARY | _O_NOINHERIT, _SH_DENYNO));
 
       if (fd == -1)
-        throw_ios_failure (errno);
+        throw_generic_ios_failure (errno);
 
       return auto_fd (fd);
     }
@@ -1077,13 +1019,13 @@ namespace butl
                       _S_IREAD | _S_IWRITE));
 
       if (fd == -1)
-        throw_ios_failure (errno);
+        throw_generic_ios_failure (errno);
 
       return auto_fd (fd);
     }
     catch (const bad_alloc&)
     {
-      throw_ios_failure (ENOMEM);
+      throw_generic_ios_failure (ENOMEM);
     }
     catch (const system_error& e)
     {
@@ -1091,7 +1033,7 @@ namespace butl
       //
       assert (e.code ().category () == generic_category ());
 
-      throw_ios_failure (e.code ().value ());
+      throw_generic_ios_failure (e.code ().value ());
     }
   }
 
@@ -1114,7 +1056,7 @@ namespace butl
     //
     int r (_setmode (fd, m == fdstream_mode::binary ? _O_BINARY : _O_TEXT));
     if (r == -1)
-      throw_ios_failure (errno); // EBADF or EINVAL (POSIX values).
+      throw_generic_ios_failure (errno); // EBADF or EINVAL (POSIX values).
 
     return fdstream_mode::blocking |
       ((r & _O_BINARY) == _O_BINARY
@@ -1127,7 +1069,7 @@ namespace butl
   {
     int fd (_fileno (stdin));
     if (fd == -1)
-      throw_ios_failure (errno);
+      throw_generic_ios_failure (errno);
 
     return fd;
   }
@@ -1137,7 +1079,7 @@ namespace butl
   {
     int fd (_fileno (stdout));
     if (fd == -1)
-      throw_ios_failure (errno);
+      throw_generic_ios_failure (errno);
 
     return fd;
   }
@@ -1147,7 +1089,7 @@ namespace butl
   {
     int fd (_fileno (stderr));
     if (fd == -1)
-      throw_ios_failure (errno);
+      throw_generic_ios_failure (errno);
 
     return fd;
   }
@@ -1162,7 +1104,7 @@ namespace butl
           pd,
           64 * 1024, // Set buffer size to 64K.
           _O_NOINHERIT | (m == fdopen_mode::none ? _O_TEXT : _O_BINARY)) == -1)
-      throw_ios_failure (errno);
+      throw_generic_ios_failure (errno);
 
     return {auto_fd (pd[0]), auto_fd (pd[1])};
   }
@@ -1176,7 +1118,7 @@ namespace butl
     //
     HANDLE h (reinterpret_cast<HANDLE> (_get_osfhandle (fd)));
     if (h == INVALID_HANDLE_VALUE)
-      throw_ios_failure (errno);
+      throw_generic_ios_failure (errno);
 
     // Obtain the descriptor type.
     //
@@ -1184,7 +1126,7 @@ namespace butl
     DWORD e;
 
     if (t == FILE_TYPE_UNKNOWN && (e = GetLastError ()) != 0)
-      throw_ios_system_failure (e);
+      throw_system_ios_failure (e);
 
     if (t == FILE_TYPE_CHAR) // Terminal.
       return true;

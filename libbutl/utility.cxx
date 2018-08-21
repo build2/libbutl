@@ -18,6 +18,7 @@
 #include <utility>
 
 #include <ostream>
+#include <type_traits>  // enable_if, is_base_of
 #include <system_error>
 #endif
 
@@ -88,6 +89,68 @@ namespace butl
                         system_category (),
                         win32::error_msg (system_code));
 #endif
+  }
+
+  // Throw ios::failure differently depending on whether it is derived from
+  // system_error.
+  //
+  template <bool v>
+  [[noreturn]] static inline typename enable_if<v>::type
+  throw_ios_failure (error_code e, const char* w)
+  {
+    // The idea here is to make an error code to be saved into failure
+    // exception and to make a string returned by what() to contain the error
+    // description plus an optional custom message if provided. Unfortunatelly
+    // there is no way to say that the custom message is absent. Passing an
+    // empty string results for libstdc++ (as of version 5.3.1) with a
+    // description like this (note the ': ' prefix):
+    //
+    // : No such file or directory
+    //
+    // Note that our custom operator<<(ostream, exception) strips this prefix.
+    //
+    throw ios_base::failure (w != nullptr ? w : "", e);
+  }
+
+  template <bool v>
+  [[noreturn]] static inline typename enable_if<!v>::type
+  throw_ios_failure (error_code e, const char* w)
+  {
+    throw ios_base::failure (w != nullptr ? w : e.message ().c_str ());
+  }
+
+  [[noreturn]] void
+  throw_generic_ios_failure (int errno_code, const char* w)
+  {
+    error_code ec (errno_code, generic_category ());
+    throw_ios_failure<is_base_of<system_error, ios_base::failure>::value> (
+      ec, w);
+  }
+
+  [[noreturn]] void
+  throw_system_ios_failure (int system_code, const char* w)
+  {
+#ifdef _WIN32
+    // Here we work around MinGW libstdc++ that interprets Windows system error
+    // codes (for example those returned by GetLastError()) as errno codes.
+    //
+    // Note that the resulting system_error description will have ': Success.'
+    // suffix that is stripped by our custom operator<<(ostream, exception).
+    //
+    error_code ec (0, system_category ());
+    string m;
+
+    if (w == nullptr)
+    {
+      m = win32::error_msg (system_code);
+      w = m.c_str ();
+    }
+#else
+    error_code ec (system_code, system_category ());
+#endif
+
+    throw_ios_failure<is_base_of<system_error, ios_base::failure>::value> (
+      ec, w);
   }
 
   string&
