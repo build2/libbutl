@@ -5,9 +5,8 @@
 LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 {
   template <typename V>
-  process_env::
-  process_env (const process_path& p, const V& v)
-      : process_env (p)
+  void process_env::
+  init_vars (const V& v)
   {
     if (!v.empty ())
     {

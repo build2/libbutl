@@ -536,7 +536,8 @@ LIBBUTL_MODEXPORT namespace butl
         : process_env (p, v) {cwd = &c;}
 
     template <typename V>
-    process_env (const process_path& p, const V& v);
+    process_env (const process_path& p, const V& v)
+        : process_env (p) {init_vars (v);}
 
     process_env (const char* p,
                  const dir_path& c = dir_path (),
@@ -578,6 +579,17 @@ LIBBUTL_MODEXPORT namespace butl
         : process_env (p.string (), v) {}
 
   private:
+    template <typename V>
+    void
+    init_vars (const V&);
+
+    template <std::size_t N>
+    void
+    init_vars (const char* const (&v)[N])
+    {
+      vars = v;
+    }
+
     process_path path_;
     small_vector<const char*, 3> vars_;
   };
