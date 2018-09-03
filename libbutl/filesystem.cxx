@@ -780,22 +780,46 @@ namespace butl
 
     DWORD mfl (fd ? 0 : (MOVEFILE_COPY_ALLOWED | MOVEFILE_REPLACE_EXISTING));
 
-    if (MoveFileExA (f, t, mfl))
-      return;
+    // For reasons unknown an attempt to move a file sometimes ends up with
+    // the 'file is being used by another process' error. If that's the case,
+    // we will keep trying to move the file during a second.
+    //
+    // The thinking is that there can be some Windows process analyzing newly
+    // created files and so preventing their move or removal.
+    //
+    DWORD ec;
+    for (size_t i (0); i < 11; ++i)
+    {
+      // Sleep 100 milliseconds before the move retry.
+      //
+      if (i != 0)
+        Sleep (100);
 
-    // If the destination already exists, then MoveFileExA() succeeds only if
-    // it is a regular file or a symlink. Lets also support an empty directory
-    // special case to comply with POSIX. If the destination is an empty
-    // directory we will just remove it and retry the move operation.
-    //
-    // Note that under Wine we endup with ERROR_ACCESS_DENIED error code in
-    // that case, and with ERROR_ALREADY_EXISTS when run natively.
-    //
-    DWORD ec (GetLastError ());
-    if ((ec == ERROR_ALREADY_EXISTS || ec == ERROR_ACCESS_DENIED) && td &&
-        try_rmdir (path_cast<dir_path> (to)) != rmdir_status::not_empty &&
-        MoveFileExA (f, t, mfl))
-      return;
+      if (MoveFileExA (f, t, mfl))
+        return;
+
+      ec = GetLastError ();
+
+      // If the destination already exists, then MoveFileExA() succeeds only
+      // if it is a regular file or a symlink. Lets also support an empty
+      // directory special case to comply with POSIX. If the destination is an
+      // empty directory we will just remove it and retry the move operation.
+      //
+      // Note that under Wine we endup with ERROR_ACCESS_DENIED error code in
+      // that case, and with ERROR_ALREADY_EXISTS when run natively.
+      //
+      if ((ec == ERROR_ALREADY_EXISTS || ec == ERROR_ACCESS_DENIED) && td &&
+          try_rmdir (path_cast<dir_path> (to)) != rmdir_status::not_empty)
+      {
+        if (MoveFileExA (f, t, mfl))
+          return;
+
+        ec = GetLastError ();
+      }
+
+      if (ec != ERROR_SHARING_VIOLATION)
+        break;
+    }
 
     throw_system_error (ec);
 
