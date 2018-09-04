@@ -17,14 +17,14 @@ using namespace std;
 namespace butl
 {
   void uuid::
-  assign (const _GUID& g)
+  assign (const _GUID& d)
   {
-    time_low  = g.Data1;
-    time_mid  = g.Data2;
-    time_hiv  = g.Data3;
-    clock_seq_hir = g.Data4[0];
-    clock_seq_low = g.Data4[1];
-    memcpy (node, &g.Data4[2], 6);
+    time_low  = d.Data1;
+    time_mid  = d.Data2;
+    time_hiv  = d.Data3;
+    clock_seq_hir = d.Data4[0];
+    clock_seq_low = d.Data4[1];
+    memcpy (node, &d.Data4[2], 6);
   }
 
   template<>

@@ -9,14 +9,6 @@ namespace butl
 {
   // NOTE: the order of definitions is important to MinGW GCC (DLL linkage).
 
-  inline uuid::
-  uuid ()
-      : time_low  (0), time_mid  (0), time_hiv  (0),
-        clock_seq_hir (0), clock_seq_low (0),
-        node {0, 0, 0, 0, 0, 0}
-  {
-  }
-
   inline bool uuid::
   nil () const
   {

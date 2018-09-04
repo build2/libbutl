@@ -49,12 +49,12 @@ namespace butl
   {
     // Normally not accessed directly (see RFC4122 Section 4.1.2).
     //
-    std::uint32_t  time_low;
-    std::uint16_t  time_mid;
-    std::uint16_t  time_hiv;      // hi_and_version
-    std::uint8_t   clock_seq_hir; // hi_and_reserved
-    std::uint8_t   clock_seq_low;
-    std::uint8_t   node[6];
+    std::uint32_t  time_low = 0;
+    std::uint16_t  time_mid = 0;
+    std::uint16_t  time_hiv = 0;       // hi_and_version
+    std::uint8_t   clock_seq_hir = 0;  // hi_and_reserved
+    std::uint8_t   clock_seq_low = 0;
+    std::uint8_t   node[6] = {0, 0, 0, 0, 0, 0};
 
     // System UUID generator. See the uuid_generator interface for details.
     //
@@ -67,7 +67,7 @@ namespace butl
 
     // Create a nil UUID (all members are 0).
     //
-    uuid ();
+    uuid () = default;
 
     bool
     nil () const;
