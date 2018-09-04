@@ -273,6 +273,9 @@ namespace butl
 
       if (ts == timestamp_nonexistent)
         return os << "<nonexistent>";
+
+      if (ts == timestamp_unreal)
+        return os << "<unreal>";
     }
 
     time_t t (system_clock::to_time_t (ts));

@@ -56,19 +56,26 @@ LIBBUTL_MODEXPORT namespace butl
   using timestamp = system_clock::time_point;
   using duration = system_clock::duration;
 
-  // Generally-useful special values. Note that unknown is less than
-  // nonexistent and is less than any non-special value.
+  // Generally-useful special values.
+  //
+  // Note that unknown is less than nonexistent which in turn is less than
+  // unreal and all of them are less than any non-special value (strictly
+  // speaking unreal is no greater (older) than any real value).
   //
 #if defined(__cpp_modules) && defined(__clang__) //@@ MOD Clang duplicate sym.
   inline const timestamp::rep timestamp_unknown_rep     = -1;
   inline const timestamp      timestamp_unknown         = timestamp (duration (-1));
   inline const timestamp::rep timestamp_nonexistent_rep = 0;
   inline const timestamp      timestamp_nonexistent     = timestamp (duration (0));
+  inline const timestamp::rep timestamp_unreal_rep      = 1;
+  inline const timestamp      timestamp_unreal          = timestamp (duration (1));
 #else
   const timestamp::rep timestamp_unknown_rep     = -1;
   const timestamp      timestamp_unknown         = timestamp (duration (-1));
   const timestamp::rep timestamp_nonexistent_rep = 0;
   const timestamp      timestamp_nonexistent     = timestamp (duration (0));
+  const timestamp::rep timestamp_unreal_rep      = 1;
+  const timestamp      timestamp_unreal          = timestamp (duration (1));
 #endif
 
   // Print human-readable representation of the timestamp.
@@ -86,8 +93,8 @@ LIBBUTL_MODEXPORT namespace butl
   // part is padded to 9 characters with leading zeros.
   //
   // The special argument in the to_stream() function indicates whether the
-  // special timestamp_unknown and timestamp_nonexistent values should be
-  // printed as '<unknown>' and '<nonexistent>', respectively.
+  // special timestamp_{unknown,nonexistent,unreal} values should be printed
+  // as '<unknown>', '<nonexistent>', and '<unreal>', respectively.
   //
   // The local argument in the to_stream() function indicates whether to use
   // localtime_r() or gmtime_r().
