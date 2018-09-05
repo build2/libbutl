@@ -315,7 +315,7 @@ namespace butl
 #ifndef _WIN32
     int ur (unlink (f));
 #else
-    int ur (_unlink (f));
+    int ur;
 
     // On Windows a file with the read-only attribute can not be deleted. This
     // can be the reason if the deletion fails with the 'permission denied'
@@ -325,32 +325,49 @@ namespace butl
     // Yet another reason for the 'permission denied' failure can be a
     // directory symlink.
     //
-    if (ur != 0 && errno == EACCES)
+    // And also there are some unknown reasons for the 'permission denied'
+    // failure (see mventry() for details). If that's the case, we will keep
+    // trying to move the file for a second.
+    //
+    for (size_t i (0); i < 11; ++i)
     {
-      DWORD a (GetFileAttributes (f));
-      if (a != INVALID_FILE_ATTRIBUTES)
+      // Sleep 100 milliseconds before the removal retry.
+      //
+      if (i != 0)
+        Sleep (100);
+
+      ur = _unlink (f);
+
+      if (ur != 0 && errno == EACCES)
       {
-        bool readonly ((a & FILE_ATTRIBUTE_READONLY) != 0);
-
-        // Note that we support only directory symlinks on Windows.
-        //
-        bool symlink ((a & FILE_ATTRIBUTE_REPARSE_POINT) != 0 &&
-                      (a & FILE_ATTRIBUTE_DIRECTORY) != 0);
-
-        if (readonly || symlink)
+        DWORD a (GetFileAttributes (f));
+        if (a != INVALID_FILE_ATTRIBUTES)
         {
-          bool restore (readonly &&
-                        SetFileAttributes (f, a & ~FILE_ATTRIBUTE_READONLY));
+          bool readonly ((a & FILE_ATTRIBUTE_READONLY) != 0);
 
-          ur = symlink ? _rmdir (f) : _unlink (f);
-
-          // Restoring the attribute is unlikely to fail as we managed to reset
-          // it earlier.
+          // Note that we support only directory symlinks on Windows.
           //
-          if (ur != 0 && restore)
-            SetFileAttributes (f, a);
+          bool symlink ((a & FILE_ATTRIBUTE_REPARSE_POINT) != 0 &&
+                        (a & FILE_ATTRIBUTE_DIRECTORY) != 0);
+
+          if (readonly || symlink)
+          {
+            bool restore (readonly &&
+                          SetFileAttributes (f, a & ~FILE_ATTRIBUTE_READONLY));
+
+            ur = symlink ? _rmdir (f) : _unlink (f);
+
+            // Restoring the attribute is unlikely to fail as we managed to
+            // reset it earlier.
+            //
+            if (ur != 0 && restore)
+              SetFileAttributes (f, a);
+          }
         }
       }
+
+      if (ur == 0 || errno != EACCES)
+        break;
     }
 #endif
 
