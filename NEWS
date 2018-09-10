@@ -1,3 +1,28 @@
+Version 0.8.0
+
+  * Add portable environment variable manipulation functions.
+
+  * Add regex_replace_match() and rename regex_replace_ex() to
+    regex_replace_search().
+
+  * Reimplement the optional class template not to require default-
+    constructible value types.
+
+  * New prompt facility (moved from bpkg).
+
+  * Support for hashing ifdstream in sha* classes.
+
+  * New project_name class (moved from bpkg::package_name).
+
+  * Add git_repository(), git_version() utility functions.
+
+  * New semantic_version class for parsing semantic and semantic-like
+    versions.
+
+  * Add timed_wait() and kill() process functions.
+
+  * Support for UUID generation.
+
 Version 0.7.0
 
   * Initial attempt at Modules TS-based modularization.
