@@ -15,7 +15,7 @@
 // Other includes.
 
 #ifdef __cpp_modules
-export module butl.curl;
+export module butl.git;
 #ifdef __cpp_lib_modules
 import std.core;
 #endif
