@@ -21,7 +21,7 @@ import std.core;
 #endif
 import butl.path;
 import butl.optional;
-import butl.semantic_version
+import butl.semantic_version;
 #else
 #include <libbutl/path.mxx>
 #include <libbutl/optional.mxx>
