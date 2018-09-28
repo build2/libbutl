@@ -6,16 +6,6 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 {
   // Convenience functions.
   //
-  template <typename C>
-  inline bool
-  url_path_char (C c)
-  {
-    using url = basic_url<std::basic_string<C>>;
-
-    return c == '/' || c == ':' || url::unreserved (c) ||
-           c == '@' || url::sub_delim (c);
-  }
-
   // basic_url_host
   //
   template <typename S>
@@ -224,7 +214,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   {
     using namespace std;
 
-    using iterator  = typename string_type::const_iterator;
+    using iterator = typename string_type::const_iterator;
 
     try
     {
@@ -329,26 +319,23 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
       // Extract path.
       //
-      if (i != e && *i == '/')
+      if (i != e && *i != '?' && *i != '#')
       {
-        ++i; // Skip '/'.
+        rootless = *i != '/';
 
-        // Verify and URL-decode the path.
+        if (!rootless)
+          ++i;
+
+        // Verify and translate the path.
         //
         iterator j (i);
         for(char_type c; j != e && (c = *j) != '?' && c != '#'; ++j)
         {
-          if (!(url_path_char (c) || c == '%'))
+          if (!(path_char (c) || c == '%'))
             throw invalid_argument ("invalid path");
         }
 
-        // Note that encoding for non-ASCII path is not specified (in contrast
-        // to the host name), and presumably is local to the referenced
-        // authority.
-        //
-        string_type s;
-        decode (i, j, back_inserter (s));
-        path = traits::translate_path (move (s));
+        path = traits::translate_path (string_type (i, j));
         i = j;
       }
 
@@ -369,11 +356,6 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
         i = qe;
       }
 
-      // We don't suppose to end up with an empty URL.
-      //
-      if (empty ())
-        throw invalid_argument ("no authority, path or query");
-
       // Parse fragment.
       //
       if (i != e)
@@ -390,16 +372,19 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
       // Translate the scheme string representation to its type.
       //
-      scheme = traits::translate_scheme (u,
-                                         move (sc),
-                                         authority,
-                                         path,
-                                         query,
-                                         fragment);
+      optional<scheme_type> s (traits::translate_scheme (u,
+                                                         move (sc),
+                                                         authority,
+                                                         path,
+                                                         query,
+                                                         fragment,
+                                                         rootless));
+      assert (s);
+      scheme = *s;
     }
     // If we fail to parse the URL, then delegate this job to
-    // traits::translate_scheme(). If it also fails, leaving the components
-    // absent, then we re-throw.
+    // traits::translate_scheme(). If it also fails, returning nullopt, then
+    // we re-throw.
     //
     catch (const invalid_argument&)
     {
@@ -407,16 +392,20 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
       path      = nullopt;
       query     = nullopt;
       fragment  = nullopt;
+      rootless  = false;
 
-      scheme = traits::translate_scheme (u,
-                                         string_type () /* scheme */,
-                                         authority,
-                                         path,
-                                         query,
-                                         fragment);
-
-      if (!authority && !path && !query && !fragment)
+      optional<scheme_type> s (
+        traits::translate_scheme (u,
+                                  string_type () /* scheme */,
+                                  authority,
+                                  path,
+                                  query,
+                                  fragment,
+                                  rootless));
+      if (!s)
         throw;
+
+      scheme = *s;
     }
   }
 
@@ -433,7 +422,8 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
                                              authority,
                                              path,
                                              query,
-                                             fragment));
+                                             fragment,
+                                             rootless));
 
     // Return the custom URL pbject representation if provided.
     //
@@ -454,9 +444,10 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
     if (path)
     {
-      r += '/';
-      r += encode (traits::translate_path (*path),
-                   [] (char_type& c) {return !url_path_char (c);});
+      if (!rootless)
+        r += '/';
+
+      r += traits::translate_path (*path);
     }
 
     if (query)

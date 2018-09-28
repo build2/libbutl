@@ -33,7 +33,6 @@ $*
   :
   {
     $* 'file:#f'  2>'no authority, path or query' != 0 : fragment
-    $* 'file:aaa' 2>'no authority, path or query' != 0 : junk
     $* 'file:'    2>'no authority, path or query' != 0 : none
   }
 
@@ -324,6 +323,24 @@ $*
     [null]
     [null]
     EOO
+
+    $* 'http:a/b/c'  2>'rootless path'    != 0 : rootless-path
+    $* 'pkcs11:/abc' 2>'unexpected slash' != 0 : unexpected-slash1
+    $* 'pkcs11:a/bc' 2>'unexpected slash' != 0 : unexpected-slash2
+  }
+
+  : rootless
+  :
+  {
+    : non-empty
+    :
+    $* 'pkcs11:token=sign;object=SIGN%20key' >>EOO
+    pkcs11
+    [null]
+    token=sign;object=SIGN key
+    [null]
+    [null]
+    EOO
   }
 
   : query
@@ -388,6 +405,8 @@ $*
   $* 'file:/b%7C2' >'file:/b%7C2' : path
   $* 'http://a?q=' >'http://a?q=' : query
   $* 'http://a#f'  >'http://a#f'  : fragment
+
+  $* 'pkcs11:object=SIGN%20key' >'pkcs11:object=SIGN%20key' : rootless
 }
 
 : wstring

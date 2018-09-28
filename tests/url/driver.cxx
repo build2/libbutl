@@ -33,7 +33,8 @@ enum class scheme
 {
   http,
   https,
-  file
+  file,
+  pkcs11
 };
 
 namespace butl
@@ -47,37 +48,63 @@ namespace butl
     using scheme_type    = scheme;
     using authority_type = basic_url_authority<string_type>;
 
-    static scheme_type
+    static optional<scheme_type>
     translate_scheme (const string_type&         url,
                       string_type&&              scheme,
-                      optional<authority_type>&  /*authority*/,
+                      optional<authority_type>&  authority,
                       optional<path_type>&       path,
-                      optional<string_type>&     /*query*/,
-                      optional<string_type>&     /*fragment*/)
+                      optional<string_type>&     query,
+                      optional<string_type>&     /*fragment*/,
+                      bool&                      rootless)
     {
-      // Note that we must compare case-insensitive in the real program.
-      //
-      if (scheme == L"http")
-        return scheme_type::http;
-      else if (scheme == L"https")
-        return scheme_type::https;
-      else if (scheme == L"file")
-        return scheme_type::file;
-      else if (scheme.empty ())
+      if (scheme.empty ())
       {
         // If the URL looks like an absolute filesystem path, then translate it
-        // to the file URL. If it is not, then leave all the components absent
-        // to fail with a proper exception description.
+        // to the file URL. If it is not, then return nullopt to fail with a
+        // proper exception description.
         //
         wchar_t c;
         if ((c = url[0]) == '/' ||
             (url.size () > 2 && alpha (c) && url[1] == ':' && url[2] == '/'))
+        {
           path = url;
+          rootless = false;
+          return scheme_type::file;
+        }
 
-        return scheme_type::file;
+        return nullopt;
       }
+
+      scheme_type t;
+
+      // Note that we must compare case-insensitive in the real program.
+      //
+      if (scheme == L"http")
+        t = scheme_type::http;
+      else if (scheme == L"https")
+        t = scheme_type::https;
+      else if (scheme == L"file")
+        t = scheme_type::file;
+      else if (scheme == L"pkcs11")
+        t = scheme_type::pkcs11;
       else
         throw invalid_argument ("unknown scheme");
+
+      if (t != scheme_type::pkcs11 && !authority && !path && !query)
+        throw invalid_argument ("no authority, path or query");
+
+      if (path)
+      {
+        if (t == scheme_type::pkcs11)
+        {
+          if (!rootless || path->find (L'/') != string_type::npos)
+            throw invalid_argument ("unexpected slash");
+        }
+        else if (rootless)
+          throw invalid_argument ("rootless path");
+      }
+
+      return t;
     }
 
     // Translate scheme type back to its string representation.
@@ -88,13 +115,15 @@ namespace butl
                       const optional<authority_type>&  /*authority*/,
                       const optional<path_type>&       /*path*/,
                       const optional<string_type>&     /*query*/,
-                      const optional<string_type>&     /*fragment*/)
+                      const optional<string_type>&     /*fragment*/,
+                      bool                             /*rootless*/)
     {
       switch (scheme)
       {
-      case scheme_type::http:  return L"http";
-      case scheme_type::https: return L"https";
-      case scheme_type::file:  return L"file";
+      case scheme_type::http:   return L"http";
+      case scheme_type::https:  return L"https";
+      case scheme_type::file:   return L"file";
+      case scheme_type::pkcs11: return L"pkcs11";
       }
 
       assert (false); // Can't be here.
@@ -104,11 +133,19 @@ namespace butl
     static path_type
     translate_path (string_type&& path)
     {
-      return path_type (move (path));
+      // Note that a real pkcs11-supporting URL most likely would keep the
+      // path URL-encoded as its components can contain binary data. Or, it
+      // would split the path into components before decoding them.
+      //
+      return path_type (basic_url<string_type>::decode (path));
     }
 
     static string_type
-    translate_path (const path_type& path) {return string_type (path);}
+    translate_path (const path_type& path)
+    {
+      using url = basic_url<string_type>;
+      return url::encode (path, [] (wchar_t& c) {return !url::path_char (c);});
+    }
   };
 }
 
@@ -317,7 +354,8 @@ try
                                                    nullopt,
                                                    nullopt,
                                                    nullopt,
-                                                   nullopt) << endl;
+                                                   nullopt,
+                                                   false) << endl;
         }
         else
           wcout << L"[null]" << endl;

@@ -44,7 +44,9 @@ LIBBUTL_MODEXPORT namespace butl
 {
   // RFC3986 Uniform Resource Locator (URL).
   //
-  // <url>       = <scheme>:[//[<authority>]][/<path>][?<query>][#<fragment>]
+  // <url> = <scheme>:[//[<authority>]][/<path>][?<query>][#<fragment>] |
+  //         <scheme>:[<path>][?<query>][#<fragment>]
+  //
   // <authority> = [<user>@]<host>[:<port>]
   //
   // Some examples of equivalent URLs to meditate upon:
@@ -72,10 +74,22 @@ LIBBUTL_MODEXPORT namespace butl
   // can choose to use the path type if local paths are to be interpreted as
   // relative to the host.
   //
-  // Note that we currently forbid one character schemes to support scheme-
-  // less (Windows) paths which can be done by url_traits::translate_scheme()
-  // (see below). (A Windows path that uses forward slashes would be parsed as
-  // a valid authority-less URL).
+  // For authority-less schemes the <path> component is also represented as a
+  // relative path. Some examples of such URLs (let's call them rootless
+  // rather than authority-less not to confuse with a case where authority is
+  // empty/implied):
+  //
+  // pkcs11:token=sign;object=SIGN%20key
+  // pkcs11:id=%02%38%01?pin-value=12345
+  // pkcs11:
+  //
+  // Note that a scheme can theoretically allow both rootless and "rootfull"
+  // representations.
+  //
+  // Note also that we currently forbid one character schemes to support
+  // scheme- less (Windows) paths which can be done by
+  // url_traits::translate_scheme() (see below). (A Windows path that uses
+  // forward slashes would be parsed as a valid authority-less URL).
 
   // URL host component can be an IPv4 address (if matches its dotted-decimal
   // notation), an IPv6 address (if enclosed in [square brackets]) or
@@ -165,23 +179,25 @@ LIBBUTL_MODEXPORT namespace butl
     using authority_type = basic_url_authority<string_type>;
 
     // Translate the scheme string representation to its type. May throw
-    // std::invalid_argument. May change the URL components.
+    // std::invalid_argument. May change the URL components. Should not return
+    // nullopt if called with a non-empty scheme.
     //
     // This function is called with an empty scheme if the URL has no scheme,
     // the scheme is invalid, or it could not be parsed into components
     // according to the URL syntax. In this case all the passed components
-    // reference empty/absent values and if they remain unchanged on return,
-    // the URL is considered invalid and the std::invalid_argument exception
-    // with an appropriate description is thrown by the URL object constructor.
-    // This can be used to support scheme-less URLs, local paths, etc.
+    // reference empty/absent/false values. If nullopt is returned, the URL is
+    // considered invalid and the std::invalid_argument exception with an
+    // appropriate description is thrown by the URL object constructor. This
+    // can be used to support scheme-less URLs, local paths, etc.
     //
-    static scheme_type
+    static optional<scheme_type>
     translate_scheme (const string_type&         /*url*/,
                       string_type&&              scheme,
                       optional<authority_type>&  /*authority*/,
                       optional<path_type>&       /*path*/,
                       optional<string_type>&     /*query*/,
-                      optional<string_type>&     /*fragment*/)
+                      optional<string_type>&     /*fragment*/,
+                      bool&                      /*rootless*/)
     {
       return scheme_type (std::move (scheme));
     }
@@ -195,33 +211,36 @@ LIBBUTL_MODEXPORT namespace butl
     //
     static string_type
     translate_scheme (string_type&,                    /*url*/
-                      const scheme_type& scheme,
+                      const scheme_type&               scheme,
                       const optional<authority_type>&  /*authority*/,
                       const optional<path_type>&       /*path*/,
                       const optional<string_type>&     /*query*/,
-                      const optional<string_type>&     /*fragment*/)
+                      const optional<string_type>&     /*fragment*/,
+                      bool                             /*rootless*/)
     {
       return string_type (scheme);
     }
 
-    // Translate the path string representation to its type.
+    // Translate the URL-encoded path string representation to its type.
+    //
+    // Note that encoding for non-ASCII paths is not specified (in contrast
+    // to the host name), and presumably is local to the referenced authority.
+    // Furthermore, for some schemes, the path component can contain encoded
+    // binary data, for example for pkcs11.
     //
     static path_type
-    translate_path (string_type&& path)
-    {
-      return path_type (std::move (path));
-    }
+    translate_path (string_type&&);
 
-    // Translate path type back to its string representation.
+    // Translate path type back to its URL-encoded string representation.
     //
     static string_type
-    translate_path (const path_type& path) {return string_type (path);}
+    translate_path (const path_type&);
 
-    // Check whether a string looks like a URL by searching for the first ':'
-    // (unless its position is specified with the second argument) and then
-    // making sure it's followed by '/' (e.g., http:// or file:/) and preceded
-    // by the scheme at least 2 characters long (so we don't confuse it with
-    // an absolute Windows path, e.g., c:/).
+    // Check whether a string looks like a non-rootless URL by searching for
+    // the first ':' (unless its position is specified with the second
+    // argument) and then making sure it's both followed by '/' (e.g., http://
+    // or file:/) and preceded by a valid scheme at least 2 characters long
+    // (so we don't confuse it with an absolute Windows path, e.g., c:/).
     //
     // Return the start of the URL substring or string_type::npos.
     //
@@ -249,16 +268,17 @@ LIBBUTL_MODEXPORT namespace butl
     optional<path_type>      path;
     optional<string_type>    query;
     optional<string_type>    fragment;
+    bool                     rootless = false;
 
     // Create an empty URL object.
     //
-    basic_url () = default;
+    basic_url (): empty_ (true) {}
 
     // Create the URL object from its string representation. Verify that the
     // string is compliant to the generic URL syntax. URL-decode and validate
-    // components with common for all schemes syntax (scheme, host, port,
-    // path). Throw std::invalid_argument if the passed string is not a valid
-    // URL representation.
+    // components with common for all schemes syntax (scheme, host, port).
+    // Throw std::invalid_argument if the passed string is not a valid URL
+    // representation.
     //
     // Validation and URL-decoding of the scheme-specific components can be
     // provided by a custom url_traits::translate_scheme() implementation.
@@ -301,12 +321,15 @@ LIBBUTL_MODEXPORT namespace butl
                optional<string_type> query = nullopt,
                optional<string_type> fragment = nullopt);
 
+    // Create a rootless URL.
+    //
+    basic_url (scheme_type,
+               optional<path_type> path,
+               optional<string_type> query = nullopt,
+               optional<string_type> fragment = nullopt);
+
     bool
-    empty () const noexcept
-    {
-      assert (authority || path || query || !fragment);
-      return !authority && !path && !query;
-    }
+    empty () const noexcept {return empty_;}
 
     // Return a string representation of the URL. Note that while this is not
     // necessarily syntactically the same string as what was used to
@@ -342,6 +365,13 @@ LIBBUTL_MODEXPORT namespace butl
     unreserved (char_type c)
     {
       return alnum (c) || c == '-' ||  c == '.' || c =='_' || c == '~';
+    }
+
+    static bool
+    path_char (char_type c)
+    {
+      return c == '/' || c == ':' || unreserved (c) || c == '@' ||
+             sub_delim (c);
     }
 
     // URL-encode a character sequence.
@@ -415,6 +445,9 @@ LIBBUTL_MODEXPORT namespace butl
               std::back_inserter (r), f);
       return r;
     }
+
+  private:
+    bool empty_ = false;
   };
 
   using url_authority = basic_url_authority<std::string>;
@@ -454,16 +487,15 @@ LIBBUTL_MODEXPORT namespace butl
   inline bool
   operator== (const basic_url<S, T>& x, const basic_url<S, T>& y) noexcept
   {
-    if (!(x.authority == y.authority && x.path == y.path &&
-          x.query == y.query && x.fragment == y.fragment))
-      return false;
+    if (x.empty () || y.empty ())
+      return x.empty () == y.empty ();
 
-    assert (x.empty () == y.empty ());
-
-    if (x.empty ())
-      return true;
-
-    return x.scheme == y.scheme; // None is empty, so schemes are valid.
+    return x.scheme    == y.scheme    &&
+           x.authority == y.authority &&
+           x.path      == y.path      &&
+           x.query     == y.query     &&
+           x.fragment  == y.fragment  &&
+           x.rootless  == y.rootless;
   }
 
   template <typename S, typename T>
