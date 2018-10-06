@@ -669,10 +669,10 @@ LIBBUTL_MODEXPORT namespace butl
   //
 #ifndef _WIN32
   LIBBUTL_SYMEXPORT auto_fd
-  fdnull () noexcept;
+  fdnull ();
 #else
   LIBBUTL_SYMEXPORT auto_fd
-  fdnull (bool temp = false) noexcept;
+  fdnull (bool temp = false);
 #endif
 
   struct fdpipe
