@@ -212,4 +212,13 @@ namespace butl
 
     return nullopt;
   }
+
+  template <typename F>
+  inline F
+  function_cast (void* p)
+  {
+    union { void* p; F f; } r;
+    r.p = p;
+    return r.f;
+  }
 }

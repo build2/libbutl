@@ -14,6 +14,8 @@
 #include <utility>      // move()
 #include <system_error>
 
+#include <libbutl/utility.mxx> // function_cast()
+
 using namespace std;
 
 namespace butl
@@ -47,17 +49,6 @@ namespace butl
   static int  (*uuid_generate_time_safe) (uuid_t);
 
   static void* libuuid;
-
-  // Use a union to cleanly cast dlsym() result (void*) to a function pointer.
-  //
-  template <typename F>
-  static inline F
-  function_cast (void* p)
-  {
-    union { void* p; F f; } r;
-    r.p = p;
-    return r.f;
-  };
 
   static inline void
   dlfail (string what)
