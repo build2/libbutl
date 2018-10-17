@@ -306,7 +306,14 @@ namespace butl
     size_t an (epptr () - pptr ()); // Amount of free space in the buffer.
     if (n <= an)
     {
-      memcpy (pptr (), s, n);
+      assert (s != nullptr || n == 0);
+
+      // Note that the memcpy() function behavior is undefined if either of
+      // pointers is NULL, even if the bytes count is zero.
+      //
+      if (s != nullptr)
+        memcpy (pptr (), s, n);
+
       advance (n);
       return n;
     }
@@ -361,7 +368,13 @@ namespace butl
       an = 0;
     else
     {
-      memcpy (pptr (), s, an);
+      assert (s != nullptr || an == 0);
+
+      // The source can not be NULL (see above for details).
+      //
+      if (s != nullptr)
+        memcpy (pptr (), s, an);
+
       advance (an);
     }
 
@@ -398,7 +411,13 @@ namespace butl
     //
     if (n <= static_cast<size_t> (epptr () - pbase ()))
     {
-      memcpy (pbase (), s, n);
+      assert (s != nullptr || n == 0);
+
+      // The source can not be NULL (see above for details).
+      //
+      if (s != nullptr)
+        memcpy (pbase (), s, n);
+
       advance (n);
       return sn;
     }
