@@ -13,7 +13,7 @@
 #include <cstddef>    // ptrdiff_t
 #include <utility>    // move(), swap()
 #include <iterator>
-#include <exception>
+#include <stdexcept>  // invalid_argument
 #include <functional> // hash
 
 #include <vector>
@@ -61,10 +61,11 @@ LIBBUTL_MODEXPORT namespace butl
   //   non-dir-adapted implementation (see where we call K::cast()).
   //
 
-  struct LIBBUTL_SYMEXPORT invalid_path_base: public std::exception
+  // @@ This should probably be called invalid_path_argument
+  //
+  struct LIBBUTL_SYMEXPORT invalid_path_base: public std::invalid_argument
   {
-    virtual char const*
-    what () const throw ();
+    invalid_path_base ();
   };
 
   template <typename C>

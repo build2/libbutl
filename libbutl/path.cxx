@@ -70,10 +70,10 @@ using namespace butl::win32;
 
 namespace butl
 {
-  char const* invalid_path_base::
-  what () const throw ()
+  invalid_path_base::
+  invalid_path_base ()
+      : invalid_argument ("invalid filesystem path")
   {
-    return "invalid filesystem path";
   }
 
   //
