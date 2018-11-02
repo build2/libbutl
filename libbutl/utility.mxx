@@ -315,11 +315,12 @@ LIBBUTL_MODEXPORT namespace butl
     F f_;
   };
 
-  // Cleanly cast dlsym() result (void*) to a function pointer.
+  // Cleanly cast between incompatible function types or dlsym() result
+  // (void*) to a function pointer.
   //
-  template <typename F>
+  template <typename F, typename P>
   F
-  function_cast (void*);
+  function_cast (P*);
 
   // Call a function if there is an exception.
   //
