@@ -112,7 +112,7 @@ LIBBUTL_MODEXPORT namespace butl
     std::uint64_t size;
   };
 
-  // Return a flag indicating if the path is to an existing file system entry
+  // Return a flag indicating if the path is to an existing filesystem entry
   // and its type if so. Note that by default this function doesn't follow
   // symlinks. Underlying OS errors are reported by throwing std::system_error,
   // unless ignore_error is true.
