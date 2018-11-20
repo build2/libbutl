@@ -43,7 +43,7 @@ LIBBUTL_MODEXPORT namespace butl
     template <typename T>
     struct optional_data<T, false>
     {
-      struct empty {char x;}; // Note: byte size is important to GCC.
+      struct empty {char x[sizeof(T)];}; // Note: data member important to GCC.
 
       union
       {
@@ -86,7 +86,7 @@ LIBBUTL_MODEXPORT namespace butl
     template <typename T>
     struct optional_data<T, true>
     {
-      struct empty {char x;}; // Note: byte size is important to GCC.
+      struct empty {char x[sizeof(T)];}; // Note: data member important to GCC.
 
       union
       {

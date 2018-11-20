@@ -27,13 +27,12 @@ namespace butl
     operator= (const T& v)
     {
       if (v_)
+        d_ = v;
+      else
       {
-        d_.~T ();
-        v_ = false;
+        new (&d_) T (v);
+        v_ = true;
       }
-
-      new (&d_) T (v);
-      v_ = true;
 
       return *this;
     }
@@ -43,13 +42,12 @@ namespace butl
     operator= (T&& v)
     {
       if (v_)
+        d_ = std::move (v);
+      else
       {
-        d_.~T ();
-        v_ = false;
+        new (&d_) T (std::move (v));
+        v_ = true;
       }
-
-      new (&d_) T (std::move (v));
-      v_ = true;
 
       return *this;
     }
@@ -58,16 +56,20 @@ namespace butl
     inline optional_data<T, false>& optional_data<T, false>::
     operator= (const optional_data& o)
     {
-      if (v_)
+      if (o.v_)
+      {
+        if (v_)
+          d_ = o.d_;
+        else
+        {
+          new (&d_) T (o.d_);
+          v_ = true;
+        }
+      }
+      else if (v_)
       {
         d_.~T ();
         v_ = false;
-      }
-
-      if (o.v_)
-      {
-        new (&d_) T (o.d_);
-        v_ = true;
       }
 
       return *this;
@@ -77,16 +79,20 @@ namespace butl
     inline optional_data<T, false>& optional_data<T, false>::
     operator= (optional_data&& o)
     {
-      if (v_)
+      if (o.v_)
+      {
+        if (v_)
+          d_ = std::move (o.d_);
+        else
+        {
+          new (&d_) T (std::move (o.d_));
+          v_ = true;
+        }
+      }
+      else if (v_)
       {
         d_.~T ();
         v_ = false;
-      }
-
-      if (o.v_)
-      {
-        new (&d_) T (std::move (o.d_));
-        v_ = true;
       }
 
       return *this;
@@ -118,10 +124,12 @@ namespace butl
     operator= (const T& v)
     {
       if (v_)
-        v_ = false;
-
-      new (&d_) T (v);
-      v_ = true;
+        d_ = v;
+      else
+      {
+        new (&d_) T (v);
+        v_ = true;
+      }
 
       return *this;
     }
@@ -131,10 +139,12 @@ namespace butl
     operator= (T&& v)
     {
       if (v_)
-        v_ = false;
-
-      new (&d_) T (std::move (v));
-      v_ = true;
+        d_ = std::move (v);
+      else
+      {
+        new (&d_) T (std::move (v));
+        v_ = true;
+      }
 
       return *this;
     }
@@ -143,14 +153,18 @@ namespace butl
     inline optional_data<T, true>& optional_data<T, true>::
     operator= (const optional_data& o)
     {
-      if (v_)
-        v_ = false;
-
       if (o.v_)
       {
-        new (&d_) T (o.d_);
-        v_ = true;
+        if (v_)
+          d_ = o.d_;
+        else
+        {
+          new (&d_) T (o.d_);
+          v_ = true;
+        }
       }
+      else if (v_)
+        v_ = false;
 
       return *this;
     }
@@ -159,14 +173,18 @@ namespace butl
     inline optional_data<T, true>& optional_data<T, true>::
     operator= (optional_data&& o)
     {
-      if (v_)
-        v_ = false;
-
       if (o.v_)
       {
-        new (&d_) T (std::move (o.d_));
-        v_ = true;
+        if (v_)
+          d_ = std::move (o.d_);
+        else
+        {
+          new (&d_) T (std::move (o.d_));
+          v_ = true;
+        }
       }
+      else if (v_)
+        v_ = false;
 
       return *this;
     }
