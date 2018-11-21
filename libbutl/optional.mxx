@@ -8,10 +8,28 @@
 
 // C includes.
 
+// Note: Clang must come first (also defines __GNUC__).
+//
+// @@ Clang might be using libstdc++ without optional (feature test macro?)
+// @@ Move to /ft/?
+//
+// Note: make sure we use butl::optional during ODB compilation (has to be
+// this way until we completely switch to std::optional).
+//
+#if !defined(ODB_COMPILER) && \
+    __cplusplus >= 201703L && \
+    defined(__GNUC__)  && __GNUC__ >= 7 && !defined(__clang__)
+#  define LIBBUTL_STD_OPTIONAL
+#endif
+
 #ifndef __cpp_lib_modules
-#include <utility>     // move()
-#include <functional>  // hash
-#include <type_traits> // is_trivially_destructible
+#ifdef LIBBUTL_STD_OPTIONAL
+#  include <optional>
+#else
+#  include <utility>     // move()
+#  include <functional>  // hash
+#  include <type_traits> // is_trivially_destructible
+#endif
 #endif
 
 // Other includes.
@@ -24,6 +42,17 @@ import std.core;
 #endif
 
 #include <libbutl/export.hxx>
+
+#ifdef LIBBUTL_STD_OPTIONAL
+LIBBUTL_MODEXPORT namespace butl
+{
+  template <typename T>
+  using optional = std::optional<T>;
+
+  using std::nullopt_t;
+  using std::nullopt;
+}
+#else
 
 LIBBUTL_MODEXPORT namespace butl
 {
@@ -43,7 +72,7 @@ LIBBUTL_MODEXPORT namespace butl
     template <typename T>
     struct optional_data<T, false>
     {
-      struct empty {char x[sizeof(T)];}; // Note: data member important to GCC.
+      struct empty {};
 
       union
       {
@@ -86,7 +115,7 @@ LIBBUTL_MODEXPORT namespace butl
     template <typename T>
     struct optional_data<T, true>
     {
-      struct empty {char x[sizeof(T)];}; // Note: data member important to GCC.
+      struct empty {};
 
       union
       {
@@ -164,11 +193,11 @@ LIBBUTL_MODEXPORT namespace butl
     T&       value ()       {return this->d_;}
     const T& value () const {return this->d_;}
 
-    T*       operator-> ()       {return &value ();}
-    const T* operator-> () const {return &value ();}
+    T*       operator-> ()       {return &this->d_;}
+    const T* operator-> () const {return &this->d_;}
 
-    T&       operator* ()       {return value ();}
-    const T& operator* () const {return value ();}
+    T&       operator* ()       {return this->d_;}
+    const T& operator* () const {return this->d_;}
 
     bool         has_value () const {return this->v_;}
     explicit operator bool () const {return this->v_;}
@@ -222,3 +251,5 @@ namespace std
 }
 
 #include <libbutl/optional.ixx>
+
+#endif // !LIBBUTL_STD_OPTIONAL
