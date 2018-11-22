@@ -30,10 +30,12 @@
    // the latter we will check for the presence of the <optional> header which
    // only appeared in GCC 7. Also assume both are only available in C++17.
    //
+   // Note that on Mac OS it can still be <experimental/optional>.
+   //
 #  if __cplusplus >= 201703L
 #    if __has_include(<__config>)
 #      include <__config>          // _LIBCPP_VERSION
-#      if _LIBCPP_VERSION >= 4000
+#      if _LIBCPP_VERSION >= 4000 && __has_include(<optional>)
 #        define LIBBUTL_STD_OPTIONAL
 #      endif
 #    elif __has_include(<optional>)
