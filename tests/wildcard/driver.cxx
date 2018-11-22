@@ -48,8 +48,8 @@ int _CRT_glob = 0;
 // Usages:
 //
 // argv[0] -mn <pattern> <name>
-// argv[0] -sd [-n] <pattern> [<dir>]
-// argv[0] -sp [-n] <pattern> <path> [<dir>]
+// argv[0] -sd [-i] [-n] <pattern> [<dir>]
+// argv[0] -sp [-i] [-n] <pattern> <path> [<dir>]
 //
 // Execute actions specified by the first option. Exit with code 0 if succeed,
 // 1 if fail, 2 on the underlying OS error (print error description to STDERR).
@@ -72,6 +72,11 @@ int _CRT_glob = 0;
 //    Same as above, but behaves as if the directory tree being searched
 //    through contains only the specified entry. The start directory is used if
 //    the first pattern component is a self-matching wildcard.
+//
+// -i
+//    Pass psflags::ignorable_components to the match/search functions.
+//    Meaningful in combination with -sd or -sp options and must follow it, if
+//    specified in the command line.
 //
 // -n
 //    Do not sort paths found. Meaningful in combination with -sd or -sp
@@ -100,12 +105,16 @@ try
     assert (argc >= (op == "-sd" ? 3 : 4));
 
     bool sort (true);
+    path_match_flags flags (path_match_flags::follow_symlinks);
+
     int i (2);
     for (; i != argc; ++i)
     {
       string o (argv[i]);
       if (o == "-n")
         sort = false;
+      else if (o == "-i")
+        flags |= path_match_flags::match_absent;
       else
         break; // End of options.
     }
@@ -168,9 +177,9 @@ try
     };
 
     if (!entry)
-      path_search (pattern, add, start);
+      path_search (pattern, add, start, flags);
     else
-      path_search (pattern, *entry, add, start);
+      path_search (pattern, *entry, add, start, flags);
 
     // It the search succeeds, then test search in the directory tree
     // represented by each matched path. Otherwise, if the directory tree is
@@ -185,13 +194,15 @@ try
         //
         size_t match_count (0);
 
-        auto check = [&p, &match_count] (path&& pe, const string&, bool inter)
+        auto check = [&p, &match_count, flags]
+                     (path&& pe, const string&, bool inter)
         {
           if (pe == p.first)
           {
             if (!inter)
               ++match_count;
-            else
+            else if ((flags & path_match_flags::match_absent) ==
+                     path_match_flags::none)
               // For self-matching the callback is first called in the interim
               // mode (through the preopen function) with an empty path.
               //
@@ -201,16 +212,16 @@ try
           return true;
         };
 
-        path_search (pattern, p.first, check, start);
+        path_search (pattern, p.first, check, start, flags);
         assert (match_count == p.second);
 
         // Test path match.
         //
-        assert (path_match (pattern, p.first, start));
+        assert (path_match (pattern, p.first, start, flags));
       }
     }
     else if (entry)
-      assert (!path_match (pattern, *entry, start));
+      assert (!path_match (pattern, *entry, start, flags));
 
     // Print the found paths.
     //

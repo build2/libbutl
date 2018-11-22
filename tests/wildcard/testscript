@@ -1150,4 +1150,85 @@
       }
     }
   }
+
+  : ignorable-components
+  :
+  {
+    test.options += -i
+
+    : middle
+    :
+    {
+      $* a/*/b  a/b   >/ a/b
+      $* a/*/b  a/x/b >/ a/x/b
+      $* a/**/b a/b   >/ a/b
+      $* a/**/b a/x/b >/ a/x/b
+
+      $* a/***/b a/b >>/EOE
+        a/b
+        a/b
+        EOE
+    }
+
+    : top-level
+    :
+    if ($cxx.target.class != 'windows')
+    {
+      $* -n /*/a /a   > /a
+      $* -n /*/a /b/a > /b/a
+    }
+
+    : leading
+    :
+    {
+      $* -n */a a   >/ a
+      $* -n */a b/a >/ b/a
+    }
+
+    : trailing
+    :
+    {
+      : file
+      :
+      {
+        $* -n a/* a   >/ a
+        $* -n a/* a/b >/ a/b
+
+        $* -n a/* a/   == 1
+        $* -n a/* a/b/ == 1
+      }
+
+      : dir
+      :
+      {
+        $* -n a/*/ a/  >/ a/
+        $* -n a/*/ a/b >/ a/
+
+        $* -n a/*/ a/b/ >>/EOE
+          a/b/
+          a/
+          EOE
+
+        $* -n a/*/ a == 1
+      }
+    }
+
+    : leading-trailing
+    {
+      $* -n */* a   >/ a
+      $* -n */* a/b >/ a/b
+
+      $* -n */a/* a     >/ a
+      $* -n */a/* a/b   >/ a/b
+      $* -n */a/* b/a   >/ b/a
+      $* -n */a/* c/a/b >/ c/a/b
+
+      $* -n **/a/** a             >/ a
+      $* -n **/a/** a/b/c/d       >/ a/b/c/d
+      $* -n **/a/** d/c/b/a       >/ d/c/b/a
+      $* -n **/a/** d/c/b/a/b/c/d >/ d/c/b/a/b/c/d
+    }
+
+
+  }
 }

@@ -1594,10 +1594,13 @@ namespace butl
   search (
     path pattern,
     dir_path pattern_dir,
-    bool follow_symlinks,
+    path_match_flags fl,
     const function<bool (path&&, const string& pattern, bool interm)>& func,
     FS& filesystem)
   {
+    bool follow_symlinks ((fl & path_match_flags::follow_symlinks) !=
+                          path_match_flags::none);
+
     // Fast-forward the leftmost pattern non-wildcard components. So, for
     // example, search for foo/f* in /bar/ becomes search for f* in /bar/foo/.
     //
@@ -1724,9 +1727,40 @@ namespace butl
       //
       if (!simple && !search (pattern.leaf (pc),
                               pattern_dir / path_cast<dir_path> (move (p)),
-                              follow_symlinks,
+                              fl,
                               func,
                               filesystem))
+        return false;
+    }
+
+    // If requested, also search with the absent-matching pattern path
+    // component omitted, unless this is the only pattern component.
+    //
+    if ((fl & path_match_flags::match_absent) != path_match_flags::none &&
+        pc.string ().find_first_not_of ('*') == string::npos            &&
+        (!pattern_dir.empty () || !simple))
+    {
+      // Stripping the (leading) absent-matching pattern component and calling
+      // search() with the resulting pattern and the same pattern dir works in
+      // most cases, except for a simple pattern. In the latter case, the
+      // pattern becomes empty and its type information gets lost. In other
+      // words, the patterns a/b/*/ and a/b/* become indistinguishable. Thus,
+      // for such a corner case we will strip the leaf from the pattern dir
+      // and use it as a pattern, stripping the trailing separator, if
+      // required. So for the above examples the search() calls will be as
+      // follows:
+      //
+      // search(b/, a/)
+      // search(b,  a/)
+      //
+      const dir_path& d (!simple ? pattern_dir : pattern_dir.directory ());
+
+      const path& p (
+        !simple                 ? pattern.leaf (pc)   :
+        pattern.to_directory () ? pattern_dir.leaf () :
+        path (pattern_dir.leaf ().string ())); // Strip the trailing separator.
+
+      if (!search (p, d, fl, func, filesystem))
         return false;
     }
 
@@ -1945,10 +1979,10 @@ namespace butl
     const path& pattern,
     const function<bool (path&&, const string& pattern, bool interm)>& func,
     const dir_path& start,
-    bool follow_symlinks)
+    path_match_flags flags)
   {
     real_filesystem fs (pattern.relative () ? start : empty_dir);
-    search (pattern, dir_path (), follow_symlinks, func, fs);
+    search (pattern, dir_path (), flags, func, fs);
   }
 
   // Search path in the directory tree represented by a path.
@@ -2161,14 +2195,18 @@ namespace butl
     const path& pattern,
     const path& entry,
     const function<bool (path&&, const string& pattern, bool interm)>& func,
-    const dir_path& start)
+    const dir_path& start,
+    path_match_flags flags)
   {
     path_filesystem fs (start, entry);
-    search (pattern, dir_path (), true, func, fs);
+    search (pattern, dir_path (), flags, func, fs);
   }
 
   bool
-  path_match (const path& pattern, const path& entry, const dir_path& start)
+  path_match (const path& pattern,
+              const path& entry,
+              const dir_path& start,
+              path_match_flags flags)
   {
     bool r (false);
 
@@ -2186,7 +2224,7 @@ namespace butl
       return true;
     };
 
-    path_search (pattern, entry, match, start);
+    path_search (pattern, entry, match, start, flags);
     return r;
   }
 }

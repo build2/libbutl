@@ -105,6 +105,32 @@ namespace butl
       static_cast<std::uint16_t> (y));
   }
 
+  // path_match_flags
+  //
+  inline path_match_flags operator& (path_match_flags x, path_match_flags y)
+  {
+    return x &= y;
+  }
+
+  inline path_match_flags operator| (path_match_flags x, path_match_flags y)
+  {
+    return x |= y;
+  }
+
+  inline path_match_flags operator&= (path_match_flags& x, path_match_flags y)
+  {
+    return x = static_cast<path_match_flags> (
+      static_cast<std::uint16_t> (x) &
+      static_cast<std::uint16_t> (y));
+  }
+
+  inline path_match_flags operator|= (path_match_flags& x, path_match_flags y)
+  {
+    return x = static_cast<path_match_flags> (
+      static_cast<std::uint16_t> (x) |
+      static_cast<std::uint16_t> (y));
+  }
+
   // dir_entry
   //
   inline entry_type dir_entry::

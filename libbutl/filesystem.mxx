@@ -698,6 +698,35 @@ LIBBUTL_MODEXPORT namespace butl
   // * - match any number of characters (including zero)
   // ? - match any single character
 
+  // Path match/search flags.
+  //
+  enum class path_match_flags: std::uint16_t
+  {
+    // Follow symlinks. This only applies to symlinks that are matched against
+    // the rightmost component of the pattern. In particular, this mean that
+    // such symlinks will never match a directory pattern and some results can
+    // be missing for the recursive rightmost component.
+    //
+    follow_symlinks = 0x1,
+
+    // Make wildcard-only pattern component (e.g., `*/...`, `.../*/...`, or
+    // `.../*`) match absent path component. For example, with this flag
+    // set, the `a/*/b` pattern matches not only `a/x/b` path, but also `a/b`.
+    //
+    // Note that this does not apply to single-component patterns and the
+    // pattern type is always preserved. In particular, the `a/b/*` pattern
+    // matches `a/b` but not `a/b/`.
+    //
+    match_absent = 0x2,
+
+    none = 0
+  };
+
+  inline path_match_flags operator& (path_match_flags, path_match_flags);
+  inline path_match_flags operator| (path_match_flags, path_match_flags);
+  inline path_match_flags operator&= (path_match_flags&, path_match_flags);
+  inline path_match_flags operator|= (path_match_flags&, path_match_flags);
+
   // Return true if name matches pattern. Both must be single path components,
   // possibly with a trailing directory separator to indicate a directory.
   //
@@ -714,10 +743,14 @@ LIBBUTL_MODEXPORT namespace butl
   // start directory is used if the first pattern component is a self-matching
   // wildcard (see below for the start directory and wildcard semantics).
   //
+  // In addition to the wildcard characters, it also recognizes the ** and ***
+  // wildcard sequences (see path_search() for details).
+  //
   LIBBUTL_SYMEXPORT bool
   path_match (const path& pattern,
               const path& entry,
-              const dir_path& start = dir_path ());
+              const dir_path& start = dir_path (),
+              path_match_flags = path_match_flags::none);
 
   // Search for paths matching the pattern calling the specified function for
   // each matching path (see below for details).
@@ -730,14 +763,13 @@ LIBBUTL_MODEXPORT namespace butl
   // The pattern may contain multiple components that include wildcards. On
   // Windows the drive letter may not be a wildcard.
   //
-  // In addition to the wildcard characters listed in path_match(),
-  // path_search() also recognizes the ** and *** wildcard sequences. If a
-  // path component contains **, then it is matched just like * but in all the
-  // subdirectories, recursively. The *** wildcard behaves like ** but also
-  // matches the start directory itself. Note that if the first pattern
-  // component contains ***, then the start directory must be empty or be
-  // terminated with a "meaningful" component (e.g., probably not '.' or
-  // '..').
+  // In addition to the wildcard characters, path_search() also recognizes the
+  // ** and *** wildcard sequences. If a path component contains **, then it
+  // is matched just like * but in all the subdirectories, recursively. The
+  // *** wildcard behaves like ** but also matches the start directory itself.
+  // Note that if the first pattern component contains ***, then the start
+  // directory must be empty or be terminated with a "meaningful" component
+  // (e.g., probably not '.' or '..').
   //
   // So, for example, foo/bar-**.txt will return all the files matching the
   // bar-*.txt pattern in all the subdirectoris of foo/. And foo/f***/ will
@@ -783,12 +815,6 @@ LIBBUTL_MODEXPORT namespace butl
   // (a/b/,   b*/, true)
   // (a/b/c/, c*/, false)
   //
-  // Symlinks are not followed if the follow_symlinks argument is false. This
-  // rule is only applied for symlinks that are matched against the rightmost
-  // component of the pattern. In particular, this mean that such symlinks will
-  // never match a directory pattern, and some results can be missing for the
-  // recursive rightmost component.
-  //
   // Note that recursive iterating through directories currently goes
   // depth-first which make sense for the cleanup use cases. In future we may
   // want to make it controllable.
@@ -799,7 +825,7 @@ LIBBUTL_MODEXPORT namespace butl
                                          const std::string& pattern,
                                          bool interm)>&,
                const dir_path& start = dir_path (),
-               bool follow_symlinks = true);
+               path_match_flags = path_match_flags::follow_symlinks);
 
   // Same as above, but behaves as if the directory tree being searched
   // through contains only the specified entry. The start directory is used if
@@ -816,7 +842,8 @@ LIBBUTL_MODEXPORT namespace butl
                const std::function<bool (path&&,
                                          const std::string& pattern,
                                          bool interm)>&,
-               const dir_path& start = dir_path ());
+               const dir_path& start = dir_path (),
+               path_match_flags = path_match_flags::none);
 }
 
 #include <libbutl/filesystem.ixx>
