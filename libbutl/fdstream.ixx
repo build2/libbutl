@@ -43,6 +43,14 @@ namespace butl
     return std::move (fd_);
   }
 
+  // fdstream_base
+  //
+  inline fdstream_base::
+  fdstream_base (auto_fd&& fd, std::uint64_t pos)
+      : buf_ (std::move (fd), pos)
+  {
+  }
+
   // ifdstream
   //
   inline ifdstream::

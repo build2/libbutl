@@ -270,9 +270,8 @@ LIBBUTL_MODEXPORT namespace butl
   {
   protected:
     fdstream_base () = default;
-    fdstream_base (auto_fd&& fd, std::uint64_t pos)
-      : buf_ (std::move (fd), pos) {}
-    fdstream_base (auto_fd&&, fdstream_mode, std::uint64_t);
+    fdstream_base (auto_fd&&, std::uint64_t pos);
+    fdstream_base (auto_fd&&, fdstream_mode, std::uint64_t pos);
 
   public:
     int
