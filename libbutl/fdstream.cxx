@@ -11,7 +11,7 @@
 #ifndef _WIN32
 #  include <fcntl.h>     // open(), O_*, fcntl()
 #  include <unistd.h>    // close(), read(), write(), lseek(), dup(), pipe(),
-                         // isatty(), ssize_t, STD*_FILENO
+                         // ftruncate(), isatty(), ssize_t, STD*_FILENO
 #  include <sys/uio.h>   // writev(), iovec
 #  include <sys/stat.h>  // stat(), S_I*
 #  include <sys/types.h> // stat, off_t
@@ -19,9 +19,10 @@
 #  include <libbutl/win32-utility.hxx>
 
 #  include <io.h>       // _close(), _read(), _write(), _setmode(), _sopen(),
-                        // _lseek(), _dup(), _pipe(), _get_osfhandle()
+                        // _lseek(), _dup(), _pipe(), _chsize_s,
+                        // _get_osfhandle()
 #  include <share.h>    // _SH_DENYNO
-#  include <stdio.h>    // _fileno(), stdin, stdout, stderr
+#  include <stdio.h>    // _fileno(), stdin, stdout, stderr, SEEK_*
 #  include <fcntl.h>    // _O_*
 #  include <sys/stat.h> // S_I*
 
@@ -95,15 +96,8 @@ namespace butl
 
   // fdbuf
   //
-  fdbuf::
-  fdbuf (auto_fd&& fd)
-  {
-    if (fd.get () >= 0)
-      open (move (fd));
-  }
-
   void fdbuf::
-  open (auto_fd&& fd)
+  open (auto_fd&& fd, uint64_t pos)
   {
     close ();
 
@@ -118,7 +112,7 @@ namespace butl
 
     setg (buf_, buf_, buf_);
     setp (buf_, buf_ + sizeof (buf_) - 1); // Keep space for overflow's char.
-    off_ = 0; // @@ Strictly speaking, need to query, can be at end.
+    off_ = pos;
     fd_ = move (fd);
   }
 
@@ -457,8 +451,8 @@ namespace butl
   // fdstream_base
   //
   fdstream_base::
-  fdstream_base (auto_fd&& fd, fdstream_mode m)
-      : fdstream_base (mode (move (fd), m)) // Delegate.
+  fdstream_base (auto_fd&& fd, fdstream_mode m, std::uint64_t pos)
+      : fdstream_base (mode (move (fd), m), pos)
   {
   }
 
@@ -635,8 +629,9 @@ namespace butl
     open (fdopen (f, m | fdopen_mode::out));
   }
 
-  // Utility functions
+  // fd*() functions
   //
+
   auto_fd
   fdopen (const char* f, fdopen_mode m, permissions p)
   {
@@ -788,6 +783,33 @@ namespace butl
     return auto_fd (fd);
   }
 
+  uint64_t
+  fdseek (int fd, uint64_t o, fdseek_mode fdm)
+  {
+    int m (-1);
+
+    switch (fdm)
+    {
+    case fdseek_mode::set: m = SEEK_SET; break;
+    case fdseek_mode::cur: m = SEEK_CUR; break;
+    case fdseek_mode::end: m = SEEK_END; break;
+    }
+
+#ifndef _WIN32
+    off_t r (lseek (fd, static_cast<off_t> (o), m));
+    if (r == static_cast<off_t> (-1))
+      throw_generic_ios_failure (errno);
+#else
+    __int64 r (_lseeki64 (fd, static_cast<__int64> (o), m));
+    if (r == -1)
+      throw_generic_ios_failure (errno);
+#endif
+
+    return static_cast<uint64_t> (r);
+  }
+
+  // The rest is platform-specific.
+  //
 #ifndef _WIN32
 
   auto_fd
@@ -925,6 +947,13 @@ namespace butl
     }
 
     return r;
+  }
+
+  void
+  fdtruncate (int fd, uint64_t n)
+  {
+    if (ftruncate (fd, static_cast<off_t> (n)) != 0)
+      throw_generic_ios_failure (errno);
   }
 
   bool
@@ -1126,6 +1155,13 @@ namespace butl
       throw_generic_ios_failure (errno);
 
     return {auto_fd (pd[0]), auto_fd (pd[1])};
+  }
+
+  void
+  fdtruncate (int fd, uint64_t n)
+  {
+    if (errno_t e = _chsize_s (fd, static_cast<__int64> (n)))
+      throw_generic_ios_failure (e);
   }
 
   bool

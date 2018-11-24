@@ -106,15 +106,18 @@ LIBBUTL_MODEXPORT namespace butl
   // Notes and limitations:
   //
   // - char only
-  // - input or output but not both
+  // - input or output but not both (can use a union of two streams for that)
   // - no support for put back
+  // - no support for tell[gp]()/seek[gp]() (but see non-standard tellg() and
+  //   tellp() in fdbuf)
   // - non-blocking file descriptor is supported only by showmanyc() function
   //   and only on POSIX
   // - throws ios::failure in case of open()/read()/write()/close() errors
   // - exception mask has at least badbit
   // - after catching an exception caused by badbit the stream is no longer
-  //   used
-  // - not movable, though can be easily supported
+  //   usable
+  // - not movable, though can be easily supported (or not: there is no move
+  //   constructor for istream/ostream in GCC 4.9)
   // - passing to constructor auto_fd with a negative file descriptor is valid
   //   and results in the creation of an unopened object
   //
@@ -122,7 +125,11 @@ LIBBUTL_MODEXPORT namespace butl
   {
   public:
     fdbuf () = default;
-    fdbuf (auto_fd&&);
+
+    // Unless specified, the current read/write position is assumed to
+    // be 0 (note: not queried).
+    //
+    fdbuf (auto_fd&&, std::uint64_t pos = 0);
 
     // Before we invented auto_fd into fdstreams we keept fdbuf opened on
     // faulty close attempt. Now fdbuf is always closed by close() function.
@@ -136,7 +143,7 @@ LIBBUTL_MODEXPORT namespace butl
     release ();
 
     void
-    open (auto_fd&&);
+    open (auto_fd&&, std::uint64_t pos = 0);
 
     bool
     is_open () const {return fd_.get () >= 0;}
@@ -167,7 +174,7 @@ LIBBUTL_MODEXPORT namespace butl
 
     // Return the (logical) position of the next byte to be read.
     //
-    uint64_t
+    std::uint64_t
     tellg () const {return off_ - (egptr () - gptr ());}
 
   private:
@@ -188,7 +195,7 @@ LIBBUTL_MODEXPORT namespace butl
 
     // Return the (logical) position of the next byte to be written.
     //
-    uint64_t
+    std::uint64_t
     tellp () const {return off_ + (pptr () - buf_);}
 
   private:
@@ -197,7 +204,7 @@ LIBBUTL_MODEXPORT namespace butl
 
   private:
     auto_fd fd_;
-    uint64_t off_;
+    std::uint64_t off_;
     char buf_[8192];
     bool non_blocking_ = false;
   };
@@ -251,7 +258,7 @@ LIBBUTL_MODEXPORT namespace butl
     binary     = 0x40, // Set binary translation mode.
     at_end     = 0x80, // Seek to the end of stream immediately after open.
 
-    none = 0           // Usefull when build the mode incrementally.
+    none = 0           // Usefull when building the mode incrementally.
   };
 
   inline fdopen_mode operator& (fdopen_mode, fdopen_mode);
@@ -263,8 +270,9 @@ LIBBUTL_MODEXPORT namespace butl
   {
   protected:
     fdstream_base () = default;
-    fdstream_base (auto_fd&& fd): buf_ (std::move (fd)) {}
-    fdstream_base (auto_fd&&, fdstream_mode);
+    fdstream_base (auto_fd&& fd, std::uint64_t pos)
+      : buf_ (std::move (fd), pos) {}
+    fdstream_base (auto_fd&&, fdstream_mode, std::uint64_t);
 
   public:
     int
@@ -368,8 +376,14 @@ LIBBUTL_MODEXPORT namespace butl
     ifdstream (iostate e = badbit | failbit);
 
     explicit
-    ifdstream (auto_fd&&, iostate e = badbit | failbit);
-    ifdstream (auto_fd&&, fdstream_mode m, iostate e = badbit | failbit);
+    ifdstream (auto_fd&&,
+               iostate e = badbit | failbit,
+               std::uint64_t pos = 0);
+
+    ifdstream (auto_fd&&,
+               fdstream_mode m,
+               iostate e = badbit | failbit,
+               std::uint64_t pos = 0);
 
     explicit
     ifdstream (const char*,
@@ -419,12 +433,16 @@ LIBBUTL_MODEXPORT namespace butl
     open (const path&, fdopen_mode);
 
     void
-    open (auto_fd&& fd) {buf_.open (std::move (fd)); clear ();}
+    open (auto_fd&& fd, std::uint64_t pos = 0)
+    {
+      buf_.open (std::move (fd), pos);
+      clear ();
+    }
 
     void
-    open (auto_fd&& fd, fdstream_mode m)
+    open (auto_fd&& fd, fdstream_mode m, std::uint64_t pos = 0)
     {
-      open (std::move (fd));
+      open (std::move (fd), pos);
       skip_ = (m & fdstream_mode::skip) == fdstream_mode::skip;
     }
 
@@ -464,8 +482,14 @@ LIBBUTL_MODEXPORT namespace butl
     ofdstream (iostate e = badbit | failbit);
 
     explicit
-    ofdstream (auto_fd&&, iostate e = badbit | failbit);
-    ofdstream (auto_fd&&, fdstream_mode m, iostate e = badbit | failbit);
+    ofdstream (auto_fd&&,
+               iostate e = badbit | failbit,
+               std::uint64_t pos = 0);
+
+    ofdstream (auto_fd&&,
+               fdstream_mode m,
+               iostate e = badbit | failbit,
+               std::uint64_t pos = 0);
 
     explicit
     ofdstream (const char*,
@@ -515,7 +539,11 @@ LIBBUTL_MODEXPORT namespace butl
     open (const path&, fdopen_mode);
 
     void
-    open (auto_fd&& fd) {buf_.open (std::move (fd)); clear ();}
+    open (auto_fd&& fd, std::uint64_t pos = 0)
+    {
+      buf_.open (std::move (fd), pos);
+      clear ();
+    }
 
     void close () {if (is_open ()) flush (); buf_.close ();}
     auto_fd release ();
@@ -708,6 +736,19 @@ LIBBUTL_MODEXPORT namespace butl
   //
   LIBBUTL_SYMEXPORT fdpipe
   fdopen_pipe (fdopen_mode = fdopen_mode::none);
+
+  // Seeking.
+  //
+  enum class fdseek_mode {set, cur, end};
+
+  LIBBUTL_SYMEXPORT std::uint64_t
+  fdseek (int, std::uint64_t, fdseek_mode);
+
+  // Truncate or expand the file to the specified size. Throw ios::failure on
+  // the underlying OS error.
+  //
+  LIBBUTL_SYMEXPORT void
+  fdtruncate (int, std::uint64_t);
 
   // Test whether a file descriptor refers to a terminal. Throw ios::failure on
   // the underlying OS error.

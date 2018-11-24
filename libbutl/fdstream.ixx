@@ -30,6 +30,13 @@ namespace butl
 
   // fdbuf
   //
+  inline fdbuf::
+  fdbuf (auto_fd&& fd, std::uint64_t pos)
+  {
+    if (fd.get () >= 0)
+      open (std::move (fd), pos);
+  }
+
   inline auto_fd fdbuf::
   release ()
   {
@@ -39,8 +46,8 @@ namespace butl
   // ifdstream
   //
   inline ifdstream::
-  ifdstream (auto_fd&& fd, iostate e)
-      : fdstream_base (std::move (fd)), std::istream (&buf_)
+  ifdstream (auto_fd&& fd, iostate e, std::uint64_t pos)
+      : fdstream_base (std::move (fd), pos), std::istream (&buf_)
   {
     assert (e & badbit);
     exceptions (e);
@@ -53,8 +60,8 @@ namespace butl
   }
 
   inline ifdstream::
-  ifdstream (auto_fd&& fd, fdstream_mode m, iostate e)
-      : fdstream_base (std::move (fd), m),
+  ifdstream (auto_fd&& fd, fdstream_mode m, iostate e, std::uint64_t pos)
+      : fdstream_base (std::move (fd), m, pos),
         std::istream (&buf_),
         skip_ ((m & fdstream_mode::skip) == fdstream_mode::skip)
   {
@@ -141,8 +148,8 @@ namespace butl
   // ofdstream
   //
   inline ofdstream::
-  ofdstream (auto_fd&& fd, iostate e)
-      : fdstream_base (std::move (fd)), std::ostream (&buf_)
+  ofdstream (auto_fd&& fd, iostate e, std::uint64_t pos)
+      : fdstream_base (std::move (fd), pos), std::ostream (&buf_)
   {
     assert (e & badbit);
     exceptions (e);
@@ -155,8 +162,8 @@ namespace butl
   }
 
   inline ofdstream::
-  ofdstream (auto_fd&& fd, fdstream_mode m, iostate e)
-      : fdstream_base (std::move (fd), m), std::ostream (&buf_)
+  ofdstream (auto_fd&& fd, fdstream_mode m, iostate e, std::uint64_t pos)
+      : fdstream_base (std::move (fd), m, pos), std::ostream (&buf_)
   {
     assert (e & badbit);
     exceptions (e);
