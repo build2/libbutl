@@ -196,8 +196,15 @@ namespace butl
   {
     if (file_exists (p))
     {
+      // Note that on Windows there are two times: the precise time (which is
+      // what we get with system_clock::now()) and what we will call the
+      // "filesystem time", which can lag the precise time by as much as a
+      // couple of milliseconds. To get the filesystem time use
+      // GetSystemTimeAsFileTime(). This is just a heads-up in case we decide
+      // to change this code at some point.
+      //
 #ifndef _WIN32
-      if (utime  (p.string ().c_str (), nullptr) == -1)
+      if (utime (p.string ().c_str (), nullptr) == -1)
 #else
       if (_utime (p.string ().c_str (), nullptr) == -1)
 #endif
