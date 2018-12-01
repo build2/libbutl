@@ -714,8 +714,12 @@ LIBBUTL_MODEXPORT namespace butl
     // set, the `a/*/b` pattern matches not only `a/x/b` path, but also `a/b`.
     //
     // Note that this does not apply to single-component patterns and the
-    // pattern type is always preserved. In particular, the `a/b/*` pattern
-    // matches `a/b` but not `a/b/`.
+    // pattern type is always preserved. In particular, the `a/*/` pattern
+    // matches `a/` but not `a`.
+    //
+    // Finally, keep in mind that only absent directory components can be
+    // matched this way. In particular, pattern `a*/*` does not match `ab`
+    // (but `a*/*/` matches `ab/`).
     //
     match_absent = 0x2,
 

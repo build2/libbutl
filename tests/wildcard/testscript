@@ -1154,7 +1154,7 @@
   : ignorable-components
   :
   {
-    test.options += -i
+    test.options += -i -n
 
     : middle
     :
@@ -1164,25 +1164,58 @@
       $* a/**/b a/b   >/ a/b
       $* a/**/b a/x/b >/ a/x/b
 
-      $* a/***/b a/b >>/EOE
+      $* a/***/b a/b >>/EOO
         a/b
         a/b
-        EOE
+        EOO
+
+      : multiple
+      :
+      {
+        $* a/**/*/b a/b >/ a/b
+
+        $* a/**/*/b a/x/b >>/EOO
+          a/x/b
+          a/x/b
+          EOO
+      }
     }
 
     : top-level
     :
     if ($cxx.target.class != 'windows')
     {
-      $* -n /*/a /a   > /a
-      $* -n /*/a /b/a > /b/a
+      $* /*/a /a   > /a
+      $* /*/a /b/a > /b/a
+
+      : multiple
+      :
+      {
+        $* /*/*/a /a > /a
+
+        $* /*/*/a /b/a >>EOO
+          /b/a
+          /b/a
+          EOO
+      }
     }
 
     : leading
     :
     {
-      $* -n */a a   >/ a
-      $* -n */a b/a >/ b/a
+      $* */a a   >/ a
+      $* */a b/a >/ b/a
+
+      : multiple
+      :
+      {
+        $* */*/a a >/ a
+
+        $* */*/a b/a >>/EOO
+          b/a
+          b/a
+          EOO
+      }
     }
 
     : trailing
@@ -1190,45 +1223,88 @@
     {
       : file
       :
+      : Test that the pattern star-only component of the file type does not
+      : match an absent component.
+      :
       {
-        $* -n a/* a   >/ a
-        $* -n a/* a/b >/ a/b
+        $* a/* a/b >/ a/b
 
-        $* -n a/* a/   == 1
-        $* -n a/* a/b/ == 1
+        $* a/* a    == 1
+        $* a/* a/   == 1
+        $* a/* a/b/ == 1
+
+	: multiple
+	:
+	{
+          $* a/*/* a/b >/ a/b
+
+          $* a/*/* a    == 1
+          $* a/*/* a/   == 1
+          $* a/*/* a/b/ == 1
+	}
       }
 
       : dir
       :
       {
-        $* -n a/*/ a/  >/ a/
-        $* -n a/*/ a/b >/ a/
+        $* a/*/ a/  >/ a/
+        $* a/*/ a/b >/ a/
 
-        $* -n a/*/ a/b/ >>/EOE
+        $* a/*/ a/b/ >>/EOO
           a/b/
           a/
-          EOE
+          EOO
 
-        $* -n a/*/ a == 1
+        $* a/*/ a == 1
+
+        : multiple
+	:
+	{
+          $* a/*/*/ a/  >/ a/
+          $* a/*/*/ a/b >/ a/
+
+          $* a/*/*/ a/b/ >>/EOO
+            a/b/
+            a/b/
+            a/
+            EOO
+
+          $* a/*/*/ a == 1
+	}
       }
     }
 
     : leading-trailing
     {
-      $* -n */* a   >/ a
-      $* -n */* a/b >/ a/b
+      : adjacent
+      :
+      {
+        $* */* a   >/ a
+        $* */* a/b >/ a/b
 
-      $* -n */a/* a     >/ a
-      $* -n */a/* a/b   >/ a/b
-      $* -n */a/* b/a   >/ b/a
-      $* -n */a/* c/a/b >/ c/a/b
+        $* */*   a/ == 1
+      }
 
-      $* -n **/a/** a             >/ a
-      $* -n **/a/** a/b/c/d       >/ a/b/c/d
-      $* -n **/a/** d/c/b/a       >/ d/c/b/a
-      $* -n **/a/** d/c/b/a/b/c/d >/ d/c/b/a/b/c/d
+      : apart
+      :
+      {
+        $* */a/* a/b   >/ a/b
+        $* */a/* c/a/b >/ c/a/b
+
+        $* */a/* a    == 1
+        $* */a/* b/a  == 1
+        $* */a/* b/a/ == 1
+
+        : recursive
+	:
+	{
+          $* **/a/** a/b/c/d       >/ a/b/c/d
+          $* **/a/** d/c/b/a/b/c/d >/ d/c/b/a/b/c/d
+
+          $* **/a/** a       == 1
+          $* **/a/** d/c/b/a == 1
+	}
+      }
     }
-
-
   }
 }

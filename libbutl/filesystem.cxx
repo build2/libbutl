@@ -1737,32 +1737,11 @@ namespace butl
     // component omitted, unless this is the only pattern component.
     //
     if ((fl & path_match_flags::match_absent) != path_match_flags::none &&
+        pc.to_directory ()                                              &&
+        (!pattern_dir.empty () || !simple)                              &&
         pc.string ().find_first_not_of ('*') == string::npos            &&
-        (!pattern_dir.empty () || !simple))
-    {
-      // Stripping the (leading) absent-matching pattern component and calling
-      // search() with the resulting pattern and the same pattern dir works in
-      // most cases, except for a simple pattern. In the latter case, the
-      // pattern becomes empty and its type information gets lost. In other
-      // words, the patterns a/b/*/ and a/b/* become indistinguishable. Thus,
-      // for such a corner case we will strip the leaf from the pattern dir
-      // and use it as a pattern, stripping the trailing separator, if
-      // required. So for the above examples the search() calls will be as
-      // follows:
-      //
-      // search(b/, a/)
-      // search(b,  a/)
-      //
-      const dir_path& d (!simple ? pattern_dir : pattern_dir.directory ());
-
-      const path& p (
-        !simple                 ? pattern.leaf (pc)   :
-        pattern.to_directory () ? pattern_dir.leaf () :
-        path (pattern_dir.leaf ().string ())); // Strip the trailing separator.
-
-      if (!search (p, d, fl, func, filesystem))
-        return false;
-    }
+        !search (pattern.leaf (pc), pattern_dir, fl, func, filesystem))
+      return false;
 
     return true;
   }
