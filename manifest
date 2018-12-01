@@ -3,7 +3,7 @@ name: libbutl
 version: 0.9.0-a.0.z
 project: build2
 summary: build2 utility library
-license: MIT, BSD-3, BSD-2; MIT except for 5 files from the FreeBSD project.
+license: MIT, BSD-3, BSD-2 ; MIT except for 5 files from the FreeBSD project.
 tags: utility, library
 description-file: README
 changes-file: NEWS
@@ -12,6 +12,7 @@ doc-url: https://build2.org/doc.xhtml
 src-url: https://git.build2.org/cgit/libbutl/tree/
 email: users@build2.org
 build-email: builds@build2.org
+#builds: all
 requires: c++14
 depends: * build2 >= 0.8.0-
 depends: * bpkg >= 0.8.0-
