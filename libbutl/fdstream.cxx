@@ -27,6 +27,8 @@
 #  include <sys/stat.h> // S_I*
 
 #  include <wchar.h> // wcsncmp(), wcsstr()
+
+#  include <algorithm> // count()
 #endif
 
 #include <cassert>
@@ -175,6 +177,14 @@ namespace butl
     return r;
   }
 
+#ifdef _WIN32
+  static inline int
+  read (int fd, void* buf, size_t n)
+  {
+    return _read (fd, buf, static_cast<unsigned int> (n));
+  }
+#endif
+
   bool fdbuf::
   load ()
   {
@@ -182,11 +192,7 @@ namespace butl
     //
     assert (!non_blocking_);
 
-#ifndef _WIN32
-    ssize_t n (read (fd_.get (), buf_, sizeof (buf_)));
-#else
-    int n (_read (fd_.get (), buf_, sizeof (buf_)));
-#endif
+    auto n (read (fd_.get (), buf_, sizeof (buf_)));
 
     if (n == -1)
       throw_generic_ios_failure (errno);
@@ -194,6 +200,41 @@ namespace butl
     setg (buf_, buf_, buf_ + n);
     off_ += n;
     return n != 0;
+  }
+
+  void fdbuf::
+  seekg (uint64_t off)
+  {
+    // In the future we may implement the blocking behavior for a non-blocking
+    // file descriptor.
+    //
+    if (non_blocking_)
+      throw_generic_ios_failure (ENOTSUP);
+
+    // The plan is to rewind to the beginning of the stream, read the
+    // requested number of characters and reset the get area, so it will be
+    // filled from scratch on the next read from the stream.
+    //
+    fdseek (fd_.get (), 0, fdseek_mode::set);
+
+    for (uint64_t n (off); n != 0; )
+    {
+      size_t m (n > sizeof (buf_) ? sizeof (buf_) : static_cast<size_t> (n));
+      auto r (read (fd_.get (), buf_, m));
+
+      if (r == -1)
+        throw_generic_ios_failure (errno);
+
+      // Fail if trying to seek beyond the end of the stream.
+      //
+      if (r == 0)
+        throw_generic_ios_failure (EINVAL);
+
+      n -= r;
+    }
+
+    off_ = off;
+    setg (buf_, buf_, buf_);
   }
 
   fdbuf::int_type fdbuf::
@@ -427,6 +468,150 @@ namespace butl
 
     return an + r;
 #endif
+  }
+
+  // Common call chains:
+  //
+  // - basic_ostream::seekp(pos)                    ->
+  //     basic_streambuf::pubseekpos(pos, ios::out) ->
+  //       fdbuf::seekpos(pos, ios::out)
+  //
+  // - basic_istream::seekg(pos)                   ->
+  //     basic_streambuf::pubseekpos(pos, ios::in) ->
+  //       fdbuf::seekpos(pos, ios::in)
+  //
+  fdbuf::pos_type fdbuf::
+  seekpos (pos_type pos, ios_base::openmode which)
+  {
+    // Note that the position type provides an explicit conversion to the
+    // numeric offset type (see std::fpos for details). The position state is
+    // disregarded in this case, which is ok since we don't mess with the
+    // multibyte character conversions.
+    //
+    return seekoff (static_cast<off_type> (pos), ios_base::beg, which);
+  }
+
+  // Common call chains:
+  //
+  // - basic_ostream::seekp(off, dir)                    ->
+  //     basic_streambuf::pubseekoff(off, dir, ios::out) ->
+  //       fdbuf::seekoff(off, dir, ios::out)
+  //
+  // - basic_ostream::tellp()                               ->
+  //     basic_streambuf::pubseekoff(0, ios::cur, ios::out) ->
+  //       fdbuf::seekoff(0, ios::cur, ios::out)
+  //
+  // - basic_istream::seekg(off, dir)                   ->
+  //     basic_streambuf::pubseekoff(off, dir, ios::in) ->
+  //       fdbuf::seekoff(off, dir, ios::in)
+  //
+  // - basic_istream::tellg()                              ->
+  //     basic_streambuf::pubseekoff(0, ios::cur, ios::in) ->
+  //       fdbuf::seekoff(0, ios::cur, ios::in)
+  //
+  fdbuf::pos_type fdbuf::
+  seekoff (off_type off, ios_base::seekdir dir, ios_base::openmode which)
+  {
+    // The seekoff() function interface doesn't support the non-blocking
+    // semantics since being unable to serialize the character in write mode
+    // is supposed to be an error. Also the non-blocking mode is likely to be
+    // used for non-seekable file descriptors (pipes, etc.). In the future we
+    // may implement the blocking behavior for a non-blocking file descriptor.
+    //
+    if (non_blocking_)
+      throw_generic_ios_failure (ENOTSUP);
+
+    // Translate ios_base value to to fdseek_mode.
+    //
+    fdseek_mode m;
+    switch (dir)
+    {
+    case ios_base::beg: m = fdseek_mode::set; break;
+    case ios_base::cur: m = fdseek_mode::cur; break;
+    case ios_base::end: m = fdseek_mode::end; break;
+    default: assert (false);
+    }
+
+    // Prior to fdseek() call we will flush the buffer for the write mode,
+    // reset the get area for the read mode, and fail otherwise. Note that we
+    // don't support the read/write mode.
+    //
+    // Note that the return (position) type is implicitly constructible from
+    // the numeric offset type (see std::fpos for details).
+    //
+    switch (which)
+    {
+    case ios_base::out:
+      {
+        // Fail if unable to fully flush the buffer (for example, because the
+        // device is full).
+        //
+        if (!save ())
+          return static_cast<off_type> (-1);
+
+        break;
+      }
+    case ios_base::in:
+      {
+        // We may have unread data in the get area and need to subtract its
+        // size from the offset if we seek from the current position.
+        //
+        if (dir == ios_base::cur)
+        {
+          off_type n (egptr () - gptr ()); // Get area size.
+
+#ifdef _WIN32
+          // Note that on Windows, when reading in the text mode, newline
+          // characters are translated from the CRLF character sequences.
+          // Thus, in this mode, we also need to subtract the number of
+          // newlines in the get area from the offset.
+          //
+          // Note that this approach only works for "canonical" Windows text
+          // files. Specifically, if there are newlines not preceded with the
+          // CR character then we may end up in the wrong place. It seems that
+          // there is no reasonable solution for this problem, and neither of
+          // the MSVC's or MinGW's std::ifstream implementations handle this
+          // case properly.
+          //
+
+          // The only way to query the current file descriptor mode is to
+          // reset it and use the result (see fdmode() for details).
+          //
+          fdstream_mode fm (fdmode (fd_.get (), fdstream_mode::text));
+
+          // Note: the fdstream_mode::blocking flag is also set.
+          //
+          if ((fm & fdstream_mode::text) == fdstream_mode::text)
+            n += count (gptr (), egptr (), '\n');
+          else
+            fdmode (fd_.get (), fm); // Restore the mode if it was changed.
+#endif
+
+          // Note that ifdstream::tellg() implicitly calls seekoff(0,ios::cur)
+          // (see above). Let's not reset the get area for such noop seeks.
+          //
+          if (off == 0)
+            return static_cast<off_type> (
+              fdseek (fd_.get (), 0, fdseek_mode::cur) - n);
+
+          off -= n;
+        }
+
+        // Reset the get area.
+        //
+        setg (buf_, buf_, buf_);
+        break;
+      }
+    default: return static_cast<off_type> (-1);
+    }
+
+    // Note that on Windows in the text mode the logical offset (number of
+    // read/written bytes) is likely to be screwed up due to newlines
+    // translation (see above).
+    //
+    off_ = fdseek (fd_.get (), off, m);
+
+    return static_cast<off_type> (off_);
   }
 
   inline static bool
@@ -784,7 +969,7 @@ namespace butl
   }
 
   uint64_t
-  fdseek (int fd, uint64_t o, fdseek_mode fdm)
+  fdseek (int fd, int64_t o, fdseek_mode fdm)
   {
     int m (-1);
 
@@ -800,7 +985,7 @@ namespace butl
     if (r == static_cast<off_t> (-1))
       throw_generic_ios_failure (errno);
 #else
-    __int64 r (_lseeki64 (fd, static_cast<__int64> (o), m));
+    __int64 r (_lseeki64 (fd, o, m));
     if (r == -1)
       throw_generic_ios_failure (errno);
 #endif

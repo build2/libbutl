@@ -482,6 +482,286 @@ main (int argc, const char* argv[])
 
 #endif
 
+  // Test setting and getting position via the non-standard fdbuf interface.
+  //
+  // Seek for read.
+  //
+  {
+    to_file (f, "012\n3\n4567", fdopen_mode::truncate);
+
+    ifdstream is (f);
+
+    fdbuf* buf (dynamic_cast<fdbuf*> (is.rdbuf ()));
+    assert (buf != nullptr);
+
+    char c;
+    for (size_t i (0); i < 7; ++i)
+      is.get (c);
+
+    uint64_t p (buf->tellg ());
+    assert (p == 7);
+
+    is.get (c);
+    assert (c == '5');
+
+    buf->seekg (p);
+    assert (buf->tellg () == p);
+
+    is.get (c);
+    assert (c == '5');
+
+    // Can't seek beyond the end of the stream.
+    //
+    try
+    {
+      buf->seekg (20);
+      assert (false);
+    }
+    catch (const ios::failure&) {}
+  }
+
+  // Seek for write.
+  //
+  {
+    // Let's test replacing the '3' fragment with 'XYZ' in the following file.
+    //
+    to_file (f, "012\n3\n4567", fdopen_mode::truncate);
+
+    auto_fd fd;
+    string suffix;
+    size_t p (4); // Logical position of the fragment being replaced.
+
+    {
+      ifdstream is (f, fdopen_mode::in | fdopen_mode::out);
+
+      fdbuf* buf (dynamic_cast<fdbuf*> (is.rdbuf ()));
+      assert (buf != nullptr);
+
+      // Read till the end of the fragment.
+      //
+      char c;
+      for (size_t i (0); i < p + 1; ++i)
+        is.get (c);
+
+      assert (c == '3');
+
+      // Read the suffix.
+      //
+      suffix = is.read_text ();
+      assert (suffix == "\n4567");
+
+      // Seek to the beginning of the fragment and detach the file descriptor.
+      //
+      buf->seekg (p);
+      fd = is.release ();
+    }
+
+    // Rewrite the fragment.
+    //
+    // Note that on Windows in the text mode the logical position differs from
+    // the file descriptor position, so we need to query the later one to
+    // truncate the file.
+    //
+    fdtruncate (fd.get (), fdseek (fd.get (), 0, fdseek_mode::cur));
+
+    ofdstream os (move (fd), ofdstream::badbit | ofdstream::failbit, p);
+
+    os << "XYZ" << suffix;
+    os.close ();
+
+    assert (from_file (f) == "012\nXYZ\n4567");
+  }
+
+  // Test setting and getting position via the standard [io]stream interface.
+  //
+  to_file (f, "0123456789", fdopen_mode::truncate);
+
+  // Seek for read.
+  //
+  {
+    ifdstream is (f);
+
+    char c;
+    is.get (c);
+
+    is.seekg (5, ios::beg);
+    is.get (c);
+    assert (c == '5');
+
+    is.seekg (2, ios::cur);
+
+    assert (static_cast<streamoff> (is.tellg ()) == 8);
+
+    const fdbuf* buf (dynamic_cast<const fdbuf*> (is.rdbuf ()));
+    assert (buf != nullptr && buf->tellg () == 8);
+
+    assert (from_stream (is) == "89");
+  }
+
+  // Seek for write.
+  //
+  {
+    ofdstream os (f, fdopen_mode::out);
+    os.seekp (4, ios::beg);
+    os << "ABC";
+    os.seekp (-4, ios::end);
+    os << "XYZ";
+    os.seekp (-8, ios::cur);
+    os << 'C';
+
+    assert (static_cast<streamoff> (os.tellp ()) == 2);
+
+    const fdbuf* buf (dynamic_cast<const fdbuf*> (os.rdbuf ()));
+    assert (buf != nullptr && buf->tellp () == 2);
+
+    os.close ();
+    assert (from_file (f) == "0C23ABXYZ9");
+  }
+
+#ifdef _WIN32
+
+  // Test handling newline characters on Windows while setting and getting
+  // position via the standard [io]stream interface.
+  //
+  // Save the string in the text mode, so the newline character is translated
+  // into the 0xD, 0xA character sequence on Windows.
+  //
+  to_file (f, "01234\n56789", fdopen_mode::truncate);
+
+  // Seek for read in the text mode.
+  //
+  {
+    ifdstream is (f);
+
+    char c;
+    is.get (c);
+
+    is.seekg (2, ios::cur);
+    is.get (c);
+
+    assert (c == '3');
+
+    is.seekg (4, ios::cur);
+
+    assert (static_cast<streamoff> (is.tellg ()) == 8);
+    assert (from_stream (is) == "6789");
+  }
+
+  // Seek for read in the binary mode.
+  //
+  {
+    ifdstream is (f, ios::binary);
+
+    char c;
+    is.get (c);
+
+    is.seekg (2, ios::cur);
+    is.get (c);
+
+    assert (c == '3');
+
+    is.seekg (4, ios::cur);
+
+    assert (static_cast<streamoff> (is.tellg ()) == 8);
+
+    const fdbuf* buf (dynamic_cast<const fdbuf*> (is.rdbuf ()));
+    assert (buf != nullptr && buf->tellp () == 8);
+
+    assert (from_stream (is) == "6789");
+  }
+
+  // Research the positioning misbehavior of std::ifstream object opened
+  // in the text mode on Windows.
+  //
+#if 0
+
+  to_file (f, "012\r\n3\n4567", fdopen_mode::truncate | fdopen_mode::binary);
+
+  {
+    ifstream is (f.string ());
+//    ifdstream is (f);
+
+    char c1;
+    for (size_t i (0); i < 2; ++i)
+      is.get (c1);
+
+    is.seekg (6, ios::cur);
+
+    streamoff p1 (is.tellg ());
+
+    is.get (c1);
+
+    cout << "c1: '" << c1 << "' pos " << p1 << endl;
+
+    char c2;
+    is.seekg (8, ios::beg);
+
+    streamoff p2 (is.tellg ());
+    is.get (c2);
+
+    cout << "c2: '" << c2 << "' pos " << p2 << endl;
+
+    // One could expect the positions and characters to match, but:
+    //
+    // VC's ifstream and ifdstream end up with:
+    //
+    // c1: '4' pos 7
+    // c2: '5' pos 8
+    //
+    // MinGW's ifstream ends up with:
+    //
+    // c1: '6' pos 9
+    // c2: '5' pos 8
+    //
+    // These assertions fail for all implementations:
+    //
+    // assert (p1 == p2);
+    // assert (c1 == c2);
+  }
+
+  {
+    ifstream is (f.string ());
+//    ifdstream is (f);
+
+    char c1;
+    for (size_t i (0); i < 2; ++i)
+      is.get (c1);
+
+    auto p1 (is.tellg ());
+    is.get (c1);
+
+    cout << "c1: '" << c1 << "' pos " << p1 << endl;
+
+    is.seekg (p1, ios::beg);
+
+    auto p2 (is.tellg ());
+
+    char c2;
+    is.get (c2);
+
+    cout << "c2: '" << c2 << "' pos " << p2 << endl;
+
+    // One could expect the positions and characters to match, but:
+    //
+    // VC's ifstream and ifdstream end up with:
+    //
+    // c1: '2' pos 1
+    // c2: '1' pos 1
+    //
+    // MinGW's ifstream ends up with:
+    //
+    // c1: '2' pos 3
+    // c2: '\n' pos 3
+    //
+    // This assertion fails for all implementations:
+    //
+    // assert (c1 == c2);
+  }
+
+#endif
+
+#endif
+
   // Test pipes.
   //
   // Here we rely on buffering being always enabled for pipes.

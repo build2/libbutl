@@ -108,11 +108,14 @@ LIBBUTL_MODEXPORT namespace butl
   // - char only
   // - input or output but not both (can use a union of two streams for that)
   // - no support for put back
-  // - no support for tell[gp]()/seek[gp]() (but see non-standard tellg() and
-  //   tellp() in fdbuf)
+  // - use of tell[gp]() and seek[gp]() is discouraged on Windows for
+  //   fdstreams opened in the text mode (see fdbuf::seekoff() implementation
+  //   for reasoning and consider using non-standard tellg() and seekg() in
+  //   fdbuf, instead)
   // - non-blocking file descriptor is supported only by showmanyc() function
   //   and only on POSIX
-  // - throws ios::failure in case of open()/read()/write()/close() errors
+  // - throws ios::failure in case of open(), read(), write(), close(),
+  //   seek[gp](), or tell[gp]() errors
   // - exception mask has at least badbit
   // - after catching an exception caused by badbit the stream is no longer
   //   usable
@@ -157,6 +160,9 @@ LIBBUTL_MODEXPORT namespace butl
     using int_type = base::int_type;
     using traits_type = base::traits_type;
 
+    using pos_type = base::pos_type; // std::streampos
+    using off_type = base::off_type; // std::streamoff
+
     // basic_streambuf input interface.
     //
   public:
@@ -174,8 +180,20 @@ LIBBUTL_MODEXPORT namespace butl
 
     // Return the (logical) position of the next byte to be read.
     //
+    // Note that on Windows when reading in the text mode the logical position
+    // may differ from the physical file descriptor position due to the CRLF
+    // character sequence translation. See the seekoff() implementation for
+    // more background on this issue.
+    //
     std::uint64_t
     tellg () const {return off_ - (egptr () - gptr ());}
+
+    // Seek to the (logical) position as if by reading the specified number of
+    // bytes from the beginning of the stream. Throw ios::failure on the
+    // underlying OS errors.
+    //
+    void
+    seekg (std::uint64_t);
 
   private:
     bool
@@ -197,6 +215,15 @@ LIBBUTL_MODEXPORT namespace butl
     //
     std::uint64_t
     tellp () const {return off_ + (pptr () - buf_);}
+
+    // basic_streambuf positioning interface (both input/output).
+    //
+  public:
+    virtual pos_type
+    seekpos (pos_type, std::ios_base::openmode);
+
+    virtual pos_type
+    seekoff (off_type, std::ios_base::seekdir, std::ios_base::openmode);
 
   private:
     bool
@@ -741,7 +768,7 @@ LIBBUTL_MODEXPORT namespace butl
   enum class fdseek_mode {set, cur, end};
 
   LIBBUTL_SYMEXPORT std::uint64_t
-  fdseek (int, std::uint64_t, fdseek_mode);
+  fdseek (int, std::int64_t, fdseek_mode);
 
   // Truncate or expand the file to the specified size. Throw ios::failure on
   // the underlying OS error.
