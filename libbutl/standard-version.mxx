@@ -46,7 +46,7 @@ LIBBUTL_MODEXPORT namespace butl
   //
   // [+<epoch>-]<maj>.<min>.<patch>[-(a|b).<num>[.<snapsn>[.<snapid>]]][+<rev>]
   // [+<epoch>-]<maj>.<min>.<patch>-
-  // 0[+<revision>]
+  // 0[+<rev>]
   //
   // The numeric version format is AAABBBCCCDDDE where:
   //
@@ -67,6 +67,8 @@ LIBBUTL_MODEXPORT namespace butl
   // 3.0.0-b.2    0029999995020
   // 2.2.0-a.1.z  0020019990011
   //
+  // Stub is represented as ~0.
+  //
   struct LIBBUTL_SYMEXPORT standard_version
   {
     // Invariants:
@@ -82,7 +84,7 @@ LIBBUTL_MODEXPORT namespace butl
     static const std::uint64_t latest_sn = std::uint64_t (~0);
 
     std::uint16_t epoch        = 1;  // 0 if a stub, 1 if not specified.
-    std::uint64_t version      = 0;  // AAABBBCCCDDDE
+    std::uint64_t version      = 0;  // AAABBBCCCDDDE or ~0 for stub.
     std::uint64_t snapshot_sn  = 0;  // 0 if not specifed, latest_sn if 'z'.
     std::string   snapshot_id;       // Empty if not specified.
     std::uint16_t revision     = 0;  // 0 if not specified.
@@ -91,7 +93,15 @@ LIBBUTL_MODEXPORT namespace butl
     std::uint16_t minor () const noexcept;
     std::uint16_t patch () const noexcept;
 
-    // Note: 0 is ambiguous (-a.0.z).
+    // The alpha/beta number (decremented by 500 for betas). Note: 0 is
+    // ambiguous (can be non-pre-release or -[ab].0.z).
+    //
+    // @@ Inconsistent with the pre_release argument in constructors
+    //    below. The whole pre-release interface feels off, maybe we should
+    //    redo it? I.e., return DDD from pre_release() (though 0 will still be
+    //    ambigous; maybe DDDE) and have separate functions to get alpha/beta
+    //    numbers? Maybe alpha()/beta() return optional<std::uint16_t>? Maybe
+    //    pre-release should return bool (or also optional)?
     //
     std::uint16_t pre_release () const noexcept;
 
@@ -123,7 +133,8 @@ LIBBUTL_MODEXPORT namespace butl
     // Comparison of empty or stub versions doesn't make sense.
     //
     int
-    compare (const standard_version& v) const noexcept
+    compare (const standard_version& v,
+             bool ignore_revision = false) const noexcept
     {
       if (epoch != v.epoch)
         return epoch < v.epoch ? -1 : 1;
@@ -134,8 +145,11 @@ LIBBUTL_MODEXPORT namespace butl
       if (snapshot_sn != v.snapshot_sn)
         return snapshot_sn < v.snapshot_sn ? -1 : 1;
 
-      if (revision != v.revision)
-        return revision < v.revision ? -1 : 1;
+      if (!ignore_revision)
+      {
+        if (revision != v.revision)
+          return revision < v.revision ? -1 : 1;
+      }
 
       return 0;
     }
@@ -160,6 +174,8 @@ LIBBUTL_MODEXPORT namespace butl
                       const std::string& snapshot,
                       flags = none);
 
+    // Note that the default epoch is 1 for real versions and 0 for stubs.
+    //
     standard_version (std::uint16_t epoch,
                       std::uint64_t version,
                       const std::string& snapshot,
@@ -172,6 +188,26 @@ LIBBUTL_MODEXPORT namespace butl
                       std::string snapshot_id,
                       std::uint16_t revision,
                       flags = none);
+
+    // Version as separate major, minor, patch, and pre-release components.
+    // Note that the pre-release here is in the DDD form, that is, incremenetd
+    // by 500 for betas.
+    //
+    standard_version (std::uint16_t epoch,
+                      std::uint16_t major,
+                      std::uint16_t minor,
+                      std::uint16_t patch,
+                      std::uint16_t pre_release = 0,
+                      std::uint16_t revision = 0);
+
+    standard_version (std::uint16_t epoch,
+                      std::uint16_t major,
+                      std::uint16_t minor,
+                      std::uint16_t patch,
+                      std::uint16_t pre_release,
+                      std::uint64_t snapshot_sn,
+                      std::string snapshot_id,
+                      std::uint16_t revision = 0);
 
     // Create empty version.
     //

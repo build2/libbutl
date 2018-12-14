@@ -44,7 +44,7 @@ namespace butl
   pre_release () const noexcept
   {
     std::uint64_t ab (version / 10 % 1000);
-    if (ab > 500)
+    if (ab >= 500)
       ab -= 500;
 
     return static_cast<std::uint16_t> (ab);
@@ -68,6 +68,46 @@ namespace butl
   earliest () const noexcept
   {
     return version % 10000 == 1 && !snapshot () && !stub ();
+  }
+
+  inline standard_version::
+  standard_version (std::uint16_t ep,
+                    std::uint16_t mj,
+                    std::uint16_t mi,
+                    std::uint16_t pa,
+                    std::uint16_t pr,
+                    std::uint16_t rv)
+      : standard_version (ep,
+                          //  AAABBBCCCDDDE
+                          (mj * 10000000000ULL +
+                           mi *    10000000ULL +
+                           pa *       10000ULL +
+                           pr *          10ULL),
+                          "" /* snapshot */,
+                          rv)
+  {
+  }
+
+  inline standard_version::
+  standard_version (std::uint16_t ep,
+                    std::uint16_t mj,
+                    std::uint16_t mi,
+                    std::uint16_t pa,
+                    std::uint16_t pr,
+                    std::uint64_t sn,
+                    std::string si,
+                    std::uint16_t rv)
+      : standard_version (ep,
+                          //  AAABBBCCCDDDE
+                          (mj * 10000000000ULL +
+                           mi *    10000000ULL +
+                           pa *       10000ULL +
+                           pr *          10ULL +
+                           /**/           1ULL /* snapshot */),
+                          sn,
+                          si,
+                          rv)
+  {
   }
 
   inline standard_version::flags

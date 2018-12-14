@@ -138,7 +138,7 @@ namespace butl
     }
 
     if (!r)
-      throw invalid_argument ("invalid project version");
+      throw invalid_argument ("invalid standard version");
   }
 
   static bool
