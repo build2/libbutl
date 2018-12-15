@@ -86,55 +86,13 @@ namespace butl
           break;
         }
 
-        check_name (n);
-
-        os_ << n << ':';
+        write_name (n);
+        os_ << ':';
 
         if (!v.empty ())
         {
           os_ << ' ';
-
-          // Consider both \r and \n characters as line separators, and the
-          // \r\n characters sequence as a single line separator.
-          //
-          auto nl = [&v] (size_t p = 0) {return v.find_first_of ("\r\n", p);};
-
-          // Use the multi-line mode in any of the following cases:
-          //
-          // - name is too long (say longer than 37 (78/2 - 2) characters;
-          //   we cannot start on the next line since that would start the
-          //   multi-line mode)
-          // - value contains newlines
-          // - value contains leading/trailing whitespaces
-          //
-          if (n.size () > 37 || nl () != string::npos ||
-              v.front () == ' ' || v.front () == '\t' ||
-              v.back () == ' ' || v.back () == '\t')
-          {
-            os_ << "\\" << endl; // Multi-line mode introductor.
-
-            // Chunk the value into fragments separated by newlines.
-            //
-            for (size_t i (0), p (nl ()); ; p = nl (i))
-            {
-              if (p == string::npos)
-              {
-                // Last chunk.
-                //
-                write_value (0, v.c_str () + i, v.size () - i);
-                break;
-              }
-
-              write_value (0, v.c_str () + i, p - i);
-              os_ << endl;
-
-              i = p + (v[p] == '\r' && v[p + 1] == '\n' ? 2 : 1);
-            }
-
-            os_ << endl << "\\"; // Multi-line mode terminator.
-          }
-          else
-            write_value (n.size () + 2, v.c_str (), v.size ());
+          write_value (v, n.size () + 2);
         }
 
         os_ << endl;
@@ -187,8 +145,11 @@ namespace butl
   }
 
   void manifest_serializer::
-  check_name (const string& n)
+  write_name (const string& n)
   {
+    if (n.empty ())
+      throw serialization (name_, "empty name");
+
     if (n[0] == '#')
       throw serialization (name_, "name starts with '#'");
 
@@ -200,14 +161,16 @@ namespace butl
       case '\t':
       case '\r':
       case '\n': throw serialization (name_, "name contains whitespace");
-      case ':': throw serialization (name_, "name contains ':'");
-      default: break;
+      case ':':  throw serialization (name_, "name contains ':'");
+      default:   break;
       }
     }
+
+    os_ << n;
   }
 
   void manifest_serializer::
-  write_value (size_t cl, const char* s, size_t n)
+  write_value (const char* s, size_t n, size_t cl)
   {
     char c ('\0');
 
@@ -280,6 +243,52 @@ namespace butl
     //
     if (c == '\\')
       os_ << '\\';
+  }
+
+  void manifest_serializer::
+  write_value (const string& v, size_t cl)
+  {
+    // Consider both \r and \n characters as line separators, and the
+    // \r\n characters sequence as a single line separator.
+    //
+    auto nl = [&v] (size_t p = 0) {return v.find_first_of ("\r\n", p);};
+
+    // Use the multi-line mode in any of the following cases:
+    //
+    // - column offset is too large (say greater than 39 (78/2) characters; we
+    //   cannot start on the next line since that would start the multi-line
+    //   mode)
+    // - value contains newlines
+    // - value contains leading/trailing whitespaces
+    //
+    if (cl > 39 || nl () != string::npos ||
+        v.front () == ' ' || v.front () == '\t' ||
+        v.back () == ' ' || v.back () == '\t')
+    {
+      os_ << "\\" << endl; // Multi-line mode introductor.
+
+      // Chunk the value into fragments separated by newlines.
+      //
+      for (size_t i (0), p (nl ()); ; p = nl (i))
+      {
+        if (p == string::npos)
+        {
+          // Last chunk.
+          //
+          write_value (v.c_str () + i, v.size () - i, 0);
+          break;
+        }
+
+        write_value (v.c_str () + i, p - i, 0);
+        os_ << endl;
+
+        i = p + (v[p] == '\r' && v[p + 1] == '\n' ? 2 : 1);
+      }
+
+      os_ << endl << "\\"; // Multi-line mode terminator.
+    }
+    else
+      write_value (v.c_str (), v.size (), cl);
   }
 
   // manifest_serialization

@@ -29,6 +29,7 @@ import std.core;
 import std.io;
 #endif
 import butl.char_scanner;
+import butl.manifest_types;
 #endif
 
 #endif
@@ -44,9 +45,12 @@ namespace butl
   next ()
   {
     if (s_ == end)
-      return name_value {"", "", line, column, line, column};
+      return name_value {
+        "", "", line, column, line, column, position, position, position};
 
-    xchar c (skip_spaces ());
+    auto clp (skip_spaces ());
+    xchar c (clp.first);
+    uint64_t start_pos (clp.second);
 
     // Here is the problem: if we are in the 'body' state (that is,
     // we are parsing inside the manifest) and we see the special
@@ -62,13 +66,18 @@ namespace butl
     if (s_ == body && c == ':')
     {
       s_ = start;
-      return name_value {"", "", c.line, c.column, c.line, c.column};
+
+      return name_value {"", "",
+                         c.line, c.column, c.line, c.column,
+                         start_pos, c.position, c.position};
     }
 
     // Regardless of the state, what should come next is a name,
     // potentially the special empty one.
     //
     name_value r;
+    r.start_pos = start_pos;
+
     parse_name (r);
 
     skip_spaces ();
@@ -87,11 +96,15 @@ namespace butl
       //
       r.value_line = r.name_line;
       r.value_column = r.name_column;
+      r.colon_pos = r.start_pos;
+      r.end_pos = r.start_pos;
       return r;
     }
 
     if (c != ':')
       throw parsing (name_, c.line, c.column, "':' expected after name");
+
+    r.colon_pos = c.position;
 
     skip_spaces ();
     parse_value (r);
@@ -101,6 +114,8 @@ namespace butl
     // The character after the value should be either a newline or eos.
     //
     assert (c == '\n' || eos (c));
+
+    r.end_pos = c.position;
 
     if (c == '\n')
       get ();
@@ -384,11 +399,12 @@ namespace butl
       v.resize (n);
   }
 
-  manifest_parser::xchar manifest_parser::
+  pair<manifest_parser::xchar, uint64_t> manifest_parser::
   skip_spaces ()
   {
     xchar c (peek ());
     bool start (c.column == 1);
+    uint64_t lp (c.position);
 
     for (; !eos (c); c = peek ())
     {
@@ -402,8 +418,9 @@ namespace butl
           // Skip empty lines.
           //
           if (!start)
-            return c;
+            return make_pair (c, lp);
 
+          lp = c.position + 1;
           break;
         }
       case '#':
@@ -412,7 +429,7 @@ namespace butl
           // of the line (sans leading spaces).
           //
           if (!start)
-            return c;
+            return make_pair (c, lp);
 
           get ();
 
@@ -424,13 +441,13 @@ namespace butl
           continue;
         }
       default:
-        return c; // Not a space.
+        return make_pair (c, lp); // Not a space.
       }
 
       get ();
     }
 
-    return c;
+    return make_pair (c, lp);
   }
 
   // manifest_parsing

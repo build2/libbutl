@@ -1,0 +1,49 @@
+// file      : libbutl/manifest-types.mxx -*- C++ -*-
+// copyright : Copyright (c) 2014-2018 Code Synthesis Ltd
+// license   : MIT; see accompanying LICENSE file
+
+#ifndef __cpp_modules
+#pragma once
+#endif
+
+// C includes.
+
+#ifndef __cpp_lib_modules
+#include <string>
+#include <cstdint>   // uint64_t
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.manifest_types;
+#ifdef __cpp_lib_modules
+import std.core;
+#endif
+#else
+#endif
+
+#include <libbutl/export.hxx>
+
+LIBBUTL_MODEXPORT namespace butl
+{
+  class manifest_name_value
+  {
+  public:
+    std::string name;
+    std::string value;
+
+    std::uint64_t name_line;
+    std::uint64_t name_column;
+
+    std::uint64_t value_line;
+    std::uint64_t value_column;
+
+    std::uint64_t start_pos; // Position of name/value-starting character.
+    std::uint64_t colon_pos; // Position of name/value-separating ':'.
+    std::uint64_t   end_pos; // Position of name/value-terminating '\n' or EOF.
+
+    bool
+    empty () const {return name.empty () && value.empty ();}
+  };
+}

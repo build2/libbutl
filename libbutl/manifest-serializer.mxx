@@ -75,15 +75,28 @@ LIBBUTL_MODEXPORT namespace butl
     merge_comment (const std::string& value, const std::string& comment);
 
   private:
-    void
-    check_name (const std::string&);
+    friend class manifest_rewriter;
 
-    // Write 'n' characters from 's' (assuming there are no newlines)
-    // split into multiple lines at or near the 78 characters
-    // boundary. The first line starts at the 'column' offset.
+    // Validate and write a name.
     //
     void
-    write_value (std::size_t column, const char* s, std::size_t n);
+    write_name (const std::string&);
+
+    // Write a value assuming the current line already has the specified
+    // offset. If the resulting line length would be too large then the
+    // multi-line representation will be used. It is assumed that the name,
+    // followed by the colon, is already written.
+    //
+    void
+    write_value (const std::string&, std::size_t offset);
+
+    // Write the specified number of characters from the specified string
+    // (assuming there are no newlines) split into multiple lines at or near
+    // the 78 characters boundary. Assume the current line already has the
+    // specified offset.
+    //
+    void
+    write_value (const char* s, std::size_t n, std::size_t offset);
 
   private:
     enum {start, body, end} s_ = start;

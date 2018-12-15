@@ -65,4 +65,10 @@ namespace butl
     if (save_ != nullptr && c != xchar::traits_type::eof ())
       save_->push_back (static_cast<char_type> (c));
   }
+
+  inline std::uint64_t char_scanner::
+  pos_ () const
+  {
+    return buf_ != nullptr ? buf_->tellg () : 0;
+  }
 }

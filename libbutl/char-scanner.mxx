@@ -46,10 +46,14 @@ LIBBUTL_MODEXPORT namespace butl
     // a number of optimizations that assume nobody else is messing with the
     // stream.
     //
-    // The line argument can be used to override the start line in the stream
-    // (useful when re-scanning data saved with the save_* facility).
+    // The line and position arguments can be used to override the start line
+    // and position in the stream (useful when re-scanning data saved with the
+    // save_* facility).
     //
-    char_scanner (std::istream& is, bool crlf = true, std::uint64_t line = 1);
+    char_scanner (std::istream& is,
+                  bool crlf = true,
+                  std::uint64_t line = 1,
+                  std::uint64_t position = 0);
 
     char_scanner (const char_scanner&) = delete;
     char_scanner& operator= (const char_scanner&) = delete;
@@ -58,8 +62,8 @@ LIBBUTL_MODEXPORT namespace butl
     //
   public:
 
-    // Extended character. It includes line/column information and is capable
-    // of representing EOF.
+    // Extended character. It includes line/column/position information and is
+    // capable of representing EOF.
     //
     // Note that implicit conversion of EOF to char_type results in NUL
     // character (which means in most cases it is safe to compare xchar to
@@ -76,6 +80,11 @@ LIBBUTL_MODEXPORT namespace butl
       std::uint64_t line;
       std::uint64_t column;
 
+      // Logical character position (see ifdstream for details on the logical
+      // part) if the scanned stream is ifdstream and always zero otherwise.
+      //
+      std::uint64_t position;
+
       operator char_type () const
       {
         return value != traits_type::eof ()
@@ -83,8 +92,11 @@ LIBBUTL_MODEXPORT namespace butl
           : char_type (0);
       }
 
-      xchar (int_type v, std::uint64_t l = 0, std::uint64_t c = 0)
-          : value (v), line (l), column (c) {}
+      xchar (int_type v,
+             std::uint64_t l = 0,
+             std::uint64_t c = 0,
+             std::uint64_t p = 0)
+          : value (v), line (l), column (c), position (p) {}
     };
 
     xchar
@@ -108,11 +120,12 @@ LIBBUTL_MODEXPORT namespace butl
     static bool
     eos (const xchar& c) {return c.value == xchar::traits_type::eof ();}
 
-    // Line and column of the next character to be extracted from the stream
-    // by peek() or get().
+    // Line, column and position of the next character to be extracted from
+    // the stream by peek() or get().
     //
     std::uint64_t line;
     std::uint64_t column;
+    std::uint64_t position;
 
     // Ability to save raw data as it is being scanned. Note that the
     // character is only saved when it is got, not peeked.
@@ -155,6 +168,9 @@ LIBBUTL_MODEXPORT namespace butl
 
     void
     get_ ();
+
+    std::uint64_t
+    pos_ () const;
 
   protected:
     std::istream& is_;

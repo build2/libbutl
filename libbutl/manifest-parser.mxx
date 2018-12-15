@@ -25,8 +25,10 @@ import std.core;
 import std.io;
 #endif
 import butl.char_scanner;
+import butl.manifest_types;
 #else
 #include <libbutl/char-scanner.mxx>
+#include <libbutl/manifest-types.mxx>
 #endif
 
 #include <libbutl/export.hxx>
@@ -45,22 +47,6 @@ LIBBUTL_MODEXPORT namespace butl
     std::uint64_t line;
     std::uint64_t column;
     std::string description;
-  };
-
-  class manifest_name_value
-  {
-  public:
-    std::string name;
-    std::string value;
-
-    std::uint64_t name_line;
-    std::uint64_t name_column;
-
-    std::uint64_t value_line;
-    std::uint64_t value_column;
-
-    bool
-    empty () const {return name.empty () && value.empty ();}
   };
 
   class LIBBUTL_SYMEXPORT manifest_parser: protected butl::char_scanner
@@ -102,9 +88,12 @@ LIBBUTL_MODEXPORT namespace butl
     void
     parse_value (manifest_name_value&);
 
-    // Skip spaces and return the first peeked non-space character.
+    // Skip spaces and return the first peeked non-space character and the
+    // starting position of the line it belongs to. If the later is not
+    // available (skipped spaces are all in the middle of a line, we are at
+    // eos, etc.), then fallback to the first peeked character position.
     //
-    xchar
+    std::pair<xchar, std::uint64_t>
     skip_spaces ();
 
   private:

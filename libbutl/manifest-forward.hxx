@@ -10,10 +10,10 @@ namespace butl
   class manifest_serializer;
   class manifest_name_value;
 
-  // The way manifest implementation should proceed when unknown value name is
+  // The way manifest implementation should proceed when unknown value is
   // encountered during parsing.
   //
-  enum class unknown_name_mode
+  enum class manifest_unknown_mode
   {
     skip,
     stop,

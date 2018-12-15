@@ -35,9 +35,10 @@ using namespace std;
 namespace butl
 {
   char_scanner::
-  char_scanner (istream& is, bool crlf, uint64_t l)
+  char_scanner (istream& is, bool crlf, uint64_t l, uint64_t p)
       : line (l),
         column (1),
+        position (p),
         is_ (is),
         buf_ (dynamic_cast<fdbuf*> (is.rdbuf ())),
         gptr_ (nullptr),
@@ -56,7 +57,7 @@ namespace butl
       return unpeekc_;
 
     if (eos_)
-      return xchar (xchar::traits_type::eof (), line, column);
+      return xchar (xchar::traits_type::eof (), line, column, position);
 
     int_type v (peek_ ());
 
@@ -77,13 +78,16 @@ namespace butl
         // We need to make sure subsequent calls to peek() return newline.
         //
         unpeek_ = true;
-        unpeekc_ = xchar ('\n', line, column);
+        unpeekc_ = xchar ('\n', line, column, position);
+
+        if (v1 == xchar::traits_type::eof ())
+          eos_ = true;
       }
 
       v = '\n';
     }
 
-    return xchar (v, line, column);
+    return xchar (v, line, column, position);
   }
 
   void char_scanner::
@@ -91,20 +95,23 @@ namespace butl
   {
     if (unget_)
       unget_ = false;
-    else if (unpeek_)
-      unpeek_ = false;
     else
     {
+      if (unpeek_)
+      {
+        unpeek_ = false;
+      }
       // When is_.get () returns eof, the failbit is also set (stupid,
       // isn't?) which may trigger an exception. To work around this
       // we will call peek() first and only call get() if it is not
       // eof. But we can only call peek() on eof once; any subsequent
       // calls will spoil the failbit (even more stupid).
       //
-      if (!eos (c))
-      {
+      else if (!eos (c))
         get_ ();
 
+      if (!eos (c))
+      {
         if (c == '\n')
         {
           line++;
@@ -112,6 +119,8 @@ namespace butl
         }
         else
           column++;
+
+        position = pos_ ();
       }
     }
   }
