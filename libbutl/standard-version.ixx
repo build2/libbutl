@@ -70,6 +70,9 @@ namespace butl
     return version % 10000 == 1 && !snapshot () && !stub ();
   }
 
+  // Note: in the following constructors we subtract one from AAABBBCCC if
+  // DDDE is not zero (see standard-version.hxx for details).
+  //
   inline standard_version::
   standard_version (std::uint16_t ep,
                     std::uint16_t mj,
@@ -82,7 +85,8 @@ namespace butl
                           (mj * 10000000000ULL +
                            mi *    10000000ULL +
                            pa *       10000ULL +
-                           pr *          10ULL),
+                           pr *          10ULL -
+                           (pr != 0 ? 10000ULL : 0ULL)),
                           "" /* snapshot */,
                           rv)
   {
@@ -99,11 +103,12 @@ namespace butl
                     std::uint16_t rv)
       : standard_version (ep,
                           //  AAABBBCCCDDDE
-                          (mj * 10000000000ULL +
-                           mi *    10000000ULL +
-                           pa *       10000ULL +
-                           pr *          10ULL +
-                           /**/           1ULL /* snapshot */),
+                          (mj * 10000000000ULL                +
+                           mi *    10000000ULL                +
+                           pa *       10000ULL                +
+                           pr *          10ULL                +
+                                          1ULL /* snapshot */ -
+                                      10000ULL),
                           sn,
                           si,
                           rv)

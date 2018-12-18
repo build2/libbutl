@@ -190,7 +190,7 @@ LIBBUTL_MODEXPORT namespace butl
                       flags = none);
 
     // Version as separate major, minor, patch, and pre-release components.
-    // Note that the pre-release here is in the DDD form, that is, incremenetd
+    // Note that the pre-release here is in the DDD form, that is, incremented
     // by 500 for betas.
     //
     standard_version (std::uint16_t epoch,
