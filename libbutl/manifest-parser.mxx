@@ -44,6 +44,8 @@ LIBBUTL_MODEXPORT namespace butl
                       std::uint64_t column,
                       const std::string& description);
 
+    manifest_parsing (const std::string& description);
+
     std::string name;
     std::uint64_t line;
     std::uint64_t column;

@@ -474,4 +474,11 @@ namespace butl
         name (n), line (l), column (c), description (d)
   {
   }
+
+  manifest_parsing::
+  manifest_parsing (const string& d)
+      : runtime_error (d),
+        line (0), column (0), description (d)
+  {
+  }
 }
