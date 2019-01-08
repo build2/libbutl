@@ -7,7 +7,7 @@
 #ifndef __cpp_lib_modules
 #include <vector>
 #include <string>
-#include <utility> // pair
+#include <utility> // pair, move()
 #include <sstream>
 #include <iostream>
 #endif
@@ -30,7 +30,9 @@ using namespace butl;
 using pairs = vector<pair<string, string>>;
 
 static bool
-test (const char* manifest, const pairs& expected);
+test (const char* manifest,
+      const pairs& expected,
+      manifest_parser::filter_function = {});
 
 static bool
 fail (const char* manifest);
@@ -160,6 +162,25 @@ main ()
     auto p (manifest_parser::split_comment ("; comment"));
     assert (p.first == "" && p.second == "comment");
   }
+
+  // Filtering.
+  //
+  assert (test (":1\na: abc\nb: bca\nc: cab",
+                {{"","1"},{"a","abc"},{"c","cab"},{"",""},{"",""}},
+                [] (manifest_name_value& nv) {return nv.name != "b";}));
+
+  assert (test (":1\na: abc\nb: bca",
+                {{"","1"},{"ax","abc."},{"bx","bca."},{"",""},{"",""}},
+                [] (manifest_name_value& nv)
+                {
+                  if (!nv.name.empty ())
+                  {
+                    nv.name += 'x';
+                    nv.value += '.';
+                  }
+
+                  return true;
+                }));
 }
 
 static ostream&
@@ -177,11 +198,11 @@ operator<< (ostream& os, const pairs& ps)
 }
 
 static pairs
-parse (const char* m)
+parse (const char* m, manifest_parser::filter_function f = {})
 {
   istringstream is (m);
   is.exceptions (istream::failbit | istream::badbit);
-  manifest_parser p (is, "");
+  manifest_parser p (is, "", move (f));
 
   pairs r;
 
@@ -197,16 +218,16 @@ parse (const char* m)
     else
       eom = false;
 
-    r.emplace_back (nv.name, nv.value); // move
+    r.emplace_back (move (nv.name), move (nv.value));
   }
 
   return r;
 }
 
 static bool
-test (const char* m, const pairs& e)
+test (const char* m, const pairs& e, manifest_parser::filter_function f)
 {
-  pairs r (parse (m));
+  pairs r (parse (m, move (f)));
 
   if (r != e)
   {

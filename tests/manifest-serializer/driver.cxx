@@ -30,7 +30,9 @@ using namespace butl;
 using pairs = vector<pair<string, string>>;
 
 static bool
-test (const pairs& manifest, const string& expected);
+test (const pairs& manifest,
+      const string& expected,
+      manifest_serializer::filter_function f = {});
 
 static bool
 fail (const pairs& manifest);
@@ -234,14 +236,20 @@ main ()
 
   assert (manifest_serializer::merge_comment ("value text", "") ==
           "value text");
+
+  // Filtering.
+  //
+  assert (test ({{"","1"},{"a","abc"},{"b","bca"},{"c","cab"},{"",""},{"",""}},
+                ": 1\na: abc\nc: cab\n",
+                [] (const string& n, const string&) {return n != "b";}));
 }
 
 static string
-serialize (const pairs& m)
+serialize (const pairs& m, manifest_serializer::filter_function f = {})
 {
   ostringstream os;
   os.exceptions (istream::failbit | istream::badbit);
-  manifest_serializer s (os, "");
+  manifest_serializer s (os, "", f);
 
   for (const auto& p: m)
   {
@@ -255,9 +263,9 @@ serialize (const pairs& m)
 }
 
 static bool
-test (const pairs& m, const string& e)
+test (const pairs& m, const string& e, manifest_serializer::filter_function f)
 {
-  string r (serialize (m));
+  string r (serialize (m, f));
 
   if (r != e)
   {

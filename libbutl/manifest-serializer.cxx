@@ -39,7 +39,7 @@ namespace butl
   using serialization = manifest_serialization;
 
   void manifest_serializer::
-  next (const string& n, const string& v)
+  write_next (const string& n, const string& v)
   {
     switch (s_)
     {

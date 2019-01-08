@@ -11,8 +11,9 @@
 #ifndef __cpp_lib_modules
 #include <string>
 #include <iosfwd>
-#include <cstddef>   // size_t
-#include <stdexcept> // runtime_error
+#include <cstddef>    // size_t
+#include <stdexcept>  // runtime_error
+#include <functional>
 #endif
 
 // Other includes.
@@ -42,8 +43,23 @@ LIBBUTL_MODEXPORT namespace butl
   class LIBBUTL_SYMEXPORT manifest_serializer
   {
   public:
-    manifest_serializer (std::ostream& os, const std::string& name)
-        : os_ (os), name_ (name) {}
+    // The filter, if specified, is called by next() prior to serializing the
+    // pair into the stream. If the filter returns false, then the pair is
+    // discarded.
+    //
+    // Note that currently there is no way for the filter to modify the name
+    // or value. If we ever need this functionality, then we can add an
+    // "extended" filter alternative with two "receiving" arguments:
+    //
+    // bool (..., optional<string>& n, optional<string>& v);
+    //
+    using filter_function = bool (const std::string& name,
+                                  const std::string& value);
+
+    manifest_serializer (std::ostream& os,
+                         const std::string& name,
+                         std::function<filter_function> filter = {})
+        : os_ (os), name_ (name), filter_ (std::move (filter)) {}
 
     const std::string&
     name () const {return name_;}
@@ -77,6 +93,9 @@ LIBBUTL_MODEXPORT namespace butl
   private:
     friend class manifest_rewriter;
 
+    void
+    write_next (const std::string& name, const std::string& value);
+
     // Validate and write a name.
     //
     void
@@ -105,5 +124,8 @@ LIBBUTL_MODEXPORT namespace butl
   private:
     std::ostream& os_;
     const std::string name_;
+    const std::function<filter_function> filter_;
   };
 }
+
+#include <libbutl/manifest-serializer.ixx>

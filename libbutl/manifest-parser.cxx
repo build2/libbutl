@@ -41,12 +41,16 @@ namespace butl
   using parsing = manifest_parsing;
   using name_value = manifest_name_value;
 
-  name_value manifest_parser::
-  next ()
+  void manifest_parser::
+  parse_next (name_value& r)
   {
     if (s_ == end)
-      return name_value {
+    {
+      r = name_value {
         "", "", line, column, line, column, position, position, position};
+
+      return;
+    }
 
     auto clp (skip_spaces ());
     xchar c (clp.first);
@@ -67,15 +71,18 @@ namespace butl
     {
       s_ = start;
 
-      return name_value {"", "",
-                         c.line, c.column, c.line, c.column,
-                         start_pos, c.position, c.position};
+      r = name_value {"", "",
+                      c.line, c.column, c.line, c.column,
+                      start_pos, c.position, c.position};
+      return;
     }
+
+    r.name.clear ();
+    r.value.clear ();
 
     // Regardless of the state, what should come next is a name,
     // potentially the special empty one.
     //
-    name_value r;
     r.start_pos = start_pos;
 
     parse_name (r);
@@ -98,7 +105,7 @@ namespace butl
       r.value_column = r.name_column;
       r.colon_pos = r.start_pos;
       r.end_pos = r.start_pos;
-      return r;
+      return;
     }
 
     if (c != ':')
@@ -162,8 +169,6 @@ namespace butl
       //
       assert (!r.name.empty ());
     }
-
-    return r;
   }
 
   pair<string, string> manifest_parser::

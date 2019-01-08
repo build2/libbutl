@@ -11,9 +11,10 @@
 #ifndef __cpp_lib_modules
 #include <string>
 #include <iosfwd>
-#include <cstdint>   // uint64_t
-#include <utility>   // pair
-#include <stdexcept> // runtime_error
+#include <cstdint>    // uint64_t
+#include <utility>    // pair, move()
+#include <stdexcept>  // runtime_error
+#include <functional>
 #endif
 
 // Other includes.
@@ -52,8 +53,19 @@ LIBBUTL_MODEXPORT namespace butl
   class LIBBUTL_SYMEXPORT manifest_parser: protected butl::char_scanner
   {
   public:
-    manifest_parser (std::istream& is, const std::string& name)
-        : char_scanner (is), name_ (name) {}
+    // The filter, if specified, is called by next() prior to returning the
+    // pair to the caller. If the filter returns false, then the pair is
+    // discarded.
+    //
+    // Note that the filter should handle the end-of-manifest pairs (see
+    // below) carefully, so next() doesn't end up with an infinite cycle.
+    //
+    using filter_function = bool (manifest_name_value&);
+
+    manifest_parser (std::istream& is,
+                     const std::string& name,
+                     std::function<filter_function> filter = {})
+      : char_scanner (is), name_ (name), filter_ (std::move (filter)) {}
 
     const std::string&
     name () const {return name_;}
@@ -83,6 +95,9 @@ LIBBUTL_MODEXPORT namespace butl
 
   private:
     void
+    parse_next (manifest_name_value&);
+
+    void
     parse_name (manifest_name_value&);
 
     void
@@ -98,8 +113,11 @@ LIBBUTL_MODEXPORT namespace butl
 
   private:
     const std::string name_;
+    const std::function<filter_function> filter_;
 
     enum {start, body, end} s_ = start;
     std::string version_; // Current format version.
   };
 }
+
+#include <libbutl/manifest-parser.ixx>
