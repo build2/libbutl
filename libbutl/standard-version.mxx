@@ -42,11 +42,15 @@ import butl.optional;
 
 LIBBUTL_MODEXPORT namespace butl
 {
-  // The build2 "standard version" (specific, earliest and stub):
+  // The build2 "standard version" (normal, earliest, and stub):
   //
   // [+<epoch>-]<maj>.<min>.<patch>[-(a|b).<num>[.<snapsn>[.<snapid>]]][+<rev>]
   // [+<epoch>-]<maj>.<min>.<patch>-
   // 0[+<rev>]
+  //
+  // The normal version can be release, final pre-release, or a pre-release
+  // snapshot (release is naturally always final). Pre-release can be alpha or
+  // beta.
   //
   // The numeric version format is AAABBBCCCDDDE where:
   //
@@ -67,7 +71,7 @@ LIBBUTL_MODEXPORT namespace butl
   // 3.0.0-b.2    0029999995020
   // 2.2.0-a.1.z  0020019990011
   //
-  // Stub is represented as ~0.
+  // Stub is represented as ~0 (but is not considered a pre-release).
   //
   struct LIBBUTL_SYMEXPORT standard_version
   {
@@ -93,18 +97,23 @@ LIBBUTL_MODEXPORT namespace butl
     std::uint16_t minor () const noexcept;
     std::uint16_t patch () const noexcept;
 
-    // The alpha/beta number (decremented by 500 for betas). Note: 0 is
-    // ambiguous (can be non-pre-release or -[ab].0.z).
+    // Return the alpha/beta version number if pre-release and nullopt
+    // otherwise.
     //
-    // @@ Inconsistent with the pre_release argument in constructors
-    //    below. The whole pre-release interface feels off, maybe we should
-    //    redo it? I.e., return DDD from pre_release() (though 0 will still be
-    //    ambigous; maybe DDDE) and have separate functions to get alpha/beta
-    //    numbers? Maybe alpha()/beta() return optional<std::uint16_t>? Maybe
-    //    pre-release should return bool (or also optional)?
+    // Can be used as a predicate and also to get the value.
     //
-    std::uint16_t pre_release () const noexcept;
+    optional<std::uint16_t> alpha () const noexcept;
+    optional<std::uint16_t> beta () const noexcept;
 
+    // Return the DDD version part if a pre-release and nullopt otherwise.
+    //
+    // Can be used as a predicate and also to get the value. Note that 0 is
+    // ambiguous (-[ab].0.z, or earliest version; see below).
+    //
+    optional<std::uint16_t> pre_release () const noexcept;
+
+    // String representations.
+    //
     // Note: return empty if the corresponding component is unspecified.
     //
     std::string string () const;             // Package version.
@@ -114,21 +123,18 @@ LIBBUTL_MODEXPORT namespace butl
     std::string string_pre_release () const; // Pre-release part only (a.1).
     std::string string_snapshot () const;    // Snapshot part only (1234.1f23).
 
+    // Predicates. See also alpha(), beta(), and pre_release() above.
+    //
+    // The earliest version is represented as the (otherwise illegal) DDDE
+    // value 0001 and snapshot_sn 0. Note that the earliest version is a final
+    // alpha pre-release.
+    //
     bool empty () const noexcept {return version == 0;}
-
-    bool alpha () const noexcept;
-    bool beta () const noexcept;
+    bool stub () const noexcept {return version == std::uint64_t (~0);}
+    bool earliest () const noexcept;
+    bool release () const noexcept;
     bool snapshot () const noexcept {return snapshot_sn != 0;}
-
-    // Represented by DDDE in version being 0001 and snapshot_sn being 0.
-    //
-    // Note that the earliest version is a final alpha pre-release.
-    //
-    bool
-    earliest () const noexcept;
-
-    bool
-    stub () const noexcept {return version == std::uint64_t (~0);}
+    bool final () const noexcept;
 
     // Comparison of empty or stub versions doesn't make sense.
     //

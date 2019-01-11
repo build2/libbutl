@@ -40,28 +40,38 @@ namespace butl
     return static_cast<std::uint16_t> (v / 1000 % 1000);
   }
 
-  inline std::uint16_t standard_version::
+  inline bool standard_version::
+  release () const noexcept
+  {
+    return version % 10000 == 0;
+  }
+
+  inline optional<std::uint16_t> standard_version::
   pre_release () const noexcept
   {
-    std::uint64_t ab (version / 10 % 1000);
-    if (ab >= 500)
-      ab -= 500;
-
-    return static_cast<std::uint16_t> (ab);
+    return release () || stub ()
+      ? nullopt
+      : optional<std::uint16_t> (version / 10 % 1000);
   }
 
-  inline bool standard_version::
+  inline optional<std::uint16_t> standard_version::
   alpha () const noexcept
   {
-    std::uint64_t abe (version % 10000);
-    return abe > 0 && abe < 5000 && !stub ();
+    optional<std::uint16_t> pr (pre_release ());
+    return pr && *pr < 500 ? pr : nullopt;
+  }
+
+  inline optional<std::uint16_t> standard_version::
+  beta () const noexcept
+  {
+    optional<std::uint16_t> pr (pre_release ());
+    return pr && *pr >= 500 ? optional<std::uint16_t> (*pr - 500) : nullopt;
   }
 
   inline bool standard_version::
-  beta () const noexcept
+  final () const noexcept
   {
-    std::uint64_t abe (version % 10000);
-    return abe > 5000 && !stub ();
+    return release () || !(snapshot () || stub ());
   }
 
   inline bool standard_version::

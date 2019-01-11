@@ -168,42 +168,130 @@
   }
 }
 
+: release
+:
+{
+  test.options += -rl
+
+  $* '1.2.3'       >'y' : release
+  $* '1.2.3-b.1'   >'n' : beta-final
+  $* '1.2.3-a.1'   >'n' : alpha-final
+  $* '1.2.3-a.0.1' >'n' : alpha-snapshot
+  $* '1.2.3-b.0.1' >'n' : beta-snapshot
+  $* '1.2.3-'      >'n' : earliest
+  $* '0'           >'n' : stub
+}
+
+: pre-release
+:
+{
+  test.options += -pr
+
+  $* '1.2.3'       >'-'   : release
+  $* '1.2.3-b.1'   >'501' : beta-final
+  $* '1.2.3-a.1'   >'1'   : alpha-final
+  $* '1.2.3-a.0.1' >'0'   : alpha-snapshot
+  $* '1.2.3-b.0.1' >'500' : beta-snapshot
+  $* '1.2.3-'      >'0'   : earliest
+  $* '0'           >'-'   : stub
+}
+
 : alpha
 :
 {
-  test.options += -a
+  test.options += -al
 
-  $* '1.2.3'       >n: non-prerelease
-  $* '1.2.3-b.1'   >n: beta
-  $* '1.2.3-a.1'   >y: final
-  $* '1.2.3-a.0.1' >y: snapshot
-  $* '1.2.3-'      >y: earliest
-  $* '0'           >n: stub
+  $* '1.2.3'       >'-' : release
+  $* '1.2.3-b.1'   >'-' : beta-final
+  $* '1.2.3-a.1'   >'1' : final
+  $* '1.2.3-a.0.1' >'0' : snapshot
+  $* '1.2.3-b.0.1' >'-' : beta-snapshot
+  $* '1.2.3-'      >'0' : earliest
+  $* '0'           >'-' : stub
 }
 
 : beta
 :
 {
-  test.options += -b
+  test.options += -bt
 
-  $* '1.2.3'       >n: non-prerelease
-  $* '1.2.3-a.1'   >n: alpha
-  $* '1.2.3-b.1'   >y: final
-  $* '1.2.3-b.0.1' >y: snapshot
-  $* '1.2.3-'      >n: earliest
-  $* '0+1'         >n: stub
+  $* '1.2.3'       >'-' : release
+  $* '1.2.3-a.1'   >'-' : alpha
+  $* '1.2.3-b.1'   >'1' : final
+  $* '1.2.3-a.0.1' >'-' : alpha-snapshot
+  $* '1.2.3-b.0.1' >'0' : snapshot
+  $* '1.2.3-'      >'-' : earliest
+  $* '0+1'         >'-' : stub
+}
+
+: stub
+:
+{
+  test.options += -st
+
+  $* '1.2.3'       >'n' : release
+  $* '1.2.3-b.1'   >'n' : beta-final
+  $* '1.2.3-a.1'   >'n' : alpha-final
+  $* '1.2.3-a.0.1' >'n' : alpha-snapshot
+  $* '1.2.3-b.0.1' >'n' : beta-snapshot
+  $* '1.2.3-'      >'n' : earliest
+  $* '0'           >'y' : stub
+  $* '0+1'         >'y' : stub-1
+}
+
+: earliest
+:
+{
+  test.options += -el
+
+  $* '1.2.3'       >'n' : release
+  $* '1.2.3-b.1'   >'n' : beta-final
+  $* '1.2.3-a.1'   >'n' : alpha-final
+  $* '1.2.3-a.0.1' >'n' : alpha-snapshot
+  $* '1.2.3-b.0.1' >'n' : beta-snapshot
+  $* '1.2.3-'      >'y' : earliest
+  $* '0+2'         >'n' : stub
+}
+
+: snapshot
+:
+{
+  test.options += -sn
+
+  $* '1.2.3'       >'n' : release
+  $* '1.2.3-b.1'   >'n' : beta-final
+  $* '1.2.3-a.1'   >'n' : alpha-final
+  $* '1.2.3-a.0.1' >'y' : alpha
+  $* '1.2.3-b.0.1' >'y' : beta
+  $* '1.2.3-a.1.z' >'y' : latest
+  $* '1.2.3-'      >'n' : earliest
+  $* '0'           >'n' : stub
+}
+
+: final
+:
+{
+  test.options += -fn
+
+  $* '1.2.3'       >'y' : release
+  $* '1.2.3-b.1'   >'y' : beta-final
+  $* '1.2.3-a.1'   >'y' : alpha-final
+  $* '1.2.3-a.0.1' >'n' : alpha
+  $* '1.2.3-b.0.1' >'n' : beta
+  $* '1.2.3-'      >'y' : earliest
+  $* '0'           >'n' : stub
 }
 
 : compare
 :
 {
-  test.options += -c
+  test.options += -cm
 
   : epoch
   :
   {
-    $* '+4-1.2.3' '+4-1.2.3' >'0' : equal
-    $* '1.2.4'    '+4-1.2.3' >'-1': less
+    $* '+4-1.2.3' '+4-1.2.3' >'0'  : equal
+    $* '1.2.4'    '+4-1.2.3' >'-1' : less
   }
 
   : non-prerelease
@@ -233,7 +321,7 @@
 : constraints
 :
 {
-  test.options += -r
+  test.options += -cr
 
   : range
   :
@@ -381,7 +469,7 @@
 : satisfaction
 :
 {
-  test.options += -s
+  test.options += -sf
 
   : comparison
   :
