@@ -1,0 +1,83 @@
+# file      : tests/b-info/testscript
+# copyright : Copyright (c) 2014-2018 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+# Note that when cross-testing we unlikely be able to run build2 on the
+# target platform.
+#
++if ($test.target != $build.host)
+  exit
+end
+
+sp = ' '
+test.options += -b $recall($build.path)
+
+: basic
+:
+{
+  mkdir -p prj/build;
+
+  cat <<EOI >=prj/build/bootstrap.build;
+    project = prj
+
+    using version
+    using config
+    using dist
+    EOI
+
+  cat <<EOI >=prj/buildfile;
+    ./: subprj/
+    EOI
+
+  cat <<EOI >=prj/manifest;
+    : 1
+    name: prj
+    version: 1.2.3-a.0.z
+    summary: test project
+    license: MIT
+    EOI
+
+  mkdir -p prj/subprj/build;
+
+  cat <<EOI >=prj/subprj/build/bootstrap.build;
+    project =
+
+    using config
+    using dist
+    EOI
+
+  touch prj/subprj/buildfile;
+
+  $* prj >>/~"%EOO%";
+    project: prj
+    version: 1.2.3-a.0.z
+    summary: test project
+    url:$sp
+    %src_root: .+/prj/%
+    %out_root: .+/prj/%
+    amalgamation: ../../../../
+    subprojects: @subprj/
+    operations: update clean
+    meta-operations: perform configure disfigure dist info
+    EOO
+
+  $* prj/subprj >>/~"%EOO%"
+    project:$sp
+    version:$sp
+    summary:$sp
+    url:$sp
+    %src_root: .+/subprj/%
+    %out_root: .+/subprj/%
+    amalgamation: ../
+    subprojects:$sp
+    operations: update clean
+    meta-operations: perform configure disfigure dist info
+    EOO
+}
+
+: error
+:
+$* prj 2>>/~%EOE% != 0
+  %error: .+%
+  %  info: .+%?
+  EOE
