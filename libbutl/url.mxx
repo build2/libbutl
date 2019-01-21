@@ -87,7 +87,7 @@ LIBBUTL_MODEXPORT namespace butl
   // representations.
   //
   // Note also that we currently forbid one character schemes to support
-  // scheme- less (Windows) paths which can be done by
+  // scheme-less (Windows) paths which can be done by
   // url_traits::translate_scheme() (see below). (A Windows path that uses
   // forward slashes would be parsed as a valid authority-less URL).
 
@@ -199,7 +199,9 @@ LIBBUTL_MODEXPORT namespace butl
                       optional<string_type>&     /*fragment*/,
                       bool&                      /*rootless*/)
     {
-      return scheme_type (std::move (scheme));
+      return !scheme.empty ()
+        ? optional<scheme_type> (std::move (scheme))
+        : nullopt; // Leave the URL object constructor to throw.
     }
 
     // Translate scheme type back to its string representation.
