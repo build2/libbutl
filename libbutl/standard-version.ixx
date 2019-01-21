@@ -80,6 +80,12 @@ namespace butl
     return version % 10000 == 1 && !snapshot () && !stub ();
   }
 
+  inline bool standard_version::
+  latest_snapshot () const noexcept
+  {
+    return snapshot () && snapshot_sn == latest_sn;
+  }
+
   // Note: in the following constructors we subtract one from AAABBBCCC if
   // DDDE is not zero (see standard-version.hxx for details).
   //

@@ -134,6 +134,7 @@ LIBBUTL_MODEXPORT namespace butl
     bool earliest () const noexcept;
     bool release () const noexcept;
     bool snapshot () const noexcept {return snapshot_sn != 0;}
+    bool latest_snapshot () const noexcept;
     bool final () const noexcept;
 
     // Comparison of empty or stub versions doesn't make sense.
