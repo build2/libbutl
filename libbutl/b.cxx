@@ -158,7 +158,7 @@ namespace butl
             if (!v.empty ())
             try
             {
-              r.version = standard_version (v);
+              r.version = standard_version (v, standard_version::allow_stub);
             }
             catch (const invalid_argument& e)
             {
