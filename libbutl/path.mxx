@@ -609,7 +609,7 @@ LIBBUTL_MODEXPORT namespace butl
     using dir_type = typename K::dir_type;
 
     // Create a special empty path. Note that we have to provide our own
-    // implementation rather than using '=default' to make clang allow
+    // implementation rather than using '=default' to make Clang allow
     // default-initialized const instances of this type.
     //
     basic_path () {}
