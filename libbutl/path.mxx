@@ -467,8 +467,8 @@ LIBBUTL_MODEXPORT namespace butl
   template <class P, class C, class K> P path_cast (const basic_path<C, K>&);
   template <class P, class C, class K> P path_cast (basic_path<C, K>&&);
 
-  // Low-level path data storage. It is also by the implementation to pass
-  // around initialized/valid paths.
+  // Low-level path data storage. It is also used by the implementation to
+  // pass around initialized/valid paths.
   //
   template <typename C>
   struct path_data
