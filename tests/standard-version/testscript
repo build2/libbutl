@@ -456,13 +456,138 @@
     : invalid
     :
     {
-      $* <'-1.2.3'   2>'invalid constraint'               == 1 : bad-char
-      $* <'~'        2>'no version'                       == 1 : no-version
-      $* <'~1.2'     2>"'.' expected after minor version" == 1 : bad-ver
-      $* <'~1.999.0' 2>"invalid minor version"            == 1 : bad-min-tilde
-      $* <'^0.999.0' 2>"invalid minor version"            == 1 : bad-min-caret
-      $* <'^999.0.0' 2>"invalid major version"            == 1 : bad-maj-caret
+      $* <'-1.2.3'   2>'invalid constraint'                                == 1 : bad-char
+      $* <'~'        2>'no version'                                        == 1 : no-version
+      $* <'~1.2'     2>"invalid version: '.' expected after minor version" == 1 : bad-ver
+      $* <'~1.999.0' 2>"invalid version: invalid minor version"            == 1 : bad-min-tilde
+      $* <'^0.999.0' 2>"invalid version: invalid minor version"            == 1 : bad-min-caret
+      $* <'^999.0.0' 2>"invalid version: invalid major version"            == 1 : bad-maj-caret
     }
+  }
+}
+
+: constraints-dependent
+:
+{
+  test.options += -cr
+
+  : range
+  :
+  {
+    : valid
+    :
+    $* '1.2.3+1' <<EOI >>EOE
+    [1.2.2 $]
+    (1.2.2 $)
+    [$ 1.2.4]
+    ($ 1.2.4]
+    EOI
+    [1.2.2 1.2.3]
+    (1.2.2 1.2.3)
+    [1.2.3 1.2.4]
+    (1.2.3 1.2.4]
+    EOE
+  }
+
+  : comparison
+  :
+  {
+    : valid
+    :
+    $* '1.2.3+1' <<EOI >>EOE
+    == $
+    >= $
+    <= $
+    >  $
+    <  $
+    >= $
+    <= $
+    >  $
+    <  $
+    EOI
+    == 1.2.3
+    >= 1.2.3
+    <= 1.2.3
+    > 1.2.3
+    < 1.2.3
+    >= 1.2.3
+    <= 1.2.3
+    > 1.2.3
+    < 1.2.3
+    EOE
+
+    : invalid
+    :
+    {
+      $* ''            <'== $' 2>'dependent version is empty'                              == 1 : empty-version
+      $* '1.2.3-'      <'== $' 2>'dependent version is earliest'                           == 1 : earliest-version
+      $* '1.2.3-a.0.z' <'== $' 2>'invalid version: dependent version is latest snapshot' == 1 : latest-version
+      $* '0+1'         <'== $' 2>'invalid version: dependent version is stub'            == 1 : stub-version
+    }
+  }
+
+  : shortcut
+  :
+  {
+    : final
+    :
+    {
+      $* '1.2.3+1' <<EOI >>EOE
+        ~$
+        ^$
+        EOI
+        ~1.2.0
+        ^1.0.0
+        EOE
+    }
+
+    : pre-release
+    :
+    {
+      : tilda
+      :
+      {
+        $* '1.2.0-b.2' <'~$' >'~1.2.0-a.1' : no-final
+        $* '1.2.1-a.1' <'~$' >'~1.2.0'     : final-patch
+      }
+
+      : carrot
+      :
+      {
+        $* '1.0.0-b.2' <'^$' >'^1.0.0-a.1' : no-final
+        $* '1.0.1-a.1' <'^$' >'^1.0.0'     : final-patch
+        $* '1.1.0-b.2' <'^$' >'^1.0.0'     : final-minor
+      }
+    }
+
+    : snapshot
+    :
+    {
+      : tilda
+      :
+      {
+	$* '1.2.1-a.2.345' <'~$' >'~1.2.0'                  : patch
+	$* '1.2.0-a.0.345' <'~$' >'[1.2.0-a.0.1 1.2.0-a.1)' : minor
+	$* '1.0.0-a.0.345' <'~$' >'[1.0.0-a.0.1 1.0.0-a.1)' : major
+      }
+
+      : carrot
+      :
+      {
+	$* '1.2.1-a.2.345' <'^$' >'^1.0.0'                  : patch
+	$* '1.2.0-a.0.345' <'^$' >'[1.2.0-a.0.1 1.2.0-a.1)' : minor
+	$* '1.0.0-a.0.345' <'^$' >'[1.0.0-a.0.1 1.0.0-a.1)' : major
+      }
+    }
+  }
+
+  : invalid
+  :
+  {
+    $* <'[1.2.2 $]' 2>'invalid max version: invalid major version' != 0 : max
+    $* <'[$ 1.2.2]' 2>'invalid min version: invalid major version' != 0 : min
+    $* <'== $'      2>'invalid version: invalid major version'     != 0 : eq
+    $* <'~$'        2>'invalid version: invalid major version'     != 0 : shortcut
   }
 }
 

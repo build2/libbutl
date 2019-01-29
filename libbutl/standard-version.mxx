@@ -287,6 +287,8 @@ LIBBUTL_MODEXPORT namespace butl
   // ('^' | '~') <version>
   // ('(' | '[') <version> <version> (')' | ']')
   //
+  // The version may be `$` which refers to the dependent package version.
+  //
   struct LIBBUTL_SYMEXPORT standard_version_constraint
   {
     butl::optional<standard_version> min_version;
@@ -298,6 +300,12 @@ LIBBUTL_MODEXPORT namespace butl
     //
     explicit
     standard_version_constraint (const std::string&);
+
+    // As above but also completes the special `$` version using the specified
+    // dependent package version.
+    //
+    standard_version_constraint (const std::string&,
+                                 const standard_version& dependent_version);
 
     // Throw std::invalid_argument if the specified version range is invalid.
     //

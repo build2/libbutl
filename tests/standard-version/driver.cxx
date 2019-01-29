@@ -147,7 +147,7 @@ version (const string& s,
 //
 // argv[0] (-rl|-pr|-al|-bt|-st|-el|-sn|-fn) <version>
 // argv[0] -cm <version> <version>
-// argv[0] -cr
+// argv[0] -cr [<dependent-version>]
 // argv[0] -sf <version> <constraint>
 // argv[0]
 //
@@ -161,7 +161,8 @@ version (const string& s,
 // -fn  output 'y' for final, 'n' otherwise
 //
 // -cm  output 0 if versions are equal, -1 if the first one is less, 1 otherwise
-// -cr  create version constraints from stdin lines, and print them to stdout
+// -cr  create version constraints from stdin lines, optionally using the
+//      dependent version, and print them to stdout
 // -sf  output 'y' if version satisfies constraint, 'n' otherwise
 //
 // If no options are specified, then create versions from stdin lines, and
@@ -241,11 +242,25 @@ try
     }
     else if (o == "-cr")
     {
-      assert (argc == 2);
+      assert (argc <= 3);
+
+      optional<standard_version> dv;
+      if (argc == 3)
+      {
+        string s (argv[2]);
+
+        dv = s.empty ()
+          ? standard_version ()
+          : standard_version (s,
+                              standard_version::allow_stub |
+                              standard_version::allow_earliest);
+      }
 
       string s;
       while (getline (cin, s))
-        cout << standard_version_constraint (s) << endl;
+        cout << (dv
+                 ? standard_version_constraint (s, *dv)
+                 : standard_version_constraint (s)) << endl;
     }
     else if (o == "-sf")
     {

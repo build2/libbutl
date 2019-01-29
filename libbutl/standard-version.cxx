@@ -591,12 +591,52 @@ namespace butl
                              standard_version::allow_earliest);
   }
 
-  standard_version_constraint::
-  standard_version_constraint (const std::string& s)
+  // Parse the version constraint, optionally completing it using the
+  // specified dependent package version.
+  //
+  static standard_version_constraint
+  parse_constraint (const string& s, const standard_version* v)
   {
     using std::string; // Not to confuse with string().
 
     auto bail = [] (const string& m) {throw invalid_argument (m);};
+
+    // The dependent package version can't be empty or earliest. It, however,
+    // can be a stub (think of build-time dependencies).
+    //
+    if (v != nullptr)
+    {
+      if (v->empty ())
+        bail ("dependent version is empty");
+
+      if (v->earliest ())
+        bail ("dependent version is earliest");
+    }
+
+    // Strip the dependent version revision. Fail for stubs and latest
+    // snapshots, which are meaningless to refer to from the constraint.
+    // Cache the result on the first call.
+    //
+    standard_version dv;
+    auto dependent_version = [v, &dv, &bail] () -> const standard_version&
+    {
+      if (dv.empty ())
+      {
+        assert (v != nullptr);
+
+        if (v->latest_snapshot ())
+          bail ("dependent version is latest snapshot");
+
+        if (v->stub ())
+          bail ("dependent version is stub");
+
+        dv = *v;
+        dv.revision = 0;
+      }
+
+      return dv;
+    };
+
     const char* spaces (" \t");
 
     size_t p (0);
@@ -616,8 +656,11 @@ namespace butl
 
       try
       {
-        min_version = standard_version (s.substr (p, e - p),
-                                        standard_version::allow_earliest);
+        string mnv (s, p, e - p);
+
+        min_version = v != nullptr && mnv == "$"
+          ? dependent_version ()
+          : standard_version (mnv, standard_version::allow_earliest);
       }
       catch (const invalid_argument& e)
       {
@@ -634,8 +677,11 @@ namespace butl
 
       try
       {
-        max_version = standard_version (s.substr (p, e - p),
-                                        standard_version::allow_earliest);
+        string mxv (s, p, e - p);
+
+        max_version = v != nullptr && mxv == "$"
+          ? dependent_version ()
+          : standard_version (mxv, standard_version::allow_earliest);
       }
       catch (const invalid_argument& e)
       {
@@ -651,10 +697,10 @@ namespace butl
       if (++p != s.size ())
         bail ("junk after constraint");
 
-      // Verify and copy the constraint.
+      // Can throw.
       //
-      *this = standard_version_constraint (move (min_version), min_open,
-                                           move (max_version), max_open);
+      return standard_version_constraint (move (min_version), min_open,
+                                          move (max_version), max_open);
     }
     else if (c == '~' || c == '^')
     {
@@ -662,19 +708,95 @@ namespace butl
       if (p == string::npos)
         bail ("no version");
 
-      // Can throw.
-      //
-      standard_version min_version (
-        standard_version (s.substr (p), standard_version::allow_earliest));
-
-      // Can throw.
-      //
-      standard_version max_version (
-        shortcut_max_version (c, min_version, false));
+      standard_version min_version;
+      standard_version max_version;
 
       try
       {
-        *this = standard_version_constraint (
+        string cv (s, p);
+        if (v != nullptr && cv == "$") // Dependent version reference.
+        {
+          const standard_version& dv (dependent_version ());
+
+          // For a release set the min version endpoint patch to zero. For ^
+          // also set the minor version to zero, unless the major version is
+          // zero (reduced to ~).
+          //
+          if (dv.release ())
+          {
+            min_version = standard_version (
+              dv.epoch,
+              dv.major (),
+              c == '^' && dv.major () != 0 ? 0 : dv.minor (),
+              0 /* patch */);
+          }
+          //
+          // For a final pre-release or a patch snapshot we check if there has
+          // been a compatible final release (patch is not zero for ~ and
+          // minor/patch are not zero for ^). If that's the case, then
+          // fallback to the release case and start the range from the first
+          // alpha otherwise.
+          //
+          else if (dv.final () || (dv.snapshot () && dv.patch () != 0))
+          {
+            min_version = standard_version (
+              dv.epoch,
+              dv.major (),
+              c == '^' && dv.major () != 0 ? 0 : dv.minor (),
+              0 /* patch */,
+              dv.patch () != 0 || (c == '^' && dv.minor () != 0)
+              ? 0
+              : 1 /* pre-release */);
+          }
+          //
+          // For a major/minor snapshot we assume that all the packages are
+          // developed in the lockstep and convert the constraint range to
+          // represent this "snapshot series".
+          //
+          else
+          {
+            assert (dv.snapshot () && dv.patch () == 0);
+
+            uint16_t pr (*dv.pre_release ());
+
+            min_version = standard_version (dv.epoch,
+                                            dv.major (),
+                                            dv.minor (),
+                                            0 /* patch */,
+                                            pr,
+                                            1 /* snapshot_sn */,
+                                            "" /* snapshot_id */);
+
+            max_version = standard_version (dv.epoch,
+                                            dv.major (),
+                                            dv.minor (),
+                                            0 /* patch */,
+                                            pr + 1);
+          }
+        }
+        else // Version is specified literally.
+        {
+          // Can throw.
+          //
+          min_version = standard_version (cv,
+                                          standard_version::allow_earliest);
+        }
+
+        // If the max version is not set for the lockstep (see above), then we
+        // set it normally.
+        //
+        if (max_version.empty ())
+          max_version = shortcut_max_version (
+            c, min_version, false /* ignore_overflow */); // Can throw.
+      }
+      catch (const invalid_argument& e)
+      {
+        bail (string ("invalid version: ") + e.what ());
+      }
+
+      try
+      {
+        return standard_version_constraint (
           move (min_version), false /* min_open */,
           move (max_version), true  /* max_open */);
       }
@@ -709,11 +831,15 @@ namespace butl
       if (p == string::npos)
         bail ("no version");
 
-      standard_version v;
+      standard_version cv;
 
       try
       {
-        v = standard_version (s.substr (p),
+        string cver (s, p);
+
+        cv = v != nullptr && cver == "$"
+          ? dependent_version ()
+          : standard_version (cver,
                               operation != comparison::eq
                               ? standard_version::allow_earliest
                               : standard_version::none);
@@ -728,22 +854,35 @@ namespace butl
       switch (operation)
       {
       case comparison::eq:
-        *this = standard_version_constraint (v);
-        break;
+        return standard_version_constraint (cv);
       case comparison::lt:
-        *this = standard_version_constraint (nullopt, true, move (v), true);
-        break;
+        return standard_version_constraint (nullopt, true, move (cv), true);
       case comparison::le:
-        *this = standard_version_constraint (nullopt, true, move (v), false);
-        break;
+        return standard_version_constraint (nullopt, true, move (cv), false);
       case comparison::gt:
-        *this = standard_version_constraint (move (v), true, nullopt, true);
-        break;
+        return standard_version_constraint (move (cv), true, nullopt, true);
       case comparison::ge:
-        *this = standard_version_constraint (move (v), false, nullopt, true);
-        break;
+        return standard_version_constraint (move (cv), false, nullopt, true);
       }
     }
+
+    // Can't be here.
+    //
+    assert (false);
+    return standard_version_constraint ();
+  }
+
+  standard_version_constraint::
+  standard_version_constraint (const std::string& s)
+  {
+    *this = parse_constraint (s, nullptr /* dependent_version */);
+  }
+
+  standard_version_constraint::
+  standard_version_constraint (const std::string& s,
+                               const standard_version& dependent_version)
+  {
+    *this = parse_constraint (s, &dependent_version);
   }
 
   standard_version_constraint::
