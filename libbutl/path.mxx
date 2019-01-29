@@ -56,10 +56,6 @@ LIBBUTL_MODEXPORT namespace butl
   //   (i.e., there are no '.' or '..' components). So a fast path case
   //   might be in order.
   //
-  // - We duplicate the interface for path and dir_path while most of it
-  //   is common. Also, we can implicit-cast dir_path& to path& and use
-  //   non-dir-adapted implementation (see where we call K::cast()).
-  //
 
   // @@ This should probably be called invalid_path_argument
   //
