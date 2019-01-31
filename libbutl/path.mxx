@@ -659,7 +659,7 @@ LIBBUTL_MODEXPORT namespace butl
     clear () {this->_clear ();}
 
     // Get/set current working directory. Throw std::system_error to report
-    // the underlying OS errors.
+    // underlying OS errors.
     //
     static dir_type
     current_directory () {return dir_type (traits::current_directory ());}
@@ -667,13 +667,13 @@ LIBBUTL_MODEXPORT namespace butl
     static void
     current_directory (basic_path const&);
 
-    // Return the user home directory. Throw std::system_error to report the
+    // Return the user home directory. Throw std::system_error to report
     // underlying OS errors.
     //
     static dir_type
     home_directory () {return dir_type (traits::home_directory ());}
 
-    // Return the temporary directory. Throw std::system_error to report the
+    // Return the temporary directory. Throw std::system_error to report
     // underlying OS errors.
     //
     static dir_type
@@ -682,8 +682,8 @@ LIBBUTL_MODEXPORT namespace butl
     // Return a temporary path. The path is constructed by starting with the
     // temporary directory and then appending a path component consisting of
     // the prefix followed by the process id following by a unique counter
-    // value inside the process. Throw std::system_error to report the
-    // underlying OS errors.
+    // value inside the process. Throw std::system_error to report underlying
+    // OS errors.
     //
     static basic_path
     temp_path (const string_type& prefix)
