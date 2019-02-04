@@ -698,13 +698,13 @@ LIBBUTL_MODEXPORT namespace butl
     empty () const {return this->path_.empty ();}
 
     // Note that size does not include the trailing separator except for
-    // the root case.
+    // the POSIX root case.
     //
     size_type
     size () const {return this->path_.size ();}
 
-    // Return true if this path doesn't have any directories. Note that "/foo"
-    // is not a simple path (it is "foo" in root directory) while "/" is (it
+    // Return true if this path doesn't have any directories. Note that `/foo`
+    // is not a simple path (it is `foo` in root directory) while `/` is (it
     // is the root directory).
     //
     bool
