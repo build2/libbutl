@@ -244,24 +244,20 @@ LIBBUTL_MODEXPORT namespace butl
   // a process to have administrative privileges. This choice, however,
   // introduces the following restrictions:
   //
-  //  - The relative target path is completed against the current directory.
+  //  - The relative target path is completed against the current directory and
+  //    is normalized.
   //
   //  - The target directory must exist. If it doesn't exists at the moment of
   //    a symlink creation, then mksymlink() call will fail. If the target is
   //    deleted at a later stage, then the filesystem API functions may fail
-  //    when encounter such a symlink. This includes rmsymlink().
+  //    when encounter such a symlink. This includes try_rmsymlink().
   //
   //  - Dangling symlinks are not visible when iterating over a directory with
   //    dir_iterator. As a result, a directory that contains such symlinks can
   //    not be recursively deleted.
   //
   //  @@ Note that the above restrictions seems to be Wine-specific (as of
-  //     2.20). It is probably make sense to properly support directory
-  //     symlinks when run natively.
-  //
-  //  - Symlinks that refer to existing targets are recognized as ordinary
-  //    directories by dir_iterator. As a result rmdir_r() function removes the
-  //    target directories content, rather then symlinks entries.
+  //     4.0).
   //
   LIBBUTL_SYMEXPORT void
   mksymlink (const path& target, const path& link, bool dir = false);
@@ -287,7 +283,7 @@ LIBBUTL_MODEXPORT namespace butl
   inline rmfile_status
   try_rmsymlink (const dir_path& link, bool ignore_error = false)
   {
-    return try_rmsymlink (link, true, ignore_error);
+    return try_rmsymlink (link, true /* dir */, ignore_error);
   }
 
   // Create a hard link to a file (default) or directory (third argument is
@@ -304,7 +300,7 @@ LIBBUTL_MODEXPORT namespace butl
   inline void
   mkhardlink (const dir_path& target, const dir_path& link)
   {
-    mkhardlink (target, link, true);
+    mkhardlink (target, link, true /* dir */);
   }
 
   // File copy flags.
@@ -642,7 +638,8 @@ LIBBUTL_MODEXPORT namespace butl
     // targets. That implies that it will always try to stat() symlinks.
     //
     // Note that we currently do not fully support symlinks on Windows, so the
-    // ignore_dangling argument is noop there (see mksymlink() for details).
+    // ignore_dangling argument affects only directory symlinks (see
+    // mksymlink() for details).
     //
     explicit
     dir_iterator (const dir_path&, bool ignore_dangling);

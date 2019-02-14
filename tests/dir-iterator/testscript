@@ -15,6 +15,9 @@ $* a >"reg     b"
 mkdir -p a/b;
 $* a >"dir     b"
 
+# Note that on Windows only directory symlinks are currently supported (see
+# mksymlink() for details).
+#
 : dangling-link
 :
 if ($cxx.target.class != 'windows')
@@ -27,5 +30,20 @@ if ($cxx.target.class != 'windows')
   +touch a/c
 
   $* ../a     >! 2>!       != 0 : keep
+  $* -i ../a  >'reg     c'      : skip
+}
+else
+{
+  +mkdir a
+  +mkdir --no-cleanup a/b
+  +ln -s a/b a/l
+  +rmdir a/b
+
+  +touch a/c
+
+  # On Wine dangling symlinks are not visible (see mksymlink() for details).
+  #
+  #$* ../a     >! 2>!       != 0 : keep
+
   $* -i ../a  >'reg     c'      : skip
 }

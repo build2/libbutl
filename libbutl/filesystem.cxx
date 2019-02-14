@@ -99,6 +99,7 @@ namespace butl
   }
 
 #ifndef _WIN32
+
   pair<bool, entry_stat>
   path_entry (const char* p, bool fl, bool ie)
   {
@@ -125,7 +126,40 @@ namespace butl
 
     return make_pair (true, entry_stat {t, static_cast<uint64_t> (s.st_size)});
   }
+
 #else
+
+  static inline bool
+  junction (DWORD a) noexcept
+  {
+    return a != INVALID_FILE_ATTRIBUTES            &&
+           (a & FILE_ATTRIBUTE_REPARSE_POINT) != 0 &&
+           (a & FILE_ATTRIBUTE_DIRECTORY) != 0;
+  }
+
+  static inline bool
+  junction (const path& p) noexcept
+  {
+    return junction (GetFileAttributesA (p.string ().c_str ()));
+  }
+
+  static inline entry_type
+  type (const struct __stat64& s) noexcept
+  {
+    // Note that we currently support only directory symlinks (see mksymlink()
+    // for details).
+    //
+    if (S_ISREG (s.st_mode))
+      return entry_type::regular;
+    else if (S_ISDIR (s.st_mode))
+      return entry_type::directory;
+    //
+    //else if (S_ISLNK (s.st_mode))
+    //  return entry_type::symlink;
+    else
+      return entry_type::unknown;
+  }
+
   pair<bool, entry_stat>
   path_entry (const char* p, bool fl, bool ie)
   {
@@ -143,6 +177,19 @@ namespace butl
       p = d.c_str ();
     }
 
+    // Note that _stat64() follows junctions and fails for dangling ones, so
+    // we check if the entry is a junction prior to calling _stat64().
+    //
+    if (!fl)
+    {
+      DWORD a (GetFileAttributesA (p));
+      if (a == INVALID_FILE_ATTRIBUTES) // Presumably not exists.
+        return make_pair (false, entry_stat {entry_type::unknown, 0});
+
+      if (junction (a))
+        return make_pair (true, entry_stat {entry_type::symlink, 0});
+    }
+
     struct __stat64 s; // For 64-bit size.
 
     if (_stat64 (p, &s) != 0)
@@ -153,42 +200,11 @@ namespace butl
         throw_generic_error (errno);
     }
 
-    auto m (s.st_mode);
-
-    DWORD attr (GetFileAttributesA (p));
-    if (attr == INVALID_FILE_ATTRIBUTES) // Presumably not exists.
-      return make_pair (false, entry_stat {entry_type::unknown, 0});
-
-    entry_type et (entry_type::unknown);
-    uint64_t es (0);
-
-    // Note that we currently support only directory symlinks (see mksymlink()
-    // function description for more details).
-    //
-    if ((attr & FILE_ATTRIBUTE_REPARSE_POINT) == 0)
-    {
-      if (S_ISREG (m))
-        et = entry_type::regular;
-      else if (S_ISDIR (m))
-        et = entry_type::directory;
-      //
-      //else if (S_ISLNK (m))
-      //  et = entry_type::symlink;
-
-      es = static_cast<uint64_t> (s.st_size);
-    }
-    else
-    {
-      // @@ If we follow symlinks, then we also need to check if the target
-      //    exists. The implementation is a bit hairy, so let's do when
-      //    required.
-      //
-      if (S_ISDIR (m))
-        et = fl ? entry_type::directory : entry_type::symlink;
-    }
-
-    return make_pair (true, entry_stat {et, es});
+    return make_pair (true,
+                      entry_stat {type (s),
+                                  static_cast<uint64_t> (s.st_size)});
   }
+
 #endif
 
   bool
@@ -238,8 +254,8 @@ namespace butl
     {
       int e (errno);
 
-      // EEXIST means the path already exists but not necessarily as
-      // a directory.
+      // EEXIST means the path already exists but not necessarily as a
+      // directory.
       //
       if (e == EEXIST && dir_exists (p))
         return mkdir_status::already_exists;
@@ -347,15 +363,14 @@ namespace butl
 
       if (ur != 0 && errno == EACCES)
       {
-        DWORD a (GetFileAttributes (f));
+        DWORD a (GetFileAttributesA (f));
         if (a != INVALID_FILE_ATTRIBUTES)
         {
           bool readonly ((a & FILE_ATTRIBUTE_READONLY) != 0);
 
           // Note that we support only directory symlinks on Windows.
           //
-          bool symlink ((a & FILE_ATTRIBUTE_REPARSE_POINT) != 0 &&
-                        (a & FILE_ATTRIBUTE_DIRECTORY) != 0);
+          bool symlink (junction (a));
 
           if (readonly || symlink)
           {
@@ -402,9 +417,9 @@ namespace butl
   }
 
   rmfile_status
-  try_rmsymlink (const path& link, bool, bool io)
+  try_rmsymlink (const path& link, bool, bool ie)
   {
-    return try_rmfile (link, io);
+    return try_rmfile (link, ie);
   }
 
   void
@@ -491,6 +506,15 @@ namespace butl
     if (atd.relative ())
       atd.complete ();
 
+    try
+    {
+      atd.normalize ();
+    }
+    catch (const invalid_path&)
+    {
+      throw_generic_error (EINVAL);
+    }
+
     string td ("\\??\\" + atd.string () + "\\");
     const char* s (td.c_str ());
 
@@ -542,19 +566,12 @@ namespace butl
   }
 
   rmfile_status
-  try_rmsymlink (const path& link, bool dir, bool io)
+  try_rmsymlink (const path& link, bool dir, bool ie)
   {
     if (!dir)
       throw_generic_error (ENOSYS, "file symlinks not supported");
 
-    switch (try_rmdir (path_cast<dir_path> (link), io))
-    {
-    case rmdir_status::success:   return rmfile_status::success;
-    case rmdir_status::not_exist: return rmfile_status::not_exist;
-    case rmdir_status::not_empty: if (io) return rmfile_status::success;
-    }
-
-    throw_generic_error (ENOTEMPTY);
+    return try_rmfile (link, ie);
   }
 
   void
@@ -976,7 +993,7 @@ namespace butl
 
 #else
 
-    DWORD attr (GetFileAttributes (p));
+    DWORD attr (GetFileAttributesA (p));
 
     if (attr == INVALID_FILE_ATTRIBUTES)
       throw_system_error (GetLastError ());
@@ -1312,26 +1329,15 @@ namespace butl
   }
 
   entry_type dir_entry::
-  type (bool) const
+  type (bool link) const
   {
-    // Note that we currently do not support symlinks (yes, there is symlink
-    // support since Vista).
-    //
-    path_type p (b_ / p_);
+    path_type p (base () / path ());
+    pair<bool, entry_stat> e (path_entry (p, link));
 
-    struct _stat s;
-    if (_stat (p.string ().c_str (), &s) != 0)
-      throw_generic_error (errno);
+    if (!e.first)
+      throw_generic_error (ENOENT);
 
-    entry_type r;
-    if (S_ISREG (s.st_mode))
-      r = entry_type::regular;
-    else if (S_ISDIR (s.st_mode))
-      r = entry_type::directory;
-    else
-      r = entry_type::other;
-
-    return r;
+    return e.second.type;
   }
 
   // dir_iterator
@@ -1361,7 +1367,7 @@ namespace butl
     : ignore_dangling_ (ignore_dangling)
   {
     auto_dir h (h_);
-    e_.b_ = d; // Used by next() to call _findfirst().
+    e_.b_ = d; // Used by next().
 
     next ();
     h.release ();
@@ -1383,10 +1389,10 @@ namespace butl
 
         // Check to distinguish non-existent vs empty directories.
         //
-        if (!dir_exists (e_.b_))
+        if (!dir_exists (e_.base ()))
           throw_generic_error (ENOENT);
 
-        h_ = _findfirst ((e_.b_ / path ("*")).string ().c_str (), &fi);
+        h_ = _findfirst ((e_.base () / path ("*")).string ().c_str (), &fi);
         r = h_ != -1;
       }
       else
@@ -1406,14 +1412,32 @@ namespace butl
 
         e_.p_ = move (p);
 
-        // Note that while we support directory symlinks, they are not seen
-        // here (see mksymlink() function description for details).
+        // An entry with the _A_SUBDIR attribute can also be a junction.
         //
-        e_.t_ = fi.attrib & _A_SUBDIR
-          ? entry_type::directory
-          : entry_type::regular;
+        e_.t_ = (fi.attrib & _A_SUBDIR) == 0       ? entry_type::regular :
+                junction (e_.base () / e_.path ()) ? entry_type::symlink :
+                entry_type::directory;
 
         e_.lt_ = entry_type::unknown;
+
+        // If requested, we ignore dangling symlinks, skipping ones with
+        // non-existing or inaccessible targets.
+        //
+        if (ignore_dangling_ && e_.ltype () == entry_type::symlink)
+        {
+          struct __stat64 s;
+          path pe (e_.base () / e_.path ());
+
+          if (_stat64 (pe.string ().c_str (), &s) != 0)
+          {
+            if (errno == ENOENT || errno == ENOTDIR || errno == EACCES)
+              continue;
+
+            throw_generic_error (errno);
+          }
+
+          e_.lt_ = type (s); // While at it, set the target type.
+        }
       }
       else if (errno == ENOENT)
       {

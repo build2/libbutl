@@ -177,9 +177,39 @@ main ()
   // Create the directory symlink using an absolute path.
   //
   dir_path ld (td / dir_path ("dslink"));
-  assert (link_dir (dp, ld, false, true));
+  assert (link_dir (dp, ld, false /* hard */, true /* check_content */));
 
-  try_rmsymlink (ld);
+  {
+    pair<bool, entry_stat> pe (path_entry (ld / "f"));
+    assert (pe.first && pe.second.type == entry_type::regular);
+  }
+
+  {
+    pair<bool, entry_stat> pe (path_entry (ld));
+    assert (pe.first && pe.second.type == entry_type::symlink);
+  }
+
+  {
+    pair<bool, entry_stat> pe (path_entry (ld, true /* follow_symlinks */));
+    assert (pe.first && pe.second.type == entry_type::directory);
+  }
+
+  for (const dir_entry& de: dir_iterator (td, false /* ignore_dangling */))
+  {
+    assert (de.path () != path ("dslink") ||
+            (de.type () == entry_type::directory &&
+             de.ltype () == entry_type::symlink));
+  }
+
+  // Remove the directory symlink and make sure the target's content still
+  // exists.
+  //
+  assert (try_rmsymlink (ld) == rmfile_status::success);
+
+  {
+    pair<bool, entry_stat> pe (path_entry (dp / "f"));
+    assert (pe.first && pe.second.type == entry_type::regular);
+  }
 
 #ifndef _WIN32
   // Create the directory symlink using an unexistent directory path.
