@@ -29,7 +29,9 @@ namespace butl
   inline rmdir_status
   try_rmdir_r (const dir_path& p, bool ignore_error)
   {
-    bool e (dir_exists (p)); //@@ What if it exists but is not a directory?
+    //@@ What if it exists but is not a directory?
+    //
+    bool e (dir_exists (p, ignore_error));
 
     if (e)
       rmdir_r (p, true, ignore_error);
