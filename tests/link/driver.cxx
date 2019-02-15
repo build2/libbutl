@@ -179,8 +179,18 @@ main ()
   dir_path ld (td / dir_path ("dslink"));
   assert (link_dir (dp, ld, false /* hard */, true /* check_content */));
 
+  // Create the symlink to a directory symlink using an absolute path.
+  //
+  dir_path lld (td / dir_path ("dslinkslink"));
+  assert (link_dir (ld, lld, false /* hard */, true /* check_content */));
+
   {
     pair<bool, entry_stat> pe (path_entry (ld / "f"));
+    assert (pe.first && pe.second.type == entry_type::regular);
+  }
+
+  {
+    pair<bool, entry_stat> pe (path_entry (lld / "f"));
     assert (pe.first && pe.second.type == entry_type::regular);
   }
 
@@ -194,9 +204,23 @@ main ()
     assert (pe.first && pe.second.type == entry_type::directory);
   }
 
+  {
+    pair<bool, entry_stat> pe (path_entry (lld));
+    assert (pe.first && pe.second.type == entry_type::symlink);
+  }
+
+  {
+    pair<bool, entry_stat> pe (path_entry (lld, true /* follow_symlinks */));
+    assert (pe.first && pe.second.type == entry_type::directory);
+  }
+
   for (const dir_entry& de: dir_iterator (td, false /* ignore_dangling */))
   {
     assert (de.path () != path ("dslink") ||
+            (de.type () == entry_type::directory &&
+             de.ltype () == entry_type::symlink));
+
+    assert (de.path () != path ("dslinkslink") ||
             (de.type () == entry_type::directory &&
              de.ltype () == entry_type::symlink));
   }
@@ -204,6 +228,7 @@ main ()
   // Remove the directory symlink and make sure the target's content still
   // exists.
   //
+  assert (try_rmsymlink (lld) == rmfile_status::success);
   assert (try_rmsymlink (ld) == rmfile_status::success);
 
   {
@@ -220,6 +245,29 @@ main ()
   //
   assert (link_dir (dn, td / dir_path ("rdslink"), false, true));
 #endif
+
+  // Delete the junction target and verify the junction entry status.
+  //
+  assert (link_dir (dp, ld, false /* hard */, true /* check_content */));
+  rmdir_r (dp);
+
+  // On Wine dangling junctions are not visible. That's why we also re-create
+  // the target before the junction removal.
+  //
+#if 0
+  {
+    pair<bool, entry_stat> pe (path_entry (ld));
+    assert (pe.first && pe.second.type == entry_type::symlink);
+  }
+#endif
+
+  {
+    pair<bool, entry_stat> pe (path_entry (ld, true /* follow_symlinks */));
+    assert (!pe.first);
+  }
+
+  assert (try_mkdir (dp) == mkdir_status::success);
+  assert (try_rmsymlink (ld) == rmfile_status::success);
 
   try
   {

@@ -36,14 +36,21 @@ else
 {
   +mkdir a
   +mkdir --no-cleanup a/b
-  +ln -s a/b a/l
+  +ln -s a/b a/bl
   +rmdir a/b
 
   +touch a/c
 
+  +mkdir a/d
+  +ln -s a/d a/dl
+
   # On Wine dangling symlinks are not visible (see mksymlink() for details).
   #
-  #$* ../a     >! 2>!       != 0 : keep
+  #$* ../a >! 2>! != 0 : keep
 
-  $* -i ../a  >'reg     c'      : skip
+  : skip
+  :
+  $* -i ../a >>~%EOO%
+    %(reg     c|dir     d|sym dir dl)%{3}
+    EOO
 }

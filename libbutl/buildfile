@@ -49,11 +49,6 @@ if $windows
 else
   cxx.libs += -lpthread
 
-#@@ MOD VC bogus warning if module and dll-exported function called within DLL.
-#
-if ($cxx.features.modules && $cxx.class == 'msvc')
-  cxx.loptions += /ignore:4217
-
 # Include the generated version header into the distribution (so that we don't
 # pick up an installed one) and don't remove it when cleaning in src (so that
 # clean results in a state identical to distributed).

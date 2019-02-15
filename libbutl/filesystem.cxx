@@ -130,6 +130,17 @@ namespace butl
 #else
 
   static inline bool
+  error_file_not_found (DWORD ec) noexcept
+  {
+    return ec == ERROR_FILE_NOT_FOUND ||
+           ec == ERROR_PATH_NOT_FOUND ||
+           ec == ERROR_INVALID_NAME   ||
+           ec == ERROR_INVALID_DRIVE  ||
+           ec == ERROR_BAD_PATHNAME   ||
+           ec == ERROR_BAD_NETPATH;
+  }
+
+  static inline bool
   junction (DWORD a) noexcept
   {
     return a != INVALID_FILE_ATTRIBUTES            &&
@@ -143,21 +154,40 @@ namespace butl
     return junction (GetFileAttributesA (p.string ().c_str ()));
   }
 
-  static inline entry_type
-  type (const struct __stat64& s) noexcept
+  // Return true if the junction exists and is referencing an existing
+  // directory. Assume that the path references a junction. Underlying OS
+  // errors are reported by throwing std::system_error, unless ignore_error
+  // is true.
+  //
+  static bool
+  junction_target_exists (const char* p, bool ignore_error)
   {
-    // Note that we currently support only directory symlinks (see mksymlink()
-    // for details).
-    //
-    if (S_ISREG (s.st_mode))
-      return entry_type::regular;
-    else if (S_ISDIR (s.st_mode))
-      return entry_type::directory;
-    //
-    //else if (S_ISLNK (s.st_mode))
-    //  return entry_type::symlink;
-    else
-      return entry_type::unknown;
+    HANDLE h (CreateFile (p,
+                          FILE_READ_ATTRIBUTES,
+                          FILE_SHARE_READ | FILE_SHARE_WRITE,
+                          NULL,
+                          OPEN_EXISTING,
+                          FILE_FLAG_BACKUP_SEMANTICS,
+                          NULL));
+
+    if (h == INVALID_HANDLE_VALUE)
+    {
+      DWORD ec;
+
+      if (ignore_error || error_file_not_found (ec = GetLastError ()))
+        return false;
+
+      throw_system_error (ec);
+    }
+
+    CloseHandle (h);
+    return true;
+  }
+
+  static inline bool
+  junction_target_exists (const path& p, bool ignore_error)
+  {
+    return junction_target_exists (p.string ().c_str (), ignore_error);
   }
 
   pair<bool, entry_stat>
@@ -177,32 +207,49 @@ namespace butl
       p = d.c_str ();
     }
 
-    // Note that _stat64() follows junctions and fails for dangling ones, so
-    // we check if the entry is a junction prior to calling _stat64().
+    // Note that VC's implementations of _stat64() follows junctions and fails
+    // for dangling ones. MinGW GCC's implementation returns the information
+    // about the junction itself. That's why we handle junctions specially,
+    // not relying on _stat64().
     //
-    if (!fl)
-    {
-      DWORD a (GetFileAttributesA (p));
-      if (a == INVALID_FILE_ATTRIBUTES) // Presumably not exists.
-        return make_pair (false, entry_stat {entry_type::unknown, 0});
+    DWORD a (GetFileAttributesA (p));
+    if (a == INVALID_FILE_ATTRIBUTES) // Presumably not exists.
+      return make_pair (false, entry_stat {entry_type::unknown, 0});
 
-      if (junction (a))
+    if (junction (a))
+    {
+      if (!fl)
         return make_pair (true, entry_stat {entry_type::symlink, 0});
+
+      return junction_target_exists (p, ie)
+        ? make_pair (true,  entry_stat {entry_type::directory, 0})
+        : make_pair (false, entry_stat {entry_type::unknown, 0});
     }
 
+    entry_type et (entry_type::unknown);
     struct __stat64 s; // For 64-bit size.
 
     if (_stat64 (p, &s) != 0)
     {
       if (errno == ENOENT || errno == ENOTDIR || ie)
-        return make_pair (false, entry_stat {entry_type::unknown, 0});
+        return make_pair (false, entry_stat {et, 0});
       else
         throw_generic_error (errno);
     }
 
+    // Note that we currently support only directory symlinks (see mksymlink()
+    // for details).
+    //
+    if (S_ISREG (s.st_mode))
+      et = entry_type::regular;
+    else if (S_ISDIR (s.st_mode))
+      et = entry_type::directory;
+    //
+    //else if (S_ISLNK (s.st_mode))
+    //  et = entry_type::symlink;
+
     return make_pair (true,
-                      entry_stat {type (s),
-                                  static_cast<uint64_t> (s.st_size)});
+                      entry_stat {et, static_cast<uint64_t> (s.st_size)});
   }
 
 #endif
@@ -914,12 +961,7 @@ namespace butl
     {
       DWORD ec (GetLastError ());
 
-      if (ec == ERROR_FILE_NOT_FOUND ||
-          ec == ERROR_PATH_NOT_FOUND ||
-          ec == ERROR_INVALID_NAME   ||
-          ec == ERROR_INVALID_DRIVE  ||
-          ec == ERROR_BAD_PATHNAME   ||
-          ec == ERROR_BAD_NETPATH)
+      if (error_file_not_found (ec))
         return {timestamp_nonexistent, timestamp_nonexistent};
 
       throw_system_error (ec);
@@ -1434,21 +1476,11 @@ namespace butl
         // If requested, we ignore dangling symlinks, skipping ones with
         // non-existing or inaccessible targets.
         //
-        if (ignore_dangling_ && e_.ltype () == entry_type::symlink)
-        {
-          struct __stat64 s;
-          path pe (e_.base () / e_.path ());
-
-          if (_stat64 (pe.string ().c_str (), &s) != 0)
-          {
-            if (errno == ENOENT || errno == ENOTDIR || errno == EACCES)
-              continue;
-
-            throw_generic_error (errno);
-          }
-
-          e_.lt_ = type (s); // While at it, set the target type.
-        }
+        if (ignore_dangling_                   &&
+            e_.ltype () == entry_type::symlink &&
+            !junction_target_exists (e_.base () / e_.path (),
+                                     true /* ignore_error */))
+          continue;
       }
       else if (errno == ENOENT)
       {
