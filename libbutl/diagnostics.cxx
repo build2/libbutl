@@ -134,7 +134,10 @@ namespace butl
     // same-line progress style, then reprint the current progress string
     // that was overwritten with the diagnostics.
     //
-    if (diag_stream == &cerr && *diag_term && !diag_progress.empty ())
+    if (diag_stream == &cerr    &&
+        !diag_progress.empty () &&
+        diag_term               &&
+        *diag_term)
       progress_print (diag_progress);
 
     diag_mutex.unlock ();
