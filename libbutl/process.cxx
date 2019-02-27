@@ -1067,6 +1067,37 @@ namespace butl
     bool locked_ = true;
   };
 
+  const char* process::
+  quote_argument (const char* a, string& s)
+  {
+    // On Windows we need to protect values with spaces using quotes.
+    // Since there could be actual quotes in the value, we need to
+    // escape them.
+    //
+    bool q (*a == '\0' || strchr (a, ' ') != nullptr);
+
+    if (!q && strchr (a, '"') == nullptr)
+      return a;
+
+    s.clear ();
+
+    if (q)
+      s += '"';
+
+    for (size_t i (0), n (strlen (a)); i != n; ++i)
+    {
+      if (a[i] != '"')
+        s += a[i];
+      else
+        s += "\\\"";
+    }
+
+    if (q)
+      s += '"';
+
+    return s.c_str ();
+  }
+
   // Protected by process_spawn_mutex. See below for the gory details.
   //
   static map<string, bool> detect_msys_cache_;
@@ -1257,35 +1288,17 @@ namespace butl
     //
     string cmd_line;
     {
-      auto append = [&cmd_line] (const string& a)
+      auto append = [&cmd_line, buf = string ()] (const char* a) mutable
       {
         if (!cmd_line.empty ())
           cmd_line += ' ';
 
-        // On Windows we need to protect values with spaces using quotes.
-        // Since there could be actual quotes in the value, we need to escape
-        // them.
-        //
-        bool quote (a.empty () || a.find (' ') != string::npos);
-
-        if (quote)
-          cmd_line += '"';
-
-        for (size_t i (0); i < a.size (); ++i)
-        {
-          if (a[i] == '"')
-            cmd_line += "\\\"";
-          else
-            cmd_line += a[i];
-        }
-
-        if (quote)
-          cmd_line += '"';
+        cmd_line += quote_argument (a, buf);
       };
 
       if (batch)
       {
-        append (*batch);
+        append (batch->c_str ());
         append ("/c");
         append (pp.effect_string ());
       }

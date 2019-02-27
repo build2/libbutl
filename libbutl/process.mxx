@@ -462,6 +462,16 @@ LIBBUTL_MODEXPORT namespace butl
     static void
     print (std::ostream&, const char* const args[], size_t n = 0);
 
+    // Quote and escape the specified command line argument. Return the
+    // original string if neither is necessary and a pointer to the provided
+    // buffer string containing the escaped version otherwise.
+    //
+#ifdef _WIN32
+    static const char*
+    quote_argument (const char*, std::string& buffer);
+#endif
+
+
   public:
     id_type
     id () const;
