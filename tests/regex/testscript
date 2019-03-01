@@ -34,6 +34,13 @@
     $* xay a '\'  >'xy'  : none-term
     $* xay a '\\' >'x\y' : self
 
+    : newline
+    :
+    $* xay a '\n' >>EOO
+      x
+      y
+      EOO
+
     : capture
     :
     {

@@ -44,7 +44,7 @@ LIBBUTL_MODEXPORT namespace butl
   // std::regex_replace() extended the standard ECMA-262 substitution escape
   // sequences with a subset of Perl sequences:
   //
-  // \\, \u, \l, \U, \L, \E, \1, ..., \9
+  // \\, \n, \u, \l, \U, \L, \E, \1, ..., \9
   //
   // Notes and limitations:
   //

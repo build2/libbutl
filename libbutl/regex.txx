@@ -137,7 +137,8 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
           switch (c)
           {
-          case '\\': append_chr (c); break;
+          case '\\': append_chr (c);    break;
+          case 'n':  append_chr ('\n'); break;
 
           case 'u': mode = case_conv::upper_once; break;
           case 'l': mode = case_conv::lower_once; break;
