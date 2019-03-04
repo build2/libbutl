@@ -521,9 +521,11 @@ namespace butl
     if (non_blocking_)
       throw_generic_ios_failure (ENOTSUP);
 
-    // Translate ios_base value to to fdseek_mode.
+    // Translate ios_base::seekdir value to fdseek_mode. Note:
+    // ios_base::seekdir is an implementation-defined type and is not
+    // necessarily a enum.
     //
-    fdseek_mode m;
+    fdseek_mode m (fdseek_mode::set);
     switch (dir)
     {
     case ios_base::beg: m = fdseek_mode::set; break;
