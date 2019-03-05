@@ -42,6 +42,24 @@ elif ($cxx.target.class == 'macos')
 elif ($windows)
   cxx.libs += ($cxx.target.system == 'mingw32' ? -lrpcrt4 : rpcrt4.lib)
 
+# Include the generated version header into the distribution (so that we don't
+# pick up an installed one) and don't remove it when cleaning in src (so that
+# clean results in a state identical to distributed).
+#
+hxx{version}: in{version} $src_root/manifest
+hxx{version}:
+{
+  dist  = true
+  clean = ($src_root != $out_root)
+}
+
+# Build options.
+#
+cxx.poptions =+ "-I$out_root" "-I$src_root"
+
+obja{*} bmia{*}: cxx.poptions += -DLIBBUTL_STATIC_BUILD
+objs{*} bmis{*}: cxx.poptions += -DLIBBUTL_SHARED_BUILD
+
 # Additional system libraries.
 #
 if $windows
@@ -49,34 +67,31 @@ if $windows
 else
   cxx.libs += -lpthread
 
-# Include the generated version header into the distribution (so that we don't
-# pick up an installed one) and don't remove it when cleaning in src (so that
-# clean results in a state identical to distributed).
+# Export options.
 #
-hxx{version}: in{version} $src_root/manifest
-hxx{version}: dist  = true
-hxx{version}: clean = ($src_root != $out_root)
+lib{butl}:
+{
+  cxx.export.poptions = "-I$out_root" "-I$src_root"
+  cxx.export.libs = $int_libs
+}
+
+liba{butl}: cxx.export.poptions += -DLIBBUTL_STATIC
+libs{butl}: cxx.export.poptions += -DLIBBUTL_SHARED
 
 # For pre-releases use the complete version to make sure they cannot be used
-# in place of another pre-release or the final version.
+# in place of another pre-release or the final version. See the version module
+# for details on the version.* variable values.
 #
 if $version.pre_release
   lib{butl}: bin.lib.version = @"-$version.project_id"
 else
   lib{butl}: bin.lib.version = @"-$version.major.$version.minor"
 
-lib{butl}: cxx.export.libs = $int_libs
-
-cxx.poptions =+ "-I$out_root" "-I$src_root"
-obja{*} bmia{*}: cxx.poptions += -DLIBBUTL_STATIC_BUILD
-objs{*} bmis{*}: cxx.poptions += -DLIBBUTL_SHARED_BUILD
-
-lib{butl}: cxx.export.poptions = "-I$out_root" "-I$src_root"
-liba{butl}: cxx.export.poptions += -DLIBBUTL_STATIC
-libs{butl}: cxx.export.poptions += -DLIBBUTL_SHARED
-
-# Install into the libbutl/ subdirectory of, say, /usr/include/ recreating
-# subdirectories.
+# Install into the libbutl/ subdirectory of, say, /usr/include/
+# recreating subdirectories.
 #
-{mxx hxx ixx txx}{*}: install         = include/$project/
-{mxx hxx ixx txx}{*}: install.subdirs = true
+{mxx hxx ixx txx}{*}:
+{
+  install         = include/libbutl/
+  install.subdirs = true
+}
