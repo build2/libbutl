@@ -13,6 +13,7 @@
 #ifndef __cpp_lib_modules
 #include <string>
 #include <cstdint> // uint64_t
+#include <cstddef> // size_t
 #endif
 
 // Other includes.
@@ -99,7 +100,9 @@ namespace butl
       os << ' ';
 
       manifest_serializer s (os, path_.string ());
-      s.write_value (nv.value, nv.colon_pos - nv.start_pos + 2);
+
+      s.write_value (nv.value,
+                     static_cast<size_t> (nv.colon_pos - nv.start_pos + 2));
     }
 
     os << suffix;
@@ -132,7 +135,8 @@ namespace butl
     if (!nv.value.empty ())
     {
       os << ' ';
-      s.write_value (nv.value, nv.colon_pos - nv.start_pos + 2);
+      s.write_value (nv.value,
+                     static_cast<size_t> (nv.colon_pos - nv.start_pos + 2));
     }
 
     os << suffix;

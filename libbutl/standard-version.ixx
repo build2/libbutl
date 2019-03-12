@@ -51,7 +51,8 @@ namespace butl
   {
     return release () || stub ()
       ? nullopt
-      : optional<std::uint16_t> (version / 10 % 1000);
+      : optional<std::uint16_t> (
+          static_cast<std::uint16_t> (version / 10 % 1000));
   }
 
   inline optional<std::uint16_t> standard_version::

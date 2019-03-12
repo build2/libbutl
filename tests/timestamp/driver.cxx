@@ -128,12 +128,12 @@ main ()
   //
   assert (fail ("Apr 08 19:31:10.123456789 ABC", "%b %d %H:%M:%S%[.N] %Y"));
 
-// This doesn't work in VC15 because their implementation of std::get_time()
+// This doesn't work in VC16 because their implementation of std::get_time()
 // has a bug. Due to this bug std::get_time() parses the input
 // "Apr 19:31:10 2016" for the format "%b %d %H:%M:%S %Y" as if the input were
 // "Apr 19 00:31:10 2016".
 //
-#if !defined(_MSC_VER) || _MSC_VER >= 1920
+#if !defined(_MSC_VER) || _MSC_VER >= 2000
   assert (fail ("Apr 19:31:10 2016", "%b %d %H:%M:%S %Y"));
   assert (fail (":31 2016", "%H:%M %Y"));
 #endif

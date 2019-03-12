@@ -44,6 +44,8 @@ encode (const string& i, const string& o)
     is.clear ();
 #endif
 
+    assert (!is.eof ());
+
     ostringstream os;
     base64_encode (os, is);
     r = os.str () == o && is.eof ();
