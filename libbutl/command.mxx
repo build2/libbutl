@@ -1,0 +1,84 @@
+// file      : libbutl/command.mxx -*- C++ -*-
+// copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
+// license   : MIT; see accompanying LICENSE file
+
+#ifndef __cpp_modules
+#pragma once
+#endif
+
+#ifndef __cpp_lib_modules
+#include <map>
+#include <string>
+#include <cstddef>    // size_t
+#include <functional>
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules
+export module butl.command;
+#ifdef __cpp_lib_modules
+import std.core;
+#endif
+import butl.process;
+import butl.optional;
+#else
+#include <libbutl/process.mxx>
+#include <libbutl/optional.mxx>
+#endif
+
+#include <libbutl/export.hxx>
+
+LIBBUTL_MODEXPORT namespace butl
+{
+  // Run a process, interpreting the command line as whitespace-separated,
+  // potentially quoted program path, arguments, and redirects. Throw
+  // std::invalid_argument on the parsing error, ios::failure on the
+  // underlying OS error, and process_error on the process running error.
+  //
+  // The process environment path is unused and must point to the empty
+  // process path.
+  //
+  // Currently only the following stdout redirects are supported:
+  //
+  // >file   # Overwrite file.
+  // >>file  # Append to file.
+  //
+  // In particular, the file descriptor cannot be specified. The file path can
+  // optionally be separated from '>' by whitespaces. Note that redirects are
+  // distinguished from arguments by the presence of leading '>' and prior to
+  // possible substitutions (so the redirect character cannot be the result of
+  // a substitution; see below).
+  //
+  // The relative redirect file paths are completed against the command
+  // current working directory. Note that if it is altered via the process
+  // environment, then the new value is used.
+  //
+  // The command line elements (program, arguments, etc) may optionally
+  // contain substitutions - variable names enclosed with the substitution
+  // symbol ('@' by default) - which are replaced with the corresponding
+  // variable values to produce the actual command. Variable names must not
+  // contain whitespaces and an attempt to substitute an unknown or a
+  // malformed variable is an error. Double substitution character ('@@' by
+  // default) is an escape sequence.
+  //
+  // If the variable map is absent, then '@' has no special meaning and is
+  // treated as a regular character.
+  //
+  // The callback function, if specified, is called prior to running the
+  // command process with the substituted command elements and including
+  // redirects which will be in the "canonical" form (single argument without
+  // space after '>'). The callback can be used, for example, for tracing the
+  // resulting command line, etc.
+  //
+  using command_substitution_map = std::map<std::string, std::string>;
+  using command_callback = void (const char* const args[], std::size_t n);
+
+  LIBBUTL_SYMEXPORT process_exit
+  command_run (const std::string& command,
+               const optional<process_env>& = nullopt,
+               const optional<command_substitution_map>& = nullopt,
+               char subst = '@',
+               const std::function<command_callback>& = {});
+
+}

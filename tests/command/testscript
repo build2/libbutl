@@ -1,0 +1,155 @@
+# file      : tests/command/testscript
+# copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+cmd="'$0' -C -A" # Command that prints its arguments to stdout.
+
+# Note that when cross-testing the driver may not be able to run the command
+# due to the meaningless program path.
+#
++if ($test.target != $build.host)
+  exit
+end
+
+: quioting
+:
+{
+  $* "$cmd 'abc def'" >~'%.+ "abc def"%'
+}
+
+: substitution
+:
+{
+  test.options += -s v1=abc -s v2=def
+
+  : program
+  :
+  {
+    $* -s "program=$0" '@program@ -C -A abc' >~'%.+driver.* abc%'
+  }
+
+  : args
+  :
+  {
+    $* "$cmd abc"         >~'%.+ abc%'       : none
+    $* "$cmd x@v1@"       >~'%.+ xabc%'      : single
+    $* "$cmd x@v1@y@v2@z" >~'%.+ xabcydefz%' : multiple
+    $* "$cmd @v1@@v2@"    >~'%.+ abcdef%'    : adjacent
+  }
+
+  : redirect
+  :
+  {
+    $* -s v=f "$cmd abc >@v@" &f;
+    cat f >~'%.+ abc%'
+  }
+}
+
+: redirect
+:
+{
+  : overwrite
+  :
+  {
+    $* -p "$cmd abc >f" >~'%.+driver.* -C -A abc >f%' &f;
+    cat f >~'%.+ abc%'
+  }
+
+  : append
+  :
+  {
+    echo 'xyz' >=f;
+    $* -p "$cmd abc >>f" >~'%.+driver.* -C -A abc >>f%';
+
+    cat f >>~%EOO%
+      xyz
+      %.+ abc%
+      EOO
+  }
+
+  : space-separated
+  :
+  {
+    : overwrite
+    :
+    {
+      $* "$cmd abc > f" &f;
+      cat f >~'%.+ abc%'
+    }
+
+    : append
+    :
+    {
+      echo 'xyz' >=f;
+      $* "$cmd abc >> f";
+
+      cat f >>~%EOO%
+        xyz
+        %.+ abc%
+        EOO
+    }
+  }
+
+  : not-redirect
+  :
+  $* -s v='>f' "$cmd abc @v@" >~'%.+ abc >f%'
+
+  : errors
+  :
+  {
+    $* "$cmd >d/f" 2>~"%unable to open stdout redirect file 'd/f'.*%" != 0 : io-failure
+    $* "$cmd > ''" 2>  'empty stdout redirect file path'              != 0 : empty-path
+  }
+}
+
+: invalid-argument
+:
+{
+  $* ""           2>'no program path specified'         != 0 : no-prog
+  $* "p 'abc def" 2>'unterminated quoted string'        != 0 : unterminated
+  $* "p >"        2>'no stdout redirect file specified' != 0 : no-redirect-file
+  $* "p >>"       2>'no stdout redirect file specified' != 0 : no-append-file
+
+  : substitution
+  :
+  {
+    test.options += -s v=a
+
+    $* 'p @a b@'   2>"unmatched substitution character '@' in '@a'" != 0 : unterm-var
+    $* "p '@a b@'" 2>"whitespace in variable name 'a b'"            != 0 : ws-var
+    $* 'p @x@'     2>"unknown variable 'x'"                         != 0 : unknown-var
+  }
+}
+
+: process
+:
+{
+  : cwd
+  :
+  {
+    mkdir abc;
+    $* -d abc "$cmd -D" >>/~%EOO%
+      %.+/driver.*%
+      %.+/abc%
+      EOO
+  }
+
+  : env-var
+  :
+  {
+    $* -v test=abc "$cmd -V test" >>/~%EOO%
+      %.+/driver.*%
+      abc
+      EOO
+  }
+
+  : error
+  :
+  {
+    $* "''" 2>'no such file or directory' != 0 : empty-prog
+  }
+
+  : non-zero-status
+  :
+  $* "$0 -C -S 10" 2>/~'%.+ exited with code 10%' == 10
+}
