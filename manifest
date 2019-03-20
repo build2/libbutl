@@ -1,6 +1,6 @@
 : 1
 name: libbutl
-version: 0.10.0
+version: 0.11.0-a.0.z
 project: build2
 summary: build2 utility library
 license: MIT, BSD-3, BSD-2 ; MIT except for 5 files from the FreeBSD project.
@@ -14,5 +14,5 @@ email: users@build2.org
 build-email: builds@build2.org
 builds: all
 requires: c++14
-depends: * build2 >= 0.9.0
-depends: * bpkg >= 0.9.0
+depends: * build2 >= 0.10.0
+depends: * bpkg >= 0.10.0
