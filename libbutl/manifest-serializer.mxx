@@ -56,10 +56,19 @@ LIBBUTL_MODEXPORT namespace butl
     using filter_function = bool (const std::string& name,
                                   const std::string& value);
 
+    // Unless long_lines is true, break lines in values (including multi-line)
+    // so that their length does not exceed 78 characters (including '\n').
+    //
     manifest_serializer (std::ostream& os,
                          const std::string& name,
+                         bool long_lines = false,
                          std::function<filter_function> filter = {})
-        : os_ (os), name_ (name), filter_ (std::move (filter)) {}
+      : os_ (os),
+        name_ (name),
+        long_lines_ (long_lines),
+        filter_ (std::move (filter))
+    {
+    }
 
     const std::string&
     name () const {return name_;}
@@ -124,6 +133,7 @@ LIBBUTL_MODEXPORT namespace butl
   private:
     std::ostream& os_;
     const std::string name_;
+    bool long_lines_;
     const std::function<filter_function> filter_;
   };
 }

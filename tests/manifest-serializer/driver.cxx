@@ -32,6 +32,7 @@ using pairs = vector<pair<string, string>>;
 static bool
 test (const pairs& manifest,
       const string& expected,
+      bool long_lines = false,
       manifest_serializer::filter_function f = {});
 
 static bool
@@ -178,7 +179,6 @@ main ()
   assert (test ({{"","1"},{"a",l4},{"",""},{"",""}}, ": 1\na: " + e4 + "\n"));
   assert (test ({{"","1"},{"a",l5},{"",""},{"",""}}, ": 1\na: " + e5 + "\n"));
 
-
   // Multi-line value.
   //
   string n ("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
@@ -198,6 +198,20 @@ main ()
                 ": 1\na: \\\nx \n\\\n"));
   assert (test ({{"","1"},{"a"," x "},{"",""},{"",""}},
                 ": 1\na: \\\n x \n\\\n"));
+
+  // The long lines mode.
+  //
+  assert (test ({{"","1"},{"a",l1},{"",""},{"",""}},
+                ": 1\na: " + l1 + "\n",
+                true /* long_lines */));
+
+  assert (test ({{"","1"},{"a", " abc\n" + l1 + "\ndef"},{"",""},{"",""}},
+                ": 1\na: \\\n abc\n" + l1 + "\ndef\n\\\n",
+                true /* long_lines */));
+
+  assert (test ({{"","1"},{n,l1},{"",""},{"",""}},
+                ": 1\n" + n + ": \\\n" + l1 + "\n\\\n",
+                true /* long_lines */));
 
   // Carriage return character.
   //
@@ -241,15 +255,18 @@ main ()
   //
   assert (test ({{"","1"},{"a","abc"},{"b","bca"},{"c","cab"},{"",""},{"",""}},
                 ": 1\na: abc\nc: cab\n",
+                false /* long_lines */,
                 [] (const string& n, const string&) {return n != "b";}));
 }
 
 static string
-serialize (const pairs& m, manifest_serializer::filter_function f = {})
+serialize (const pairs& m,
+           bool long_lines = false,
+           manifest_serializer::filter_function f = {})
 {
   ostringstream os;
   os.exceptions (istream::failbit | istream::badbit);
-  manifest_serializer s (os, "", f);
+  manifest_serializer s (os, "", long_lines, f);
 
   for (const auto& p: m)
   {
@@ -263,9 +280,12 @@ serialize (const pairs& m, manifest_serializer::filter_function f = {})
 }
 
 static bool
-test (const pairs& m, const string& e, manifest_serializer::filter_function f)
+test (const pairs& m,
+      const string& e,
+      bool long_lines,
+      manifest_serializer::filter_function f)
 {
-  string r (serialize (m, f));
+  string r (serialize (m, long_lines, f));
 
   if (r != e)
   {

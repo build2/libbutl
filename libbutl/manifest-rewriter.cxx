@@ -41,8 +41,9 @@ using namespace std;
 namespace butl
 {
   manifest_rewriter::
-  manifest_rewriter (path p)
+  manifest_rewriter (path p, bool long_lines)
       : path_ (move (p)),
+        long_lines_ (long_lines),
         fd_ (fdopen (path_,
                      fdopen_mode::in  |
                      fdopen_mode::out |
@@ -99,7 +100,7 @@ namespace butl
     {
       os << ' ';
 
-      manifest_serializer s (os, path_.string ());
+      manifest_serializer s (os, path_.string (), long_lines_);
 
       s.write_value (nv.value,
                      static_cast<size_t> (nv.colon_pos - nv.start_pos + 2));
@@ -127,7 +128,7 @@ namespace butl
     ofdstream os (move (fd_));
     os << '\n';
 
-    manifest_serializer s (os, path_.string ());
+    manifest_serializer s (os, path_.string (), long_lines_);
     s.write_name (nv.name);
 
     os << ':';

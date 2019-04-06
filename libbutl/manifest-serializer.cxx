@@ -182,7 +182,6 @@ namespace butl
     {
       char pc (c);
       c = *s;
-      bool br (false); // Break the line.
 
       // Note that even the "hard" break (see below) is not that hard when it
       // comes to breaking the line right after the backslash. Doing so would
@@ -190,8 +189,10 @@ namespace butl
       // backslash would be escaped. So we delay breaking till the next
       // non-backslash character.
       //
-      if (pc != '\\')
+      if (pc != '\\' && !long_lines_)
       {
+        bool br (false); // Break the line.
+
         // If this is a whitespace, see if it's a good place to break the
         // line.
         //
@@ -238,7 +239,7 @@ namespace butl
       os_ << c;
     }
 
-    // What comes next is always a newline. I the last character that
+    // What comes next is always a newline. If the last character that
     // we have written is a backslash, escape it.
     //
     if (c == '\\')
@@ -260,6 +261,11 @@ namespace butl
     //   mode)
     // - value contains newlines
     // - value contains leading/trailing whitespaces
+    //
+    // Should we use the multi-line mode for large column offsets if the long
+    // lines flag is set? Probably yes, as this improves the manifest
+    // readability, still allowing the user to easily copy the value which
+    // seems to be the main reason for using the flag.
     //
     if (cl > 39 || nl () != string::npos ||
         v.front () == ' ' || v.front () == '\t' ||

@@ -50,7 +50,10 @@ LIBBUTL_MODEXPORT namespace butl
   class LIBBUTL_SYMEXPORT manifest_rewriter
   {
   public:
-    manifest_rewriter (path);
+    // Unless long_lines is true, break lines in values (see
+    // manifest_serializer for details).
+    //
+    manifest_rewriter (path, bool long_lines = false);
 
     // Replace the existing value at the specified position (specifically,
     // between colon_pos and end_pos) with the specified new value. The new
@@ -70,6 +73,7 @@ LIBBUTL_MODEXPORT namespace butl
 
   private:
     path path_;
+    bool long_lines_;
     auto_fd fd_;
   };
 }
