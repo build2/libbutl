@@ -688,6 +688,13 @@ LIBBUTL_MODEXPORT namespace butl
   inline dir_iterator begin (dir_iterator&);
   inline dir_iterator end (const dir_iterator&);
 
+  // MSVC in the strict mode (/permissive-), which we enable by default from
+  // 15.5, needs this declaration to straighten its brains out.
+  //
+#if defined(_MSC_VER) && _MSC_VER >= 1920
+  inline dir_iterator begin (dir_iterator&&);
+#endif
+
   // Wildcard pattern match and search (aka glob).
   //
   // Currently the following wildcard characters are supported:
