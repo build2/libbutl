@@ -691,7 +691,7 @@ LIBBUTL_MODEXPORT namespace butl
   // MSVC in the strict mode (/permissive-), which we enable by default from
   // 15.5, needs this declaration to straighten its brains out.
   //
-#if defined(_MSC_VER) && _MSC_VER >= 1920
+#if defined(_MSC_VER) && _MSC_VER >= 1912
   inline dir_iterator begin (dir_iterator&&);
 #endif
 
