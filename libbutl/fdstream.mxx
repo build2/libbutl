@@ -9,12 +9,14 @@
 #include <cassert>
 
 #ifndef __cpp_lib_modules
+#include <ios>     // streamsize
 #include <vector>
 #include <string>
 #include <istream>
 #include <ostream>
-#include <utility> // move()
+#include <utility> // move(), pair
 #include <cstdint> // uint16_t, uint64_t
+#include <cstddef> // size_t
 
 #include <iterator>
 #endif
@@ -29,9 +31,11 @@ import std.io;
 #endif
 import butl.path;
 import butl.filesystem; // permissions
+import butl.small_vector;
 #else
 #include <libbutl/path.mxx>
 #include <libbutl/filesystem.mxx>
+#include <libbutl/small-vector.mxx>
 #endif
 
 #include <libbutl/export.hxx>
@@ -44,7 +48,12 @@ LIBBUTL_MODEXPORT namespace butl
   // The descriptor can be negative. Such a descriptor is treated as unopened
   // and is not closed.
   //
-  struct nullfd_t {constexpr explicit nullfd_t (int) {}};
+  struct nullfd_t
+  {
+    constexpr explicit nullfd_t (int) {}
+    constexpr operator int () const {return -1;}
+  };
+
 #if defined(__cpp_modules) && defined(__clang__) //@@ MOD Clang duplicate sym.
   inline
 #endif
@@ -113,7 +122,7 @@ LIBBUTL_MODEXPORT namespace butl
   //   for reasoning and consider using non-standard tellg() and seekg() in
   //   fdbuf, instead)
   // - non-blocking file descriptor is supported only by showmanyc() function
-  //   and only on POSIX
+  //   and only for pipes on Windows, in contrast to POSIX systems
   // - throws ios::failure in case of open(), read(), write(), close(),
   //   seek[gp](), or tell[gp]() errors
   // - exception mask has at least badbit
@@ -153,6 +162,15 @@ LIBBUTL_MODEXPORT namespace butl
 
     int
     fd () const {return fd_.get ();}
+
+    // Set the file descriptor blocking mode returning the previous mode on
+    // success and throwing ios::failure otherwise (see fdmode() for details).
+    //
+    // Note that besides calling fdmode(fd()), this function also updating its
+    // internal state according to the new mode.
+    //
+    bool
+    blocking (bool);
 
   public:
     using base = std::basic_streambuf<char>;
@@ -253,10 +271,11 @@ LIBBUTL_MODEXPORT namespace butl
   // The blocking/non_blocking flags determine whether the IO operation should
   // block or return control if currently there is no data to read or no room
   // to write. Only the istream::readsome() function supports the semantics of
-  // non-blocking operations. We also only support this on POSIX (Windows does
-  // not provide means for the non-blocking reading from a file descriptor so
-  // these flags are noop there). IO stream operations other than readsome()
-  // are illegal for non_blocking mode and result in the badbit being set.
+  // non-blocking operations. In contrast to POSIX systems, we only support
+  // this for pipes on Windows, always assuming the blocking mode for other
+  // file descriptors. IO stream operations other than readsome() are illegal
+  // in the non-blocking mode and result in the badbit being set (note that
+  // it is not the more appropriate failbit for implementation reasons).
   //
   enum class fdstream_mode: std::uint16_t
   {
@@ -656,17 +675,20 @@ LIBBUTL_MODEXPORT namespace butl
   LIBBUTL_SYMEXPORT auto_fd
   fddup (int fd);
 
-  // Set the translation mode for the file descriptor. Throw invalid_argument
-  // for an invalid combination of flags. Return the previous mode on success,
-  // throw ios::failure otherwise.
+  // Set the translation and/or blocking modes for the file descriptor. Throw
+  // invalid_argument for an invalid combination of flags. Return the previous
+  // mode on success, throw ios::failure otherwise.
   //
-  // The text and binary flags are mutually exclusive on Windows. Due to
-  // implementation details at least one of them should be specified. On POSIX
+  // The text and binary flags are mutually exclusive on Windows. On POSIX
   // system the two modes are the same and so no check is performed.
   //
-  // The blocking and non-blocking flags are mutually exclusive on POSIX
-  // system. Non-blocking mode is not supported on Windows and so the blocking
-  // mode is assumed regardless of the flags.
+  // The blocking and non-blocking flags are mutually exclusive. In contrast
+  // to POSIX systems, on Windows the non-blocking mode is only supported for
+  // pipes, with the blocking mode assumed for other file descriptors
+  // regardless of the flags.
+  //
+  // Note that on Wine currently pipes always behave as blocking regardless of
+  // the mode set.
   //
   LIBBUTL_SYMEXPORT fdstream_mode
   fdmode (int, fdstream_mode);
@@ -781,6 +803,47 @@ LIBBUTL_MODEXPORT namespace butl
   //
   LIBBUTL_SYMEXPORT bool
   fdterm (int);
+
+  // Wait until one or more file descriptors becomes ready for reading or
+  // writing. Return the pair of numbers of descriptors that are ready. Throw
+  // std::invalid_argument if anything is wrong with arguments (both sets are
+  // empty, invalid fd, etc). Throw ios::failure on the underlying OS error.
+  //
+  // Note that the function clears all the previously-ready entries on each
+  // call. Entries with nullfd are ignored.
+  //
+  // On Windows only pipes and only their read ends are supported.
+  //
+  struct fdselect_state
+  {
+    int  fd;
+    bool ready;
+
+    // Note: intentionally non-explicit to allow implicit initialization when
+    // pushing to fdselect_set.
+    //
+    fdselect_state (int fd): fd (fd), ready (false) {}
+  };
+
+  using fdselect_set = small_vector<fdselect_state, 4>;
+
+  LIBBUTL_SYMEXPORT std::pair<std::size_t, std::size_t>
+  fdselect (fdselect_set& read, fdselect_set& write);
+
+  // As above but wait up to the specified timeout returning a pair of zeroes
+  // if none of the descriptors became ready.
+  //
+  // LIBBUTL_SYMEXPORT std::pair<std::size_t, std::size_t>
+  // fdselect (fdselect_set&, fdselect_set&, const duration& timeout);
+
+  // POSIX read() function wrapper. In particular, it supports the semantics
+  // of non-blocking read for pipes on Windows.
+  //
+  // Note that on Wine currently pipes always behave as blocking regardless of
+  // the mode.
+  //
+  LIBBUTL_SYMEXPORT std::streamsize
+  fdread (int, void*, std::size_t);
 }
 
 #include <libbutl/fdstream.ixx>

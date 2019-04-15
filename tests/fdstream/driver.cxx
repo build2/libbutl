@@ -2,17 +2,21 @@
 // copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
+#ifdef _WIN32
+#  include <libbutl/win32-utility.hxx>
+#endif
+
 #include <cassert>
 
 #ifndef __cpp_lib_modules
 #ifndef _WIN32
 #  include <chrono>
-#  include <thread> // this_thread::sleep_for()
 #endif
 
 #include <ios>
 #include <string>
 #include <vector>
+#include <thread>
 #include <iomanip>
 #include <sstream>
 #include <fstream>
@@ -161,19 +165,19 @@ main (int argc, const char* argv[])
     string s;
     getline (cin, s, '\0');
 
-    size_t n (10);
+    size_t n (1000);
     for (size_t i (0); i < s.size (); i += n)
     {
-      cout.write (s.c_str () + i, min (n, s.size () - i));
-      cout.flush ();
-
-      // @@ MINGW GCC 4.9 doesn't implement this_thread. If ifdstream
-      //    non-blocking read will ever be implemented on Windows use Win32
-      //    Sleep() instead.
+      // MINGW GCC 4.9 doesn't implement this_thread so use Win32 Sleep().
       //
 #ifndef _WIN32
       this_thread::sleep_for (chrono::milliseconds (50));
+#else
+      Sleep (50);
 #endif
+
+      cout.write (s.c_str () + i, min (n, s.size () - i));
+      cout.flush ();
     }
 
     return 0;
@@ -247,8 +251,8 @@ main (int argc, const char* argv[])
   {
     // Fail to create if the file already exists.
     //
-    fdopen (
-      f, fdopen_mode::out | fdopen_mode::create | fdopen_mode::exclusive);
+    fdopen (f,
+            fdopen_mode::out | fdopen_mode::create | fdopen_mode::exclusive);
 
     assert (false);
   }
@@ -433,43 +437,6 @@ main (int argc, const char* argv[])
   {
   }
 
-  // Test non-blocking reading.
-  //
-  try
-  {
-    const char* args[] = {argv[0], "-c", nullptr};
-    process pr (args, -1, -1);
-
-    ofdstream os (move (pr.out_fd));
-    ifdstream is (move (pr.in_ofd), fdstream_mode::non_blocking);
-
-    const string s (
-      "0123456789\nABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz");
-
-    os << s;
-    os.close ();
-
-    string r;
-    char buf[3];
-    while (!is.eof ())
-    {
-      streamsize n (is.readsome (buf, sizeof (buf)));
-      r.append (buf, n);
-    }
-
-    is.close ();
-
-    assert (r == s);
-  }
-  catch (const ios::failure&)
-  {
-    assert (false);
-  }
-  catch (const process_error&)
-  {
-    assert (false);
-  }
-
 #else
 
   // Check translation modes.
@@ -481,6 +448,90 @@ main (int argc, const char* argv[])
   assert (from_file (f) == text1);
 
 #endif
+
+  // Test non-blocking reading.
+  //
+  {
+    string s;
+    for (size_t i (0); i < 100; ++i)
+      s += "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n";
+
+    const char* args[] = {argv[0], "-c", nullptr};
+
+    auto test_read = [&args, &s] ()
+    {
+      try
+      {
+        process   pr (args, -1, -1);
+        ofdstream os (move (pr.out_fd));
+        ifdstream is (move (pr.in_ofd), fdstream_mode::non_blocking);
+
+        os << s;
+        os.close ();
+
+        fdselect_set rds ({fdselect_state (is.fd ())});
+        fdselect_set wds;
+
+        string r;
+        char buf[300];
+        while (!is.eof ())
+        {
+          pair<size_t, size_t> nd (fdselect (rds, wds));
+
+          assert (nd.first == 1 && nd.second == 0 && rds[0].ready);
+
+          for (streamsize n; (n = is.readsome (buf, sizeof (buf))) != 0; )
+            r.append (buf, n);
+        }
+
+        is.close ();
+
+        assert (r == s);
+      }
+      catch (const ios::failure&)
+      {
+        assert (false);
+      }
+      catch (const process_error&)
+      {
+        assert (false);
+      }
+    };
+
+    vector<thread> threads;
+    for (size_t i (0); i < 10; ++i)
+      threads.emplace_back (test_read);
+
+    // While the threads are busy, let's test the skip/non_blocking modes
+    // combination.
+    //
+    try
+    {
+      process   pr (args, -1, -1);
+      ofdstream os (move (pr.out_fd));
+
+      ifdstream is (move (pr.in_ofd),
+                    fdstream_mode::non_blocking | fdstream_mode::skip);
+
+      os << s;
+      os.close ();
+
+      is.close (); // Set the blocking mode, skip and close.
+    }
+    catch (const ios::failure&)
+    {
+      assert (false);
+    }
+    catch (const process_error&)
+    {
+      assert (false);
+    }
+
+    // Join the non-blocking reading test threads.
+    //
+    for (thread& t: threads)
+      t.join ();
+  }
 
   // Test setting and getting position via the non-standard fdbuf interface.
   //
