@@ -10,6 +10,7 @@
 
 #ifndef __cpp_lib_modules
 #include <string>
+#include <vector>
 #include <iosfwd>
 #include <cstdint>    // uint64_t
 #include <utility>    // pair, move()
@@ -25,9 +26,11 @@ export module butl.manifest_parser;
 import std.core;
 import std.io;
 #endif
+import butl.optional;
 import butl.char_scanner;
 import butl.manifest_types;
 #else
+#include <libbutl/optional.mxx>
 #include <libbutl/char-scanner.mxx>
 #include <libbutl/manifest-types.mxx>
 #endif
@@ -72,16 +75,15 @@ LIBBUTL_MODEXPORT namespace butl
     const std::string&
     name () const {return name_;}
 
-    // The first returned pair is special "start-of-manifest" with
-    // empty name and value being the format version: {"", "<ver>"}.
-    // After that we have a sequence of ordinary pairs which are
-    // the manifest. At the end of the manifest we have the special
-    // "end-of-manifest" pair with empty name and value: {"", ""}.
-    // After that we can either get another start-of-manifest pair
-    // (in which case the whole sequence repeats from the beginning)
-    // or we get another end-of-manifest pair which signals the end
-    // of stream (aka EOF). To put it another way, the parse sequence
-    // always has the following form:
+    // The first returned pair is special "start-of-manifest" with empty name
+    // and value being the format version: {"", "<ver>"}. After that we have a
+    // sequence of ordinary pairs which are the manifest. At the end of the
+    // manifest we have the special "end-of-manifest" pair with empty name and
+    // value: {"", ""}. After that we can either get another start-of-manifest
+    // pair (in which case the whole sequence repeats from the beginning) or
+    // we get another end-of-manifest-like pair which signals the end of
+    // stream (aka EOF) and which we will call the end-of-stream pair. To put
+    // it another way, the parse sequence always has the following form:
     //
     // ({"", "<ver>"} {"<name>", "<value>"}* {"", ""})* {"", ""}
     //
@@ -120,6 +122,31 @@ LIBBUTL_MODEXPORT namespace butl
     enum {start, body, end} s_ = start;
     std::string version_; // Current format version.
   };
+
+  // Parse and return a single manifest. Throw manifest_parsing in case of an
+  // error.
+  //
+  // Note that the returned manifest doesn't contain the format version nor
+  // the end-of-manifest/stream pairs.
+  //
+  LIBBUTL_SYMEXPORT std::vector<manifest_name_value>
+  parse_manifest (manifest_parser&);
+
+  // As above but append the manifest values to an existing list.
+  //
+  LIBBUTL_SYMEXPORT void
+  parse_manifest (manifest_parser&, std::vector<manifest_name_value>&);
+
+  // As above but return nullopt if eos is reached before reading any values.
+  //
+  LIBBUTL_SYMEXPORT optional<std::vector<manifest_name_value>>
+  try_parse_manifest (manifest_parser&);
+
+  // As above but append the manifest values to an existing list returning
+  // false if eos is reached before reading any values.
+  //
+  LIBBUTL_SYMEXPORT bool
+  try_parse_manifest (manifest_parser&, std::vector<manifest_name_value>&);
 }
 
 #include <libbutl/manifest-parser.ixx>

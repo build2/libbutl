@@ -10,6 +10,7 @@
 
 #ifndef __cpp_lib_modules
 #include <string>
+#include <vector>
 #include <cstddef>
 #include <stdexcept>
 
@@ -27,7 +28,7 @@ module butl.manifest_serializer;
 import std.core;
 import std.io;
 #endif
-import butl.char_scanner;
+import butl.manifest_types;
 #endif
 
 #endif
@@ -318,5 +319,23 @@ namespace butl
   manifest_serialization (const string& n, const string& d)
       : runtime_error (format (n, d)), name (n), description (d)
   {
+  }
+
+  // serialize_manifest
+  //
+  void
+  serialize_manifest (manifest_serializer& s,
+                      const vector<manifest_name_value>& nvs,
+                      bool eos)
+  {
+    s.next ("", "1"); // Start of manifest.
+
+    for (const manifest_name_value& nv: nvs)
+      s.next (nv.name, nv.value);
+
+    s.next ("", ""); // End of manifest.
+
+    if (eos)
+      s.next ("", ""); // End of stream.
   }
 }

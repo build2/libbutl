@@ -10,6 +10,7 @@
 
 #ifndef __cpp_lib_modules
 #include <string>
+#include <vector>
 #include <iosfwd>
 #include <cstddef>    // size_t
 #include <stdexcept>  // runtime_error
@@ -24,6 +25,9 @@ export module butl.manifest_serializer;
 import std.core;
 import std.io;
 #endif
+import butl.manifest_types;
+#else
+#include <libbutl/manifest-types.mxx>
 #endif
 
 #include <libbutl/export.hxx>
@@ -136,6 +140,15 @@ LIBBUTL_MODEXPORT namespace butl
     bool long_lines_;
     const std::function<filter_function> filter_;
   };
+
+  // Serialize a manifest to a stream adding the leading format version pair
+  // and the trailing end-of-manifest pair. Unless eos is false, then also
+  // write the end-of-stream pair.
+  //
+  LIBBUTL_SYMEXPORT void
+  serialize_manifest (manifest_serializer&,
+                      const std::vector<manifest_name_value>&,
+                      bool eos = true);
 }
 
 #include <libbutl/manifest-serializer.ixx>

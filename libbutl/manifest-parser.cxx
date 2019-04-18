@@ -10,6 +10,7 @@
 
 #ifndef __cpp_lib_modules
 #include <string>
+#include <vector>
 #include <cstdint>
 #include <utility>
 #include <stdexcept>
@@ -28,6 +29,7 @@ module butl.manifest_parser;
 import std.core;
 import std.io;
 #endif
+import butl.optional;
 import butl.char_scanner;
 import butl.manifest_types;
 #endif
@@ -480,5 +482,45 @@ namespace butl
       : runtime_error (d),
         line (0), column (0), description (d)
   {
+  }
+
+  // parse_manifest
+  //
+  static bool
+  try_parse_manifest (manifest_parser& p,
+                      vector<manifest_name_value>& r,
+                      bool allow_eos)
+  {
+    // Read the format version or eos pair. Note that the version is verified
+    // by the parser.
+    //
+    manifest_name_value nv (p.next ());
+
+    // Bail out if eos is reached and is allowed.
+    //
+    if (nv.empty () && allow_eos)
+      return false;
+
+    if (!nv.name.empty () || nv.empty ())
+      throw manifest_parsing (p.name (),
+                              nv.value_line, nv.value_column,
+                              "start of manifest expected");
+
+    for (nv = p.next (); !nv.empty (); nv = p.next ())
+      r.push_back (move (nv));
+
+    return true;
+  }
+
+  bool
+  try_parse_manifest (manifest_parser& p, vector<manifest_name_value>& r)
+  {
+    return try_parse_manifest (p, r, true /* allow_eos */);
+  }
+
+  void
+  parse_manifest (manifest_parser& p, std::vector<manifest_name_value>& r)
+  {
+    try_parse_manifest (p, r, false /* allow_eos */);
   }
 }
