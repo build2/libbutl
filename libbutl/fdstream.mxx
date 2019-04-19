@@ -100,6 +100,30 @@ LIBBUTL_MODEXPORT namespace butl
     int fd_;
   };
 
+  inline bool
+  operator== (const auto_fd& x, const auto_fd& y)
+  {
+    return x.get () == y.get ();
+  }
+
+  inline bool
+  operator!= (const auto_fd& x, const auto_fd& y)
+  {
+    return !(x == y);
+  }
+
+  inline bool
+  operator== (const auto_fd& x, nullfd_t)
+  {
+    return x.get () == -1;
+  }
+
+  inline bool
+  operator!= (const auto_fd& x, nullfd_t y)
+  {
+    return !(x == y);
+  }
+
   // An [io]fstream that can be initialized with a file descriptor in addition
   // to a file name and that also by default enables exceptions on badbit and
   // failbit. So instead of a dance like this:
@@ -804,15 +828,16 @@ LIBBUTL_MODEXPORT namespace butl
   LIBBUTL_SYMEXPORT bool
   fdterm (int);
 
-  // Wait until one or more file descriptors becomes ready for reading or
-  // writing. Return the pair of numbers of descriptors that are ready. Throw
-  // std::invalid_argument if anything is wrong with arguments (both sets are
-  // empty, invalid fd, etc). Throw ios::failure on the underlying OS error.
+  // Wait until one or more file descriptors becomes ready for input (reading)
+  // or output (writing). Return the pair of numbers of descriptors that are
+  // ready. Throw std::invalid_argument if anything is wrong with arguments
+  // (both sets are empty, invalid fd, etc). Throw ios::failure on the
+  // underlying OS error.
   //
   // Note that the function clears all the previously-ready entries on each
   // call. Entries with nullfd are ignored.
   //
-  // On Windows only pipes and only their read ends are supported.
+  // On Windows only pipes and only their input (read) ends are supported.
   //
   struct fdselect_state
   {
@@ -828,10 +853,26 @@ LIBBUTL_MODEXPORT namespace butl
   using fdselect_set = small_vector<fdselect_state, 4>;
 
   LIBBUTL_SYMEXPORT std::pair<std::size_t, std::size_t>
-  fdselect (fdselect_set& read, fdselect_set& write);
+  fdselect (fdselect_set& ifds, fdselect_set& ofds);
+
+  inline std::size_t
+  ifdselect (fdselect_set& ifds)
+  {
+    fdselect_set ofds;
+    return fdselect (ifds, ofds).first;
+  }
+
+  inline std::size_t
+  ofdselect (fdselect_set& ofds)
+  {
+    fdselect_set ifds;
+    return fdselect (ifds, ofds).second;
+  }
 
   // As above but wait up to the specified timeout returning a pair of zeroes
   // if none of the descriptors became ready.
+  //
+  // @@ Maybe merge it with the above via a default/optional value?
   //
   // LIBBUTL_SYMEXPORT std::pair<std::size_t, std::size_t>
   // fdselect (fdselect_set&, fdselect_set&, const duration& timeout);
