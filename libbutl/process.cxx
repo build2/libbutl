@@ -14,7 +14,49 @@
 #  include <sys/wait.h>  // waitpid
 #  include <sys/types.h> // _stat
 #  include <sys/stat.h>  // _stat(), S_IS*
-#else
+
+// On POSIX systems we will use posix_spawn() if available and fallback to
+// the less efficient fork()/exec() method otherwise.
+//
+// Note that using the _POSIX_SPAWN macro for detecting the posix_spawn()
+// availability is unreliable. For example, unistd.h header on FreeBSD notes
+// that a function related to the corresponding _POSIX_* macro may still be
+// stubbed out.
+//
+// On Linux we will use posix_spawn() only for glibc and only starting from
+// version 2.24 which introduced the Linux-specific clone() function-based
+// implementation. Note that posix_spawn() in older glibc versions either uses
+// "slow" fork() underneath by default, giving us no gains, or can be forced
+// to use "fast" vfork(), which feels risky (see discussion threads for glibc
+// bugs 378 and 10354). Also note that, at the time of this writing, glibc
+// always uses fork() for systems other than Linux.
+//
+#  if defined(__linux)         && \
+      defined(__GLIBC__)       && \
+      defined(__GLIBC_MINOR__) && \
+      (__GLIBC__  > 2 || __GLIBC__ == 2 && __GLIBC_MINOR__ >= 24)
+#    define LIBBUTL_POSIX_SPAWN
+#    if __GLIBC__  > 2 || __GLIBC__ == 2 && __GLIBC_MINOR__ >= 29
+#      define LIBBUTL_POSIX_SPAWN_CHDIR posix_spawn_file_actions_addchdir_np
+#    endif
+//
+// On FreeBSD posix_spawn() appeared in 8.0 (see the man page for details).
+//
+#  elif defined(__FreeBSD__) && __FreeBSD__ >= 8
+#    define LIBBUTL_POSIX_SPAWN
+//
+// posix_spawn() appeared in Version 3 of the Single UNIX Specification that
+// was implemented in MacOS 10.5 (see the man page for details).
+//
+#  elif defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__) && \
+        __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 1050
+#    define LIBBUTL_POSIX_SPAWN
+#  endif
+
+#  ifdef LIBBUTL_POSIX_SPAWN
+#    include <spawn.h>
+#  endif
+#else // _WIN32
 #  include <libbutl/win32-utility.hxx>
 
 #  ifdef _MSC_VER
@@ -52,7 +94,7 @@
 #include <system_error>
 
 #include <ios>      // ios_base::failure
-#include <cstring>  // strlen(), strchr()
+#include <cstring>  // strlen(), strchr(), strncmp()
 #include <utility>  // move()
 #include <ostream>
 
@@ -104,6 +146,13 @@ using namespace std;
 
 #ifdef _WIN32
 using namespace butl::win32;
+#endif
+
+// Note that the POSIX standard requires the environ variable to be declared by
+// the user, if it is used directly.
+//
+#ifdef LIBBUTL_POSIX_SPAWN
+extern char** environ;
 #endif
 
 namespace butl
@@ -274,8 +323,8 @@ namespace butl
     // compared to exec*p() functions:
     //
     // 1. If there no PATH, we don't default to current directory/_CS_PATH.
-    // 2. We do not continue searching on EACCES from execve().
-    // 3. We do not execute via default shell on ENOEXEC from execve().
+    // 2. We do not continue searching on EACCES from exec().
+    // 3. We do not execute via default shell on ENOEXEC from exec().
     //
     optional<string> p (getenv ("PATH"));
     for (const char* b (p ? p->c_str () : nullptr), *e;
@@ -332,14 +381,6 @@ namespace butl
     fdpipe out_fd;
     fdpipe in_ofd;
     fdpipe in_efd;
-
-    auto fail = [] (bool child)
-    {
-      if (child)
-        throw process_child_error (errno);
-      else
-        throw process_error (errno);
-    };
 
     auto open_pipe = [] () -> fdpipe
     {
@@ -399,8 +440,184 @@ namespace butl
     else if (err == -2)
       in_efd.out = open_null ();
 
+    // The posix_spawn()-based implementation.
+    //
+#ifdef LIBBUTL_POSIX_SPAWN
+#ifndef LIBBUTL_POSIX_SPAWN_CHDIR
+    if (cwd == nullptr || *cwd == '\0') // Not changing CWD.
+#endif
     {
+      auto fail = [] (int error) {throw process_error (error);};
+
+      // Setup the file-related actions to be performed in the child process.
+      // Note that the actions will be performed in the order they are set up.
+      //
+      posix_spawn_file_actions_t fa;
+      int r (posix_spawn_file_actions_init (&fa));
+      if (r != 0)
+        fail (r);
+
+      unique_ptr<posix_spawn_file_actions_t,
+                 void (*)(posix_spawn_file_actions_t*)> deleter (
+        &fa,
+        [] (posix_spawn_file_actions_t* fa)
+        {
+          int r (posix_spawn_file_actions_destroy (fa));
+
+          // The only possible error for posix_spawn_file_actions_destroy() is
+          // EINVAL, which shouldn't happen unless something is severely
+          // broken.
+          //
+          assert (r == 0);
+        });
+
+      // Redirect the standard streams.
+      //
+      // Note that here we convert the child process housekeeping actions for
+      // the fork-based implementation (see below) into the file action
+      // sequence for the posix_spawn() call.
+      //
+      auto duplicate = [&fa, &fail] (int sd, int fd, fdpipe& pd)
+      {
+        if (fd == -1 || fd == -2)
+          fd = (sd == STDIN_FILENO ? pd.in : pd.out).get ();
+
+        assert (fd > -1);
+
+        int r (posix_spawn_file_actions_adddup2 (&fa, fd, sd));
+        if (r != 0)
+          fail (r);
+
+        auto reset = [&fa, &fail] (const auto_fd& fd)
+        {
+          int r;
+          if (fd != nullfd &&
+              (r = posix_spawn_file_actions_addclose (&fa, fd.get ())) != 0)
+            fail (r);
+        };
+
+        reset (pd.in);
+        reset (pd.out);
+      };
+
+      if (in != STDIN_FILENO)
+        duplicate (STDIN_FILENO, in, out_fd);
+
+      if (out == STDERR_FILENO)
+      {
+        if (err != STDERR_FILENO)
+          duplicate (STDERR_FILENO, err, in_efd);
+
+        duplicate (STDOUT_FILENO, out, in_ofd);
+      }
+      else
+      {
+        if (out != STDOUT_FILENO)
+          duplicate (STDOUT_FILENO, out, in_ofd);
+
+        if (err != STDERR_FILENO)
+          duplicate (STDERR_FILENO, err, in_efd);
+      }
+
+      // Change the current working directory if requested.
+      //
+#ifdef LIBBUTL_POSIX_SPAWN_CHDIR
+      if (cwd != nullptr &&
+          *cwd != '\0'   &&
+          (r = LIBBUTL_POSIX_SPAWN_CHDIR (&fa, cwd)) != 0)
+        fail (r);
+#endif
+
+      // Set/unset environment variables if requested.
+      //
+      small_vector<const char*, 8> new_env;
+
+      if (envvars != nullptr)
+      {
+        for (const char* const* env (environ); *env != nullptr; ++env)
+        {
+          // Lookup the existing variable among those that are requested to be
+          // (un)set. If not present, than add it to the child process
+          // environment.
+          //
+          // Note that on POSIX variable names are case-sensitive.
+          //
+          // Alse note that we don't expect the number of variables to (un)set
+          // to be large, so the linear search is OK.
+          //
+          const char* cv (*env);
+          const char* eq (strchr (cv, '='));
+          size_t n (eq != nullptr ? eq - cv : strlen (cv));
+
+          const char* const* ev (envvars);
+          for (; *ev != nullptr; ++ev)
+          {
+            const char* v (*ev);
+            if (strncmp (cv, v, n) == 0 && (v[n] == '=' || v[n] == '\0'))
+              break;
+          }
+
+          if (*ev == nullptr)
+            new_env.push_back (cv);
+        }
+
+        // Copy the environment variables that are requested to be set.
+        //
+        for (const char* const* ev (envvars); *ev != nullptr; ++ev)
+        {
+          const char* v (*ev);
+          if (strchr (v, '=') != nullptr)
+            new_env.push_back (v);
+        }
+
+        new_env.push_back (nullptr);
+      }
+
+      ulock l (process_spawn_mutex); // Note: won't be released in child.
+
+      // Note that in most non-fork based implementations this call suspends
+      // the parent thread until the child process calls exec() or terminates.
+      // This avoids "text file busy" issue (see the fork-based code below):
+      // due to the process_spawn_mutex lock the execution of the script is
+      // delayed until the child closes the descriptor.
+      //
+      r = posix_spawn (&handle,
+                       pp.effect_string (),
+                       &fa,
+                       nullptr /* attrp */,
+                       const_cast<char* const*> (&args[0]),
+                       envvars != nullptr
+                       ? const_cast<char* const*> (new_env.data ())
+                       : environ);
+        if (r != 0)
+          fail (r);
+    } // Release the lock in parent.
+#ifndef LIBBUTL_POSIX_SPAWN_CHDIR
+    else
+#endif
+#endif // LIBBUTL_POSIX_SPAWN
+
+    // The fork-based implementation.
+    //
+#ifndef LIBBUTL_POSIX_SPAWN_CHDIR
+    {
+      auto fail = [] (bool child)
+      {
+        if (child)
+          throw process_child_error (errno);
+        else
+          throw process_error (errno);
+      };
+
       ulock l (process_spawn_mutex); // Will not be released in child.
+
+      // Note that the file descriptors with the FD_CLOEXEC flag stay open in
+      // the child process between fork() and exec() calls. This may cause the
+      // "text file busy" issue: if some other thread creates a shell script
+      // and the write-open file descriptor leaks into some child process,
+      // then exec() for this script fails with ETXTBSY (see exec() man page
+      // for details).
+      //
       handle = fork ();
 
       if (handle == -1)
@@ -420,6 +637,7 @@ namespace butl
             fd = (sd == STDIN_FILENO ? pd.in : pd.out).get ();
 
           assert (fd > -1);
+
           if (dup2 (fd, sd) == -1)
             fail (true);
 
@@ -440,8 +658,7 @@ namespace butl
           if (err != STDERR_FILENO)
             duplicate (STDERR_FILENO, err, in_efd);
 
-          if (out != STDOUT_FILENO)
-            duplicate (STDOUT_FILENO, out, in_ofd);
+          duplicate (STDOUT_FILENO, out, in_ofd);
         }
         else
         {
@@ -483,6 +700,7 @@ namespace butl
           fail (true);
       }
     } // Release the lock in parent.
+#endif // LIBBUTL_POSIX_SPAWN_CHDIR
 
     assert (handle != 0); // Shouldn't get here unless in the parent process.
 
