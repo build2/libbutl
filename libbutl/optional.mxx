@@ -2,7 +2,7 @@
 // copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules
+#ifndef __cpp_modules_ts
 #pragma once
 #endif
 
@@ -55,7 +55,7 @@
 #  endif
 #endif
 
-#ifndef __cpp_lib_modules
+#ifndef __cpp_lib_modules_ts
 #ifdef LIBBUTL_STD_OPTIONAL
 #  include <optional>
 #else
@@ -67,9 +67,9 @@
 
 // Other includes.
 
-#ifdef __cpp_modules
+#ifdef __cpp_modules_ts
 export module butl.optional;
-#ifdef __cpp_lib_modules
+#ifdef __cpp_lib_modules_ts
 import std.core;
 #endif
 #endif
@@ -92,7 +92,7 @@ LIBBUTL_MODEXPORT namespace butl
   // Simple optional class template while waiting for std::optional.
   //
   struct nullopt_t {constexpr explicit nullopt_t (int) {}};
-#if defined(__cpp_modules) && defined(__clang__) //@@ MOD Clang duplicate sym.
+#if defined(__cpp_modules_ts) && defined(__clang__) //@@ MOD Clang duplicate sym.
   inline
 #endif
   constexpr nullopt_t nullopt (1);

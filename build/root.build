@@ -2,16 +2,11 @@
 # copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
-cxx.std = experimental
-cxx.features.modules = ($force_modules == true)
+cxx.std = latest
 
 using cxx
 
-if ($force_modules == true && !$cxx.features.modules)
-  fail 'c++ compiler does not support modules'
-
-mxx{*}: extension = mxx
-hxx{*}: extension = hxx
+hxx{*}: extension = mxx  # We also have .hxx; see libbutl/buildfile.
 ixx{*}: extension = ixx
 txx{*}: extension = txx
 cxx{*}: extension = cxx

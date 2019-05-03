@@ -2,25 +2,25 @@
 # copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
-int_libs =
-
-if ($force_std_modules == true)
-{
-  #@@ MOD is it really an interface dependency? I guess if we re-export
-  #       then it is? Or maybe it is special?
-  #
-  import int_libs += libstd-modules%liba{std-modules}
-  cxx.poptions += -D__cpp_lib_modules
-}
-
-lib{butl}: {mxx hxx ixx txx cxx}{** -uuid-* +uuid-io -win32-utility -version} \
-           {hxx}{version} $int_libs
+# This library was modularized using the Modules TS semantics (with support
+# for dual, module/header consumption) which was subsequently partially
+# dismantled. We, however, kept some of the changes in anticipation that they
+# would be useful when attempting to modularize using the merged modules
+# semantics. Specifically, there are currently headers with both .mxx and .hxx
+# extensions and the code is littered if the #if __cpp_[lib_]modules_ts
+# blocks.
+#
+# @@ If/when going back to using mxx{}, make sure to cleanup explicit .hxx.
+#
+lib{butl}: {hxx ixx txx cxx}{** -uuid-* +uuid-io -win32-utility} \
+           hxx{**.hxx -uuid-*.hxx +uuid-io.hxx -win32-utility.hxx \
+               -version.hxx} hxx{version}
 
 windows = ($cxx.target.class == 'windows')
 
 # Exclude these from compilation on non-Windows targets.
 #
-lib{butl}: {hxx cxx}{win32-utility}: include = $windows
+lib{butl}: hxx{win32-utility.hxx} cxx{win32-utility}: include = $windows
 
 # Our C-files are included into sha256.cxx (sha256c.c) and timestamp.cxx
 # (strptime.c timelocal.h timelocal.c), so treat them as files exclude from
@@ -46,8 +46,8 @@ elif ($windows)
 # pick up an installed one) and don't remove it when cleaning in src (so that
 # clean results in a state identical to distributed).
 #
-hxx{version}: in{version} $src_root/manifest
-hxx{version}:
+hxx{version.hxx}: in{version} $src_root/manifest
+hxx{version.hxx}:
 {
   dist  = true
   clean = ($src_root != $out_root)
@@ -69,11 +69,7 @@ else
 
 # Export options.
 #
-lib{butl}:
-{
-  cxx.export.poptions = "-I$out_root" "-I$src_root"
-  cxx.export.libs = $int_libs
-}
+lib{butl}: cxx.export.poptions = "-I$out_root" "-I$src_root"
 
 liba{butl}: cxx.export.poptions += -DLIBBUTL_STATIC
 libs{butl}: cxx.export.poptions += -DLIBBUTL_SHARED
@@ -90,7 +86,7 @@ else
 # Install into the libbutl/ subdirectory of, say, /usr/include/
 # recreating subdirectories.
 #
-{mxx hxx ixx txx}{*}:
+{hxx ixx txx}{*}:
 {
   install         = include/libbutl/
   install.subdirs = true

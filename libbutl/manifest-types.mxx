@@ -2,22 +2,22 @@
 // copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules
+#ifndef __cpp_modules_ts
 #pragma once
 #endif
 
 // C includes.
 
-#ifndef __cpp_lib_modules
+#ifndef __cpp_lib_modules_ts
 #include <string>
 #include <cstdint>   // uint64_t
 #endif
 
 // Other includes.
 
-#ifdef __cpp_modules
+#ifdef __cpp_modules_ts
 export module butl.manifest_types;
-#ifdef __cpp_lib_modules
+#ifdef __cpp_lib_modules_ts
 import std.core;
 #endif
 #else

@@ -2,7 +2,7 @@
 // copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules
+#ifndef __cpp_modules_ts
 #include <libbutl/manifest-rewriter.mxx>
 #endif
 
@@ -10,7 +10,7 @@
 
 // C includes.
 
-#ifndef __cpp_lib_modules
+#ifndef __cpp_lib_modules_ts
 #include <string>
 #include <cstdint> // uint64_t
 #include <cstddef> // size_t
@@ -18,12 +18,12 @@
 
 // Other includes.
 
-#ifdef __cpp_modules
+#ifdef __cpp_modules_ts
 module butl.manifest_rewriter;
 
 // Only imports additional to interface.
 #ifdef __clang__
-#ifdef __cpp_lib_modules
+#ifdef __cpp_lib_modules_ts
 import std.core;
 #endif
 import butl.path;

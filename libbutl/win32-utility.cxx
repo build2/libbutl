@@ -9,7 +9,7 @@
 //
 #ifdef _WIN32
 
-#ifndef __cpp_lib_modules
+#ifndef __cpp_lib_modules_ts
 #include <memory> // unique_ptr
 #else
 import std.core;

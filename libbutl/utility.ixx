@@ -2,7 +2,7 @@
 // copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules
+#ifndef __cpp_lib_modules_ts
 #include <cstdlib> // getenv()
 #endif
 

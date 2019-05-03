@@ -6,7 +6,7 @@
 
 #include <libbutl/ft/shared_mutex.hxx>
 
-#ifdef __cpp_lib_modules
+#ifdef __cpp_lib_modules_ts
 import std.core; //@@ MOD TMP (dummy std.threading).
 import std.threading;
 #else

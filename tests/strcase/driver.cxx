@@ -4,14 +4,14 @@
 
 #include <cassert>
 
-#ifndef __cpp_lib_modules
+#ifndef __cpp_lib_modules_ts
 #include <string>
 #endif
 
 // Other includes.
 
-#ifdef __cpp_modules
-#ifdef __cpp_lib_modules
+#ifdef __cpp_modules_ts
+#ifdef __cpp_lib_modules_ts
 import std.core;
 #endif
 import butl.utility;

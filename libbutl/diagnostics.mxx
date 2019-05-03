@@ -2,13 +2,13 @@
 // copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules
+#ifndef __cpp_modules_ts
 #pragma once
 #endif
 
 #include <cassert>
 
-#ifndef __cpp_lib_modules
+#ifndef __cpp_lib_modules_ts
 #include <ostream>
 #include <sstream>
 #include <utility>   // move(), forward()
@@ -17,9 +17,9 @@
 
 #include <libbutl/ft/exception.hxx> // uncaught_exceptions
 
-#ifdef __cpp_modules
+#ifdef __cpp_modules_ts
 export module butl.diagnostics;
-#ifdef __cpp_lib_modules
+#ifdef __cpp_lib_modules_ts
 import std.core;
 import std.io;
 #endif

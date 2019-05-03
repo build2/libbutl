@@ -2,7 +2,7 @@
 // copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules
+#ifndef __cpp_modules_ts
 #pragma once
 #endif
 
@@ -23,7 +23,7 @@
    typedef int mode_t;
 #endif
 
-#ifndef __cpp_lib_modules
+#ifndef __cpp_lib_modules_ts
 #include <cstddef>    // ptrdiff_t
 #include <cstdint>    // uint16_t, etc
 #include <utility>    // move(), pair
@@ -34,10 +34,10 @@
 #endif
 
 // Other includes.
-#ifdef __cpp_modules
+#ifdef __cpp_modules_ts
 export module butl.filesystem;
 
-#ifdef __cpp_lib_modules
+#ifdef __cpp_lib_modules_ts
 import std.core;
 #endif
 

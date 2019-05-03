@@ -2,13 +2,13 @@
 // copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules
+#ifndef __cpp_modules_ts
 #pragma once
 #endif
 
 // C includes.
 
-#ifndef __cpp_lib_modules
+#ifndef __cpp_lib_modules_ts
 #include <iosfwd>
 #include <string>
 #include <chrono>
@@ -16,9 +16,9 @@
 
 // Other includes.
 
-#ifdef __cpp_modules
+#ifdef __cpp_modules_ts
 export module butl.timestamp;
-#ifdef __cpp_lib_modules
+#ifdef __cpp_lib_modules_ts
 import std.core;
 import std.io;
 #endif
@@ -62,7 +62,7 @@ LIBBUTL_MODEXPORT namespace butl
   // unreal and all of them are less than any non-special value (strictly
   // speaking unreal is no greater (older) than any real value).
   //
-#if defined(__cpp_modules) && defined(__clang__) //@@ MOD Clang duplicate sym.
+#if defined(__cpp_modules_ts) && defined(__clang__) //@@ MOD Clang duplicate sym.
   inline const timestamp::rep timestamp_unknown_rep     = -1;
   inline const timestamp      timestamp_unknown         = timestamp (duration (-1));
   inline const timestamp::rep timestamp_nonexistent_rep = 0;

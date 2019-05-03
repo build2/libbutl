@@ -2,21 +2,9 @@
 # copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
-cxx.std = experimental
-cxx.features.modules = ($force_modules == true)
+cxx.std = latest
 
 using cxx
-
-if ($force_modules == true && !$cxx.features.modules)
-  fail 'c++ compiler does not support modules'
-
-if ($force_std_modules == true)
-{
-  import stdmod_lib = libstd-modules%liba{std-modules}
-  cxx.poptions += -D__cpp_lib_modules
-}
-else
-  stdmod_lib =
 
 hxx{*}: extension = hxx
 cxx{*}: extension = cxx

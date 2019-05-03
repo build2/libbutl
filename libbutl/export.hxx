@@ -6,7 +6,7 @@
 
 // If modules are available, setup the module export.
 //
-#ifdef __cpp_modules
+#ifdef __cpp_modules_ts
 #  define LIBBUTL_MODEXPORT export
 #else
 #  define LIBBUTL_MODEXPORT

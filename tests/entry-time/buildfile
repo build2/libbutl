@@ -3,6 +3,5 @@
 # license   : MIT; see accompanying LICENSE file
 
 import libs = libbutl%lib{butl}
-libs += $stdmod_lib
 
 exe{driver}: {hxx cxx}{*} $libs testscript

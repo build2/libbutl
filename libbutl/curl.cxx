@@ -2,7 +2,7 @@
 // copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules
+#ifndef __cpp_modules_ts
 #include <libbutl/curl.mxx>
 #endif
 
@@ -10,7 +10,7 @@
 
 #include <cassert>
 
-#ifndef __cpp_lib_modules
+#ifndef __cpp_lib_modules_ts
 #include <string>
 
 #include <utility>   // move()
@@ -19,12 +19,12 @@
 
 // Other includes.
 
-#ifdef __cpp_modules
+#ifdef __cpp_modules_ts
 module butl.curl;
 
 // Only imports additional to interface.
 #ifdef __clang__
-#ifdef __cpp_lib_modules
+#ifdef __cpp_lib_modules_ts
 import std.core;
 #endif
 import butl.path;

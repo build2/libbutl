@@ -32,7 +32,7 @@
 #  endif
 #endif
 
-#ifndef __cpp_lib_modules
+#ifndef __cpp_lib_modules_ts
 #include <string>
 #else
 import std.core;

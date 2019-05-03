@@ -2,11 +2,11 @@
 // copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules
+#ifndef __cpp_modules_ts
 #pragma once
 #endif
 
-#ifndef __cpp_lib_modules
+#ifndef __cpp_lib_modules_ts
 #include <list>
 #include <cstddef>     // size_t
 #include <utility>     // move()
@@ -14,9 +14,9 @@
 
 // Other includes.
 
-#ifdef __cpp_modules
+#ifdef __cpp_modules_ts
 export module butl.small_list;
-#ifdef __cpp_lib_modules
+#ifdef __cpp_lib_modules_ts
 import std.core;
 #endif
 import butl.small_allocator;
