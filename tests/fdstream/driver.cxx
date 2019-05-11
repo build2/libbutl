@@ -481,7 +481,7 @@ main (int argc, const char* argv[])
           assert (nd.first == 1 && nd.second == 0 && rds[0].ready);
 
           for (streamsize n; (n = is.readsome (buf, sizeof (buf))) != 0; )
-            r.append (buf, n);
+            r.append (buf, static_cast<size_t> (n));
         }
 
         is.close ();
