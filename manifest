@@ -3,7 +3,7 @@ name: libbutl
 version: 0.11.0-a.0.z
 project: build2
 summary: build2 utility library
-license: MIT, BSD-3, BSD-2 ; MIT except for 5 files from the FreeBSD project.
+license: MIT, BSD3, BSD2 ; MIT except for 5 files from the FreeBSD project.
 tags: utility, library
 description-file: README
 changes-file: NEWS
