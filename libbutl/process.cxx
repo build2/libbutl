@@ -105,6 +105,11 @@
 #include <ratio>     // milli
 #include <cstdlib>   // __argv[]
 #include <algorithm> // find()
+
+//@@ TMP
+#include <iostream>
+#include <exception> // std::terminate()
+
 #endif
 #endif
 
@@ -1753,7 +1758,12 @@ namespace butl
 
       using namespace chrono;
 
-      for (system_clock::duration timeout (1h);;) // Try for about 1 hour.
+
+      //@@ TMP
+      system_clock::duration timeout (5min);
+      for (size_t i (0);; ++i)
+
+      //for (system_clock::duration timeout (1h);;) // Retry for about 1 hour.
       {
         if (!CreateProcess (
               batch ? batch->c_str () : pp.effect_string (),
@@ -1884,6 +1894,13 @@ namespace butl
               l.lock ();
               il.lock ();
               continue;
+            }
+            else //@@ TMP
+            {
+              cerr << "failed to start " << pp.effect_string () << " after "
+                   << i << " attempts" << endl;
+
+              std::terminate ();
             }
           }
         }
