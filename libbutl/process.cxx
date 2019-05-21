@@ -105,11 +105,6 @@
 #include <ratio>     // milli
 #include <cstdlib>   // __argv[]
 #include <algorithm> // find()
-
-//@@ TMP
-#include <iostream>
-#include <exception> // std::terminate()
-
 #endif
 #endif
 
@@ -1759,11 +1754,10 @@ namespace butl
       using namespace chrono;
 
 
-      //@@ TMP
-      system_clock::duration timeout (5min);
+      // Retry for about 1 hour.
+      //
+      system_clock::duration timeout (1h);
       for (size_t i (0);; ++i)
-
-      //for (system_clock::duration timeout (1h);;) // Retry for about 1 hour.
       {
         if (!CreateProcess (
               batch ? batch->c_str () : pp.effect_string (),
@@ -1845,6 +1839,10 @@ namespace butl
             return PeekNamedPipe (h, &c, 1, &n, nullptr, nullptr) && n == 1;
           };
 
+          // Hidden by butl::duration that is introduced via fdstream.mxx.
+          //
+          using milli_duration = chrono::duration<DWORD, milli>;
+
           DWORD r;
           system_clock::duration twd (0);  // Total wait time.
 
@@ -1860,9 +1858,7 @@ namespace butl
 
           for (size_t n (0);; ++n) // Wait n times by 100ms.
           {
-            // Hidden by butl::duration that is introduced via fdstream.mxx.
-            //
-            const chrono::duration<DWORD, milli> wd (100);
+            milli_duration wd (100);
 
             r = WaitForSingleObject (pi.hProcess, wd.count ());
             twd += wd;
@@ -1878,11 +1874,18 @@ namespace butl
               GetExitCodeProcess (pi.hProcess, &r) &&
               r == STATUS_DLL_INIT_FAILED)
           {
-            system_clock::time_point now (system_clock::now ());
+            // Use exponential backoff with the up to a second delay. This
+            // avoids unnecessary thrashing without allowing anyone else to
+            // make progress.
+            //
+            milli_duration wd (static_cast<DWORD> (i < 32 ? i * i : 1000));
+            Sleep (wd.count ());
+            twd += wd;
 
             // Assume we have waited the full amount if the time adjustment is
             // detected.
             //
+            system_clock::time_point now (system_clock::now ());
             system_clock::duration d (now > st ? now - st : twd);
 
             // If timeout is not fully exhausted, re-lock the mutex, revert
@@ -1894,13 +1897,6 @@ namespace butl
               l.lock ();
               il.lock ();
               continue;
-            }
-            else //@@ TMP
-            {
-              cerr << "failed to start " << pp.effect_string () << " after "
-                   << i << " attempts" << endl;
-
-              std::terminate ();
             }
           }
         }
