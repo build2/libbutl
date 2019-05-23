@@ -200,7 +200,7 @@ namespace butl
     // case.
     //
     string d;
-    if (path::traits::root (p, string::traits_type::length (p)))
+    if (path::traits::root (p))
     {
       d = p;
       d += path::traits::directory_separator;

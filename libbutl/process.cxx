@@ -1073,8 +1073,7 @@ namespace butl
         // Windows.
         //
         const char* d (__argv[0]);
-        size_t n (strlen (d));
-        if (const char* p = traits::rfind_separator (d, n))
+        if (const char* p = traits::rfind_separator (d))
         {
           string s (d, p - d + 1); // Include trailing slash.
           s.append (f, fn);
@@ -1421,7 +1420,7 @@ namespace butl
     optional<string> batch;
     {
       const char* p (pp.effect_string ());
-      const char* e (path::traits::find_extension (p, strlen (p)));
+      const char* e (path::traits::find_extension (p));
       if (e != nullptr && (casecmp (e, ".bat") == 0 ||
                            casecmp (e, ".cmd") == 0))
       {

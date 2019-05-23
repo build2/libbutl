@@ -81,6 +81,7 @@ LIBBUTL_MODEXPORT namespace butl
   struct path_traits
   {
     using string_type = std::basic_string<C>;
+    using char_traits_type = typename string_type::traits_type;
     using size_type = typename string_type::size_type;
 
     // Canonical directory and path seperators.
@@ -135,6 +136,12 @@ LIBBUTL_MODEXPORT namespace butl
     }
 
     static bool
+    absolute (const C* s)
+    {
+      return absolute (s, char_traits_type::length (s));
+    }
+
+    static bool
     absolute (const C* s, size_type n)
     {
 #ifdef _WIN32
@@ -151,6 +158,12 @@ LIBBUTL_MODEXPORT namespace butl
     }
 
     static bool
+    current (const C* s)
+    {
+      return current (s, char_traits_type::length (s));
+    }
+
+    static bool
     current (const C* s, size_type n)
     {
       return n == 1 && s[0] == '.';
@@ -163,6 +176,12 @@ LIBBUTL_MODEXPORT namespace butl
     }
 
     static bool
+    parent (const C* s)
+    {
+      return parent (s, char_traits_type::length (s));
+    }
+
+    static bool
     parent (const C* s, size_type n)
     {
       return n == 2 && s[0] == '.' && s[1] == '.';
@@ -172,6 +191,12 @@ LIBBUTL_MODEXPORT namespace butl
     normalized (const string_type& s, bool sep)
     {
       return normalized (s.c_str (), s.size (), sep);
+    }
+
+    static bool
+    normalized (const C* s, bool sep)
+    {
+      return normalized (s, char_traits_type::length (s), sep);
     }
 
     static bool
@@ -215,6 +240,12 @@ LIBBUTL_MODEXPORT namespace butl
     }
 
     static bool
+    root (const C* s)
+    {
+      return root (s, char_traits_type::length (s));
+    }
+
+    static bool
     root (const C* s, size_type n)
     {
 #ifdef _WIN32
@@ -234,6 +265,12 @@ LIBBUTL_MODEXPORT namespace butl
 
       const C* r (find_separator (s.c_str () + pos, n - pos));
       return r != nullptr ? r - s.c_str () : string_type::npos;
+    }
+
+    static const C*
+    find_separator (const C* s)
+    {
+      return find_separator (s, char_traits_type::length (s));
     }
 
     static const C*
@@ -261,6 +298,12 @@ LIBBUTL_MODEXPORT namespace butl
     }
 
     static const C*
+    rfind_separator (const C* s)
+    {
+      return rfind_separator (s, char_traits_type::length (s));
+    }
+
+    static const C*
     rfind_separator (const C* s, size_type n)
     {
       for (; n != 0; --n)
@@ -279,6 +322,12 @@ LIBBUTL_MODEXPORT namespace butl
     {
       const C* r (find_extension (s.c_str (), s.size ()));
       return r != nullptr ? r - s.c_str () : string_type::npos;
+    }
+
+    static const C*
+    find_extension (const C* s)
+    {
+      return find_extension (s, char_traits_type::length (s));
     }
 
     static const C*
@@ -317,6 +366,12 @@ LIBBUTL_MODEXPORT namespace butl
     {
       const C* r (find_leaf (s.c_str (), s.size ()));
       return r != nullptr ? r - s.c_str () : string_type::npos;
+    }
+
+    static const C*
+    find_leaf (const C* s)
+    {
+      return find_leaf (s, char_traits_type::length (s));
     }
 
     static const C*
@@ -600,7 +655,7 @@ LIBBUTL_MODEXPORT namespace butl
     using string_type = std::basic_string<C>;
     using size_type = typename string_type::size_type;
     using difference_type = typename string_type::difference_type;
-    using traits = path_traits<C>;
+    using traits = path_traits<C>; //@@ TODO: rename to traits_type.
 
     struct iterator;
     using reverse_iterator = std::reverse_iterator<iterator>;
