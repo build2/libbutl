@@ -70,101 +70,44 @@
   : max
   :
   $* <<EOF >>EOF
-  1.2.999
-  1.999.999
-  999.999.999
+  1.2.99999
+  1.99999.99999
+  99999.99999.99999
   EOF
 }
 
 : invalid
 :
 {
-  : epoch
-  :
-  $* <'+1+' 2>"'-' expected after epoch" == 1
-
-  : major
-  :
-  $* <'a' 2>'invalid major version' == 1
-
-  : no-major-dot
-  :
-  $* <'1' 2>"'.' expected after major version" == 1
-
-  : minor
-  :
-  $* <'1.a' 2>'invalid minor version' == 1
-
-  : no-minor-dot
-  :
-  $* <'1.2' 2>"'.' expected after minor version" == 1
-
-  : patch
-  :
-  $* <'1.2.a' 2>'invalid patch version' == 1
-
-  : zero-version
-  :
-  $* <'+1-0.0.0' 2>'0.0.0 version' == 1
-
-  : a-b-expected
-  :
-  $* <'1.2.3-k' 2>"'a' or 'b' expected in pre-release" == 1
-
-  : prerelease-dot-expected
-  :
-  $* <'1.2.3-a' 2>"'.' expected after pre-release letter" == 1
-
-  : prerelease
-  :
-  $* <'1.2.3-a.b' 2>'invalid pre-release' == 1
-
-  : final-prerelease
-  :
-  $* <'1.2.3-b.0' 2>'invalid final pre-release' == 1
-
-  : snapshot-num
-  :
-  $* <'1.2.3-a.1.0' 2>'invalid snapshot number' == 1
-
-  : snapshot-id
-  :
-  $* <'1.2.3-a.1.1.@' 2>'invalid snapshot id' == 1
+  $* <'+1+'           2>"'-' expected after epoch"              == 1 : epoch
+  $* <'a'             2>'invalid major version'                 == 1 : major
+  $* <'1'             2>"'.' expected after major version"      == 1 : no-major-dot
+  $* <'1.a'           2>'invalid minor version'                 == 1 : minor
+  $* <'1.2'           2>"'.' expected after minor version"      == 1 : no-minor-dot
+  $* <'1.2.a'         2>'invalid patch version'                 == 1 : patch
+  $* <'+1-0.0.0'      2>'0.0.0 version'                         == 1 : zero-version
+  $* <'1.2.3-k'       2>"'a' or 'b' expected in pre-release"    == 1 : a-b-expected
+  $* <'1.2.3-a'       2>"'.' expected after pre-release letter" == 1 : prerelease-dot-expected
+  $* <'1.2.3-a.b'     2>'invalid pre-release'                   == 1 : prerelease
+  $* <'1.2.3-b.0'     2>'invalid final pre-release'             == 1 : final-prerelease
+  $* <'1.2.3-a.1.0'   2>'invalid snapshot number'               == 1 : snapshot-num
+  $* <'1.2.3-a.1.1.@' 2>'invalid snapshot id'                   == 1 : snapshot-id
 
   : revision
   :
   {
-    : non-prerelease
-    :
-    $* <'1.2.3+a' 2>'invalid revision' == 1
-
-    : prerelease
-    :
-    $* <'1.2.3-a.1+a' 2>'invalid revision' == 1
-
-    : snapshot-num
-    :
-    $* <'1.2.3-a.0.1+a' 2>'invalid revision' == 1
-
-    : snapshot-id
-    :
-    $* <'1.2.3-a.0.1.83jdgsf+0' 2>'invalid revision' == 1
-
-    : earliest-prerelease
-    :
-    $* <'1.2.3-+1' 2>"'a' or 'b' expected in pre-release" == 1
+    $* <'1.2.3+a'               2>'invalid revision'                   == 1 : non-prerelease
+    $* <'1.2.3-a.1+a'           2>'invalid revision'                   == 1 : prerelease
+    $* <'1.2.3-a.0.1+a'         2>'invalid revision'                   == 1 : snapshot-num
+    $* <'1.2.3-a.0.1.83jdgsf+0' 2>'invalid revision'                   == 1 : snapshot-id
+    $* <'1.2.3-+1'              2>"'a' or 'b' expected in pre-release" == 1 : earliest-prerelease
   }
 
   : trailing-junk-after
   :
   {
-    : snapshot-num
-    :
-    $* <'1.2.3-a.1.z.a' 2>'junk after version' == 1
-
-    : revision
-    :
-    $* <'1.2.3-a.1.z+1a' 2>'junk after version' == 1
+    $* <'1.2.3-a.1.z.a'  2>'junk after version' == 1 : snapshot-num
+    $* <'1.2.3-a.1.z+1a' 2>'junk after version' == 1 : revision
   }
 }
 
@@ -332,43 +275,28 @@
     [1.2.3 1.2.4]
     (1.2.3 1.2.4)
     [ 1.2.3-  1.2.4- ]
-    [1.999.0 2.0.0)
+    [1.99999.0 2.0.0)
     EOI
     [1.2.3 1.2.4]
     (1.2.3 1.2.4)
     [1.2.3- 1.2.4-]
-    [1.999.0 2.0.0)
+    [1.99999.0 2.0.0)
     EOE
 
     : invalid
     :
     {
-      $* <'' 2>'invalid constraint' == 1                  : empty
-      $* <'1' 2>'invalid constraint' == 1                 : no-opening
-      $* <'[ ' 2>'no min version' == 1                    : no-min
-      $* <'[1.2.3' 2>'no max version' == 1                : no-max
-      $* <'[1.2.3 1.2.4' 2>'no closing bracket' == 1      : no-closing
-      $* <'[1.2.3 1.2.4)]' 2>'junk after constraint' == 1 : junk
-
-      : invalid-min
-      :
-      $* <'[1' 2>"invalid min version: '.' expected after major version" == 1
-
-      : invalid-max
-      :
-      $* <'[1.2.3 1' 2>"invalid max version: '.' expected after major version" == 1
-
-      : min-gt-max
-      :
-      $* <'[999.0.0 1.0.0)' 2>'min version is greater than max version' == 1
-
-      : open-end
-      :
-      $* <'[1.2.3 1.2.3)' 2>'equal version endpoints not closed' == 1
-
-      : earliest-prerelease
-      :
-      $* <'[1.2.3- 1.2.3-]' 2>'equal version endpoints are earliest' == 1
+      $* <''                  2>'invalid constraint'                                    == 1 : empty
+      $* <'1'                 2>'invalid constraint'                                    == 1 : no-opening
+      $* <'[ '                2>'no min version'                                        == 1 : no-min
+      $* <'[1.2.3'            2>'no max version'                                        == 1 : no-max
+      $* <'[1.2.3 1.2.4'      2>'no closing bracket'                                    == 1 : no-closing
+      $* <'[1.2.3 1.2.4)]'    2>'junk after constraint'                                 == 1 : junk
+      $* <'[1'                2>"invalid min version: '.' expected after major version" == 1 : invalid-min
+      $* <'[1.2.3 1'          2>"invalid max version: '.' expected after major version" == 1 : invalid-max
+      $* <'[99999.0.0 1.0.0)' 2>'min version is greater than max version'               == 1 : min-gt-max
+      $* <'[1.2.3 1.2.3)'     2>'equal version endpoints not closed'                    == 1 : open-end
+      $* <'[1.2.3- 1.2.3-]'   2>'equal version endpoints are earliest'                  == 1 : earliest-prerelease
     }
   }
 
@@ -402,19 +330,10 @@
     : invalid
     :
     {
-      $* <'>=' 2>'no version' == 1 : no-version
-
-      : eq-earliest
-      :
-      $* <'==1.2.3-' 2>"invalid version: 'a' or 'b' expected in pre-release" == 1
-
-      : eq-stub
-      :
-      $* <'==0' 2>"invalid version: '.' expected after major version" == 1
-
-      : junk
-      :
-      $* <'>= 1.2.3-a.1.1.ads@' 2>'invalid version: junk after version' == 1
+      $* <'>='                  2>'no version'                                          == 1 : no-version
+      $* <'==1.2.3-'            2>"invalid version: 'a' or 'b' expected in pre-release" == 1 : eq-earliest
+      $* <'==0'                 2>"invalid version: '.' expected after major version"   == 1 : eq-stub
+      $* <'>= 1.2.3-a.1.1.ads@' 2>'invalid version: junk after version'                 == 1 : junk
     }
   }
 
@@ -456,12 +375,12 @@
     : invalid
     :
     {
-      $* <'-1.2.3'   2>'invalid constraint'                                == 1 : bad-char
-      $* <'~'        2>'no version'                                        == 1 : no-version
-      $* <'~1.2'     2>"invalid version: '.' expected after minor version" == 1 : bad-ver
-      $* <'~1.999.0' 2>"invalid version: invalid minor version"            == 1 : bad-min-tilde
-      $* <'^0.999.0' 2>"invalid version: invalid minor version"            == 1 : bad-min-caret
-      $* <'^999.0.0' 2>"invalid version: invalid major version"            == 1 : bad-maj-caret
+      $* <'-1.2.3'     2>'invalid constraint'                                == 1 : bad-char
+      $* <'~'          2>'no version'                                        == 1 : no-version
+      $* <'~1.2'       2>"invalid version: '.' expected after minor version" == 1 : bad-ver
+      $* <'~1.99999.0' 2>"invalid version: invalid minor version"            == 1 : bad-min-tilde
+      $* <'^0.99999.0' 2>"invalid version: invalid minor version"            == 1 : bad-min-caret
+      $* <'^99999.0.0' 2>"invalid version: invalid major version"            == 1 : bad-maj-caret
     }
   }
 }
@@ -519,8 +438,8 @@
     : invalid
     :
     {
-      $* ''            <'== $' 2>'dependent version is empty'                              == 1 : empty-version
-      $* '1.2.3-'      <'== $' 2>'dependent version is earliest'                           == 1 : earliest-version
+      $* ''            <'== $' 2>'dependent version is empty'                            == 1 : empty-version
+      $* '1.2.3-'      <'== $' 2>'dependent version is earliest'                         == 1 : earliest-version
       $* '1.2.3-a.0.z' <'== $' 2>'invalid version: dependent version is latest snapshot' == 1 : latest-version
       $* '0+1'         <'== $' 2>'invalid version: dependent version is stub'            == 1 : stub-version
     }
@@ -681,18 +600,18 @@
       $* '1.2.3-b.499' '~1.2.3' >n : out-left
       $* '1.2.3'       '~1.2.3' >y : in-left
       $* '1.2.4'       '~1.2.3' >y : in
-      $* '1.2.999'     '~1.2.3' >y : in-right
+      $* '1.2.99999'   '~1.2.3' >y : in-right
       $* '1.3.0-'      '~1.2.3' >n : out-right
     }
 
     : caret
     :
     {
-      $* '1.2.3-b.499' '^1.2.3' >n : out-left
-      $* '1.2.3'       '^1.2.3' >y : in-left
-      $* '1.3.0'       '^1.2.3' >y : in
-      $* '1.999.999'   '^1.2.3' >y : in-right
-      $* '2.0.0-'      '^1.2.3' >n : out-right
+      $* '1.2.3-b.499'   '^1.2.3' >n : out-left
+      $* '1.2.3'         '^1.2.3' >y : in-left
+      $* '1.3.0'         '^1.2.3' >y : in
+      $* '1.99999.99999' '^1.2.3' >y : in-right
+      $* '2.0.0-'        '^1.2.3' >n : out-right
     }
 
     : caret-zero-major
@@ -701,7 +620,7 @@
       $* '0.2.3-b.499' '^0.2.3' >n : out-left
       $* '0.2.3'       '^0.2.3' >y : in-left
       $* '0.2.4'       '^0.2.3' >y : in
-      $* '0.2.999'     '^0.2.3' >y : in-right
+      $* '0.2.99999'   '^0.2.3' >y : in-right
       $* '0.3.0-'      '^0.2.3' >n : out-right
     }
   }

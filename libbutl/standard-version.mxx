@@ -52,24 +52,24 @@ LIBBUTL_MODEXPORT namespace butl
   // snapshot (release is naturally always final). Pre-release can be alpha or
   // beta.
   //
-  // The numeric version format is AAABBBCCCDDDE where:
+  // The numeric version format is AAAAABBBBBCCCCCDDDE where:
   //
-  // AAA - major version number
-  // BBB - minor version number
-  // CCC - patch version number
-  // DDD - alpha / beta (DDD + 500) version number
-  // E   - final (0) / snapshot (1)
+  // AAAAA - major version number
+  // BBBBB - minor version number
+  // CCCCC - patch version number
+  // DDD   - alpha / beta (DDD + 500) version number
+  // E     - final (0) / snapshot (1)
   //
-  // When DDDE is not 0, 1 is subtracted from AAABBBCCC. For example:
+  // When DDDE is not 0, 1 is subtracted from AAAAABBBBBCCCCC. For example:
   //
-  // Version      AAABBBCCCDDDE
+  // Version      AAAAABBBBBCCCCCDDDE
   //
-  // 0.1.0        0000010000000
-  // 0.1.2        0000010010000
-  // 1.2.3        0010020030000
-  // 2.2.0-a.1    0020019990010
-  // 3.0.0-b.2    0029999995020
-  // 2.2.0-a.1.z  0020019990011
+  // 0.1.0        0000000001000000000
+  // 0.1.2        0000000001000020000
+  // 1.2.3        0000100002000030000
+  // 2.2.0-a.1    0000200001999990010
+  // 3.0.0-b.2    0000299999999995020
+  // 2.2.0-a.1.z  0000200001999990011
   //
   // Stub is represented as ~0 (but is not considered a pre-release).
   //
@@ -88,14 +88,14 @@ LIBBUTL_MODEXPORT namespace butl
     static const std::uint64_t latest_sn = std::uint64_t (~0);
 
     std::uint16_t epoch        = 1;  // 0 if a stub, 1 if not specified.
-    std::uint64_t version      = 0;  // AAABBBCCCDDDE or ~0 for stub.
+    std::uint64_t version      = 0;  // AAAAABBBBBCCCCCDDDE or ~0 for stub.
     std::uint64_t snapshot_sn  = 0;  // 0 if not specifed, latest_sn if 'z'.
     std::string   snapshot_id;       // Empty if not specified.
     std::uint16_t revision     = 0;  // 0 if not specified.
 
-    std::uint16_t major () const noexcept;
-    std::uint16_t minor () const noexcept;
-    std::uint16_t patch () const noexcept;
+    std::uint32_t major () const noexcept;
+    std::uint32_t minor () const noexcept;
+    std::uint32_t patch () const noexcept;
 
     // Return the alpha/beta version number if pre-release and nullopt
     // otherwise.
@@ -201,16 +201,16 @@ LIBBUTL_MODEXPORT namespace butl
     // by 500 for betas.
     //
     standard_version (std::uint16_t epoch,
-                      std::uint16_t major,
-                      std::uint16_t minor,
-                      std::uint16_t patch,
+                      std::uint32_t major,
+                      std::uint32_t minor,
+                      std::uint32_t patch,
                       std::uint16_t pre_release = 0,
                       std::uint16_t revision = 0);
 
     standard_version (std::uint16_t epoch,
-                      std::uint16_t major,
-                      std::uint16_t minor,
-                      std::uint16_t patch,
+                      std::uint32_t major,
+                      std::uint32_t minor,
+                      std::uint32_t patch,
                       std::uint16_t pre_release,
                       std::uint64_t snapshot_sn,
                       std::string snapshot_id,

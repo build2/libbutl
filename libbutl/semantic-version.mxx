@@ -101,18 +101,18 @@ LIBBUTL_MODEXPORT namespace butl
     std::string
     string (bool ignore_build = false) const;
 
-    // Numeric representation in the AAABBBCCC0000 form, where:
+    // Numeric representation in the AAAAABBBBBCCCCC0000 form, where:
     //
-    // AAA - major version number
-    // BBB - minor version number
-    // CCC - patch version number
+    // AAAAA - major version number
+    // BBBBB - minor version number
+    // CCCCC - patch version number
     //
     // See standard version for details.
     //
     explicit
     semantic_version (std::uint64_t numeric, std::string build = "");
 
-    // If any of the major/minor/patch components is greater than 999, then
+    // If any of the major/minor/patch components is greater than 99999, then
     // throw std::invalid_argument. The build component is ignored.
     //
     std::uint64_t

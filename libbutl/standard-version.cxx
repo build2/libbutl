@@ -69,17 +69,32 @@ namespace butl
     return true;
   }
 
+  template <typename T>
   static bool
-  parse_uint16 (const string& s, size_t& p,
-                uint16_t& r,
-                uint16_t min = 0, uint16_t max = 999)
+  parse_uint (const string& s, size_t& p, T& r, T min, T max)
   {
     uint64_t v;
     if (!parse_uint64 (s, p, v, min, max))
       return false;
 
-    r = static_cast<uint16_t> (v);
+    r = static_cast<T> (v);
     return true;
+  }
+
+  static inline bool
+  parse_uint16 (const string& s, size_t& p,
+                uint16_t& r,
+                uint16_t min = 0, uint16_t max = 999)
+  {
+    return parse_uint (s, p, r, min, max);
+  }
+
+  static inline bool
+  parse_uint32 (const string& s, size_t& p,
+                uint32_t& r,
+                uint32_t min = 0, uint32_t max = 99999)
+  {
+    return parse_uint (s, p, r, min, max);
   }
 
   static void
@@ -98,8 +113,8 @@ namespace butl
     {
       // Check that the version isn't too large, unless represents stub.
       //
-      //        AAABBBCCCDDDE
-      r = vr < 10000000000000ULL;
+      //        AAAAABBBBBCCCCCDDDE
+      r = vr < 10000000000000000000ULL;
 
       // Check that E version component is consistent with the snapshot flag.
       // Note that if the allow_earliest flag is set, then E can be 1 for the
@@ -217,17 +232,20 @@ namespace butl
         return bail ("'-' expected after epoch");
     }
 
-    uint16_t ma, mi, bf, ab (0);
+    uint32_t ma, mi, bf;
+    uint16_t ab (0);
     bool earliest (false);
 
-    if (!parse_uint16 (s, p, ma))
+    if (!parse_uint32 (s, p, ma))
       return bail ("invalid major version");
 
     // The only valid version that has no epoch, contains only the major
     // version being equal to zero, that is optionally followed by the plus
     // character, is the stub version, unless forbidden.
     //
-    bool stub ((f & standard_version::allow_stub) != 0 && !ep && ma == 0 &&
+    bool stub ((f & standard_version::allow_stub) != 0 &&
+               !ep                                     &&
+               ma == 0                                 &&
                (p == n || s[p] == '+'));
 
     if (stub)
@@ -240,19 +258,19 @@ namespace butl
       if (s[p] != '.')
         return bail ("'.' expected after major version");
 
-      if (!parse_uint16 (s, ++p, mi))
+      if (!parse_uint32 (s, ++p, mi))
         return bail ("invalid minor version");
 
       if (s[p] != '.')
         return bail ("'.' expected after minor version");
 
-      if (!parse_uint16 (s, ++p, bf))
+      if (!parse_uint32 (s, ++p, bf))
         return bail ("invalid patch version");
 
-      //             AAABBBCCCDDDE
-      r.version = ma * 10000000000ULL +
-                  mi *    10000000ULL +
-                  bf *       10000ULL;
+      //           AAAAABBBBBCCCCCDDDE
+      r.version = ma * 100000000000000ULL +
+                  mi *      1000000000ULL +
+                  bf *           10000ULL;
 
       if (r.version == 0)
         return bail ("0.0.0 version");
@@ -403,9 +421,10 @@ namespace butl
         throw invalid_argument ("snapshot for stub");
     }
 
-    if (!snapshot_id.empty () && (snapshot_id.size () > 16 ||
-                                  snapshot_sn == 0 ||
-                                  snapshot_sn == latest_sn))
+    if (!snapshot_id.empty () &&
+        (snapshot_id.size () > 16 ||
+         snapshot_sn == 0         ||
+         snapshot_sn == latest_sn))
       throw invalid_argument ("invalid snapshot");
   }
 
@@ -494,9 +513,9 @@ namespace butl
 
     if (snapshot ()) // Trailing dot already in id.
     {
-      r += (snapshot_sn == latest_sn ? "z" :
+      r += (snapshot_sn == latest_sn ? "z"                     :
             snapshot_id.empty ()     ? to_string (snapshot_sn) :
-            snapshot_id);
+                                       snapshot_id);
     }
 
     return r;
@@ -552,10 +571,10 @@ namespace butl
 
     if (c == '~' || (c == '^' && version.major () == 0))
     {
-      // If for ~X.Y.Z Y is 999, then we cannot produce a valid X.Y+1.0-
+      // If for ~X.Y.Z Y is 99999, then we cannot produce a valid X.Y+1.0-
       // version (due to an overflow).
       //
-      if (version.minor () == 999)
+      if (version.minor () == 99999)
       {
         if (ignore_overflow)
           return standard_version ();
@@ -563,16 +582,16 @@ namespace butl
         throw invalid_argument ("invalid minor version");
       }
 
-      //                         AAABBBCCCDDDE
-      v = version.major ()       * 10000000000ULL +
-          (version.minor () + 1) *    10000000ULL;
+      //                       AAAAABBBBBCCCCCDDDE
+      v = version.major ()       * 100000000000000ULL +
+          (version.minor () + 1) *      1000000000ULL;
     }
     else
     {
-      // If for ^X.Y.Z X is 999, then we cannot produce a valid X+1.0.0-
+      // If for ^X.Y.Z X is 99999, then we cannot produce a valid X+1.0.0-
       // version (due to an overflow).
       //
-      if (version.major () == 999)
+      if (version.major () == 99999)
       {
         if (ignore_overflow)
           return standard_version ();
@@ -580,8 +599,8 @@ namespace butl
         throw invalid_argument ("invalid major version");
       }
 
-      //                         AAABBBCCCDDDE
-      v = (version.major () + 1) * 10000000000ULL;
+      //                       AAAAABBBBBCCCCCDDDE
+      v = (version.major () + 1) * 100000000000000ULL;
     }
 
     return standard_version (version.epoch,

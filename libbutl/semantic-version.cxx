@@ -56,32 +56,28 @@ namespace butl
   uint64_t semantic_version::
   numeric () const
   {
-    if (const char* w = (major > 999 ? "major version greater than 999" :
-                         minor > 999 ? "minor version greater than 999" :
-                         patch > 999 ? "patch version greater than 999" :
+    if (const char* w = (major > 99999 ? "major version greater than 99999" :
+                         minor > 99999 ? "minor version greater than 99999" :
+                         patch > 99999 ? "patch version greater than 99999" :
                          nullptr))
       throw invalid_argument (w);
 
-    // AAABBBCCC0000
-    //   10000000000
-    //      10000000
-    //         10000
-    //
-    return (major * 10000000000) + (minor * 10000000) + (patch * 10000);
+    //          AAAAABBBBBCCCCC0000         BBBBBCCCCC0000         CCCCC0000
+    return (major * 100000000000000) + (minor * 1000000000) + (patch * 10000);
   }
 
   semantic_version::
   semantic_version (uint64_t n, std::string b)
       : build (move (b))
   {
-    //      AAABBBCCC0000
-    if (n > 9999999990000ULL || (n % 1000) != 0)
+    //      AAAAABBBBBCCCCC0000
+    if (n > 9999999999999990000ULL || (n % 10000) != 0)
       throw invalid_argument ("invalid numeric representation");
 
-    //        AAABBBCCC0000
-    major = n / 10000000000 % 1000;
-    minor = n /    10000000 % 1000;
-    patch = n /       10000 % 1000;
+    //      AAAAABBBBBCCCCC0000
+    major = n / 100000000000000 % 100000;
+    minor = n /      1000000000 % 100000;
+    patch = n /           10000 % 100000;
   }
 
   semantic_version::

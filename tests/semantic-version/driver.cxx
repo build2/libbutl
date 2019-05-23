@@ -73,12 +73,12 @@ main ()
 
   // Numeric representation.
   //
-  //               AAABBBCCC0000
-  assert (semver (   10020030000ULL)       == semver (1, 2, 3));
-  assert (semver ( 9999999990000ULL, ".4") == semver (999, 999, 999, ".4"));
-  try { semver v (   10020030001ULL);      assert (false);} catch (failed) {}
-  try { semver v (10000020030000ULL);      assert (false);} catch (failed) {}
-  assert (semver (1, 2, 3).numeric ()             ==   10020030000ULL);
-  assert (semver (999, 999, 999, ".4").numeric () == 9999999990000ULL);
-  try { semver (9999, 0, 0).numeric ();    assert (false);} catch (failed) {}
+  //               AAAAABBBBBCCCCC0000
+  assert (semver (     100002000030000ULL)       == semver (1, 2, 3));
+  assert (semver ( 9999999999999990000ULL, ".4") == semver (99999, 99999, 99999, ".4"));
+  try { semver v (     100002000030001ULL);      assert (false);} catch (failed) {}
+  try { semver v (10000000200003000000ULL);      assert (false);} catch (failed) {}
+  assert (             100002000030000ULL        == semver (1, 2, 3).numeric ());
+  assert (         9999999999999990000ULL        == semver (99999, 99999, 99999, ".4").numeric ());
+  try { semver (999999, 0, 0).numeric ();        assert (false);} catch (failed) {}
 }

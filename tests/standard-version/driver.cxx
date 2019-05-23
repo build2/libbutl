@@ -95,15 +95,15 @@ version (const string& s,
         : e + to_string (v.major () + 1) + ".0.0-";
       };
 
-      if (v.minor () != 999)
+      if (v.minor () != 99999)
       {
         standard_version_constraint c1 ("~" + s);
         standard_version_constraint c2 ('[' + s + ' ' + max_ver ('~') + ')');
         assert (c1 == c2);
       }
 
-      if ((v.major () == 0 && v.minor () != 999) ||
-          (v.major () != 0 && v.major () != 999))
+      if ((v.major () == 0 && v.minor () != 99999) ||
+          (v.major () != 0 && v.major () != 99999))
       {
         standard_version_constraint c1 ("^" + s);
         standard_version_constraint c2 ('[' + s + ' ' + max_ver ('^') + ')');
@@ -160,9 +160,12 @@ version (const string& s,
 // -sn  output 'y' for snapshot, 'n' otherwise
 // -fn  output 'y' for final, 'n' otherwise
 //
-// -cm  output 0 if versions are equal, -1 if the first one is less, 1 otherwise
+// -cm  output 0 if versions are equal, -1 if the first one is less, 1
+//      otherwise
+//
 // -cr  create version constraints from stdin lines, optionally using the
 //      dependent version, and print them to stdout
+//
 // -sf  output 'y' if version satisfies constraint, 'n' otherwise
 //
 // If no options are specified, then create versions from stdin lines, and

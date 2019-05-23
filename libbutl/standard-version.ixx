@@ -4,7 +4,7 @@
 
 namespace butl
 {
-  inline std::uint16_t standard_version::
+  inline std::uint32_t standard_version::
   major () const noexcept
   {
     std::uint64_t e (version % 10);
@@ -13,10 +13,11 @@ namespace butl
     if (ab != 0 || e == 1)
       v += 1000 - ab;
 
-    return static_cast<std::uint16_t> (v / 1000000000 % 1000);
+    //                                 AAAAABBBBBCCCCCDDD
+    return static_cast<std::uint32_t> (v / 10000000000000 % 100000);
   }
 
-  inline std::uint16_t standard_version::
+  inline std::uint32_t standard_version::
   minor () const noexcept
   {
     std::uint64_t e (version % 10);
@@ -25,10 +26,11 @@ namespace butl
     if (ab != 0 || e == 1)
       v += 1000 - ab;
 
-    return static_cast<std::uint16_t> (v / 1000000 % 1000);
+    //                            AAAAABBBBBCCCCCDDD
+    return static_cast<std::uint32_t> (v / 100000000 % 100000);
   }
 
-  inline std::uint16_t standard_version::
+  inline std::uint32_t standard_version::
   patch () const noexcept
   {
     std::uint64_t e (version % 10);
@@ -37,7 +39,8 @@ namespace butl
     if (ab != 0 || e == 1)
       v += 1000 - ab;
 
-    return static_cast<std::uint16_t> (v / 1000 % 1000);
+    //                       AAAAABBBBBCCCCCDDD
+    return static_cast<std::uint32_t> (v / 1000 % 100000);
   }
 
   inline bool standard_version::
@@ -87,23 +90,23 @@ namespace butl
     return snapshot () && snapshot_sn == latest_sn;
   }
 
-  // Note: in the following constructors we subtract one from AAABBBCCC if
-  // DDDE is not zero (see standard-version.hxx for details).
+  // Note: in the following constructors we subtract one from AAAAABBBBBCCCCC
+  // if DDDE is not zero (see standard-version.hxx for details).
   //
   inline standard_version::
   standard_version (std::uint16_t ep,
-                    std::uint16_t mj,
-                    std::uint16_t mi,
-                    std::uint16_t pa,
+                    std::uint32_t mj,
+                    std::uint32_t mi,
+                    std::uint32_t pa,
                     std::uint16_t pr,
                     std::uint16_t rv)
       : standard_version (ep,
-                          //  AAABBBCCCDDDE
-                          (mj * 10000000000ULL +
-                           mi *    10000000ULL +
-                           pa *       10000ULL +
-                           pr *          10ULL -
-                           (pr != 0 ? 10000ULL : 0ULL)),
+                          // AAAAABBBBBCCCCCDDDE
+                          (mj *  100000000000000ULL +
+                           mi *       1000000000ULL +
+                           pa *            10000ULL +
+                           pr *               10ULL -
+                           (pr != 0 ?      10000ULL : 0ULL)),
                           "" /* snapshot */,
                           rv)
   {
@@ -111,21 +114,21 @@ namespace butl
 
   inline standard_version::
   standard_version (std::uint16_t ep,
-                    std::uint16_t mj,
-                    std::uint16_t mi,
-                    std::uint16_t pa,
+                    std::uint32_t mj,
+                    std::uint32_t mi,
+                    std::uint32_t pa,
                     std::uint16_t pr,
                     std::uint64_t sn,
                     std::string si,
                     std::uint16_t rv)
       : standard_version (ep,
-                          //  AAABBBCCCDDDE
-                          (mj * 10000000000ULL                +
-                           mi *    10000000ULL                +
-                           pa *       10000ULL                +
-                           pr *          10ULL                +
-                                          1ULL /* snapshot */ -
-                                      10000ULL),
+                          // AAAAABBBBBCCCCCDDDE
+                          (mj *  100000000000000ULL                +
+                           mi *       1000000000ULL                +
+                           pa *            10000ULL                +
+                           pr *               10ULL                +
+                                               1ULL /* snapshot */ -
+                                           10000ULL),
                           sn,
                           si,
                           rv)
