@@ -442,7 +442,7 @@ LIBBUTL_MODEXPORT namespace butl
     static void
     decode (I begin, I end, O output, F&& dfunc);
 
-    template <typename I, typename O, typename F>
+    template <typename I, typename O>
     static void
     decode (I b, I e, O o)
     {
