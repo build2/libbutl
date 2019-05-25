@@ -388,34 +388,47 @@ LIBBUTL_MODEXPORT namespace butl
     // Also note that the characters are interpreted as bytes. In other words,
     // each character may result in a single encoding triplet.
     //
-    template <typename I, typename O, typename F = bool (*) (char_type&)>
+    template <typename I, typename O, typename F>
     static void
-    encode (I b, I e,
-            O o,
+    encode (I begin, I end, O output, F&& efunc);
 
-            // VC (as of 15u3) doesn't see unreserved() unless qualified.
-            //
-            F&& f = [] (char_type& c) {return !basic_url<H,T>::unreserved (c);});
+    template <typename I, typename O>
+    static void
+    encode (I b, I e, O o)
+    {
+      encode (b, e, o, [] (char_type& c) {return !unreserved (c);});
+    }
 
-    template <typename F = bool (*) (char_type&)>
+    template <typename F>
     static string_type
-    encode (const string_type& s,
-            F&& f = [] (char_type& c) {return !basic_url<H,T>::unreserved (c);})
+    encode (const string_type& s, F&& f)
     {
       string_type r;
       encode (s.begin (), s.end (), std::back_inserter (r), f);
       return r;
     }
 
-    template <typename F = bool (*) (char_type&)>
     static string_type
-    encode (const char_type* s,
-            F&& f = [] (char_type& c) {return !basic_url<H,T>::unreserved (c);})
+    encode (const string_type& s)
+    {
+      return encode (s, [] (char_type& c) {return !unreserved (c);});
+    }
+
+    template <typename F>
+    static string_type
+    encode (const char_type* s, F&& f)
     {
       string_type r;
       encode (s, s + string_type::traits_type::length (s),
-              std::back_inserter (r), f);
+              std::back_inserter (r),
+              f);
       return r;
+    }
+
+    static string_type
+    encode (const char_type* s)
+    {
+      return encode (s, [] (char_type& c) {return !unreserved (c);});
     }
 
     // URL-decode a character sequence. Throw std::invalid_argument if an
@@ -425,27 +438,47 @@ LIBBUTL_MODEXPORT namespace butl
     // (rather than percent-encoded), then one must provide the callback
     // function to decode them.
     //
-    template <typename I, typename O, typename F = void (*) (char_type&)>
+    template <typename I, typename O, typename F>
     static void
-    decode (I b, I e, O o, F&& f = [] (char_type&) {});
+    decode (I begin, I end, O output, F&& dfunc);
 
-    template <typename F = void (*) (char_type&)>
+    template <typename I, typename O, typename F>
+    static void
+    decode (I b, I e, O o)
+    {
+      decode (b, e, o, [] (char_type&) {});
+    }
+
+    template <typename F>
     static string_type
-    decode (const string_type& s, F&& f = [] (char_type&) {})
+    decode (const string_type& s, F&& f)
     {
       string_type r;
       decode (s.begin (), s.end (), std::back_inserter (r), f);
       return r;
     }
 
-    template <typename F = void (*) (char_type&)>
     static string_type
-    decode (const char_type* s, F&& f = [] (char_type&) {})
+    decode (const string_type& s)
+    {
+      return decode (s, [] (char_type&) {});
+    }
+
+    template <typename F>
+    static string_type
+    decode (const char_type* s, F&& f)
     {
       string_type r;
       decode (s, s + string_type::traits_type::length (s),
-              std::back_inserter (r), f);
+              std::back_inserter (r),
+              f);
       return r;
+    }
+
+    static string_type
+    decode (const char_type* s)
+    {
+      return decode (s, [] (char_type&) {});
     }
 
   private:
