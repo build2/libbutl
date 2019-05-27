@@ -1,0 +1,12 @@
+# file      : tests/backtrace/buildfile
+# copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+import libs = libbutl%lib{butl}
+
+exe{driver}: {hxx cxx}{*} $libs testscript
+
+# Make sure backtrace() includes function names.
+#
+if ($cxx.target.class == 'linux')
+  cxx.loptions += -rdynamic

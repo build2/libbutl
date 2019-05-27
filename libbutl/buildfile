@@ -16,7 +16,15 @@ lib{butl}: {hxx ixx txx cxx}{** -uuid-* +uuid-io -win32-utility} \
            hxx{**.hxx -uuid-*.hxx +uuid-io.hxx -win32-utility.hxx \
                -version.hxx} hxx{version}
 
-windows = ($cxx.target.class == 'windows')
+tclass = $cxx.target.class
+tsys   = $cxx.target.system
+
+linux   = ($tclass == 'linux')
+macos   = ($tclass == 'macos')
+windows = ($tclass == 'windows')
+freebsd = ($tsys == 'freebsd')
+
+mingw = ($tsys == 'mingw32')
 
 # Exclude these from compilation on non-Windows targets.
 #
@@ -30,17 +38,19 @@ lib{butl}: file{*.c *.h}
 
 # Platform-specific UUID implementations.
 #
-lib{butl}: cxx{uuid-linux}:   include = ($cxx.target.class  == 'linux')
-lib{butl}: cxx{uuid-macos}:   include = ($cxx.target.class  == 'macos')
+lib{butl}: cxx{uuid-linux}:   include = $linux
+lib{butl}: cxx{uuid-macos}:   include = $macos
 lib{butl}: cxx{uuid-windows}: include = $windows
-lib{butl}: cxx{uuid-freebsd}: include = ($cxx.target.system == 'freebsd')
+lib{butl}: cxx{uuid-freebsd}: include = $freebsd
 
-if ($cxx.target.class == 'linux')
+if $linux
   cxx.libs += -ldl
-elif ($cxx.target.class == 'macos')
+elif $macos
   cxx.libs += -framework CoreFoundation
-elif ($windows)
-  cxx.libs += ($cxx.target.system == 'mingw32' ? -lrpcrt4 : rpcrt4.lib)
+elif $windows
+  cxx.libs += ($mingw ? -lrpcrt4 : rpcrt4.lib)
+elif $freebsd
+  cxx.libs += -lexecinfo
 
 # Include the generated version header into the distribution (so that we don't
 # pick up an installed one) and don't remove it when cleaning in src (so that
@@ -63,7 +73,7 @@ objs{*} bmis{*}: cxx.poptions += -DLIBBUTL_SHARED_BUILD
 # Additional system libraries.
 #
 if $windows
-  cxx.libs += ($cxx.target.system == 'mingw32' ? -limagehlp : imagehlp.lib)
+  cxx.libs += ($mingw ? -limagehlp : imagehlp.lib)
 else
   cxx.libs += -lpthread
 

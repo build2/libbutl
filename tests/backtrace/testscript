@@ -1,0 +1,20 @@
+# file      : tests/backtrace/testscript
+# copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+tclass = $cxx.target.class
+tsys   = $cxx.target.system
+
+: basic
+:
+if ($tclass == 'linux' || $tclass == 'macos' || $tsys == 'freebsd')
+{
+  # The stack frame line format varies among OSes. The only common thing is
+  # the '0x' function address prefix.
+  #
+  $* 2>>~%EOE%
+    %.*
+    %.*0x.*%
+    %.*
+    EOE
+}
