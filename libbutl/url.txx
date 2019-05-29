@@ -430,14 +430,18 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     if (!u.empty ())
       return u;
 
-    r += ':';
+    if (!r.empty ())
+      r += ':';
 
     if (authority)
     {
       // We can't append '//' string literal, so appending characters.
       //
-      r += '/';
-      r += '/';
+      if (!r.empty ())
+      {
+        r += '/';
+        r += '/';
+      }
 
       r += authority->string ();
     }
