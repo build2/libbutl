@@ -18,3 +18,11 @@ if ($tclass == 'linux' || $tclass == 'macos' || $tsys == 'freebsd')
     %.*
     EOE
 }
+else
+{
+  # On OSes where backtrace() is not supported we just check that setting the
+  # terminate handler doesn't change the way a process terminates on the
+  # unhandled exception (see driver.cxx for details).
+  #
+  $* -q
+}
