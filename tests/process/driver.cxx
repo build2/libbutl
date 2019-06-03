@@ -381,7 +381,7 @@ main (int argc, const char* argv[])
   string paths (fp.directory ().string ());
 
   if (optional<string> p = getenv ("PATH"))
-    paths += string (1, path::traits::path_separator) + *p;
+    paths += string (1, path::traits_type::path_separator) + *p;
 
   setenv ("PATH", paths);
 

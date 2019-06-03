@@ -158,9 +158,9 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     {
       size_type n (_size ());
 
-      for (size_type b (0), e (traits::find_separator (s, 0, n));
+      for (size_type b (0), e (traits_type::find_separator (s, 0, n));
            ;
-           e = traits::find_separator (s, b, n))
+           e = traits_type::find_separator (s, b, n))
       {
         ps.push_back (
           string_type (s, b, (e == string_type::npos ? n : e) - b));
@@ -172,7 +172,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
         // Skip consecutive directory separators.
         //
-        while (e != n && traits::is_separator (s[e]))
+        while (e != n && traits_type::is_separator (s[e]))
           ++e;
 
         if (e == n)
@@ -186,7 +186,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
       if (!tsep)
       {
         const string_type& l (ps.back ());
-        if (traits::current (l) || traits::parent (l))
+        if (traits_type::current (l) || traits_type::parent (l))
           tsep = true;
       }
     }
@@ -199,12 +199,14 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     {
       string_type& s (*i);
 
-      if (traits::current (s))
+      if (traits_type::current (s))
         continue;
 
       // If '..' then pop the last directory from r unless it is '..'.
       //
-      if (traits::parent (s) && !r.empty () && !traits::parent (r.back ()))
+      if (traits_type::parent (s) &&
+          !r.empty ()             &&
+          !traits_type::parent (r.back ()))
       {
         // Cannot go past the root directory.
         //
@@ -235,7 +237,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
           // what getcwd() returns.
           //
           p = *i;
-          p[0] = traits::toupper (p[0]);
+          p[0] = traits_type::toupper (p[0]);
         }
         else
         {
@@ -251,7 +253,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
         p += *i;
 
       if (++i != e)
-        p += traits::directory_separator;
+        p += traits_type::directory_separator;
     }
 
     if (tsep)
@@ -262,7 +264,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
         //
         if (abs)
         {
-          p += traits::directory_separator;
+          p += traits_type::directory_separator;
           ts = -1;
         }
         else if (!cur_empty) // Collapse to canonical current directory.
@@ -292,7 +294,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     if (s.empty ())
       throw invalid_basic_path<char> (s);
 
-    traits::current_directory (s);
+    traits_type::current_directory (s);
   }
 
   template <typename C>

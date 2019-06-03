@@ -85,7 +85,7 @@ namespace butl
   {
     using std::string;
 
-    size_t p (path::traits::find_extension (value_));
+    size_t p (path::traits_type::find_extension (value_));
 
     if (e != nullptr                            &&
         p != string::npos                       &&
@@ -100,7 +100,7 @@ namespace butl
   {
     using std::string;
 
-    size_t p (path::traits::find_extension (value_));
+    size_t p (path::traits_type::find_extension (value_));
     return p != string::npos ? string (value_, p + 1) : string ();
   }
 

@@ -1630,8 +1630,8 @@ namespace butl
     // The name doesn't match the pattern if it is of a different type than the
     // pattern is.
     //
-    bool pd (pi != pe && path::traits::is_separator (*pi));
-    bool nd (ni != ne && path::traits::is_separator (*ni));
+    bool pd (pi != pe && path::traits_type::is_separator (*pi));
+    bool nd (ni != ne && path::traits_type::is_separator (*ni));
 
     if (pd != nd)
       return false;

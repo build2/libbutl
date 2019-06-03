@@ -255,14 +255,14 @@ LIBBUTL_MODEXPORT namespace butl
   class basic_url
   {
   public:
-    using traits = T; //@@ TODO: rename traits_type.
+    using traits_type = T;
 
-    using string_type = typename traits::string_type;
+    using string_type = typename traits_type::string_type;
     using char_type   = typename string_type::value_type;
-    using path_type   = typename traits::path_type;
+    using path_type   = typename traits_type::path_type;
 
-    using scheme_type    = typename traits::scheme_type;
-    using authority_type = typename traits::authority_type;
+    using scheme_type    = typename traits_type::scheme_type;
+    using authority_type = typename traits_type::authority_type;
     using host_type      = typename authority_type::host_type;
 
     scheme_type              scheme;

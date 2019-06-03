@@ -12,15 +12,14 @@ namespace butl
 
     // Note: move(d) would be tricky since the key still points to it.
     //
-    auto r (map_.emplace (
-              key_type (&traits::key (d)),
-              value_type {static_cast<I> (i), d}));
+    auto r (map_.emplace (key_type (&traits_type::key (d)),
+                          value_type {static_cast<I> (i), d}));
 
     if (r.second)
     {
       assert (i <= std::numeric_limits<I>::max ());
 
-      r.first->first.p = &traits::key (r.first->second.d); // Update key.
+      r.first->first.p = &traits_type::key (r.first->second.d); // Update key.
       vec_.push_back (r.first);
     }
 

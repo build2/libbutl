@@ -254,7 +254,7 @@ namespace butl
   {
     // Note that there is a similar version for Win32.
 
-    typedef path::traits traits;
+    typedef path::traits_type traits;
 
     size_t fn (strlen (f));
 

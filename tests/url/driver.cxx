@@ -349,13 +349,13 @@ try
         if (!u.empty ())
         {
           wstring s;
-          wcout << wurl::traits::translate_scheme (s,
-                                                   u.scheme,
-                                                   nullopt,
-                                                   nullopt,
-                                                   nullopt,
-                                                   nullopt,
-                                                   false) << endl;
+          wcout << wurl::traits_type::translate_scheme (s,
+                                                        u.scheme,
+                                                        nullopt,
+                                                        nullopt,
+                                                        nullopt,
+                                                        nullopt,
+                                                        false) << endl;
         }
         else
           wcout << L"[null]" << endl;

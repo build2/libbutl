@@ -58,28 +58,29 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   simple () const
   {
     return empty () ||
-      traits::rfind_separator (this->path_, _size () - 1) == string_type::npos;
+      traits_type::rfind_separator (this->path_, _size () - 1) ==
+      string_type::npos;
   }
 
   template <typename C, typename K>
   inline bool basic_path<C, K>::
   absolute () const
   {
-    return traits::absolute (this->path_);
+    return traits_type::absolute (this->path_);
   }
 
   template <typename C, typename K>
   inline bool basic_path<C, K>::
   current () const
   {
-    return traits::current (this->path_);
+    return traits_type::current (this->path_);
   }
 
   template <typename C, typename K>
   inline bool basic_path<C, K>::
   parent () const
   {
-    return traits::parent (this->path_);
+    return traits_type::parent (this->path_);
   }
 
   template <typename C, typename K>
@@ -87,14 +88,14 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   normalized (bool sep) const
   {
     return (!sep || this->tsep_ <= 1) &&
-      traits::normalized (this->path_, sep);
+      traits_type::normalized (this->path_, sep);
   }
 
   template <typename C, typename K>
   inline bool basic_path<C, K>::
   root () const
   {
-    return traits::root (this->path_);
+    return traits_type::root (this->path_);
   }
 
   template <typename C, typename K>
@@ -116,10 +117,10 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     // The second condition guards against the /foo-bar vs /foo case.
     //
     return n >= pn &&
-      traits::compare (s.c_str (), pn, ps.c_str (), pn) == 0 &&
-      (traits::is_separator (ps.back ())      || // p ends with a separator
+      traits_type::compare (s.c_str (), pn, ps.c_str (), pn) == 0 &&
+      (traits_type::is_separator (ps.back ()) || // p ends with a separator
        n == pn                                || // *this == p
-       traits::is_separator (s[pn]));            // next char is a separator
+       traits_type::is_separator (s[pn]));       // next char is a separator
   }
 
   template <typename C, typename K>
@@ -141,9 +142,12 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     // The second condition guards against the /foo-bar vs bar case.
     //
     return n >= pn &&
-      traits::compare (s.c_str () +  n - pn, pn, ps.c_str (), pn) == 0 &&
-      (n == pn ||                             // *this == p
-       traits::is_separator (s[n - pn - 1])); // previous char is a separator
+      traits_type::compare (s.c_str () +  n - pn, pn, ps.c_str (), pn) == 0 &&
+      (n == pn || // *this == p
+       //
+       // Previous char is a separator.
+       //
+       traits_type::is_separator (s[n - pn - 1]));
   }
 
   template <typename C, typename K>
@@ -158,7 +162,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     size_type n (_size ());
 
     size_type p (n != 0
-                 ? traits::rfind_separator (s, n - 1)
+                 ? traits_type::rfind_separator (s, n - 1)
                  : string_type::npos);
 
     return p != string_type::npos
@@ -174,7 +178,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     size_type n (_size ());
 
     size_type p (n != 0
-                 ? traits::rfind_separator (s, n - 1)
+                 ? traits_type::rfind_separator (s, n - 1)
                  : string_type::npos);
 
     if (p != string_type::npos)
@@ -202,7 +206,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     size_type n (_size ());
 
     size_type p (n != 0
-                 ? traits::rfind_separator (s, n - 1)
+                 ? traits_type::rfind_separator (s, n - 1)
                  : string_type::npos);
 
     return p != string_type::npos
@@ -218,7 +222,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     size_type n (_size ());
 
     size_type p (n != 0
-                 ? traits::rfind_separator (s, n - 1)
+                 ? traits_type::rfind_separator (s, n - 1)
                  : string_type::npos);
 
     s.resize (p != string_type::npos ? p + 1 : 0); // Include trailing slash.
@@ -234,7 +238,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     const string_type& s (this->path_);
 
     size_type b (s.empty () ? string_type::npos : 0);
-    size_type e (b == 0 ? traits::find_separator (s) : b);
+    size_type e (b == 0 ? traits_type::find_separator (s) : b);
 
     return iterator (this, b, e);
   }
@@ -266,7 +270,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   inline basic_path<C, K>& basic_path<C, K>::
   canonicalize ()
   {
-    traits::canonicalize (this->path_);
+    traits_type::canonicalize (this->path_);
 
     if (this->tsep_ > 1) // Non-canonical trailing separator.
       this->tsep_ = 1;
@@ -296,7 +300,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     complete ();
     normalize (true);
 #else
-    traits::realize (this->path_); // Note: we retain the trailing slash.
+    traits_type::realize (this->path_); // Note: we retain the trailing slash.
 #endif
     return *this;
   }
@@ -333,7 +337,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     // of the small string optimization).
     //
     const string_type& s (this->path_);
-    size_type p (traits::find_extension (s));
+    size_type p (traits_type::find_extension (s));
 
     return p != string_type::npos
       ? basic_path (data_type (string_type (s, 0, p), this->tsep_))
@@ -345,7 +349,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   make_base ()
   {
     string_type& s (this->path_);
-    size_type p (traits::find_extension (s));
+    size_type p (traits_type::find_extension (s));
 
     if (p != string_type::npos)
     {
@@ -365,7 +369,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   extension () const
   {
     const string_type& s (this->path_);
-    size_type p (traits::find_extension (s));
+    size_type p (traits_type::find_extension (s));
     return p != string_type::npos
       ? string_type (s.c_str () + p + 1)
       : string_type ();
@@ -376,7 +380,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   extension_cstring () const
   {
     const string_type& s (this->path_);
-    size_type p (traits::find_extension (s));
+    size_type p (traits_type::find_extension (s));
     return p != string_type::npos ? s.c_str () + p + 1 : nullptr;
   }
 
@@ -445,7 +449,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     // For now we won't allow the slash and will always add the canonical one
     // for dir_path (via cast()).
     //
-    if (traits::find_separator (r, rn) != nullptr)
+    if (traits_type::find_separator (r, rn) != nullptr)
       throw invalid_basic_path<C> (r);
 
     combine (r, rn, 0);

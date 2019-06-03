@@ -655,7 +655,7 @@ LIBBUTL_MODEXPORT namespace butl
     using string_type = std::basic_string<C>;
     using size_type = typename string_type::size_type;
     using difference_type = typename string_type::difference_type;
-    using traits = path_traits<C>; //@@ TODO: rename to traits_type.
+    using traits_type = path_traits<C>;
 
     struct iterator;
     using reverse_iterator = std::reverse_iterator<iterator>;
@@ -717,7 +717,8 @@ LIBBUTL_MODEXPORT namespace butl
     // underlying OS errors.
     //
     static dir_type
-    current_directory () {return dir_type (traits::current_directory ());}
+    current_directory () {
+      return dir_type (traits_type::current_directory ());}
 
     static void
     current_directory (basic_path const&);
@@ -726,13 +727,13 @@ LIBBUTL_MODEXPORT namespace butl
     // underlying OS errors.
     //
     static dir_type
-    home_directory () {return dir_type (traits::home_directory ());}
+    home_directory () {return dir_type (traits_type::home_directory ());}
 
     // Return the temporary directory. Throw std::system_error to report
     // underlying OS errors.
     //
     static dir_type
-    temp_directory () {return dir_type (traits::temp_directory ());}
+    temp_directory () {return dir_type (traits_type::temp_directory ());}
 
     // Return a temporary path. The path is constructed by starting with the
     // temporary directory and then appending a path component consisting of
@@ -744,7 +745,7 @@ LIBBUTL_MODEXPORT namespace butl
     temp_path (const string_type& prefix)
     {
       basic_path r (temp_directory ());
-      r /= traits::temp_name (prefix);
+      r /= traits_type::temp_name (prefix);
       return r;
     }
 
@@ -935,7 +936,9 @@ LIBBUTL_MODEXPORT namespace butl
 
         // Find next trailing separator.
         //
-        e_ = b_ != string_type::npos ? traits::find_separator (s, b_) : b_;
+        e_ = b_ != string_type::npos
+             ? traits_type::find_separator (s, b_)
+             : b_;
 
         return *this;
       }
@@ -947,8 +950,8 @@ LIBBUTL_MODEXPORT namespace butl
 
         // Find the new end.
         //
-        e_ = b_ == string_type::npos          // Past end?
-          ? (traits::is_separator (s.back ()) // Have trailing slash?
+        e_ = b_ == string_type::npos               // Past end?
+          ? (traits_type::is_separator (s.back ()) // Have trailing slash?
              ? s.size () - 1
              : string_type::npos)
           : b_ - 1;
@@ -957,7 +960,10 @@ LIBBUTL_MODEXPORT namespace butl
         //
         b_ = e_ == 0 // Empty component?
           ? string_type::npos
-          : traits::rfind_separator (s, e_ != string_type::npos ? e_ - 1 : e_);
+          : traits_type::rfind_separator (s,
+                                          e_ != string_type::npos
+                                          ? e_ - 1
+                                          : e_);
 
         b_ = b_ == string_type::npos // First component?
           ? 0
@@ -1101,7 +1107,7 @@ LIBBUTL_MODEXPORT namespace butl
     template <typename K1>
     int
     compare (const basic_path<C, K1>& x) const {
-      return traits::compare (this->path_, x.path_);}
+      return traits_type::compare (this->path_, x.path_);}
 
   public:
     // Path string and representation. The string does not contain the
