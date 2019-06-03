@@ -411,7 +411,7 @@ main (int argc, const char* argv[])
     assert (exec (owd / "test.bat"));
     assert (exec (owd / "test"));
 
-    paths = owd.string () + path::traits::path_separator + paths;
+    paths = owd.string () + path::traits_type::path_separator + paths;
     setenv ("PATH", paths);
 
     assert (exec (path ("test.bat")));

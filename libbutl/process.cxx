@@ -934,7 +934,7 @@ namespace butl
   {
     // Note that there is a similar version for Win32.
 
-    typedef path::traits traits;
+    typedef path::traits_type traits;
 
     size_t fn (strlen (f));
 
@@ -1420,7 +1420,7 @@ namespace butl
     optional<string> batch;
     {
       const char* p (pp.effect_string ());
-      const char* e (path::traits::find_extension (p));
+      const char* e (path::traits_type::find_extension (p));
       if (e != nullptr && (casecmp (e, ".bat") == 0 ||
                            casecmp (e, ".cmd") == 0))
       {
