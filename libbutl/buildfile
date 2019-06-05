@@ -7,14 +7,14 @@
 # dismantled. We, however, kept some of the changes in anticipation that they
 # would be useful when attempting to modularize using the merged modules
 # semantics. Specifically, there are currently headers with both .mxx and .hxx
-# extensions and the code is littered if the #if __cpp_[lib_]modules_ts
-# blocks.
+# extensions and the code is littered with the `#if __cpp_[lib_]modules_ts`
+# blocks. Note that it's important for the auto-generated header support
+# that the default extension for hxx{} is .hxx.
 #
-# @@ If/when going back to using mxx{}, make sure to cleanup explicit .hxx.
+# @@ If/when going back to using mxx{}, make sure to cleanup explicit .mxx.
 #
-lib{butl}: {hxx ixx txx cxx}{** -uuid-* +uuid-io -win32-utility} \
-           hxx{**.hxx -uuid-*.hxx +uuid-io.hxx -win32-utility.hxx \
-               -version.hxx} hxx{version}
+lib{butl}: {hxx ixx txx cxx}{** -uuid-* +uuid-io -win32-utility -version} \
+           hxx{**.mxx} {hxx}{version}
 
 tclass = $cxx.target.class
 tsys   = $cxx.target.system
@@ -28,7 +28,7 @@ mingw = ($tsys == 'mingw32')
 
 # Exclude these from compilation on non-Windows targets.
 #
-lib{butl}: hxx{win32-utility.hxx} cxx{win32-utility}: include = $windows
+lib{butl}: {hxx cxx}{win32-utility}: include = $windows
 
 # Our C-files are included into sha256.cxx (sha256c.c) and timestamp.cxx
 # (strptime.c timelocal.h timelocal.c), so treat them as files exclude from
@@ -56,8 +56,8 @@ elif $freebsd
 # pick up an installed one) and don't remove it when cleaning in src (so that
 # clean results in a state identical to distributed).
 #
-hxx{version.hxx}: in{version} $src_root/manifest
-hxx{version.hxx}:
+hxx{version}: in{version} $src_root/manifest
+hxx{version}:
 {
   dist  = true
   clean = ($src_root != $out_root)
