@@ -11,6 +11,7 @@
 #ifndef __cpp_lib_modules_ts
 #include <string>
 #include <cstddef>    // ptrdiff_t
+#include <cstdint>    // uint16_t
 #include <utility>    // move(), swap()
 #include <iterator>
 #include <stdexcept>  // invalid_argument
@@ -75,6 +76,19 @@ LIBBUTL_MODEXPORT namespace butl
     invalid_basic_path (const C* p): path (p) {}
     invalid_basic_path (const string_type& p): path (p) {}
   };
+
+  enum class path_abnormality: std::uint16_t
+  {
+    none      = 0x00, // Path is normal.
+    separator = 0x01, // Wrong or multiple consequitive directory separators.
+    current   = 0x02, // Contains current directory (`.`) component.
+    parent    = 0x04  // Contains parent directory (`..`) component.
+  };
+
+  inline path_abnormality operator& (path_abnormality, path_abnormality);
+  inline path_abnormality operator| (path_abnormality, path_abnormality);
+  inline path_abnormality operator&= (path_abnormality&, path_abnormality);
+  inline path_abnormality operator|= (path_abnormality&, path_abnormality);
 
   // The only currently available specialization is for the char type.
   //
@@ -201,38 +215,22 @@ LIBBUTL_MODEXPORT namespace butl
     }
 
     static bool
-    normalized (const C* s, size_type n, bool sep)
+    normalized (const C*, size_type, bool);
+
+    static path_abnormality
+    abnormalities (const string_type& s)
     {
-      size_t j (0); // Beginning of path component.
-
-      for (size_t i (0); i != n; ++i)
-      {
-        char c (s[i]);
-
-        if (is_separator (c))
-        {
-          if (sep && c != directory_separator)
-            return false;
-
-          const char* p (s + j);
-          size_t m (i - j);
-          j = i + 1;
-
-          if (j != n && is_separator (s[j]))
-            return false;
-
-          if (current (p, m) || parent (p, m))
-            return false;
-        }
-      }
-
-      // Last component.
-      //
-      const char* p (s + j);
-      size_t m (n - j);
-
-      return !(current (p, m) || parent (p, m));
+      return abnormalities (s.c_str (), s.size ());
     }
+
+    static path_abnormality
+    abnormalities (const C* s)
+    {
+      return abnormalities (s, char_traits_type::length (s));
+    }
+
+    static path_abnormality
+    abnormalities (const C*, size_type);
 
     static bool
     root (const string_type& s)
@@ -802,6 +800,12 @@ LIBBUTL_MODEXPORT namespace butl
     bool
     normalized (bool sep = true) const;
 
+    // Similar to normalized() but return details on what renders the path
+    // abnormal.
+    //
+    path_abnormality
+    abnormalities () const;
+
     // Test, based on the presence/absence of the trailing separator, if the
     // path is to a directory.
     //
@@ -1057,6 +1061,25 @@ LIBBUTL_MODEXPORT namespace butl
     // Note that for a relative path normalize() may produce a path for which
     // normalized() will still return false (for example, ../foo/../ which
     // will be normalized to ../).
+    //
+    // Note also that on POSIX the parent directory ('..') components are
+    // resolved relative to a symlink target. As a result, it's possible to
+    // construct a valid path that this function will either consider as
+    // invalid or produce a path that points to an incorrect filesystem entry
+    // (it's also possible that it returns the correct path by accident). For
+    // example:
+    //
+    //           /tmp/sym/../../../  -> <invalid> (should be /tmp)
+    //                 |
+    // /tmp/sub1/sub2/tgt
+    //
+    //           /tmp/sym/../../     -> /         (should be /tmp/sub1)
+    //                 |
+    // /tmp/sub1/sub2/tgt
+    //
+    // The common property of such paths is '..' crossing symlink boundaries
+    // and it's impossible to normalize them without touching the filesystem
+    // *and* resolving their symlink components (see realize() below).
     //
     basic_path&
     normalize (bool actual = false, bool cur_empty = false);

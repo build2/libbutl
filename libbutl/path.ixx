@@ -4,6 +4,120 @@
 
 LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 {
+  // path_abnormality
+  //
+
+  inline path_abnormality
+  operator& (path_abnormality x, path_abnormality y)
+  {
+    return x &= y;
+  }
+
+  inline path_abnormality
+  operator| (path_abnormality x, path_abnormality y)
+  {
+    return x |= y;
+  }
+
+  inline path_abnormality
+  operator&= (path_abnormality& x, path_abnormality y)
+  {
+    return x = static_cast<path_abnormality> (
+      static_cast<std::uint16_t> (x) &
+      static_cast<std::uint16_t> (y));
+  }
+
+  inline path_abnormality
+  operator|= (path_abnormality& x, path_abnormality y)
+  {
+    return x = static_cast<path_abnormality> (
+      static_cast<std::uint16_t> (x) |
+      static_cast<std::uint16_t> (y));
+  }
+
+  // path_traits
+  //
+  template <typename C>
+  inline bool path_traits<C>::
+  normalized (const C* s, size_type n, bool sep)
+  {
+    // An early-return version of abnormalities().
+    //
+    size_t j (0); // Beginning of path component.
+
+    for (size_t i (0); i != n; ++i)
+    {
+      char c (s[i]);
+
+      if (is_separator (c))
+      {
+        if (sep && c != directory_separator)
+          return false;
+
+        const char* p (s + j);
+        size_t m (i - j);
+        j = i + 1;
+
+        if (j != n && is_separator (s[j]))
+          return false;
+
+        if (parent (p, m) || current (p, m))
+          return false;
+      }
+    }
+
+    // Last component.
+    //
+    const char* p (s + j);
+    size_t m (n - j);
+
+    return !(parent (p, m) || current (p, m));
+  }
+
+  template <typename C>
+  inline path_abnormality path_traits<C>::
+  abnormalities (const C* s, size_type n)
+  {
+    path_abnormality r (path_abnormality::none);
+
+    size_t j (0); // Beginning of path component.
+
+    for (size_t i (0); i != n; ++i)
+    {
+      char c (s[i]);
+
+      if (is_separator (c))
+      {
+        if (c != directory_separator)
+          r |= path_abnormality::separator;
+
+        const char* p (s + j);
+        size_t m (i - j);
+        j = i + 1;
+
+        if (j != n && is_separator (s[j]))
+          r |= path_abnormality::separator;
+
+        if (parent (p, m))
+          r |= path_abnormality::parent;
+        else if (current (p, m))
+          r |= path_abnormality::current;
+      }
+    }
+
+    // Last component.
+    //
+    const char* p (s + j);
+    size_t m (n - j);
+
+    if (parent (p, m))
+      r |= path_abnormality::parent;
+    else if (current (p, m))
+      r |= path_abnormality::current;
+
+    return r;
+  }
+
 #ifdef _WIN32
   template <>
   inline char path_traits<char>::
@@ -19,6 +133,9 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     return ucase (c);
   }
 #endif
+
+  // path
+  //
 
   template <class C, class K1, class K2>
   inline basic_path<C, K1>
@@ -89,6 +206,18 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   {
     return (!sep || this->tsep_ <= 1) &&
       traits_type::normalized (this->path_, sep);
+  }
+
+  template <typename C, typename K>
+  inline path_abnormality basic_path<C, K>::
+  abnormalities () const
+  {
+    path_abnormality r (traits_type::abnormalities (this->path_));
+
+    if (this->tsep_ > 1)
+      r |= path_abnormality::separator;
+
+    return r;
   }
 
   template <typename C, typename K>
