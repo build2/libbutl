@@ -151,7 +151,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     string_type& s (this->path_);
     difference_type& ts (this->tsep_);
 
-    typedef std::vector<string_type> paths;
+    using paths = small_vector<string_type, 16>;
     paths ps;
 
     bool tsep (ts != 0); // Trailing directory separator.

@@ -29,7 +29,6 @@
 
 #ifndef __cpp_lib_modules_ts
 #include <string>
-#include <vector>
 #include <cstddef>
 #include <utility>
 
@@ -124,7 +123,8 @@ namespace butl
   }
 
 #ifndef _WIN32
-  static const vector<string> tmp_vars ({"TMPDIR", "TMP", "TEMP", "TEMPDIR"});
+  static const small_vector<string, 4> tmp_vars (
+    {"TMPDIR", "TMP", "TEMP", "TEMPDIR"});
 
   static string
   temp_directory ()

@@ -16,7 +16,6 @@
 #include <stdexcept>  // invalid_argument
 #include <functional> // hash
 
-#include <vector>
 #ifdef _WIN32
 #include <algorithm> // replace()
 #endif
@@ -29,10 +28,12 @@ export module butl.path;
 #ifdef __cpp_lib_modules_ts
 import std.core;
 #endif
+import butl.small_vector;
 #ifdef _WIN32
 import butl.utility;
 #endif
 #else
+#include <libbutl/small-vector.mxx>
 #ifdef _WIN32
 #include <libbutl/utility.mxx> // *case*()
 #endif
