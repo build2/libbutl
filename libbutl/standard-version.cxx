@@ -496,12 +496,18 @@ namespace butl
   }
 
   string standard_version::
-  string_project () const
+  string_project (bool rev) const
   {
     std::string r (string_version ());
 
     if (snapshot ())
       r += string_snapshot (); // string_version() includes trailing dot.
+
+    if (rev && revision != 0)
+    {
+      r += '+';
+      r += to_string (revision);
+    }
 
     return r;
   }
@@ -533,13 +539,7 @@ namespace butl
       r += '-';
     }
 
-    r += string_project ();
-
-    if (revision != 0)
-    {
-      r += '+';
-      r += to_string (revision);
-    }
+    r += string_project (true /* revision */);
 
     return r;
   }

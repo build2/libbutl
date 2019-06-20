@@ -116,8 +116,12 @@ LIBBUTL_MODEXPORT namespace butl
     //
     // Note: return empty if the corresponding component is unspecified.
     //
-    std::string string () const;             // Package version.
-    std::string string_project () const;     // Project version (no epoch/rev).
+    std::string string () const; // Package version.
+
+    // Project version (no epoch).
+    //
+    std::string string_project (bool revision = false) const;
+
     std::string string_project_id () const;  // Project version id (no snapsn).
     std::string string_version () const;     // Version only (no snapshot).
     std::string string_pre_release () const; // Pre-release part only (a.1).
