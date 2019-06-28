@@ -155,6 +155,23 @@ namespace butl
     diag_mutex.unlock ();
   }
 
+  static void
+  default_writer (const diag_record& r)
+  {
+    r.os.put ('\n');
+    diag_stream_lock () << r.os.str ();
+
+    // We can endup flushing the result of several writes. The last one may
+    // possibly be incomplete, but that's not a problem as it will also be
+    // followed by the flush() call.
+    //
+    // @@ Strange: why not just hold the lock for both write and flush?
+    //
+    diag_stream->flush ();
+  }
+
+  void (*diag_record::writer) (const diag_record&) = &default_writer;
+
   void diag_record::
   flush () const
   {
@@ -162,14 +179,8 @@ namespace butl
     {
       if (epilogue_ == nullptr)
       {
-        os.put ('\n');
-        diag_stream_lock () << os.str ();
-
-        // We can endup flushing the result of several writes. The last one may
-        // possibly be incomplete, but that's not a problem as it will also be
-        // followed by the flush() call.
-        //
-        diag_stream->flush ();
+        if (writer != nullptr)
+          writer (*this);
 
         empty_ = true;
       }

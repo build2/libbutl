@@ -179,6 +179,11 @@ LIBBUTL_MODEXPORT namespace butl
     diag_record (const diag_record&) = delete;
     diag_record& operator= (const diag_record&) = delete;
 
+    // Diagnostics writer. The default implementation writes the record text
+    // to diag_stream. If it is NULL, then the record text is ignored.
+    //
+    static void (*writer) (const diag_record&);
+
   protected:
 #ifdef __cpp_lib_uncaught_exceptions
     const int uncaught_;
