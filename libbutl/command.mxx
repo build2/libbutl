@@ -80,5 +80,4 @@ LIBBUTL_MODEXPORT namespace butl
                const optional<command_substitution_map>& = nullopt,
                char subst = '@',
                const std::function<command_callback>& = {});
-
 }

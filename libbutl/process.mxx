@@ -588,6 +588,14 @@ LIBBUTL_MODEXPORT namespace butl
     process_env (const butl::path& p, const V& v)
         : process_env (p.string (), v) {}
 
+    // Moveable-only type.
+    //
+    process_env (process_env&&);
+    process_env& operator= (process_env&&);
+
+    process_env (const process_env&) = delete;
+    process_env& operator= (const process_env&) = delete;
+
   private:
     template <typename V>
     void

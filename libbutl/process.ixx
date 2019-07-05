@@ -22,13 +22,13 @@ namespace butl
 
   inline process_path::
   process_path (process_path&& p)
-      : recall (std::move (p.recall)),
-        effect (std::move (p.effect)),
+      : effect (std::move (p.effect)),
         args0_ (p.args0_)
   {
-    initial = p.initial != p.recall.string ().c_str ()
-      ? p.initial
-      : recall.string ().c_str ();
+    bool init (p.initial != p.recall.string ().c_str ());
+
+    recall  = std::move (p.recall);
+    initial = init ? p.initial : recall.string ().c_str ();
 
     p.args0_ = nullptr;
   }
@@ -41,14 +41,13 @@ namespace butl
       if (args0_ != nullptr)
         *args0_ = initial; // Restore.
 
-      recall = std::move (p.recall);
-      effect = std::move (p.effect);
-      args0_ = p.args0_;
+      bool init (p.initial != p.recall.string ().c_str ());
 
-      initial = p.initial != p.recall.string ().c_str ()
-        ? p.initial
-        : recall.string ().c_str ();
+      recall  = std::move (p.recall);
+      effect  = std::move (p.effect);
+      initial = init ? p.initial : recall.string ().c_str ();
 
+      args0_  = p.args0_;
       p.args0_ = nullptr;
     }
 
@@ -236,5 +235,32 @@ namespace butl
   {
     using namespace std::chrono;
     return timed_wait (duration_cast<milliseconds> (d));
+  }
+
+  // process_env
+  //
+  inline process_env::
+  process_env (process_env&& e)
+  {
+    *this = std::move (e);
+  }
+
+  inline process_env& process_env::
+  operator= (process_env&& e)
+  {
+    if (this != &e)
+    {
+      cwd = e.cwd;
+
+      bool sp (e.path == &e.path_);
+      path_ = std::move (e.path_);
+      path = sp ? &path_ : e.path;
+
+      bool sv (e.vars == e.vars_.data ());
+      vars_ = std::move (e.vars_);
+      vars = sv ? vars_.data () : e.vars;
+    }
+
+    return *this;
   }
 }
