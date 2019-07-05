@@ -31,7 +31,7 @@
 // bugs 378 and 10354). Also note that, at the time of this writing, glibc
 // always uses fork() for systems other than Linux.
 //
-#  if defined(__linux)         && \
+#  if defined(__linux__)       && \
       defined(__GLIBC__)       && \
       defined(__GLIBC_MINOR__) && \
       (__GLIBC__  > 2 || __GLIBC__ == 2 && __GLIBC_MINOR__ >= 24)
