@@ -274,7 +274,7 @@ LIBBUTL_MODEXPORT namespace butl
 
     // Create an empty URL object.
     //
-    basic_url (): empty_ (true) {}
+    basic_url (): scheme (), empty_ (true) {}
 
     // Create the URL object from its string representation. Verify that the
     // string is compliant to the generic URL syntax. URL-decode and validate
