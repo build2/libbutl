@@ -194,7 +194,7 @@ if ($test.target == $build.host)
 if! $empty($config.libbutl.test.rename.dir)
 {
   wd = $config.libbutl.test.rename.dir/libbutl-rename
-  +rm -r -f $wd
+  +rm -rf $wd
   +mkdir $wd
 
   : file
@@ -241,5 +241,5 @@ if! $empty($config.libbutl.test.rename.dir)
     $* a $b 2>- == 1
   }
 
-  -rm -r -f $wd
+  -rm -rf $wd
 }
