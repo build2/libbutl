@@ -112,6 +112,7 @@ namespace butl
           2 /* stderr */,
           pp,
           vops,
+          "-s",
           ops,
           "info:", project.representation ());
 
