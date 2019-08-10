@@ -1,0 +1,115 @@
+// file      : libbutl/default-options.mxx -*- C++ -*-
+// copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
+// license   : MIT; see accompanying LICENSE file
+
+#ifndef __cpp_modules_ts
+#pragma once
+#endif
+
+#ifndef __cpp_lib_modules_ts
+#include <utility> // move()
+#endif
+
+// Other includes.
+
+#ifdef __cpp_modules_ts
+export module butl.default_options;
+#ifdef __cpp_lib_modules_ts
+import std.core;
+#endif
+import butl.path;
+import butl.optional;
+import butl.small_vector;
+
+import butl.git;
+import butl.filesystem;
+#else
+#include <libbutl/path.mxx>
+#include <libbutl/optional.mxx>
+#include <libbutl/small-vector.mxx>
+
+#include <libbutl/git.mxx>
+#include <libbutl/filesystem.mxx>
+#endif
+
+#include <libbutl/export.hxx>
+
+LIBBUTL_MODEXPORT namespace butl
+{
+  // Default options files helper implementation.
+  //
+  struct default_options_files
+  {
+    small_vector<path, 2> files;
+    optional<dir_path>    start_dir;
+  };
+
+  template <typename O>
+  struct default_options_entry
+  {
+    path file;
+    O    options;
+    bool remote;
+  };
+
+  template <typename O>
+  using default_options = small_vector<default_options_entry<O>, 4>;
+
+  // Search for and load (using scanner S and parsing in the U::fail mode for
+  // both options and arguments) the specified list of options files in the
+  // specified directories returning a vector of option class instances (O).
+  // Throw std::system_error on the underlying OS error and pass through
+  // exceptions thrown by the options scanner/parser.
+  //
+  // Search order:
+  //
+  // - sys_dir
+  // - home_dir
+  // - start_dir and outer until home_dir or root (both excluding)
+  //
+  // Except for sys_dir, the options files are looked for in the .build2/ and
+  // .build2/local/ subdirectories of each directory. For sys_dir they are
+  // looked for in the directory itself (e.g., /etc/build2/).
+  //
+  // Note that all the directories should be absolute and normalized.
+  //
+  // The presence of the .git filesystem entry causes the options files in
+  // this directory and any of its subdirectories to be considered remote
+  // (note that in the current implementation this is the case even for files
+  // from the .build2/local/ subdirectory since the mere location is not a
+  // sufficient ground to definititevly conclude that the file is not remote;
+  // to be sure we would need to query the VCS or some such).
+  //
+  template <typename O, typename S, typename U>
+  default_options<O>
+  load_default_options (const optional<dir_path>& sys_dir,
+                        const optional<dir_path>& home_dir,
+                        const default_options_files&);
+
+  // Merge the default options and the command line options.
+  //
+  // Note that this is the default implementation and in some cases you may
+  // want to provide an options class-specific version that verifies/sanitizes
+  // the default options (e.g., you may not want to allow certain options to
+  // be specified in the default options files) or warns/prompts about
+  // potentially dangerous options if they came from the remote options files.
+  //
+  template <typename O>
+  O
+  merge_default_options (const default_options<O>&, const O& cmd_ops);
+
+  // As above but pass each default option to the specified function prior to
+  // merging. The function signature is:
+  //
+  // void (const default_options_entry<O>&, const O& cmd_ops)
+  //
+  // This version can be used to verify the default options. For example, you
+  // may want to disallow certain options from being specified in the default
+  // options files.
+  //
+  template <typename O, typename F>
+  O
+  merge_default_options (const default_options<O>&, const O&, F&&);
+}
+
+#include <libbutl/default-options.txx>
