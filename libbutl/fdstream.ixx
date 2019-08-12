@@ -63,7 +63,7 @@ namespace butl
 
   inline ifdstream::
   ifdstream (iostate e)
-      : ifdstream (auto_fd (), e) // Delegate.
+      : ifdstream (auto_fd (), e)
   {
   }
 
@@ -79,25 +79,43 @@ namespace butl
 
   inline ifdstream::
   ifdstream (const std::string& f, openmode m, iostate e)
-      : ifdstream (f.c_str (), m, e) // Delegate.
+      : ifdstream (f.c_str (), m, e)
   {
   }
 
   inline ifdstream::
   ifdstream (const path& f, openmode m, iostate e)
-      : ifdstream (f.string (), m, e) // Delegate.
+      : ifdstream (f.string (), m, e)
   {
   }
 
   inline ifdstream::
   ifdstream (const std::string& f, fdopen_mode m, iostate e)
-      : ifdstream (f.c_str (), m, e) // Delegate.
+      : ifdstream (f.c_str (), m, e)
   {
   }
 
   inline ifdstream::
   ifdstream (const path& f, fdopen_mode m, iostate e)
-      : ifdstream (f.string (), m, e) // Delegate.
+      : ifdstream (f.string (), m, e)
+  {
+  }
+
+  inline ifdstream::
+  ifdstream (const char* f, iostate e)
+      : ifdstream (f, in, e)
+  {
+  }
+
+  inline ifdstream::
+  ifdstream (const std::string& f, iostate e)
+      : ifdstream (f, in, e)
+  {
+  }
+
+  inline ifdstream::
+  ifdstream (const path& f, iostate e)
+      : ifdstream (f, in, e)
   {
   }
 
@@ -165,7 +183,7 @@ namespace butl
 
   inline ofdstream::
   ofdstream (iostate e)
-      : ofdstream (auto_fd (), e) // Delegate.
+      : ofdstream (auto_fd (), e)
   {
   }
 
@@ -179,25 +197,43 @@ namespace butl
 
   inline ofdstream::
   ofdstream (const std::string& f, openmode m, iostate e)
-      : ofdstream (f.c_str (), m, e) // Delegate.
+      : ofdstream (f.c_str (), m, e)
   {
   }
 
   inline ofdstream::
   ofdstream (const path& f, openmode m, iostate e)
-      : ofdstream (f.string (), m, e) // Delegate.
+      : ofdstream (f.string (), m, e)
   {
   }
 
   inline ofdstream::
   ofdstream (const std::string& f, fdopen_mode m, iostate e)
-      : ofdstream (f.c_str (), m, e) // Delegate.
+      : ofdstream (f.c_str (), m, e)
   {
   }
 
   inline ofdstream::
   ofdstream (const path& f, fdopen_mode m, iostate e)
-      : ofdstream (f.string (), m, e) // Delegate.
+      : ofdstream (f.string (), m, e)
+  {
+  }
+
+  inline ofdstream::
+  ofdstream (const char* f, iostate e)
+      : ofdstream (f, out, e)
+  {
+  }
+
+  inline ofdstream::
+  ofdstream (const std::string& f, iostate e)
+      : ofdstream (f, out, e)
+  {
+  }
+
+  inline ofdstream::
+  ofdstream (const path& f, iostate e)
+      : ofdstream (f, out, e)
   {
   }
 

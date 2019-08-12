@@ -785,13 +785,13 @@ namespace butl
   //
   ifdstream::
   ifdstream (const char* f, openmode m, iostate e)
-      : ifdstream (f, translate_mode (m | in), e) // Delegate.
+      : ifdstream (f, translate_mode (m | in), e)
   {
   }
 
   ifdstream::
   ifdstream (const char* f, fdopen_mode m, iostate e)
-      : ifdstream (fdopen (f, m | fdopen_mode::in), e) // Delegate.
+      : ifdstream (fdopen (f, m | fdopen_mode::in), e)
   {
   }
 
@@ -886,13 +886,13 @@ namespace butl
   //
   ofdstream::
   ofdstream (const char* f, openmode m, iostate e)
-      : ofdstream (f, translate_mode (m | out), e) // Delegate.
+      : ofdstream (f, translate_mode (m | out), e)
   {
   }
 
   ofdstream::
   ofdstream (const char* f, fdopen_mode m, iostate e)
-      : ofdstream (fdopen (f, m | fdopen_mode::out), e) // Delegate.
+      : ofdstream (fdopen (f, m | fdopen_mode::out), e)
   {
   }
 

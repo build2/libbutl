@@ -442,44 +442,57 @@ LIBBUTL_MODEXPORT namespace butl
     // Create an unopened object.
     //
     explicit
-    ifdstream (iostate e = badbit | failbit);
+    ifdstream (iostate = badbit | failbit);
 
     explicit
     ifdstream (auto_fd&&,
-               iostate e = badbit | failbit,
+               iostate = badbit | failbit,
                std::uint64_t pos = 0);
 
     ifdstream (auto_fd&&,
                fdstream_mode m,
-               iostate e = badbit | failbit,
+               iostate = badbit | failbit,
                std::uint64_t pos = 0);
 
     explicit
     ifdstream (const char*,
-               openmode = in,
-               iostate e = badbit | failbit);
+               iostate = badbit | failbit);
 
     explicit
     ifdstream (const std::string&,
-               openmode = in,
-               iostate e = badbit | failbit);
+               iostate = badbit | failbit);
 
     explicit
     ifdstream (const path&,
-               openmode = in,
-               iostate e = badbit | failbit);
+               iostate = badbit | failbit);
+
+    // @@ In some implementations (for example, MSVC), iostate and openmode
+    //    (and/or their respective constants) are not distinct enough which
+    //    causes overload resolution errors.
+    //
+    ifdstream (const char*,
+               openmode,
+               iostate /*= badbit | failbit*/);
+
+    ifdstream (const std::string&,
+               openmode,
+               iostate /*= badbit | failbit*/);
+
+    ifdstream (const path&,
+               openmode,
+               iostate /*= badbit | failbit*/);
 
     ifdstream (const char*,
                fdopen_mode,
-               iostate e = badbit | failbit);
+               iostate = badbit | failbit);
 
     ifdstream (const std::string&,
                fdopen_mode,
-               iostate e = badbit | failbit);
+               iostate = badbit | failbit);
 
     ifdstream (const path&,
                fdopen_mode,
-               iostate e = badbit | failbit);
+               iostate = badbit | failbit);
 
     ~ifdstream () override;
 
@@ -548,44 +561,57 @@ LIBBUTL_MODEXPORT namespace butl
     // Create an unopened object.
     //
     explicit
-    ofdstream (iostate e = badbit | failbit);
+    ofdstream (iostate = badbit | failbit);
 
     explicit
     ofdstream (auto_fd&&,
-               iostate e = badbit | failbit,
+               iostate = badbit | failbit,
                std::uint64_t pos = 0);
 
     ofdstream (auto_fd&&,
                fdstream_mode m,
-               iostate e = badbit | failbit,
+               iostate = badbit | failbit,
                std::uint64_t pos = 0);
 
     explicit
     ofdstream (const char*,
-               openmode = out,
-               iostate e = badbit | failbit);
+               iostate = badbit | failbit);
 
     explicit
     ofdstream (const std::string&,
-               openmode = out,
-               iostate e = badbit | failbit);
+               iostate = badbit | failbit);
 
     explicit
     ofdstream (const path&,
-               openmode = out,
-               iostate e = badbit | failbit);
+               iostate = badbit | failbit);
+
+    // @@ In some implementations (for example, MSVC), iostate and openmode
+    //    (and/or their respective constants) are not distinct enough which
+    //    causes overload resolution errors.
+    //
+    ofdstream (const char*,
+               openmode,
+               iostate /*= badbit | failbit*/);
+
+    ofdstream (const std::string&,
+               openmode,
+               iostate /*= badbit | failbit*/);
+
+    ofdstream (const path&,
+               openmode,
+               iostate /*= badbit | failbit*/);
 
     ofdstream (const char*,
                fdopen_mode,
-               iostate e = badbit | failbit);
+               iostate = badbit | failbit);
 
     ofdstream (const std::string&,
                fdopen_mode,
-               iostate e = badbit | failbit);
+               iostate = badbit | failbit);
 
     ofdstream (const path&,
                fdopen_mode,
-               iostate e = badbit | failbit);
+               iostate = badbit | failbit);
 
     ~ofdstream () override;
 

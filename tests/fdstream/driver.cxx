@@ -92,7 +92,7 @@ static duration
 write_time (const path& p, const T& s, size_t n)
 {
   timestamp t (system_clock::now ());
-  S os (p.string (), ofstream::out);
+  S os (p.string ());
   os.exceptions (S::failbit | S::badbit);
 
   for (size_t i (0); i < n; ++i)
@@ -114,7 +114,7 @@ read_time (const path& p, const T& s, size_t n)
   vector<T> v (n);
 
   timestamp t (system_clock::now ());
-  S is (p.string (), ofstream::in);
+  S is (p.string ());
   is.exceptions (S::failbit | S::badbit);
 
   for (auto& ve: v)
@@ -701,7 +701,7 @@ main (int argc, const char* argv[])
   // Seek for read in the binary mode.
   //
   {
-    ifdstream is (f, ios::binary);
+    ifdstream is (f, fdopen_mode::binary);
 
     char c;
     is.get (c);

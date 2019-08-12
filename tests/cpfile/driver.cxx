@@ -36,7 +36,7 @@ static const char text3[] = "XAB\r\n9";
 static string
 from_file (const path& f)
 {
-  ifdstream ifs (f, ios::binary);
+  ifdstream ifs (f, fdopen_mode::binary);
   string s (ifs.read_text ());
   ifs.close (); // Not to miss failed close of the underlying file descriptor.
   return s;
@@ -45,7 +45,7 @@ from_file (const path& f)
 static void
 to_file (const path& f, const char* s)
 {
-  ofdstream ofs (f, ios::binary);
+  ofdstream ofs (f, fdopen_mode::binary);
   ofs << s;
   ofs.close ();
 }
