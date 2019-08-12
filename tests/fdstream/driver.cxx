@@ -416,7 +416,7 @@ main (int argc, const char* argv[])
   // program.
   //
   {
-    ofdstream ofs (f, fdopen_mode::out, ofdstream::badbit);
+    ofdstream ofs (f, ofdstream::badbit);
     ofs.clear (ofdstream::failbit);
   }
 
