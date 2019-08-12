@@ -205,12 +205,12 @@ main (int argc, const char* argv[])
 
   // Read from the newly created empty file.
   //
-  assert (from_file (f, fdopen_mode::create) == "");
+  assert (from_file (f, fdopen_mode::in | fdopen_mode::create) == "");
   assert (try_rmfile (f) == rmfile_status::success);
 
   // Read from the newly created non-empty file.
   //
-  to_file (f, text1, fdopen_mode::create);
+  to_file (f, text1, fdopen_mode::out | fdopen_mode::create);
   assert (from_file (f) == text1);
 
   // Check that skip on close as requested.
@@ -241,18 +241,19 @@ main (int argc, const char* argv[])
 
   // Read from the file opened in R/W mode.
   //
-  assert (from_file (f, fdopen_mode::out) == text1);
+  assert (from_file (f, fdopen_mode::in | fdopen_mode::out) == text1);
 
   // Read starting from the file's end.
   //
-  assert (from_file (f, fdopen_mode::at_end) == "");
+  assert (from_file (f, fdopen_mode::in | fdopen_mode::at_end) == "");
 
   try
   {
     // Fail to create if the file already exists.
     //
-    fdopen (f,
-            fdopen_mode::out | fdopen_mode::create | fdopen_mode::exclusive);
+    fdopen (f, (fdopen_mode::out    |
+                fdopen_mode::create |
+                fdopen_mode::exclusive));
 
     assert (false);
   }
@@ -262,7 +263,7 @@ main (int argc, const char* argv[])
 
   // Write text2 over text1.
   //
-  to_file (f, text2);
+  to_file (f, text2, fdopen_mode::out);
   string s (text2);
   s += string (text1, text2.size ());
   assert (from_file (f) == s);
@@ -273,19 +274,19 @@ main (int argc, const char* argv[])
 
   // Append to the file.
   //
-  to_file (f, text1, fdopen_mode::truncate);
-  to_file (f, text2, fdopen_mode::append);
+  to_file (f, text1, fdopen_mode::out | fdopen_mode::truncate);
+  to_file (f, text2, fdopen_mode::out | fdopen_mode::append);
   assert (from_file (f) == text1 + text2);
 
   // Append to the file with the yet another way.
   //
-  to_file (f, text1, fdopen_mode::truncate);
-  to_file (f, text2, fdopen_mode::at_end);
+  to_file (f, text1, fdopen_mode::out | fdopen_mode::truncate);
+  to_file (f, text2, fdopen_mode::out | fdopen_mode::at_end);
   assert (from_file (f) == text1 + text2);
 
   // Check creating unopened ifdstream with a non-default exception mask.
   //
-  to_file (f, "", fdopen_mode::truncate);
+  to_file (f, "", fdopen_mode::out | fdopen_mode::truncate);
 
   {
     ifdstream ifs (ifdstream::badbit);
@@ -428,8 +429,9 @@ main (int argc, const char* argv[])
 
   try
   {
-    fdopen (
-      link, fdopen_mode::out | fdopen_mode::create | fdopen_mode::exclusive);
+    fdopen (link, (fdopen_mode::out    |
+                   fdopen_mode::create |
+                   fdopen_mode::exclusive));
 
     assert (false);
   }
@@ -441,10 +443,12 @@ main (int argc, const char* argv[])
 
   // Check translation modes.
   //
-  to_file (f, text1, fdopen_mode::truncate);
+  to_file (f, text1, fdopen_mode::out | fdopen_mode::truncate);
   assert (from_file (f, fdopen_mode::binary) == text3);
 
-  to_file (f, text3, fdopen_mode::truncate | fdopen_mode::binary);
+  to_file (f, text3, (fdopen_mode::out      |
+                      fdopen_mode::truncate |
+                      fdopen_mode::binary));
   assert (from_file (f) == text1);
 
 #endif
@@ -538,7 +542,7 @@ main (int argc, const char* argv[])
   // Seek for read.
   //
   {
-    to_file (f, "012\n3\n4567", fdopen_mode::truncate);
+    to_file (f, "012\n3\n4567", fdopen_mode::out | fdopen_mode::truncate);
 
     ifdstream is (f);
 
@@ -576,7 +580,7 @@ main (int argc, const char* argv[])
   {
     // Let's test replacing the '3' fragment with 'XYZ' in the following file.
     //
-    to_file (f, "012\n3\n4567", fdopen_mode::truncate);
+    to_file (f, "012\n3\n4567", fdopen_mode::out | fdopen_mode::truncate);
 
     auto_fd fd;
     string suffix;
@@ -625,7 +629,7 @@ main (int argc, const char* argv[])
 
   // Test setting and getting position via the standard [io]stream interface.
   //
-  to_file (f, "0123456789", fdopen_mode::truncate);
+  to_file (f, "0123456789", fdopen_mode::out | fdopen_mode::truncate);
 
   // Seek for read.
   //
@@ -677,7 +681,7 @@ main (int argc, const char* argv[])
   // Save the string in the text mode, so the newline character is translated
   // into the 0xD, 0xA character sequence on Windows.
   //
-  to_file (f, "01234\n56789", fdopen_mode::truncate);
+  to_file (f, "01234\n56789", fdopen_mode::out | fdopen_mode::truncate);
 
   // Seek for read in the text mode.
   //
@@ -726,7 +730,9 @@ main (int argc, const char* argv[])
   //
 #if 0
 
-  to_file (f, "012\r\n3\n4567", fdopen_mode::truncate | fdopen_mode::binary);
+  to_file (f, "012\r\n3\n4567", (fdopen_mode::out      |
+                                 fdopen_mode::truncate |
+                                 fdopen_mode::binary));
 
   {
     ifstream is (f.string ());
