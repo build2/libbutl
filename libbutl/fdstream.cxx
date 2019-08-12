@@ -791,7 +791,15 @@ namespace butl
 
   ifdstream::
   ifdstream (const char* f, fdopen_mode m, iostate e)
-      : ifdstream (fdopen (f, m | fdopen_mode::in), e)
+      : ifdstream (
+          fdopen (f,
+                  // If fdopen_mode::in is not specified, then emulate the
+                  // ios::in semantics.
+                  //
+                  (m & fdopen_mode::in) == fdopen_mode::in
+                  ? m
+                  : m | translate_mode (in)),
+          e)
   {
   }
 
@@ -892,7 +900,15 @@ namespace butl
 
   ofdstream::
   ofdstream (const char* f, fdopen_mode m, iostate e)
-      : ofdstream (fdopen (f, m | fdopen_mode::out), e)
+      : ofdstream (
+          fdopen (f,
+                  // If fdopen_mode::out is not specified, then emulate the
+                  // ios::out semantics.
+                  //
+                  (m & fdopen_mode::out) == fdopen_mode::out
+                  ? m
+                  : m | translate_mode (out)),
+          e)
   {
   }
 
