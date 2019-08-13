@@ -150,9 +150,11 @@ main (int argc, const char* argv[])
   // Load and print the default options.
   //
   default_options<options> def_ops (
-    load_default_options<options, scanner, unknow_mode> (sys_dir,
-                                                         home_dir,
-                                                         fs));
+    load_default_options<options, scanner, unknow_mode> (
+      sys_dir,
+      home_dir,
+      fs,
+      [] (const path&, bool) {}));
 
   if (print_entries)
   {

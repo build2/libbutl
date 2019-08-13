@@ -7,7 +7,7 @@
 #endif
 
 #ifndef __cpp_lib_modules_ts
-#include <utility> // move()
+#include <utility> // move(), forward()
 #endif
 
 // Other includes.
@@ -58,6 +58,11 @@ LIBBUTL_MODEXPORT namespace butl
   // Search for and load (using scanner S and parsing in the U::fail mode for
   // both options and arguments) the specified list of options files in the
   // specified directories returning a vector of option class instances (O).
+  // Pass each default options file path to the specified function prior to
+  // load (can be used for tracing, etc). The function signature is:
+  //
+  // void (const path&, bool remote)
+  //
   // Throw std::system_error on the underlying OS error and pass through
   // exceptions thrown by the options scanner/parser.
   //
@@ -80,11 +85,12 @@ LIBBUTL_MODEXPORT namespace butl
   // sufficient ground to definititevly conclude that the file is not remote;
   // to be sure we would need to query the VCS or some such).
   //
-  template <typename O, typename S, typename U>
+  template <typename O, typename S, typename U, typename F>
   default_options<O>
   load_default_options (const optional<dir_path>& sys_dir,
                         const optional<dir_path>& home_dir,
-                        const default_options_files&);
+                        const default_options_files&,
+                        F&&);
 
   // Merge the default options and the command line options.
   //
@@ -112,4 +118,5 @@ LIBBUTL_MODEXPORT namespace butl
   merge_default_options (const default_options<O>&, const O&, F&&);
 }
 
+#include <libbutl/default-options.ixx>
 #include <libbutl/default-options.txx>
