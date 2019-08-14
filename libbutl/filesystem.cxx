@@ -671,6 +671,62 @@ namespace butl
   }
 #endif
 
+  entry_type
+  mkanylink (const path& target, const path& link, bool copy, bool rel)
+  {
+    using error = pair<entry_type, system_error>;
+
+    try
+    {
+      mksymlink (rel ? target.relative (link.directory ()) : target, link);
+      return entry_type::symlink;
+    }
+    catch (system_error& e)
+    {
+      // Note that we are not guaranteed (here and below) that the
+      // system_error exception is of the generic category.
+      //
+      if (e.code ().category () == generic_category ())
+      {
+        int c (e.code ().value ());
+        if (c == ENOSYS || // Not implemented.
+            c == EPERM)    // Not supported by the filesystem(s).
+        {
+          try
+          {
+            mkhardlink (target, link);
+            return entry_type::other;
+          }
+          catch (system_error& e)
+          {
+            if (copy && e.code ().category () == generic_category ())
+            {
+              int c (e.code ().value ());
+              if (c == ENOSYS || // Not implemented.
+                  c == EPERM  || // Not supported by the filesystem(s).
+                  c == EXDEV)    // On different filesystems.
+              {
+                try
+                {
+                  cpfile (target, link);
+                  return entry_type::regular;
+                }
+                catch (system_error& e)
+                {
+                  throw error (entry_type::regular, move (e));
+                }
+              }
+            }
+
+            throw error (entry_type::other, move (e));
+          }
+        }
+      }
+
+      throw error (entry_type::symlink, move (e));
+    }
+  }
+
   // For I/O operations cpfile() can throw ios_base::failure exception that is
   // not derived from system_error for old versions of g++ (as of 4.9). From
   // the other hand cpfile() must throw system_error only. Let's catch

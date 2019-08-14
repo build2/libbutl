@@ -289,8 +289,8 @@ LIBBUTL_MODEXPORT namespace butl
   // Create a hard link to a file (default) or directory (third argument is
   // true). Throw std::system_error on failures.
   //
-  // Note that on Linix, FreeBSD, Windows and some other platforms the target
-  // can not be a directory.
+  // Note that on Linux, FreeBSD, Windows and some other platforms the target
+  // cannot be a directory.
   //
   LIBBUTL_SYMEXPORT void
   mkhardlink (const path& target, const path& link, bool dir = false);
@@ -302,6 +302,23 @@ LIBBUTL_MODEXPORT namespace butl
   {
     mkhardlink (target, link, true /* dir */);
   }
+
+  // Make a symlink, hardlink, or, if `copy` is true, a copy of a file (note:
+  // no directories, only files), whichever is possible in that order. If
+  // `relative` is true, then make the symlink target relative to the link
+  // directory (note: it is the caller's responsibility to make sure this is
+  // possible).
+  //
+  // On success, return the type of entry created: `regular` for copy,
+  // `symlink` for symlink, and `other` for hardlink. On failure, throw a
+  // `pair<entry_type, system_error>` with the first half indicating the part
+  // of the logic that caused the error.
+  //
+  LIBBUTL_SYMEXPORT entry_type
+  mkanylink (const path& target,
+             const path& link,
+             bool copy,
+             bool relative = false);
 
   // File copy flags.
   //
