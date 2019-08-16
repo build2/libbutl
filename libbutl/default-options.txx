@@ -4,6 +4,17 @@
 
 LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 {
+  inline bool
+  options_dir_exists (const dir_path& d)
+  try
+  {
+    return dir_exists (d);
+  }
+  catch (std::system_error& e)
+  {
+    throw std::make_pair (path_cast<path> (d), std::move (e));
+  }
+
   // Search for and parse the options files in the specified directory and
   // its local/ subdirectory, if exists, and append the options to the
   // resulting list.
@@ -33,22 +44,31 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
       {
         path p (d / f);
 
-        if (file_exists (p)) // Follows symlinks.
+        try
         {
-          fn (p, remote);
+          if (file_exists (p)) // Follows symlinks.
+          {
+            fn (p, remote);
 
-          S s (p.string ());
+            S s (p.string ());
 
-          // @@ Note that the potentially thrown exceptions (unknown option,
-          //    unexpected argument, etc) will not contain any location
-          //    information. Intercepting exception handling to add the file
-          //    attribution feels too hairy for now. Maybe we should support
-          //    this in CLI.
-          //
-          O o;
-          o.parse (s, U::fail, U::fail);
+            // @@ Note that the potentially thrown exceptions (unknown option,
+            //    unexpected argument, etc) will not contain any location
+            //    information. Intercepting exception handling to add the file
+            //    attribution feels too hairy for now. Maybe we should support
+            //    this in CLI.
+            //
+            O o;
+            o.parse (s, U::fail, U::fail);
 
-          r.push_back (default_options_entry<O> {move (p), move (o), remote});
+            r.push_back (default_options_entry<O> {move (p),
+                                                   move (o),
+                                                   remote});
+          }
+        }
+        catch (std::system_error& e)
+        {
+          throw std::make_pair (move (p), std::move (e));
         }
       }
     };
@@ -57,7 +77,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
     dir_path ld (d / dir_path ("local"));
 
-    if (dir_exists (ld))
+    if (options_dir_exists (ld))
       load (ld, remote);
   }
 
@@ -78,15 +98,23 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
       return false;
 
     bool remote (load_default_options_files<O, S, U> (start_dir.directory (),
-                                                     home_dir,
-                                                     fs,
-                                                     std::forward<F> (fn),
-                                                     r) ||
-                 git_repository (start_dir));
+                                                      home_dir,
+                                                      fs,
+                                                      std::forward<F> (fn),
+                                                      r));
+    if (!remote)
+    try
+    {
+      remote = git_repository (start_dir);
+    }
+    catch (std::system_error& e)
+    {
+      throw std::make_pair (start_dir / ".git", std::move (e));
+    }
 
     dir_path d (start_dir / dir_path (".build2"));
 
-    if (dir_exists (d))
+    if (options_dir_exists (d))
       load_default_options_files<O, S, U> (d,
                                            remote,
                                            fs,
@@ -109,7 +137,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     {
       assert (sys_dir->absolute () && sys_dir->normalized ());
 
-      if (dir_exists (*sys_dir))
+      if (options_dir_exists (*sys_dir))
         load_default_options_files<O, S, U> (*sys_dir,
                                              false /* remote */,
                                              ofs.files,
@@ -123,7 +151,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
       dir_path d (*home_dir / dir_path (".build2"));
 
-      if (dir_exists (d))
+      if (options_dir_exists (d))
         load_default_options_files<O, S, U> (d,
                                              false /* remote */,
                                              ofs.files,

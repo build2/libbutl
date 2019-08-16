@@ -7,7 +7,8 @@
 #endif
 
 #ifndef __cpp_lib_modules_ts
-#include <utility> // move(), forward()
+#include <utility>      // move(), forward(), make_pair()
+#include <system_error>
 #endif
 
 // Other includes.
@@ -63,8 +64,9 @@ LIBBUTL_MODEXPORT namespace butl
   //
   // void (const path&, bool remote)
   //
-  // Throw std::system_error on the underlying OS error and pass through
-  // exceptions thrown by the options scanner/parser.
+  // Throw `pair<path, system_error>` on the underlying OS error with the
+  // first half referring the filesystem entry the error relates to and pass
+  // through exceptions thrown by the options scanner/parser.
   //
   // Search order:
   //

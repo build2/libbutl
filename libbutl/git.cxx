@@ -50,6 +50,9 @@ namespace butl
     // .git can be either a directory or a file in case of a submodule or a
     // separate working tree.
     //
+    // NOTE: remember to update load_default_options_files() if changing
+    // anything here!
+    //
     return entry_exists (d / ".git",
                          true /* follow_symlinks */,
                          true /* ignore_errors   */);
