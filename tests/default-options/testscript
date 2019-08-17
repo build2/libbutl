@@ -9,43 +9,46 @@
   exit
 end
 
-sys_dir = $canonicalize([dir_path] $~/build2)
-+mkdir -p $sys_dir/local
-
-+echo 'sys-foo' >=$sys_dir/foo
-+echo 'sys-bar' >=$sys_dir/bar
-+echo 'sys-local-foo' >=$sys_dir/local/foo
-+echo 'sys-local-bar' >=$sys_dir/local/bar
-
-home_dir = $canonicalize([dir_path] $~/home)
-+mkdir -p $home_dir/.build2/local/
-
-+echo 'home-foo'       >=$home_dir/.build2/foo
-+echo 'home-bar'       >=$home_dir/.build2/bar
-+echo 'home-local-foo' >=$home_dir/.build2/local/foo
-+echo 'home-local-bar' >=$home_dir/.build2/local/bar
-
-: in-home
+: basic
 :
 {
-  d = $home_dir/work/.build2
-  +mkdir -p $d/local/
+  sys_dir = $canonicalize([dir_path] $~/build2)
+  +mkdir -p $sys_dir/local
+
+  +echo 'sys-foo' >=$sys_dir/foo
+  +echo 'sys-bar' >=$sys_dir/bar
+  +echo 'sys-local-foo' >=$sys_dir/local/foo
+  +echo 'sys-local-bar' >=$sys_dir/local/bar
+
+  home_dir = $canonicalize([dir_path] $~/home)
+  +mkdir -p $home_dir/.build2/local/
+
+  +echo 'home-foo'       >=$home_dir/.build2/foo
+  +echo 'home-bar'       >=$home_dir/.build2/bar
+  +echo 'home-local-foo' >=$home_dir/.build2/local/foo
+  +echo 'home-local-bar' >=$home_dir/.build2/local/bar
+
+  work_dir = $home_dir/work
+  +mkdir -p $work_dir/.build2/local/
+
+  d = $work_dir/.build2
 
   +echo 'work-foo'       >=$d/foo
   +echo 'work-bar'       >=$d/bar
   +echo 'work-local-foo' >=$d/local/foo
   +echo 'work-local-bar' >=$d/local/bar
 
-  d = $home_dir/work/project/.build2
+  d = $work_dir/project/.build2
   +mkdir -p $d/local/
-  +touch $home_dir/work/project/.git
+
+  +touch $work_dir/project/.git
 
   +echo 'project-foo'       >=$d/foo
   +echo 'project-bar'       >=$d/bar
   +echo 'project-local-foo' >=$d/local/foo
   +echo 'project-local-bar' >=$d/local/bar
 
-  d = $home_dir/work/project/package/.build2
+  d = $work_dir/project/package/.build2
   +mkdir -p $d/local/
 
   +echo 'package-foo'       >=$d/foo
@@ -53,11 +56,13 @@ home_dir = $canonicalize([dir_path] $~/home)
   +echo 'package-local-foo' >=$d/local/foo
   +echo 'package-local-bar' >=$d/local/bar
 
-  start_dir = $canonicalize([dir_path] $home_dir/work/project/package)
+  +echo '--no-default-options' >=$d/local/baz
+
+  start_dir = $canonicalize([dir_path] $work_dir/project/package)
 
   : entries
   :
-  $* -e -f foo -f bar -d $start_dir -s $sys_dir -h $home_dir cmd-foo cmd-bar >>/~%EOO%d
+  $* -e -t -f foo -f bar -d $start_dir -s $sys_dir -h $home_dir >>/~%EOO%d 2>>/~%EOE%d
     %\.+/build2/foo,sys-foo,false%
     %\.+/build2/bar,sys-bar,false%
     %\.+/build2/local/foo,sys-local-foo,false%
@@ -79,6 +84,31 @@ home_dir = $canonicalize([dir_path] $~/home)
     %\.+/home/work/project/package/.build2/local/foo,package-local-foo,true%
     %\.+/home/work/project/package/.build2/local/bar,package-local-bar,true%
     EOO
+    %loading local \.+/home/work/project/package/.build2/local/bar%
+    %loading local \.+/home/work/project/package/.build2/local/foo%
+    %loading local \.+/home/work/project/package/.build2/bar%
+    %loading local \.+/home/work/project/package/.build2/foo%
+    %overwriting remote \.+/home/work/project/package/.build2/local/bar%
+    %overwriting remote \.+/home/work/project/package/.build2/local/foo%
+    %overwriting remote \.+/home/work/project/package/.build2/bar%
+    %overwriting remote \.+/home/work/project/package/.build2/foo%
+    %loading remote \.+/home/work/project/.build2/local/bar%
+    %loading remote \.+/home/work/project/.build2/local/foo%
+    %loading remote \.+/home/work/project/.build2/bar%
+    %loading remote \.+/home/work/project/.build2/foo%
+    %loading local \.+/home/work/.build2/local/bar%
+    %loading local \.+/home/work/.build2/local/foo%
+    %loading local \.+/home/work/.build2/bar%
+    %loading local \.+/home/work/.build2/foo%
+    %loading local \.+/home/.build2/local/bar%
+    %loading local \.+/home/.build2/local/foo%
+    %loading local \.+/home/.build2/bar%
+    %loading local \.+/home/.build2/foo%
+    %loading local \.+/build2/local/bar%
+    %loading local \.+/build2/local/foo%
+    %loading local \.+/build2/bar%
+    %loading local \.+/build2/foo%
+    EOE
 
   : merged
   :
@@ -106,4 +136,88 @@ home_dir = $canonicalize([dir_path] $~/home)
     cmd-foo
     cmd-bar
     EOO
+
+  : no-default-options
+  :
+  $* -e -t -f foo -f baz -f bar -d $start_dir -s $sys_dir -h $home_dir >>/~%EOO%d 2>>/~%EOE%d
+    %\.+/home/work/project/package/.build2/local/foo,package-local-foo,true%
+    %\.+/home/work/project/package/.build2/local/baz,--no-default-options,true%
+    %\.+/home/work/project/package/.build2/local/bar,package-local-bar,true%
+    EOO
+    %loading local \.+/home/work/project/package/.build2/local/bar%
+    %loading local \.+/home/work/project/package/.build2/local/baz%
+    %loading local \.+/home/work/project/package/.build2/local/foo%
+    %overwriting remote \.+/home/work/project/package/.build2/local/bar%
+    %overwriting remote \.+/home/work/project/package/.build2/local/baz%
+    %overwriting remote \.+/home/work/project/package/.build2/local/foo%
+    EOE
+}
+
+: common-start
+:
+{
+  home_dir = $canonicalize([dir_path] $~/home)
+
+  work_dir = $home_dir/work
+  +mkdir -p $work_dir/.build2
+
+  cfg1 = $canonicalize([dir_path] $work_dir/cfg1)
+  cfg2 = $canonicalize([dir_path] $work_dir/cfg2)
+  cfg3 = $canonicalize([dir_path] $cfg2/cfg3)
+
+  +mkdir -p $work_dir/.build2 $cfg1/.build2 $cfg2/.build2 $cfg3/.build2
+
+  +echo 'work' >=$work_dir/.build2/cfg
+  +echo 'cfg1' >=$cfg1/.build2/cfg
+  +echo 'cfg2' >=$cfg2/.build2/cfg
+  +echo 'cfg3' >=$cfg3/.build2/cfg
+
+  : exists
+  :
+  {
+    : single
+    :
+    $* -f cfg -d $cfg3 -h $home_dir >>EOO
+      work
+      cfg2
+      cfg3
+      EOO
+
+    : same
+    :
+    $* -f cfg -d $cfg1 -d $cfg1 -h $home_dir >>EOO
+      work
+      cfg1
+      EOO
+
+    : adjacent
+    :
+    $* -f cfg -d $cfg1 -d $cfg2 -h $home_dir >>EOO
+      work
+      EOO
+
+    : nested
+    :
+    $* -f cfg -d $cfg2 -d $cfg3 -h $home_dir >>EOO
+      work
+      cfg2
+      EOO
+  }
+
+  : not-exists
+  :
+  {
+    : home-reached
+    :
+    $* -f cfg -d $cfg1 -d $cfg2 -h $work_dir >>EOO
+      work
+      EOO
+
+    : root-reached
+    :
+    if ($cxx.target.class != 'windows')
+    {
+      $* -f cfg -d $cfg1 -d /non-existent-directory/cfg2
+    }
+  }
 }

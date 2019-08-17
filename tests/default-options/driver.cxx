@@ -45,7 +45,9 @@ using namespace butl;
 //    Default options file name. Can be specified multiple times.
 //
 // -d
-//    Directory to start the default options files search from.
+//    Directory to start the default options files search from. Can be
+//    specified multiple times, in which case a common start (parent)
+//    directory is deduced.
 //
 // -s
 //    System directory.
@@ -58,6 +60,9 @@ using namespace butl;
 //    STDOUT one per line in the following format:
 //
 //    <file>,<space-separated-options>,<remote>
+//
+// -t
+//    Trace the default options files search to STDERR.
 //
 int
 main (int argc, const char* argv[])
@@ -94,6 +99,9 @@ main (int argc, const char* argv[])
       bool r (false);
       while (optional<string> o = s.next ())
       {
+        if (*o == "--no-default-options")
+          no_default_options_ = true;
+
         push_back (move (*o));
         r = true;
       }
@@ -105,6 +113,15 @@ main (int argc, const char* argv[])
     {
       insert (end (), o.begin (), o.end ());
     }
+
+    bool
+    no_default_options () const noexcept
+    {
+      return no_default_options_;
+    }
+
+  private:
+    bool no_default_options_ = false;
   };
 
   // Parse and validate the arguments.
@@ -112,8 +129,10 @@ main (int argc, const char* argv[])
   default_options_files fs;
   optional<dir_path> sys_dir;
   optional<dir_path> home_dir;
+  vector<dir_path> dirs;
   options cmd_ops;
   bool print_entries (false);
+  bool trace (false);
 
   for (int i (1); i != argc; ++i)
   {
@@ -127,7 +146,7 @@ main (int argc, const char* argv[])
     else if (op == "-d")
     {
       assert (++i != argc);
-      fs.start_dir = dir_path (argv[i]);
+      dirs.emplace_back (argv[i]);
     }
     else if (op == "-s")
     {
@@ -143,9 +162,17 @@ main (int argc, const char* argv[])
     {
       print_entries = true;
     }
+    else if (op == "-t")
+    {
+      trace = true;
+    }
     else
       cmd_ops.push_back (argv[i]);
   }
+
+  // Deduce a common start directory.
+  //
+  fs.start = default_options_start (home_dir, dirs);
 
   // Load and print the default options.
   //
@@ -154,7 +181,12 @@ main (int argc, const char* argv[])
       sys_dir,
       home_dir,
       fs,
-      [] (const path&, bool) {}));
+      [trace] (const path& f, bool remote, bool overwrite)
+      {
+        if (trace)
+          cerr << (overwrite ? "overwriting " : "loading ")
+               << (remote ? "remote " : "local ") << f << endl;
+      }));
 
   if (print_entries)
   {

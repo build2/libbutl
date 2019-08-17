@@ -63,7 +63,12 @@ try
 
   cout.exceptions (ios::failbit | ios::badbit);
 
-  b_project_info pi (b_info (project, 1 /* verb */, {}, b));
+  b_project_info pi (b_info (project,
+                             1 /* verb */,
+                             {} /* cmd_callback */,
+                             b,
+                             {} /* search_fallback */,
+                             {"--no-default-options"}));
 
   cout << "project: "      << pi.project                        << endl
        << "version: "      << pi.version                        << endl

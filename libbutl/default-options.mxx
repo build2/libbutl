@@ -7,7 +7,10 @@
 #endif
 
 #ifndef __cpp_lib_modules_ts
+#include <vector>
+
 #include <utility>      // move(), forward(), make_pair()
+#include <algorithm>    // reverse()
 #include <system_error>
 #endif
 
@@ -42,7 +45,7 @@ LIBBUTL_MODEXPORT namespace butl
   struct default_options_files
   {
     small_vector<path, 2> files;
-    optional<dir_path>    start_dir;
+    optional<dir_path>    start;
   };
 
   template <typename O>
@@ -62,7 +65,11 @@ LIBBUTL_MODEXPORT namespace butl
   // Pass each default options file path to the specified function prior to
   // load (can be used for tracing, etc). The function signature is:
   //
-  // void (const path&, bool remote)
+  // void (const path&, bool remote, bool overwrite)
+  //
+  // Note that the function may be called for the same file twice if it was
+  // later discovered that it is in fact remote. In the second call the
+  // overwrite flag will be true.
   //
   // Throw `pair<path, system_error>` on the underlying OS error with the
   // first half referring the filesystem entry the error relates to and pass
@@ -78,13 +85,16 @@ LIBBUTL_MODEXPORT namespace butl
   // .build2/local/ subdirectories of each directory. For sys_dir they are
   // looked for in the directory itself (e.g., /etc/build2/).
   //
-  // Note that all the directories should be absolute and normalized.
+  // Note that the search is stopped at the directory containing a file with
+  // --no-default-options.
+  //
+  // Also note that all the directories should be absolute and normalized.
   //
   // The presence of the .git filesystem entry causes the options files in
   // this directory and any of its subdirectories to be considered remote
   // (note that in the current implementation this is the case even for files
   // from the .build2/local/ subdirectory since the mere location is not a
-  // sufficient ground to definititevly conclude that the file is not remote;
+  // sufficient ground to definitively conclude that the file is not remote;
   // to be sure we would need to query the VCS or some such).
   //
   template <typename O, typename S, typename U, typename F>
@@ -118,6 +128,13 @@ LIBBUTL_MODEXPORT namespace butl
   template <typename O, typename F>
   O
   merge_default_options (const default_options<O>&, const O&, F&&);
+
+  // Find a common start (parent) directory stopping at home or root
+  // (excluding).
+  //
+  LIBBUTL_SYMEXPORT optional<dir_path>
+  default_options_start (const optional<dir_path>& home_dir,
+                         const std::vector<dir_path>&);
 }
 
 #include <libbutl/default-options.ixx>

@@ -16,8 +16,9 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   }
 
   // Search for and parse the options files in the specified directory and
-  // its local/ subdirectory, if exists, and append the options to the
-  // resulting list.
+  // its local/ subdirectory, if exists, in the reverse order and append the
+  // options to the resulting list. Return false if --no-default-options is
+  // encountered.
   //
   // Note that we check for the local/ subdirectory even if we don't think it
   // belongs to the remote directory; the user may move things around or it
@@ -29,18 +30,20 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   // remote (see load_default_options() for details).
   //
   template <typename O, typename S, typename U, typename F>
-  void
+  bool
   load_default_options_files (const dir_path& d,
                               bool remote,
                               const small_vector<path, 2>& fs,
                               F&& fn,
-                              default_options<O>& r)
+                              default_options<O>& def_ops)
   {
-    auto load = [&fs, &fn, &r] (const dir_path& d, bool remote)
+    bool r (true);
+
+    auto load = [&fs, &fn, &def_ops, &r] (const dir_path& d, bool remote)
     {
       using namespace std;
 
-      for (const path& f: fs)
+      for (const path& f: reverse_iterate (fs))
       {
         path p (d / f);
 
@@ -48,7 +51,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
         {
           if (file_exists (p)) // Follows symlinks.
           {
-            fn (p, remote);
+            fn (p, remote, false /* overwrite */);
 
             S s (p.string ());
 
@@ -61,9 +64,12 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
             O o;
             o.parse (s, U::fail, U::fail);
 
-            r.push_back (default_options_entry<O> {move (p),
-                                                   move (o),
-                                                   remote});
+            if (o.no_default_options ())
+              r = false;
+
+            def_ops.push_back (default_options_entry<O> {move (p),
+                                                         move (o),
+                                                         remote});
           }
         }
         catch (std::system_error& e)
@@ -73,55 +79,18 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
       }
     };
 
-    load (d, remote);
-
     dir_path ld (d / dir_path ("local"));
 
     if (options_dir_exists (ld))
       load (ld, remote);
-  }
 
-  // Search for and parse the options files in the specified and outer
-  // directories until root/home directory (excluding) and append the options
-  // to the resulting list. Return true if the directory is "remote" (i.e.,
-  // belongs to a VCS repository).
-  //
-  template <typename O, typename S, typename U, typename F>
-  bool
-  load_default_options_files (const dir_path& start_dir,
-                              const optional<dir_path>& home_dir,
-                              const small_vector<path, 2>& fs,
-                              F&& fn,
-                              default_options<O>& r)
-  {
-    if (start_dir.root () || (home_dir && start_dir == *home_dir))
-      return false;
+    // Don't load options from .build2/ if --no-default-options is encountered
+    // in .build2/local/.
+    //
+    if (r)
+      load (d, remote);
 
-    bool remote (load_default_options_files<O, S, U> (start_dir.directory (),
-                                                      home_dir,
-                                                      fs,
-                                                      std::forward<F> (fn),
-                                                      r));
-    if (!remote)
-    try
-    {
-      remote = git_repository (start_dir);
-    }
-    catch (std::system_error& e)
-    {
-      throw std::make_pair (start_dir / ".git", std::move (e));
-    }
-
-    dir_path d (start_dir / dir_path (".build2"));
-
-    if (options_dir_exists (d))
-      load_default_options_files<O, S, U> (d,
-                                           remote,
-                                           fs,
-                                           std::forward<F> (fn),
-                                           r);
-
-    return remote;
+    return r;
   }
 
   template <typename O, typename S, typename U, typename F>
@@ -133,11 +102,101 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   {
     default_options<O> r;
 
+    // Search for and parse the options files in the specified and outer
+    // directories until root/home directory and in the system directory,
+    // stopping if --no-default-options is encountered and reversing the
+    // resulting options entry list in the end.
+    //
+    bool load (true);
+
+    if (ofs.start)
+    {
+      assert (ofs.start->absolute () && ofs.start->normalized ());
+
+      for (dir_path d (*ofs.start);
+           !(d.root () || (home_dir && d == *home_dir));
+           d = d.directory ())
+      {
+        bool remote;
+
+        try
+        {
+          remote = git_repository (d);
+        }
+        catch (std::system_error& e)
+        {
+          throw std::make_pair (d / ".git", std::move (e));
+        }
+
+        // If the directory is remote, then mark all the previously collected
+        // local entries (that belong to its subdirectories) as remote too.
+        //
+        // @@ Note that currently the local/ subdirectory of a remote
+        //    directory is considered remote (see above for details). When
+        //    changing that, skip entries from directories with the `local`
+        //    name.
+        //
+        if (remote)
+        {
+          // We could optimize this, iterating in the reverse order until the
+          // fist remote entry. However, let's preserve the function calls
+          // order for entries being overwritten.
+          //
+          for (default_options_entry<O>& e: r)
+          {
+            if (!e.remote)
+            {
+              e.remote = true;
+
+              fn (e.file, true /* remote */, true /* overwrite */);
+            }
+          }
+        }
+
+        // If --no-default-options is encountered, then stop the files search
+        // but continue the directory traversal until the remote directory is
+        // encountered and, if that's the case, mark the already collected
+        // local entries as remote.
+        //
+        if (load)
+        {
+          dir_path od (d / dir_path (".build2"));
+
+          if (options_dir_exists (od))
+            load = load_default_options_files<O, S, U> (od,
+                                                        remote,
+                                                        ofs.files,
+                                                        std::forward<F> (fn),
+                                                        r);
+        }
+
+        if (!load && remote)
+          break;
+      }
+    }
+
+    if (home_dir)
+    {
+      assert (home_dir->absolute () && home_dir->normalized ());
+
+      if (load)
+      {
+        dir_path d (*home_dir / dir_path (".build2"));
+
+        if (options_dir_exists (d))
+          load = load_default_options_files<O, S, U> (d,
+                                                      false /* remote */,
+                                                      ofs.files,
+                                                      std::forward<F> (fn),
+                                                      r);
+      }
+    }
+
     if (sys_dir)
     {
       assert (sys_dir->absolute () && sys_dir->normalized ());
 
-      if (options_dir_exists (*sys_dir))
+      if (load && options_dir_exists (*sys_dir))
         load_default_options_files<O, S, U> (*sys_dir,
                                              false /* remote */,
                                              ofs.files,
@@ -145,30 +204,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
                                              r);
     }
 
-    if (home_dir)
-    {
-      assert (home_dir->absolute () && home_dir->normalized ());
-
-      dir_path d (*home_dir / dir_path (".build2"));
-
-      if (options_dir_exists (d))
-        load_default_options_files<O, S, U> (d,
-                                             false /* remote */,
-                                             ofs.files,
-                                             std::forward<F> (fn),
-                                             r);
-    }
-
-    if (ofs.start_dir)
-    {
-      assert (ofs.start_dir->absolute () && ofs.start_dir->normalized ());
-
-      load_default_options_files<O, S, U> (*ofs.start_dir,
-                                           home_dir,
-                                           ofs.files,
-                                           std::forward<F> (fn),
-                                           r);
-    }
+    std::reverse (r.begin (), r.end ());
 
     return r;
   }
