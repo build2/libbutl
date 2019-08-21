@@ -4,6 +4,7 @@
 
 #ifndef __cpp_lib_modules_ts
 #include <cstdlib> // getenv()
+#include <algorithm>
 #endif
 
 namespace butl
@@ -190,6 +191,30 @@ namespace butl
     for (e = b + 1; e != n && s[e] != d1 && s[e] != d2; ++e) ;
 
     return e - b;
+  }
+
+  inline std::string&
+  sanitize_identifier (std::string& s)
+  {
+    std::for_each (s.begin (), s.end (), [] (char& c)
+                   {
+                     if (!alnum (c) && c != '_')
+                       c = '_';
+                   });
+    return s;
+  }
+
+  inline std::string
+  sanitize_identifier (std::string&& s)
+  {
+    sanitize_identifier (s);
+    return std::move (s);
+  }
+
+  inline std::string
+  sanitize_identifier (const std::string& s)
+  {
+    return sanitize_identifier (std::string (s));
   }
 
   inline bool

@@ -186,6 +186,15 @@ LIBBUTL_MODEXPORT namespace butl
   next_word (const std::string&, std::size_t n, std::size_t& b, std::size_t& e,
              char d1 = ' ', char d2 = '\0');
 
+  // Sanitize a string to only contain characters valid in an identifier
+  // (ASCII alphanumeric plus `_`) replacing all others with `_`.
+  //
+  // Note that it doesn't make sure the first character is not a digit.
+  //
+  std::string& sanitize_identifier (std::string&);
+  std::string sanitize_identifier (std::string&&);
+  std::string sanitize_identifier (const std::string&);
+
   // If an input stream is in a failed state, then return true if this is
   // because of the eof and throw istream::failure otherwise. If the stream
   // is not in a failed state, return false. This helper function is normally
