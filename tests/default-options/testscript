@@ -167,17 +167,17 @@ end
 
   +mkdir -p $work_dir/.build2 $cfg1/.build2 $cfg2/.build2 $cfg3/.build2
 
-  +echo 'work' >=$work_dir/.build2/cfg
-  +echo 'cfg1' >=$cfg1/.build2/cfg
-  +echo 'cfg2' >=$cfg2/.build2/cfg
-  +echo 'cfg3' >=$cfg3/.build2/cfg
+  +echo 'work' >=$work_dir/.build2/ops
+  +echo 'cfg1' >=$cfg1/.build2/ops
+  +echo 'cfg2' >=$cfg2/.build2/ops
+  +echo 'cfg3' >=$cfg3/.build2/ops
 
   : exists
   :
   {
     : single
     :
-    $* -f cfg -d $cfg3 -h $home_dir >>EOO
+    $* -f ops -d $cfg3 -h $home_dir >>EOO
       work
       cfg2
       cfg3
@@ -185,20 +185,20 @@ end
 
     : same
     :
-    $* -f cfg -d $cfg1 -d $cfg1 -h $home_dir >>EOO
+    $* -f ops -d $cfg1 -d $cfg1 -h $home_dir >>EOO
       work
       cfg1
       EOO
 
     : adjacent
     :
-    $* -f cfg -d $cfg1 -d $cfg2 -h $home_dir >>EOO
+    $* -f ops -d $cfg1 -d $cfg2 -h $home_dir >>EOO
       work
       EOO
 
     : nested
     :
-    $* -f cfg -d $cfg2 -d $cfg3 -h $home_dir >>EOO
+    $* -f ops -d $cfg2 -d $cfg3 -h $home_dir >>EOO
       work
       cfg2
       EOO
@@ -209,7 +209,7 @@ end
   {
     : home-reached
     :
-    $* -f cfg -d $cfg1 -d $cfg2 -h $work_dir >>EOO
+    $* -f ops -d $cfg1 -d $cfg2 -h $work_dir >>EOO
       work
       EOO
 
@@ -217,7 +217,91 @@ end
     :
     if ($cxx.target.class != 'windows')
     {
-      $* -f cfg -d $cfg1 -d /non-existent-directory/cfg2
+      $* -f ops -d $cfg1 -d /non-existent-directory/cfg2
     }
+  }
+}
+
+: extra-dir
+:
+{
+  : after-traversal
+  :
+  {
+    home_dir = $canonicalize([dir_path] $~/home);
+    mkdir -p $home_dir/.build2;
+    echo 'home' >=$home_dir/.build2/ops;
+
+    extra_dir = $canonicalize([dir_path] $home_dir/extra);
+    mkdir -p $extra_dir;
+    echo 'extra' >=$extra_dir/ops;
+
+    start_dir = $canonicalize([dir_path] $home_dir/start);
+    mkdir -p $start_dir/.build2;
+    echo 'start' >=$start_dir/.build2/ops;
+
+    $* -e -f ops -d $start_dir -h $home_dir -x $extra_dir >>/~%EOO%d
+      %\.+/home/.build2/ops,home,false%
+      %\.+/home/extra/ops,extra,false%
+      %\.+/home/start/.build2/ops,start,false%
+      EOO
+  }
+
+  : inside-traversal
+  :
+  {
+    home_dir = $canonicalize([dir_path] $~/home);
+    mkdir -p $home_dir/.build2;
+    echo 'home' >=$home_dir/.build2/ops;
+
+    d = $home_dir/project/.build2;
+    mkdir -p $d;
+    echo 'project' >=$d/ops;
+
+    touch $home_dir/project/.git;
+
+    d = $home_dir/project/package/.build2;
+    mkdir -p $d;
+    echo 'package' >=$d/ops;
+
+    extra_dir = $canonicalize([dir_path] $home_dir/project/package/extra1);
+    mkdir -p $extra_dir;
+    echo 'extra1' >=$extra_dir/ops;
+
+    start_dir = $canonicalize([dir_path] $home_dir/project/package);
+
+    $* -e -f ops -d $start_dir -h $home_dir -x $extra_dir >>/~%EOO%d;
+      %\.+/home/.build2/ops,home,false%
+      %\.+/home/project/.build2/ops,project,true%
+      %\.+/home/project/package/.build2/ops,package,true%
+      %\.+/home/project/package/extra1/ops,extra1,false%
+      EOO
+
+    extra_dir = $canonicalize([dir_path] $home_dir/project/package/.build2);
+
+    $* -e -f ops -d $start_dir -h $home_dir -x $extra_dir/ >>/~%EOO%d;
+      %\.+/home/.build2/ops,home,false%
+      %\.+/home/project/.build2/ops,project,true%
+      %\.+/home/project/package/.build2/ops,package,false%
+      EOO
+
+    extra_dir = $canonicalize([dir_path] $home_dir/project/extra2);
+    mkdir -p $extra_dir;
+    echo 'extra2' >=$extra_dir/ops;
+
+    $* -e -f ops -d $start_dir -h $home_dir -x $extra_dir >>/~%EOO%d;
+      %\.+/home/.build2/ops,home,false%
+      %\.+/home/project/.build2/ops,project,true%
+      %\.+/home/project/extra2/ops,extra2,false%
+      %\.+/home/project/package/.build2/ops,package,true%
+      EOO
+
+    extra_dir = $canonicalize([dir_path] $home_dir/project/.build2);
+
+    $* -e -f ops -d $start_dir -h $home_dir -x $extra_dir/ >>/~%EOO%d
+      %\.+/home/.build2/ops,home,false%
+      %\.+/home/project/.build2/ops,project,false%
+      %\.+/home/project/package/.build2/ops,package,true%
+      EOO
   }
 }

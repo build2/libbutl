@@ -20,10 +20,10 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   // options to the resulting list. Return false if --no-default-options is
   // encountered.
   //
-  // Note that we check for the local/ subdirectory even if we don't think it
-  // belongs to the remote directory; the user may move things around or it
-  // could be a VCS we don't yet recognize and there doesn't seem to be any
-  // harm in doing so.
+  // Note that by default we check for the local/ subdirectory even if we
+  // don't think it belongs to the remote directory; the user may move things
+  // around or it could be a VCS we don't yet recognize and there doesn't seem
+  // to be any harm in doing so.
   //
   // Also note that if the directory is remote, then for now the options files
   // in both the directory itself and its local/ subdirectory are considered
@@ -35,8 +35,12 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
                               bool remote,
                               const small_vector<path, 2>& fs,
                               F&& fn,
-                              default_options<O>& def_ops)
+                              default_options<O>& def_ops,
+                              bool load_sub = true,
+                              bool load_dir = true)
   {
+    assert (load_sub || load_dir);
+
     bool r (true);
 
     auto load = [&fs, &fn, &def_ops, &r] (const dir_path& d, bool remote)
@@ -81,13 +85,13 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
     dir_path ld (d / dir_path ("local"));
 
-    if (options_dir_exists (ld))
+    if (load_sub && options_dir_exists (ld))
       load (ld, remote);
 
     // Don't load options from .build2/ if --no-default-options is encountered
     // in .build2/local/.
     //
-    if (r)
+    if (load_dir && r)
       load (d, remote);
 
     return r;
@@ -97,17 +101,32 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   default_options<O>
   load_default_options (const optional<dir_path>& sys_dir,
                         const optional<dir_path>& home_dir,
+                        const optional<dir_path>& extra_dir,
                         const default_options_files& ofs,
                         F&& fn)
   {
+    if (sys_dir)
+      assert (sys_dir->absolute () && sys_dir->normalized ());
+
+    if (home_dir)
+      assert (home_dir->absolute () && home_dir->normalized ());
+
+    if (extra_dir)
+      assert (extra_dir->absolute () && extra_dir->normalized ());
+
     default_options<O> r;
 
-    // Search for and parse the options files in the specified and outer
-    // directories until root/home directory and in the system directory,
-    // stopping if --no-default-options is encountered and reversing the
-    // resulting options entry list in the end.
+    // Search for and parse the options files in the start and outer
+    // directories until root/home directory and in the extra and system
+    // directories, stopping if --no-default-options is encountered and
+    // reversing the resulting options entry list in the end.
     //
-    bool load (true);
+    // Note that the extra directory is handled either during the start/outer
+    // directory traversal, if it turns out to be a subdirectory of any of the
+    // traversed directories, or right after.
+    //
+    bool load       (true);
+    bool load_extra (extra_dir && options_dir_exists (*extra_dir));
 
     if (ofs.start)
     {
@@ -129,7 +148,8 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
         }
 
         // If the directory is remote, then mark all the previously collected
-        // local entries (that belong to its subdirectories) as remote too.
+        // local entries (that belong to its subdirectories but not to the
+        // extra directory) as remote too.
         //
         // @@ Note that currently the local/ subdirectory of a remote
         //    directory is considered remote (see above for details). When
@@ -144,7 +164,8 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
           //
           for (default_options_entry<O>& e: r)
           {
-            if (!e.remote)
+            if (!e.remote &&
+                (!extra_dir || e.file.directory () != *extra_dir))
             {
               e.remote = true;
 
@@ -162,12 +183,34 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
         {
           dir_path od (d / dir_path (".build2"));
 
-          if (options_dir_exists (od))
+          // If the extra directory is a subdirectory of the current
+          // directory, then load it first, but don't load .build2/ or
+          // .build2/local/ if it matches any of them.
+          //
+          bool load_build2       (true);
+          bool load_build2_local (true);
+
+          if (load_extra && extra_dir->sub (d))
+          {
+            load = load_default_options_files<O, S, U> (*extra_dir,
+                                                        false /* remote */,
+                                                        ofs.files,
+                                                        std::forward<F> (fn),
+                                                        r);
+
+            load_extra        = false;
+            load_build2       = *extra_dir != od;
+            load_build2_local = *extra_dir != od / dir_path ("local");
+          }
+
+          if (load && options_dir_exists (od))
             load = load_default_options_files<O, S, U> (od,
                                                         remote,
                                                         ofs.files,
                                                         std::forward<F> (fn),
-                                                        r);
+                                                        r,
+                                                        load_build2_local,
+                                                        load_build2);
         }
 
         if (!load && remote)
@@ -175,34 +218,31 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
       }
     }
 
-    if (home_dir)
+    if (load && load_extra)
+      load = load_default_options_files<O, S, U> (*extra_dir,
+                                                  false /* remote */,
+                                                  ofs.files,
+                                                  std::forward<F> (fn),
+                                                  r);
+
+    if (load && home_dir)
     {
-      assert (home_dir->absolute () && home_dir->normalized ());
+      dir_path d (*home_dir / dir_path (".build2"));
 
-      if (load)
-      {
-        dir_path d (*home_dir / dir_path (".build2"));
-
-        if (options_dir_exists (d))
-          load = load_default_options_files<O, S, U> (d,
-                                                      false /* remote */,
-                                                      ofs.files,
-                                                      std::forward<F> (fn),
-                                                      r);
-      }
+      if (options_dir_exists (d))
+        load = load_default_options_files<O, S, U> (d,
+                                                    false /* remote */,
+                                                    ofs.files,
+                                                    std::forward<F> (fn),
+                                                    r);
     }
 
-    if (sys_dir)
-    {
-      assert (sys_dir->absolute () && sys_dir->normalized ());
-
-      if (load && options_dir_exists (*sys_dir))
-        load_default_options_files<O, S, U> (*sys_dir,
-                                             false /* remote */,
-                                             ofs.files,
-                                             std::forward<F> (fn),
-                                             r);
-    }
+    if (load && sys_dir && options_dir_exists (*sys_dir))
+      load_default_options_files<O, S, U> (*sys_dir,
+                                           false /* remote */,
+                                           ofs.files,
+                                           std::forward<F> (fn),
+                                           r);
 
     std::reverse (r.begin (), r.end ());
 

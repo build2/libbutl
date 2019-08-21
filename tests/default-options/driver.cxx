@@ -35,7 +35,7 @@ using namespace std;
 using namespace butl;
 
 // Usage: argv[0] [-f <file>] [-d <start-dir>] [-s <sys-dir>] [-h <home-dir>]
-//                [-e] <cmd-options>
+//                [-x <extra-dir>] [-e] [-t] <cmd-options>
 //
 // Parse default options files, merge them with the command line options, and
 // print the resulting options to STDOUT one per line. Note that the options
@@ -54,6 +54,9 @@ using namespace butl;
 //
 // -h
 //    Home directory.
+//
+// -x
+//    Extra directory.
 //
 // -e
 //    Print the default options entries (rather than the merged options) to
@@ -129,6 +132,7 @@ main (int argc, const char* argv[])
   default_options_files fs;
   optional<dir_path> sys_dir;
   optional<dir_path> home_dir;
+  optional<dir_path> extra_dir;
   vector<dir_path> dirs;
   options cmd_ops;
   bool print_entries (false);
@@ -158,6 +162,11 @@ main (int argc, const char* argv[])
       assert (++i != argc);
       home_dir = dir_path (argv[i]);
     }
+    else if (op == "-x")
+    {
+      assert (++i != argc);
+      extra_dir = dir_path (argv[i]);
+    }
     else if (op == "-e")
     {
       print_entries = true;
@@ -180,6 +189,7 @@ main (int argc, const char* argv[])
     load_default_options<options, scanner, unknow_mode> (
       sys_dir,
       home_dir,
+      extra_dir,
       fs,
       [trace] (const path& f, bool remote, bool overwrite)
       {

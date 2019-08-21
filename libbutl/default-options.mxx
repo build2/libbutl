@@ -79,11 +79,13 @@ LIBBUTL_MODEXPORT namespace butl
   //
   // - sys_dir
   // - home_dir
+  // - extra_dir (can also be handled during the start/outer traversal)
   // - start_dir and outer until home_dir or root (both excluding)
   //
-  // Except for sys_dir, the options files are looked for in the .build2/ and
-  // .build2/local/ subdirectories of each directory. For sys_dir they are
-  // looked for in the directory itself (e.g., /etc/build2/).
+  // Except for sys_dir and extra_dir, the options files are looked for in the
+  // .build2/ and .build2/local/ subdirectories of each directory. For
+  // sys_dir and extra_dir they are looked for in the directory itself (e.g.,
+  // /etc/build2/).
   //
   // Note that the search is stopped at the directory containing a file with
   // --no-default-options.
@@ -97,10 +99,13 @@ LIBBUTL_MODEXPORT namespace butl
   // sufficient ground to definitively conclude that the file is not remote;
   // to be sure we would need to query the VCS or some such).
   //
+  // Note that the extra directory options files are never considered remote.
+  //
   template <typename O, typename S, typename U, typename F>
   default_options<O>
   load_default_options (const optional<dir_path>& sys_dir,
                         const optional<dir_path>& home_dir,
+                        const optional<dir_path>& extra_dir,
                         const default_options_files&,
                         F&&);
 
