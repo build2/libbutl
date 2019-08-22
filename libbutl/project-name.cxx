@@ -10,8 +10,7 @@
 #include <string>
 #include <vector>
 #include <utility>   // move()
-#include <iterator>  // back_inserter
-#include <algorithm> // find(), transform()
+#include <algorithm> // find()
 #include <stdexcept> // invalid_argument
 #endif
 
@@ -102,20 +101,5 @@ namespace butl
 
     size_t p (path::traits_type::find_extension (value_));
     return p != string::npos ? string (value_, p + 1) : string ();
-  }
-
-  string project_name::
-  variable () const
-  {
-    using std::string;
-
-    auto sanitize = [] (char c)
-    {
-      return (c == '-' || c == '+' || c == '.') ? '_' : c;
-    };
-
-    string r;
-    transform (value_.begin (), value_.end (), back_inserter (r), sanitize);
-    return r;
   }
 }

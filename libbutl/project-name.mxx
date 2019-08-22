@@ -22,7 +22,7 @@ export module butl.project_name;
 import std.core;
 import std.io;
 #endif
-import butl.utility; // casecmp()
+import butl.utility; // casecmp(), sanitize_identifier()
 #else
 #include <libbutl/utility.mxx>
 #endif
@@ -93,7 +93,7 @@ LIBBUTL_MODEXPORT namespace butl
     // '.', '-', and '+' are replaced with '_'.
     //
     std::string
-    variable () const;
+    variable () const {return sanitize_identifier (value_);}
 
     // Compare ignoring case. Note that a string is not checked to be a valid
     // project name.
