@@ -114,7 +114,7 @@ namespace butl
           vops,
           "-s",
           ops,
-          "info:", project.representation ());
+          "info:", "'" + project.representation () + "'");
 
         pipe.out.close ();
         ifdstream is (move (pipe.in), fdstream_mode::skip, ifdstream::badbit);
