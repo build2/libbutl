@@ -3,7 +3,7 @@
 # license   : MIT; see accompanying LICENSE file
 
 $* -p >>/~%EOO% 2>>EOE
-%.+/driver(\.exe)? -c%
+%.+/driver(\.exe)?"? -c%
 abc
 abc
 abc

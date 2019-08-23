@@ -151,5 +151,5 @@ end
 
   : non-zero-status
   :
-  $* "$0 -C -S 10" 2>/~'%.+ exited with code 10%' == 10
+  $* "'$0' -C -S 10" 2>/~'%.+ exited with code 10%' == 10
 }
