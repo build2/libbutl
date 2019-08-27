@@ -38,6 +38,36 @@ using namespace butl;
 
 static const char* envvars[] = {"ABC=1", "DEF", nullptr};
 
+using cstrings = vector<const char*>;
+
+bool
+roundtrip_arg (const path& p, const string& a)
+{
+  string r;
+
+  try
+  {
+    cstrings args {p.string ().c_str (), "-a", a.c_str (), nullptr};
+    process pr (args.data (), 0 /* in */, -1 /* out */, 2 /* err */);
+
+    ifdstream is (move (pr.in_ofd));
+
+    assert (getline (is, r));
+    assert (pr.wait ());
+  }
+  catch (const process_error& e)
+  {
+    //cerr << args[0] << ": " << e << endl;
+
+    if (e.child)
+      exit (1);
+
+    assert (false);
+  }
+
+  return r == a;
+}
+
 static bool
 exec (const path& p,
       vector<char> in = vector<char> (),
@@ -48,7 +78,6 @@ exec (const path& p,
       dir_path wd = dir_path (), // Set the working dir for the child process.
       bool env = false)          // Set environment variables for the child.
 {
-  using cstrings = vector<const char*>;
   using butl::optional;
 
   assert (!in.empty () || (!out && !err)); // Nothing to output if no input.
@@ -197,6 +226,26 @@ exec (const path& p,
     p, vector<char> (i.begin (), i.end ()), o, e, pipeline, false, wd, env);
 }
 
+// Usages:
+//
+// argv[0]
+// argv[0] -a <args>
+// argv[0] -c [-b] [-e] [<cwd>]
+//
+// In the first form run some basic process execution/communication tests.
+//
+// In the second form print the arguments to STDOUT one per line.
+//
+// In the third form read the data from STDIN and print it to STDOUT and
+// STDERR. Also check if the working directory argument matches the current
+// directory, if specified.
+//
+// -b
+//    Set binary mode for the standard streams.
+//
+// -e
+//    Check some environment variable values.
+//
 int
 main (int argc, const char* argv[])
 {
@@ -209,6 +258,14 @@ main (int argc, const char* argv[])
   bool env (false); // Check the environment variables.
 
   assert (argc > 0);
+
+  if (argc > 1 && string (argv[1]) == "-a")
+  {
+    for (int i (2); i != argc; ++i)
+      cout << argv[i] << endl;
+
+    return 0;
+  }
 
   int i (1);
   for (; i != argc; ++i)
@@ -237,13 +294,7 @@ main (int argc, const char* argv[])
     }
   }
 
-  if (i != argc)
-  {
-    if (!child)
-      cerr << "usage: " << argv[0] << " [-c] [-b] [<dir>]" << endl;
-
-    return 1;
-  }
+  assert (i == argc);
 
   path p;
 
@@ -327,6 +378,11 @@ main (int argc, const char* argv[])
     process p (process_exit (1));
     assert (!p.wait ()); // "Exited" with an error.
   }
+
+  assert (roundtrip_arg (p, "-DPATH=\"C:\\\\foo\\\\\"")); // -DPATH="C:\\foo\\"
+  assert (roundtrip_arg (p, "C:\\\\f oo\\\\"));
+  assert (roundtrip_arg (p, "C:\\\"f oo\\\\"));
+  assert (roundtrip_arg (p, "C:\\f oo\\"));
 
   const char* s ("ABC\nXYZ");
 

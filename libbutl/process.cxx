@@ -1301,16 +1301,38 @@ namespace butl
     if (q)
       s += '"';
 
+    // Note that backslashes don't need escaping, unless they immediately
+    // precede the double quote (see `Parsing C Command-Line Arguments` MSDN
+    // article for more details). For example:
+    //
+    // -DPATH="C:\\foo\\"  ->  -DPATH=\"C:\\foo\\\\\"
+    // -DPATH=C:\foo bar\  ->  "-DPATH=C:\foo bar\\"
+    //
+    size_t nbs (0); // Number of consecutive backslashes.
     for (size_t i (0), n (strlen (a)); i != n; ++i)
     {
-      if (a[i] != '"')
-        s += a[i];
+      char c (a[i]);
+
+      if (c != '"')
+        s += c;
       else
-        s += "\\\"";
+      {
+        if (nbs != 0)
+          s.append (nbs, '\\'); // Escape backslashes.
+
+        s += "\\\"";            // Escape quote.
+      }
+
+      nbs = c == '\\' ? nbs + 1 : 0;
     }
 
     if (q)
+    {
+      if (nbs != 0)
+        s.append (nbs, '\\'); // Escape backslashes.
+
       s += '"';
+    }
 
     return s.c_str ();
   }
