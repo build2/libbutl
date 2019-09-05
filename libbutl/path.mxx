@@ -386,9 +386,12 @@ LIBBUTL_MODEXPORT namespace butl
     }
 
     static int
-    compare (string_type const& l, string_type const& r)
+    compare (string_type const& l,
+             string_type const& r,
+             size_type n = string_type::npos)
     {
-      return compare (l.c_str (), l.size (), r.c_str (), r.size ());
+      return compare (l.c_str (), n < l.size () ? n : l.size (),
+                      r.c_str (), n < r.size () ? n : r.size ());
     }
 
     // @@ Currently for case-insensitive filesystems (Windows) compare()
