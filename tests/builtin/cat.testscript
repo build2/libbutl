@@ -1,0 +1,82 @@
+# file      : tests/builtin/cat.testscript
+# copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+test.arguments = "cat"
+
+: unknown-option
+:
+$* -u 2>"cat: unknown option '-u'" == 1
+
+: in
+:
+$* <<EOF >>EOF
+  foo
+  bar
+  EOF
+
+: dash
+:
+$* - <<EOF >>EOF
+  foo
+  bar
+  EOF
+
+: file
+:
+{
+  $* <<EOF >=out;
+    foo
+    bar
+    EOF
+
+  cat out >>EOO
+    foo
+    bar
+    EOO
+}
+
+: in-repeat
+:
+$* - - <<EOF >>EOF
+  foo
+  bar
+  EOF
+
+: non-existent
+:
+$* in 2>>/~%EOE% != 0
+  %cat: unable to print '.+/in': .+%
+  EOE
+
+: empty-path
+:
+: Cat an empty path.
+:
+$* '' 2>"cat: invalid path ''" == 1
+
+: big
+:
+: Cat a big file (about 100K) to test that the builtin is asynchronous.
+:
+{
+  s="--------------------------------";
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s";
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s";
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s";
+  $* <"$s" | $* >"$s"
+}
+
+: cwd
+:
+: When cross-testing we cannot guarantee that host absolute paths are
+: recognized by the target process.
+:
+if ($test.target == $build.host)
+{
+  test.options += -d $~/a;
+  mkdir a;
+  echo 'foo' >=a/b;
+
+  $* b >'foo'
+}

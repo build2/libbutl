@@ -1,0 +1,102 @@
+# file      : tests/builtin/mkdir.testscript
+# copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+test.arguments = "mkdir"
+test.options += -c
+
+: unknown-option
+:
+$* -u >'option -u' 2>"mkdir: unknown option '-u'" == 1
+
+: parent
+:
+{
+  $* -p a/b >>/~%EOO% &a/ &a/b/;
+    %create .+/a/ true%
+    %create .+/a/ false%
+    %create .+/a/b/ true%
+    %create .+/a/b/ false%
+    EOO
+
+  touch a/a a/b/b
+}
+
+: exists
+:
+{
+  $* -p a a a/b a/b >>/~%EOO% &a/ &a/b/
+    %create .+/a/ true%
+    %create .+/a/ false%
+    %create .+/a/b/ true%
+    %create .+/a/b/ false%
+    EOO
+}
+
+: dirs
+:
+{
+  $* a b >>/~%EOO% &a/ &b/;
+    %create .+/a/ true%
+    %create .+/a/ false%
+    %create .+/b/ true%
+    %create .+/b/ false%
+    EOO
+
+  touch a/a b/b
+}
+
+: double-dash
+:
+: Make sure '-p' directory is created.
+:
+{
+  $* -p -- -p >>/~%EOO% &-p/;
+    %create .+/-p/ true%
+    %create .+/-p/ false%
+    EOO
+
+  touch -- -p/a
+}
+
+: no-args
+:
+: Test passing no arguments.
+:
+{
+  $* 2>"mkdir: missing directory" == 1
+}
+
+: empty-path
+:
+: Test creation of empty directory path.
+:
+{
+  $* '' 2>"mkdir: invalid path ''" == 1
+}
+
+: already-exists
+:
+: Test creation of an existing directory.
+:
+{
+  $* a a >>/~%EOO% 2>>/~%EOE% &a/ == 1
+    %create .+/a/ true%
+    %create .+/a/ false%
+    %create .+/a/ true%
+    EOO
+    %mkdir: unable to create directory '.+/a': .+%
+    EOE
+}
+
+: not-exists
+:
+: Test creation of a directory with non-existent parent.
+:
+{
+  $* a/b >>/~%EOO% 2>>/~%EOE% == 1
+    %create .+/a/b/ true%
+    EOO
+    %mkdir: unable to create directory '.+/a/b': .+%
+    EOE
+}

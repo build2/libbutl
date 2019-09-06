@@ -1,0 +1,84 @@
+# file      : tests/builtin/test.testscript
+# copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+test.arguments = "test"
+
+: file
+:
+{
+  : exists
+  :
+  touch a;
+  $* -f a
+
+  : not-exists
+  :
+  $* -f a == 1
+
+  : not-file
+  :
+  $* -f . == 1
+}
+
+: dir
+:
+{
+  : exists
+  :
+  $* -d .
+
+  : not-exists
+  :
+  $* -d a == 1
+
+  : not-dir
+  :
+  touch a;
+  $* -d a == 1
+}
+
+: options
+:
+{
+  : unknown
+  :
+  $* -u 2>"test: unknown option '-u'" == 2
+
+  : none
+  :
+  $* 2>"test: either -f|--file or -d|--directory must be specified" == 2
+
+  : both-file-dir
+  :
+  $* -fd 2>"test: both -f|--file and -d|--directory specified" == 2
+}
+
+: args
+:
+{
+  : none
+  :
+  $* -f 2>"test: missing path" == 2
+
+  : unexpected
+  :
+  $* -f a b 2>"test: unexpected argument 'b'" == 2
+
+  : empty-path
+  :
+  $* -d '' 2>"test: invalid path ''" == 2
+}
+
+: cwd
+:
+: When cross-testing we cannot guarantee that host absolute paths are
+: recognized by the target process.
+:
+if ($test.target == $build.host)
+{
+  test.options += -d $~/a;
+  mkdir -p a/b;
+
+  $* -d b
+}

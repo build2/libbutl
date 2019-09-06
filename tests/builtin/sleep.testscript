@@ -1,0 +1,42 @@
+# file      : tests/builtin/sleep.testscript
+# copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+test.arguments = "sleep"
+
+: unknown-option
+:
+$* -u 2>"sleep: unknown option '-u'" == 1
+
+: success
+:
+{
+  : custom
+  :
+  {
+    test.options += -c;
+    $* 1 >'sleep 01 seconds'
+  }
+
+  : own
+  :
+  $* 1
+}
+
+: no-time
+:
+: Test passing no time interval.
+:
+$* 2>"sleep: missing time interval" != 0
+
+: invalid-time
+:
+: Test passing invalid time interval.
+:
+$* 1a 2>"sleep: invalid time interval '1a'" != 0
+
+: unexpected-arg
+:
+: Test passing extra argument.
+:
+$* 1 1 2>"sleep: unexpected argument '1'" != 0

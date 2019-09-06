@@ -1,0 +1,95 @@
+# file      : tests/builtin/rmdir.testscript
+# copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+test.arguments = "rmdir"
+test.options += -c
+
+: unknown-option
+:
+rmdir -u 2>"rmdir: unknown option '-u'" == 1
+
+: no-args
+:
+{
+  : fail
+  :
+  : Removing with no arguments fails.
+  :
+  $* 2>"rmdir: missing directory" == 1
+
+  : force
+  :
+  : Removing with no arguments succeeds with -f option.
+  :
+  $* -f
+}
+
+: dir
+:
+{
+  : empty-path
+  :
+  : Removing an empty path fails.
+  :
+  $* '' 2>"rmdir: invalid path ''" == 1
+
+  : exists
+  :
+  : Removing existing directory succeeds.
+  :
+  {
+    mkdir a &!a;
+
+    $* a >>/~%EOO%
+      %remove .+/a/ false true%
+      %remove .+/a/ false false%
+      EOO
+  }
+
+  : not-exists
+  :
+  {
+    : fail
+    : Removing non-existing directory fails.
+    :
+    {
+      $* a >/~'%remove .+/a/ false true%' 2>>/~%EOE% == 1
+        %rmdir: unable to remove '.+/a': .+%
+        EOE
+    }
+
+    : force
+    :
+    : Removing non-existing directory succeeds with -f option.
+    :
+    $* -f a >>/~%EOO%
+      %remove .+/a/ true true%
+      %remove .+/a/ true false%
+      EOO
+  }
+
+  : not-empty
+  :
+  : Removing non-empty directory fails.
+  :
+  {
+    mkdir -p a/b;
+
+    $* a >/~'%remove .+/a/ false true%' 2>>/~%EOE% == 1
+      %rmdir: unable to remove '.+/a': .+%
+      EOE
+  }
+
+  : not-dir
+  :
+  : Removing not a directory path fails.
+  :
+  {
+    touch a;
+
+    $* a >/~'%remove .+/a/ false true%' 2>>/~%EOE% == 1
+      %rmdir: unable to remove '.+/a': .+%
+      EOE
+  }
+}

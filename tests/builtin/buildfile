@@ -1,0 +1,9 @@
+# file      : tests/builtin/buildfile
+# copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+import libs = libbutl%lib{butl}
+
+./: exe{driver} file{cp-dir/cp-file}
+
+exe{driver}: {hxx cxx}{*} $libs testscript{*}

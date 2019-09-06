@@ -1,0 +1,26 @@
+# file      : tests/builtin/echo.testscript
+# copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+test.arguments = "echo"
+
+: string
+:
+$* foo >foo
+
+: strings
+:
+$* foo bar >"foo bar"
+
+: big
+:
+: Echo a big string (about 100K) to test that the builtin is asynchronous.
+:
+{
+  s="--------------------------------";
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s";
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s";
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s";
+  test.options += -i; # Pass the echo argument via the driver's stdin.
+  $* <"$s" | cat >"$s"
+}

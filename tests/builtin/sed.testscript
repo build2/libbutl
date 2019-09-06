@@ -1,0 +1,350 @@
+# file      : tests/builtin/sed.testscript
+# copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
+# license   : MIT; see accompanying LICENSE file
+
+test.arguments = "sed"
+test.options += -c
+
+: unknown-option
+:
+{
+  : unparsed
+  :
+  $* -u >'option -u' 2>"sed: unknown option '-u'" == 1
+
+  : parsed
+  :
+  {
+    test.options += -o -u
+
+    : start
+    :
+    $* -u -n -e 's/a/b/p' <'a' >>EOO
+      option -u
+      b
+      EOO
+
+    : middle
+    :
+    $* -n -u -e 's/a/b/p' <'a' >>EOO
+      option -u
+      b
+      EOO
+
+    : end
+    :
+    $* -n -e 's/a/b/p' -u <'a' >>EOO
+      option -u
+      b
+      EOO
+
+    : before-args
+    :
+    {
+      echo 'a' >=f;
+
+      $* -n -e 's/a/b/p' -u f >>EOO
+        option -u
+        b
+        EOO
+    }
+  }
+
+  : arg
+  :
+  {
+    echo 'a' >=-u;
+
+    $* -n -e 's/a/b/p' -- -u >'b'
+  }
+}
+
+: arg
+:
+{
+  : auto-prn
+  :
+  {
+    $* -n -e 's/fox/bar/' <'foo'        : on
+    $*    -e 's/fox/bar/' <'foo' >'foo' : off
+  }
+
+  : script
+  :
+  {
+    : missed
+    :
+    $* 2>>EOE != 0
+      sed: missing script
+      EOE
+
+    : missed-val
+    :
+    $* -e 2>>EOE != 0
+      sed: missing value for option '-e'
+      EOE
+
+    : empty
+    :
+    $* -e '' 2>>EOE != 0
+      sed: empty script
+      EOE
+
+    : multiple
+    :
+    $* -e 's/a//' -e 's/a//' 2>>EOE != 0
+      sed: multiple scripts
+      EOE
+
+    : invalid
+    :
+    $* -e 'z' 2>>EOE != 0
+      sed: only 's' command supported
+      EOE
+  }
+
+  : file
+  :
+  {
+    : exist
+    :
+    {
+      cat <'foo' >=f;
+
+      $* -e 's/foo/bar/' f >'bar'
+    }
+
+    : none
+    :
+    $* -e 's/foo/bar/' <'foo' >'bar'
+
+    : dash
+    :
+    $* -e 's/foo/bar/' - <'foo' >'bar'
+
+    : not-exist
+    :
+    $* -e 's/foo/bar/' f 2>>/~%EOE% != 0
+      %sed: unable to edit '.+/f': .+%
+      EOE
+
+    : empty
+    :
+    $* -e 's/foo/bar/' '' 2>>EOE != 0
+      sed: invalid path ''
+      EOE
+  }
+
+  : unexpected
+  :
+  $* -e 's/a//' a b 2>>EOE != 0
+    sed: unexpected argument 'b'
+    EOE
+}
+
+: command
+:
+{
+  : subst
+  :
+  {
+    : parsing
+    :
+    {
+      : delim
+      :
+      {
+        : none
+        :
+        $* -e 's' 2>>EOE != 0
+          sed: no delimiter for 's' command
+          EOE
+
+        : invalid
+        :
+        $* -e 's\\' 2>>EOE != 0
+          sed: invalid delimiter for 's' command
+          EOE
+      }
+
+      : regex
+      :
+      {
+        : unterminated
+        :
+        $* -e 's/foo' 2>>/EOE != 0
+          sed: unterminated 's' command regex
+          EOE
+
+        : empty
+        :
+        $* -e 's///' 2>>EOE != 0
+          sed: empty regex in 's' command
+          EOE
+
+        : invalid
+        :
+        : Note that old versions of libc++ (for example 1.1) do not detect some
+        : regex errors. For example '*' is parsed successfully.
+        :
+        $* -e 's/foo[/bar/' 2>>~%EOE% != 0
+          %sed: invalid regex.*%
+          EOE
+      }
+
+      : unterminated-replacement
+      :
+      $* -e 's/foo/bar' 2>>/EOE != 0
+        sed: unterminated 's' command replacement
+        EOE
+
+      : invalid-flags
+      :
+      $* -e 's/foo/bar/a' 2>>EOE != 0
+        sed: invalid 's' command flag 'a'
+        EOE
+    }
+
+    : exec
+    :
+    {
+      : flags
+      :
+      {
+        : global
+        :
+        {
+          $* -e 's/o/a/g' <'foo' >'faa' : on
+          $* -e 's/o/a/'  <'foo' >'fao' : off
+        }
+
+        : icase
+        :
+        {
+          $* -e 's/O/a/i' <'foo' >'fao' : on
+          $* -e 's/O/a/'  <'foo' >'foo' : off
+        }
+
+        : print
+        :
+        {
+          $* -n -e 's/o/a/p' <'foo' >'fao' : on-match
+          $* -n -e 's/o/a/'  <'foo'        : off-match
+          $* -n -e 's/u/a/p' <'foo'        : on-no-match
+        }
+      }
+
+      : search
+      {
+        : anchor
+        :
+        {
+          $* -n -e 's/^o/a/gp'  <'oof' >'aof' : begin
+          $* -n -e 's/o$/a/gp' <'foo' >'foa' : end
+        }
+
+        : match
+        : Match corner cases
+        :
+        {
+          $* -n -e 's/a/b/p'  <'a'    >'b'    : full
+          $* -n -e 's/a/b/p'  <'ac'   >'bc'   : left
+          $* -n -e 's/a/b/p'  <'ca'   >'cb'   : right
+          $* -n -e 's/a/b/pg' <'xaax' >'xbbx' : adjacent
+        }
+      }
+
+      : replacement
+      :
+      {
+        : ecma-escape
+        :
+        {
+          $* <'xay' -e 's/a/$b/'    >'x$by'  : none
+          $* <'xay' -e 's/a/$/'     >'x$y'   : none-term
+          $* <'xay' -e 's/a/$$/'    >'x$y'   : self
+          $* <'xay' -e 's/a/b$&c/'  >'xbacy' : match
+          $* <'xay' -e 's/a/b$`c/'  >'xbxcy' : match-precede
+          $* <'xay' -e "s/a/b\$'c/" >'xbycy' : match-follow
+
+          : capture
+          :
+          $* <'abcdefghij' -e 's/(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)/$1$10/' >'aj'
+        }
+
+        : perl-escape
+        :
+        {
+          $* <'xay' -e 's/a/\b/'  >'xby' : none
+          $* <'xay' -e 's/a/\/'   >'xy'  : none-term
+          $* <'xay' -e 's/a/\\/' >'x\y'  : self
+
+          : capture
+          :
+          $* <'abcdefghij' -e 's/(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)/\1\10/' >'aa0'
+
+          : upper
+          :
+          {
+            $* <'xay' -e 's/a/\U/'        >'xy'   : none
+            $* <'xay' -e 's/a/\Uvz/'      >'xVZy' : repl
+            $* <'xay' -e 's/a/\Uv\Ez/'    >'xVzy' : end
+            $* <'aa'  -e 's/a/v\Uz/g'     >'vZvZ' : locality
+            $* <'xay' -e 's/(a)/\U\1/'    >'xAy'  : capt
+            $* <'x-y' -e 's/(a?)-/\U\1z/' >'xZy'  : capt-empty
+            $* <'xay' -e 's/a/\uvz/'      >'xVzy' : once
+          }
+
+          : lower
+          :
+          {
+            $* <'xay' -e 's/a/\lVZ/' >'xvZy' : once
+          }
+        }
+      }
+
+      $* -e 's/a//' <:'b' >'b' : no-newline
+      $* -e 's/a//' <:''       : empty-stdin
+
+      : empty-file
+      :
+      {
+        touch f;
+
+        $* -e 's/a//' f
+      }
+    }
+  }
+}
+
+: in-place
+:
+{
+  : no-file
+  :
+  $* -i -e 's/a/b/' 2>>EOE != 0
+    sed: -i|--in-place option specified while reading from stdin
+    EOE
+
+  : edit
+  :
+  {
+    cat <'foo' >=f;
+
+    $* -i -e 's/foo/bar/' f;
+
+    cat f >'bar'
+  }
+}
+
+: big
+:
+: Sed a big file (about 100K) to test that the builtin is asynchronous.
+:
+{
+  s="--------------------------------"
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s"
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s"
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s"
+  cat <"$s" | $* -e 's/^x//' | cat >"$s"
+}

@@ -1,0 +1,82 @@
+// file      : libbutl/builtin.cli
+// copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
+// license   : MIT; see accompanying LICENSE file
+
+include <string>;
+include <vector>;
+
+// Note that options in this file are undocumented because we generate neither
+// the usage printing code nor man pages. Instead, they are documented in the
+// Testscript Language Manual's builtin descriptions.
+//
+// @@ Update the above reference when the documentation is moved to another
+//    place.
+//
+// Also note that the string type is used for the path options because their
+// parsing depends on the working directory (see parse_path() for details) and
+// passing this information to the CLI custom parser would not be easy.
+//
+namespace butl
+{
+  class cat_options
+  {
+    // No options so far.
+    //
+  };
+
+  class cp_options
+  {
+    bool --recursive|-R|-r;
+    bool --preserve|-p;
+  };
+
+  class ln_options
+  {
+    bool --symbolic|-s;
+  };
+
+  class mkdir_options
+  {
+    bool --parents|-p;
+  };
+
+  class mv_options
+  {
+    bool --force|-f;
+  };
+
+  class rm_options
+  {
+    bool --recursive|-r;
+    bool --force|-f;
+  };
+
+  class rmdir_options
+  {
+    bool --force|-f;
+  };
+
+  class sed_options
+  {
+    bool --quiet|-n;
+    bool --in-place|-i;
+    std::vector<std::string> --expression|-e;
+  };
+
+  class sleep_options
+  {
+    // No options so far.
+    //
+  };
+
+  class test_options
+  {
+    bool --file|-f;
+    bool --directory|-d;
+  };
+
+  class touch_options
+  {
+    std::string --after; // Path (see above).
+  };
+}
