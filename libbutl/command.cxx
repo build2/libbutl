@@ -272,11 +272,21 @@ namespace butl
     }
     else               // Execute the program.
     {
+      // Strip the potential leading `^`, indicating that this is an external
+      // program rather than a builtin. Consider only simple paths and don't
+      // end up with an empty path.
+      //
+      const char* p (prog.size () > 1 &&
+                     prog[0] == '^'   &&
+                     path::traits_type::find_separator (prog) == string::npos
+                     ? prog.c_str () + 1
+                     : prog.c_str ());
+
       // Prepare the process environment.
       //
       // Note: cwd passed to process_env() may not be a temporary object.
       //
-      process_env pe (prog, cwd, env ? env->vars : nullptr);
+      process_env pe (p, cwd, env ? env->vars : nullptr);
 
       // Finally, run the process.
       //

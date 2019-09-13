@@ -37,6 +37,11 @@ LIBBUTL_MODEXPORT namespace butl
   // error, ios::failure on the underlying OS error, process_error on the
   // process running error and std::system_error on the builtin running error.
   //
+  // To run a system utility rather than a builtin prefix its name with `^`,
+  // for example:
+  //
+  // ^cat --squeeze-blank file
+  //
   // The process environment path is unused and must point to the empty
   // process path.
   //

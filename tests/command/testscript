@@ -184,4 +184,14 @@ end
   {
     $* -p 'echo abc >a' >'echo abc >a' &a
   }
+
+  : escape
+  :
+  : Note that the sed builtin doesn't support multiple scripts.
+  :
+  if ($cxx.target.class != 'windows')
+  {
+    echo 'abc' >=f;
+    $* '^sed -e s/a/b/ -e s/c/b/ f' >'bbb'
+  }
 }
