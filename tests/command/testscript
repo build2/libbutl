@@ -153,3 +153,35 @@ end
   :
   $* "'$0' -C -S 10" 2>/~'%.+ exited with code 10%' == 10
 }
+
+: builtin
+:
+{
+  : no-cwd
+  :
+  {
+    $* 'touch a' &a;
+    test -f a
+  }
+
+  : cwd
+  :
+  {
+    mkdir a;
+    $* -d a 'touch b' &a/b;
+    test -f a/b
+  }
+
+  : redirect
+  :
+  {
+    $* 'echo abc >a' &a;
+    cat a >'abc'
+  }
+
+  : callback
+  :
+  {
+    $* -p 'echo abc >a' >'echo abc >a' &a
+  }
+}

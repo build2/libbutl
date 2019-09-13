@@ -9,7 +9,8 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <stdexcept> // invalid_argument
+#include <stdexcept>    // invalid_argument
+#include <system_error>
 #endif
 
 // Other includes.
@@ -245,7 +246,9 @@ main (int argc, const char* argv[])
     cerr << e << endl;
     return 1;
   }
-  catch (const process_error& e)
+  // Also handles process_error exception (derived from system_error).
+  //
+  catch (const system_error& e)
   {
     cerr << e << endl;
     return 1;

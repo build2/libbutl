@@ -14,10 +14,11 @@
 #include <cstddef>
 #include <functional>
 
-#include <ios>       // ios::failure
+#include <ios>          // ios::failure
 #include <vector>
-#include <utility>   // move()
-#include <stdexcept> // invalid_argument
+#include <utility>      // move()
+#include <stdexcept>    // invalid_argument
+#include <system_error>
 #endif
 
 // Other includes.
@@ -35,9 +36,11 @@ import butl.process;
 import butl.optional;
 #endif
 
+import butl.builtin;
 import butl.fdstream;
 import butl.string_parser;
 #else
+#include <libbutl/builtin.mxx>
 #include <libbutl/fdstream.mxx>
 #include <libbutl/string-parser.mxx>
 #endif
@@ -187,12 +190,6 @@ namespace butl
       }
     }
 
-    // Prepare the process environment.
-    //
-    // Note: cwd passed to process_env() may not be a temporary object.
-    //
-    process_env pe (prog, cwd, env ? env->vars : nullptr);
-
     // Open the redirect file descriptor, if specified.
     //
     // Intercept the exception to make the error description more informative.
@@ -231,39 +228,88 @@ namespace butl
                                  msg.c_str ());
     }
 
-    // Finally, run the process.
-    //
-    // If the callback is specified, then intercept its call, appending the
-    // stdout redirect to the arguments list, if present.
-    //
-    return process_run_callback (
-      [&callback, &redir, redir_append] (const char* const args[], size_t n)
+    builtin_function* bf (builtins.find (prog));
+
+    if (bf != nullptr) // Execute the builtin.
+    {
+      if (callback)
       {
-        if (callback)
+        // Build the complete arguments list, appending the stdout redirect,
+        // if present.
+        //
+        vector<const char*> elems ({prog.c_str ()});
+        for (const auto& a: args)
+          elems.push_back (a.c_str ());
+
+        string rd;
+        if (redir)
         {
-          if (redir)
-          {
-            vector<const char*> elems (args, args + n);
-            string rd ((redir_append ? ">>" : ">") + redir->string ());
+          rd = (redir_append ? ">>" : ">");
+          rd += redir->string ();
 
-            // Inject the redirect prior to the trailing NULL.
-            //
-            assert (n > 0);
-
-            elems.insert (elems.begin () + n - 1, rd.c_str ());
-
-            callback (elems.data (), elems.size ());
-          }
-          else
-          {
-            callback (args, n);
-          }
+          elems.push_back (rd.c_str ());
         }
-      },
-      0                     /* stdin */,
-      redir ? rd.get () : 1 /* stdout */,
-      2                     /* stderr */,
-      pe,
-      args);
+
+        elems.push_back (nullptr);
+
+        callback (elems.data (), elems.size ());
+      }
+
+      // Finally, run the builtin.
+      //
+      uint8_t r; // Storage.
+      builtin_callbacks cb;
+
+      builtin b (bf (r,
+                     args,
+                     nullfd    /* stdin */,
+                     move (rd) /* stdout */,
+                     nullfd    /* stderr */,
+                     cwd,
+                     cb));
+
+      return process_exit (b.wait ());
+    }
+    else               // Execute the program.
+    {
+      // Prepare the process environment.
+      //
+      // Note: cwd passed to process_env() may not be a temporary object.
+      //
+      process_env pe (prog, cwd, env ? env->vars : nullptr);
+
+      // Finally, run the process.
+      //
+      // If the callback is specified, then intercept its call, appending the
+      // stdout redirect to the arguments list, if present.
+      //
+      return process_run_callback (
+        [&callback, &redir, redir_append] (const char* const args[], size_t n)
+        {
+          if (callback)
+          {
+            if (redir)
+            {
+              vector<const char*> elems (args, args + n);
+              string rd ((redir_append ? ">>" : ">") + redir->string ());
+
+              // Inject the redirect prior to the trailing NULL.
+              //
+              assert (n > 0);
+
+              elems.insert (elems.begin () + n - 1, rd.c_str ());
+
+              callback (elems.data (), elems.size ());
+            }
+            else
+              callback (args, n);
+          }
+        },
+        0                     /* stdin */,
+        redir ? rd.get () : 1 /* stdout */,
+        2                     /* stderr */,
+        pe,
+        args);
+    }
   }
 }

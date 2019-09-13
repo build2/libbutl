@@ -31,10 +31,11 @@ import butl.optional;
 
 LIBBUTL_MODEXPORT namespace butl
 {
-  // Run a process, interpreting the command line as whitespace-separated,
-  // potentially quoted program path, arguments, and redirects. Throw
-  // std::invalid_argument on the parsing error, ios::failure on the
-  // underlying OS error, and process_error on the process running error.
+  // Run a process or a builtin, interpreting the command line as
+  // whitespace-separated, potentially quoted program path/builtin name,
+  // arguments, and redirects. Throw std::invalid_argument on the parsing
+  // error, ios::failure on the underlying OS error, process_error on the
+  // process running error and std::system_error on the builtin running error.
   //
   // The process environment path is unused and must point to the empty
   // process path.
