@@ -75,17 +75,76 @@
     }
   }
 
+  : bracket
+  :
+  {
+    : ordinary-char
+    :
+    {
+      $* a[bc]d   abd      : first
+      $* a[0-9b]d abd      : after-range
+      $* a[bc]d   acd      : last
+      $* a[]bc]d  a]d      : closing-bracket
+      $* a[-bc]d  a-d      : first-dash
+      $* a[bc-]d  a-d      : last-dash
+      $* a[*]d    a*d      : star
+      $* a[?]d    a?d      : question
+      $* a[[]d    a[d      : open-bracket
+      $* a[xy]d   abd == 1 : not-match
+
+      : not-expr
+      :
+      {
+        $* a[b  a[b  : not-closed
+        $* a[!b a[!b : not-closed-inverse
+        $* a[]b a[]b : empty
+        $* a[!] a[!] : empty-inverse
+      }
+    }
+
+    : range
+    :
+    {
+      $* a[0-8]d   a0d      : min
+      $* a[0-8]d   a8d      : max
+      $* a[0-8]d   a5d      : mid
+      $* a[0-8]d   a9d == 1 : out
+      $* a[a0-8]d  a1d      : after-char
+      $* a[x0-9y]d abd == 1 : not-match
+    }
+
+    : inverse
+    :
+    {
+      $* a[!xy]d abd      : match
+      $* a[!ab]d abd == 1 : not-match
+    }
+  }
+
+  : mixed
+  :
+  : Test patterns combining backtracking with the bracket expressions.
+  :
+  {
+    $* [0-9]a*b        9axb   : bracket-star
+    $* a*b[0-9]        axyb0  : star-bracket
+    $* a*b[0-9]x*y     ab1xzy : star-bracket-star
+    $* a*[0-9]x*y[a-z] ax2xyb : star-bracket-star-bracket
+  }
+
   : case-sensitivity
   :
   : Test that matching is case-insensitive on Windows and sensitive otherwise.
   :
   if ($cxx.target.class != 'windows')
   {
-    $* F*O/ foo/ == 1
+    $* F*O/     foo/ == 1
+    $* f[A-Z]o/ foo/ == 1
   }
   else
   {
-    $* F*O/ foo/
+    $* F*O/     foo/
+    $* f[A-Z]o/ foo/
   }
 }
 
@@ -157,6 +216,13 @@
         : recursive
         :
         $* ba** ../foo >>/EOO
+        bar/bar
+        baz
+        EOO
+
+        : recursive-with-brackets
+        :
+        $* **[!xy][rz] ../foo >>/EOO
         bar/bar
         baz
         EOO

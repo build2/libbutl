@@ -37,15 +37,16 @@
 #include <cassert>
 
 #ifndef __cpp_lib_modules_ts
+#include <string>
 #include <cstddef>
 #include <cstdint>
 #include <utility>
 #include <iterator>
 #include <functional>
 
-#include <string>
 #include <vector>
 #include <memory>       // unique_ptr
+#include <algorithm>    // find(), copy()
 #include <system_error>
 #endif
 
@@ -437,7 +438,7 @@ namespace butl
 
             ur = symlink ? _rmdir (f) : _unlink (f);
 
-            // Restoring the attribute is unlikely to fail as we managed to
+            // Restoring the attribute is unlikely to fail since we managed to
             // reset it earlier.
             //
             if (ur != 0 && restore)
@@ -1556,11 +1557,72 @@ namespace butl
   }
 #endif
 
-  // Match the name [ni, ne) to the pattern [pi, pe). Ranges can be empty.
+  // patterns
+  //
+  static inline bool
+  match (char c, char pc)
+  {
+#ifndef _WIN32
+    return c == pc;
+#else
+    return lcase (c) == lcase (pc);
+#endif
+  }
+
+  bool
+  match_bracket (char c, const path_pattern_term& pt)
+  {
+    using iterator = string::const_iterator;
+
+    assert (pt.bracket ());
+
+    iterator i (pt.begin + 1); // Position after '['.
+    iterator e (pt.end   - 1); // Position at ']'.
+
+    bool invert (*i == '!');
+    if (invert)
+      ++i;
+
+    bool r (false);
+    for (iterator b (i); i != e && !r; ++i)
+    {
+      char bc (*i);
+
+      // If '-' is a first or last character in the bracket expression then
+      // match it literally and match the range otherwise.
+      //
+      if (bc == '-' && i != b && i + 1 != e) // Match the range?
+      {
+        // Note that we have already matched the range left endpoint character
+        // unsuccessfully (otherwise we wouldn't be here), so now we test if
+        // the character belongs to the (min-char, max-char] range.
+        //
+        // Also note that on Windows we match case insensitively and so can't
+        // just compare the character with the range endpoints. Thus, we
+        // fallback to matching each range character individually.
+        //
+#ifndef _WIN32
+        r = c > *(i - 1) && c <= *(i + 1);
+#else
+        for (char bc (*(i - 1) + 1), mx (*(i + 1)); bc <= mx && !r; ++bc)
+          r = match (c, bc);
+#endif
+
+        ++i; // Position to the range max character.
+      }
+      else // Match against the expression character literally.
+        r = match (c, bc);
+    }
+
+    return r != invert;
+  }
+
+  // Match the name [ni, ne) to the pattern [pi, pe) that may not contain
+  // bracket expressions. Ranges can be empty.
   //
   static bool
-  match (string::const_iterator pi, string::const_iterator pe,
-         string::const_iterator ni, string::const_iterator ne)
+  match_no_brackets (string::const_iterator pi, string::const_iterator pe,
+                     string::const_iterator ni, string::const_iterator ne)
   {
     using reverse_iterator = std::reverse_iterator<string::const_iterator>;
 
@@ -1576,11 +1638,7 @@ namespace butl
     char pc ('\0');
     for (; rpi != rpe && (pc = *rpi) != '*' && rni != rne; ++rpi, ++rni)
     {
-#ifndef _WIN32
-      if (*rni != pc && pc != '?')
-#else
-      if (lcase (*rni) != lcase (pc) && pc != '?')
-#endif
+      if (!match (*rni, pc) && pc != '?')
         return false;
     }
 
@@ -1592,7 +1650,7 @@ namespace butl
       return rni == rne;
 
     // If we didn't reach * in the pattern then we reached the (reversed) end
-    // of the name. That means we have unmatched non-star characters in the
+    // of the name. That means we have unmatched non-star terms in the
     // pattern, and so match failed.
     //
     if (pc != '*')
@@ -1609,23 +1667,19 @@ namespace butl
     pe = rpi.base ();
     ne = rni.base ();
 
-    // Compare the pattern and the name char by char until the name suffix or
+    // Compare the pattern and the name term by char until the name suffix or
     // * is encountered in the pattern (whichever happens first). Fail if a
     // char mismatches.
     //
     for (; (pc = *pi) != '*' && ni != ne; ++pi, ++ni)
     {
-#ifndef _WIN32
-      if (*ni != pc && pc != '?')
-#else
-        if (lcase (*ni) != lcase (pc) && pc != '?')
-#endif
+      if (!match (*ni, pc) && pc != '?')
         return false;
     }
 
     // If we didn't get to * in the pattern then we got to the name suffix.
-    // That means that the pattern has unmatched non-star characters, and so
-    // match failed.
+    // That means that the pattern has unmatched non-star terms, and so match
+    // failed.
     //
     if (pc != '*')
     {
@@ -1652,7 +1706,94 @@ namespace butl
     // the name.
     //
     bool r;
-    for (; !(r = match (pi, pe, ni, ne)) && ni != ne; ++ni) ;
+    for (; !(r = match_no_brackets (pi, pe, ni, ne)) && ni != ne; ++ni) ;
+    return r;
+  }
+
+  // Match a character against the pattern term.
+  //
+  static inline bool
+  match (char c, const path_pattern_term& pt)
+  {
+    switch (pt.type)
+    {
+      // Matches any character.
+      //
+    case path_pattern_term_type::star:
+    case path_pattern_term_type::question: return true;
+
+    case path_pattern_term_type::bracket:
+      {
+        return match_bracket (c, pt);
+      }
+
+    case path_pattern_term_type::literal:
+      {
+        return match (c, get_literal (pt));
+      }
+    }
+
+    assert (false); // Can't be here.
+    return false;
+  }
+
+  // Match the name [ni, ne) to the pattern [pi, pe). Ranges can be empty.
+  //
+  static bool
+  match (string::const_iterator pi, string::const_iterator pe,
+         string::const_iterator ni, string::const_iterator ne)
+  {
+    // If the pattern doesn't contain the bracket expressions then reduce to
+    // the "clever" approach (see the implementation notes below for details).
+    //
+    if (find (pi, pe, '[') == pe)
+      return match_no_brackets (pi, pe, ni, ne);
+
+    // Match the pattern prefix (precedes the first *) to the name leading
+    // characters.
+    //
+    path_pattern_iterator ppi (pi, pe);
+    path_pattern_iterator ppe;
+    path_pattern_term pt;
+
+    for (; ppi != ppe && !(pt = *ppi).star () && ni != ne; ++ppi, ++ni)
+    {
+      if (!match (*ni, pt))
+        return false;
+    }
+
+    // If we got to the end of the pattern (no * is encountered) than we are
+    // done. The success depends on if we got to the end of the name as well.
+    //
+    if (ppi == ppe)
+      return ni == ne;
+
+    // If we didn't reach * in the pattern then we reached the end of the
+    // name. That means we have unmatched non-star terms in the pattern, and
+    // so match failed.
+    //
+    if (!pt.star ())
+    {
+      assert (ni == ne);
+      return false;
+    }
+
+    // If * that we have reached is the last term, then it matches whatever is
+    // left in the name (including an empty range).
+    //
+    if (++ppi == ppe)
+      return true;
+
+    // Switch back to the string iterator and perform backtracking.
+    //
+    // From now on, we will call the pattern not-yet-matched part (starting
+    // the leftmost *) as pattern, and the name not-yet-matched part as name.
+    //
+    // Here we sequentially assume that * that starts the pattern matches the
+    // name leading part (see match_no_brackets() for details).
+    //
+    bool r;
+    for (pi = ppi->begin; !(r = match (pi, pe, ni, ne)) && ni != ne; ++ni) ;
     return r;
   }
 
@@ -1676,6 +1817,16 @@ namespace butl
     //   foo*   vs foo.txt -> * vs .txt
     //   f*.txt vs foo.txt -> * vs oo
     //
+    //   Note that this approach fails if the pattern may contain bracket
+    //   expressions. You can't easily recognize a suffix scanning backwards
+    //   since * semantics depends on the characters to the left:
+    //
+    //   f[o*]o - * is not a wildcard
+    //    fo*]o - * is a wildcard
+    //
+    //   That's why we will start with the straightforward left-to-right
+    //   matching and reduce to the "clever" approach when the remaining part
+    //   of the pattern doesn't contain bracket expressions.
 
     auto pi (pattern.rbegin ());
     auto pe (pattern.rend ());
@@ -1731,7 +1882,7 @@ namespace butl
       auto b (pattern.begin ());
       auto e (pattern.end ());
       auto i (b);
-      for (; i != e && (*i).find_first_of ("*?") == string::npos; ++i) ;
+      for (; i != e && !path_pattern (*i); ++i) ;
 
       // If the pattern has no wildcards then we reduce to checking for the
       // filesystem entry existence. It matches if exists and is of the proper
@@ -1774,8 +1925,8 @@ namespace butl
     //
     typename FS::iterator_type i (filesystem.iterator (
       pattern_dir,
-      pcr.find ("**") != string::npos,                  // Recursive.
-      pcr.find ("***") != string::npos,                 // Self-inclusive.
+      path_pattern_recursive (pcr),
+      path_pattern_self_matching (pcr),
       follow_symlinks || !simple,
       [&pattern_dir, &func] (const dir_path& p) -> bool // Preopen.
       {
@@ -1785,17 +1936,30 @@ namespace butl
     // Canonicalize the pattern component collapsing consecutive stars (used to
     // express that it is recursive) into a single one.
     //
-    size_t j (0);
-    size_t n (pcr.size ());
-    for (size_t i (0); i < n; ++i)
+    auto j (pcr.begin ());
+    bool prev_star (false);
+    for (const path_pattern_term& t: path_pattern_iterator (pcr))
     {
-      char c (pcr[i]);
-      if (!(c == '*' && i > 0 && pcr[i - 1] == '*'))
-        pcr[j++] = c;
+      // Skip the repeated star wildcard.
+      //
+      if (t.star () && prev_star)
+        continue;
+
+      // Note: we only need to copy the pattern term if a star have already
+      // been skipped.
+      //
+      assert (j <= t.begin);
+
+      if (j != t.begin)
+        copy (t.begin, t.end, j);
+
+      j += t.size ();
+
+      prev_star = t.star ();
     }
 
-    if (j != n)
-      pcr.resize (j);
+    if (j != pcr.end ())
+      pcr.resize (j - pcr.begin ());
 
     // Note that the callback function can be called for the same directory
     // twice: first time as intermediate match from iterator's preopen() call,
@@ -1873,7 +2037,7 @@ namespace butl
   //
   static const dir_path empty_dir;
 
-  using preopen = std::function<bool (const dir_path&)>;
+  using preopen = function<bool (const dir_path&)>;
 
   // Base for filesystem (see above) implementations.
   //
@@ -2005,7 +2169,7 @@ namespace butl
       try
       {
         // If preopen_() returns false, then the directory will not be
-        // traversed (as we leave iterator with end semantics) but still be
+        // traversed (since we leave iterator with end semantics) but still be
         // returned by the next() call as a sub-entry.
         //
         dir_iterator i;
@@ -2171,8 +2335,8 @@ namespace butl
     open (const dir_path& p, bool preopen)
     {
       // If preopen_() returns false, then the directory will not be
-      // traversed (as we reset the recursive flag) but still be returned by
-      // the next() call as a sub-entry.
+      // traversed (since we reset the recursive flag) but still be returned
+      // by the next() call as a sub-entry.
       //
       if (preopen && !preopen_ (p))
         recursive_ = false;
@@ -2312,7 +2476,7 @@ namespace butl
   {
     bool r (false);
 
-    auto match = [&entry, &r] (path&& p, const std::string&, bool interim)
+    auto match = [&entry, &r] (path&& p, const string&, bool interim)
     {
       // If we found the entry (possibly through one of the recursive
       // components) no need to search further.
@@ -2328,5 +2492,89 @@ namespace butl
 
     path_search (pattern, entry, match, start, flags);
     return r;
+  }
+
+  // path_pattern_iterator
+  //
+  void path_pattern_iterator::
+  next ()
+  {
+    if (i_ == e_)
+    {
+      t_ = nullopt; // Convert the object into the end iterator.
+      return;
+    }
+
+    auto next = [this] (path_pattern_term_type t)
+    {
+      assert (t != path_pattern_term_type::bracket);
+
+      t_ = path_pattern_term {t, i_, i_ + 1};
+      ++i_;
+    };
+
+    switch (*i_)
+    {
+    case '?':
+      {
+        next (path_pattern_term_type::question);
+        break;
+      }
+    case '*':
+      {
+        next (path_pattern_term_type::star);
+        break;
+      }
+    case '[':
+      {
+        // Try to find the bracket expression end.
+        //
+        // Note that '[' doesn't necessarily starts the bracket expression (no
+        // closing bracket, empty, etc). If that's the case, then we end up
+        // with the '[' literal terminal.
+        //
+        bool expr (false);
+        for (;;) // Breakout loop.
+        {
+          string::const_iterator i (i_ + 1); // Position after '['.
+
+          if (i == e_) // Is '[' the pattern last character?
+            break;
+
+          bool invert (*i == '!');
+          if (invert && ++i == e_) // Is '!' the pattern last character?
+            break;
+
+          // Find the bracket expression end.
+          //
+          // Note that the bracket expression may not be empty and ']' is a
+          // literal if it is the first expression character.
+          //
+          for (++i; i != e_ && *i != ']'; ++i) ;
+
+          if (i == e_) // The closing bracket is not found?
+            break;
+
+          expr = true;
+
+          ++i; // Position after ']'.
+
+          t_ = path_pattern_term {path_pattern_term_type::bracket, i_, i};
+
+          i_ = i;
+          break;
+        }
+
+        // Fallback to '[' literal if it is not a bracket expression.
+        //
+        if (expr)
+          break;
+      }
+      // Fall through.
+    default:
+      {
+        next (path_pattern_term_type::literal);
+      }
+    }
   }
 }

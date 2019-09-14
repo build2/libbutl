@@ -20,11 +20,14 @@
 #ifndef _MSC_VER
 #  include <sys/types.h> // mode_t
 #else
-   typedef int mode_t;
+   using mode_t = int;
 #endif
 
+#include <cassert>
+
 #ifndef __cpp_lib_modules_ts
-#include <cstddef>    // ptrdiff_t
+#include <string>
+#include <cstddef>    // ptrdiff_t, size_t
 #include <cstdint>    // uint16_t, etc
 #include <utility>    // move(), pair
 #include <iterator>
@@ -42,11 +45,13 @@ import std.core;
 #endif
 
 import butl.path;
+import butl.optional;
 import butl.timestamp;
 
 import butl.utility;
 #else
 #include <libbutl/path.mxx>
+#include <libbutl/optional.mxx>
 #include <libbutl/timestamp.mxx>
 
 #include <libbutl/utility.mxx>
@@ -602,7 +607,7 @@ LIBBUTL_MODEXPORT namespace butl
   class LIBBUTL_SYMEXPORT dir_entry
   {
   public:
-    typedef butl::path path_type;
+    using path_type = butl::path;
 
     // Symlink target type in case of the symlink, ltype() otherwise.
     //
@@ -641,11 +646,11 @@ LIBBUTL_MODEXPORT namespace butl
   class LIBBUTL_SYMEXPORT dir_iterator
   {
   public:
-    typedef dir_entry value_type;
-    typedef const dir_entry* pointer;
-    typedef const dir_entry& reference;
-    typedef std::ptrdiff_t difference_type;
-    typedef std::input_iterator_tag iterator_category;
+    using value_type = dir_entry;
+    using pointer = const dir_entry*;
+    using reference = const dir_entry&;
+    using difference_type =  std::ptrdiff_t;
+    using iterator_category = std::input_iterator_tag;
 
     ~dir_iterator ();
     dir_iterator () = default;
@@ -714,10 +719,19 @@ LIBBUTL_MODEXPORT namespace butl
 
   // Wildcard pattern match and search (aka glob).
   //
-  // Currently the following wildcard characters are supported:
+  // The wildcard pattern contains the literal characters that match
+  // themselves and the wildcard characters that match a single or multiple
+  // characters. Currently the following wildcards are supported:
   //
-  // * - match any number of characters (including zero)
-  // ? - match any single character
+  // *     - match any number of characters (including zero)
+  // ?     - match any single character
+  // [...] - match a character with a "bracket expression"; currently we only
+  //         support literal characters and ranges (no character/equivalence
+  //         classes, etc; see Pattern Matching Notation section of the Shell
+  //         Command Language POSIX specification for details)
+  //
+  // Note also that currently we don't support the special characters
+  // backslash-escaping (as mandated by POSIX).
 
   // Path match/search flags.
   //
@@ -869,6 +883,134 @@ LIBBUTL_MODEXPORT namespace butl
                                          bool interm)>&,
                const dir_path& start = dir_path (),
                path_match_flags = path_match_flags::none);
+
+  // Return true if a name contains the wildcard characters.
+  //
+  bool
+  path_pattern (const std::string&);
+
+  // Return true if a name contains the ** wildcard sequences.
+  //
+  bool
+  path_pattern_recursive (const std::string&);
+
+  // Return true if a name contains the *** wildcard sequences.
+  //
+  bool
+  path_pattern_self_matching (const std::string&);
+
+  // Return true if a path contains the pattern components.
+  //
+  bool
+  path_pattern (const path&);
+
+  // Return the number of recursive pattern components.
+  //
+  // Knowing the number of such components allows us to make some assumptions
+  // regarding the search result. For example, if it is zero or one, then the
+  // result contains no duplicates.
+  //
+  // Also note that the result can be used as bool.
+  //
+  size_t
+  path_pattern_recursive (const path&);
+
+  // Return true if the path is not empty and its first component is a self-
+  // matching pattern.
+  //
+  bool
+  path_pattern_self_matching (const path&);
+
+  // Iteration over pattern terminals.
+  //
+  enum class path_pattern_term_type
+  {
+    literal,  // Literal character.
+    question, // Question mark wildcard.
+    star,     // Star wildcard.
+    bracket   // Bracket expression wildcard.
+  };
+
+  class path_pattern_term
+  {
+  public:
+    path_pattern_term_type      type;
+    std::string::const_iterator begin;
+    std::string::const_iterator end;
+
+    std::size_t
+    size () const {return end - begin;}
+
+    // Predicates.
+    //
+    bool literal  () const {return type == path_pattern_term_type::literal;}
+    bool question () const {return type == path_pattern_term_type::question;}
+    bool star     () const {return type == path_pattern_term_type::star;}
+    bool bracket  () const {return type == path_pattern_term_type::bracket;}
+  };
+
+  // Return the literal terminal character.
+  //
+  char
+  get_literal (const path_pattern_term&);
+
+  // Match a character against the bracket expression terminal.
+  //
+  LIBBUTL_SYMEXPORT bool
+  match_bracket (char, const path_pattern_term&);
+
+  class LIBBUTL_SYMEXPORT path_pattern_iterator
+  {
+  public:
+    using value_type = path_pattern_term;
+    using pointer = const path_pattern_term*;
+    using reference = const path_pattern_term&;
+    using difference_type = std::ptrdiff_t;
+    using iterator_category = std::input_iterator_tag;
+
+    explicit
+    path_pattern_iterator (const std::string&);
+
+    path_pattern_iterator (std::string::const_iterator begin,
+                           std::string::const_iterator end);
+
+    path_pattern_iterator () = default; // Create the end iterator.
+
+    path_pattern_iterator& operator++ () {assert (t_); next (); return *this;}
+
+    reference operator*  () const {assert (t_); return *t_;}
+    pointer   operator-> () const {assert (t_); return &*t_;}
+
+    friend bool
+    operator== (const path_pattern_iterator&, const path_pattern_iterator&);
+
+    friend bool
+    operator!= (const path_pattern_iterator&, const path_pattern_iterator&);
+
+  private:
+    void
+    next ();
+
+  private:
+    // nullopt denotes the end iterator.
+    //
+    // Note that the default-constructed i_ and e_ iterators (having singular
+    // values) may not represent the end iterator as are not comparable for
+    // equality. That's why we use an absent term to represent such an
+    // iterator.
+    //
+    optional<path_pattern_term> t_;
+
+    std::string::const_iterator i_;
+    std::string::const_iterator e_;
+  };
+
+  // Range-based for loop support.
+  //
+  // for (const path_pattern_term& t: path_pattern_iterator (pattern)) ...
+  //
+  path_pattern_iterator begin (const path_pattern_iterator&);
+  path_pattern_iterator end   (const path_pattern_iterator&);
 }
 
 #include <libbutl/filesystem.ixx>
