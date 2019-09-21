@@ -2092,12 +2092,19 @@ namespace butl
     case STATUS_DLL_INIT_FAILED:        return "DLL initialization failed";
     case STATUS_INTEGER_DIVIDE_BY_ZERO: return "integer divided by zero";
 
-    // VC-compiled program that calls abort() terminates with this error code
-    // (0xC0000409). That differs from MinGW GCC-compiled one, that exits
-    // normally with status 3 (conforms to MSDN). Under Wine (1.9.8) such a
-    // program exits with status 3 for both VC and MinGW GCC. Sounds weird.
+    // If a VC-compiled program exits with the STATUS_STACK_BUFFER_OVERRUN
+    // (0xC0000409) status, it is not necessarily because of the stack buffer
+    // overrun. This may also happen if the program called abort() due, for
+    // example, to an unhandled exception or an assertion failure (see the
+    // 'STATUS_STACK_BUFFER_OVERRUN doesn't mean that there was a stack buffer
+    // overrun' Microsoft development blog article for details). That's why we
+    // use the more general description for this error code.
     //
-    case STATUS_STACK_BUFFER_OVERRUN: return "stack buffer overrun";
+    // Note that MinGW GCC-compiled program exits normally with the status 3
+    // if it calls abort() (conforms to MSDN). Under Wine (1.9.8) such a
+    // behavior is common for both VC and MinGW GCC.
+    //
+    case STATUS_STACK_BUFFER_OVERRUN: return "aborted";
     case STATUS_STACK_OVERFLOW:       return "stack overflow";
 
     default:
@@ -2113,13 +2120,13 @@ namespace butl
         bool skip (true); // Skip leading zeros.
 
         auto add = [&desc, &digits, &skip] (unsigned char d, bool force)
+        {
+          if (d != 0 || !skip || force)
           {
-            if (d != 0 || !skip || force)
-            {
-              desc += digits[d];
-              skip = false;
-            }
-          };
+            desc += digits[d];
+            skip = false;
+          }
+        };
 
         for (int i (sizeof (status) - 1); i >= 0 ; --i)
         {
