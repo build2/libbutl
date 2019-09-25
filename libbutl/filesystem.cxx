@@ -1573,7 +1573,7 @@ namespace butl
     // Match the pattern suffix (follows the last *) to the name trailing
     // characters.
     //
-    char pc;
+    char pc ('\0');
     for (; rpi != rpe && (pc = *rpi) != '*' && rni != rne; ++rpi, ++rni)
     {
 #ifndef _WIN32
