@@ -84,7 +84,7 @@ namespace butl
   }
 
   inline int
-  casecmp (char l, char r)
+  icasecmp (char l, char r)
   {
     l = lcase (l);
     r = lcase (r);
@@ -92,7 +92,7 @@ namespace butl
   }
 
   inline int
-  casecmp (const char* l, const char* r, std::size_t n)
+  icasecmp (const char* l, const char* r, std::size_t n)
   {
 #ifndef _WIN32
     return n == std::string::npos ? strcasecmp (l, r) : strncasecmp (l, r, n);
@@ -102,15 +102,15 @@ namespace butl
   }
 
   inline int
-  casecmp (const std::string& l, const std::string& r, std::size_t n)
+  icasecmp (const std::string& l, const std::string& r, std::size_t n)
   {
-    return casecmp (l.c_str (), r.c_str (), n);
+    return icasecmp (l.c_str (), r.c_str (), n);
   }
 
   inline int
-  casecmp (const std::string& l, const char* r, std::size_t n)
+  icasecmp (const std::string& l, const char* r, std::size_t n)
   {
-    return casecmp (l.c_str (), r, n);
+    return icasecmp (l.c_str (), r, n);
   }
 
   inline bool

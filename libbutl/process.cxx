@@ -135,7 +135,7 @@ import butl.small_vector;
 import std.threading;
 #endif
 
-import butl.utility;  // casecmp()
+import butl.utility;  // icasecmp()
 import butl.fdstream; // fdnull()
 #else
 #include <libbutl/utility.mxx>
@@ -945,9 +945,9 @@ namespace butl
     {
       const char* e (traits::find_extension (f, fn));
       ext = (e == nullptr ||
-             (casecmp (e, ".exe") != 0 &&
-              casecmp (e, ".bat") != 0 &&
-              casecmp (e, ".cmd") != 0));
+             (icasecmp (e, ".exe") != 0 &&
+              icasecmp (e, ".bat") != 0 &&
+              icasecmp (e, ".cmd") != 0));
     }
 
     process_path r (f, path (), path ()); // Make sure it is not empty.
@@ -1413,7 +1413,7 @@ namespace butl
         for (; *ev != nullptr; ++ev)
         {
           const char* v (*ev);
-          if (casecmp (cv, v, nn) == 0 && (v[nn] == '=' || v[nn] == '\0'))
+          if (icasecmp (cv, v, nn) == 0 && (v[nn] == '=' || v[nn] == '\0'))
             break;
         }
 
@@ -1443,8 +1443,8 @@ namespace butl
     {
       const char* p (pp.effect_string ());
       const char* e (path::traits_type::find_extension (p));
-      if (e != nullptr && (casecmp (e, ".bat") == 0 ||
-                           casecmp (e, ".cmd") == 0))
+      if (e != nullptr && (icasecmp (e, ".bat") == 0 ||
+                           icasecmp (e, ".cmd") == 0))
       {
         batch = getenv ("COMSPEC");
 
@@ -1749,7 +1749,7 @@ namespace butl
         {
           if (auto name = static_cast<const char*> (rva_to_ptr (imp->Name)))
           {
-            if (casecmp (name, "msys-2.0.dll") == 0)
+            if (icasecmp (name, "msys-2.0.dll") == 0)
               return true;
           }
         }

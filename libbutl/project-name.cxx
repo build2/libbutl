@@ -88,7 +88,7 @@ namespace butl
 
     if (e != nullptr                            &&
         p != string::npos                       &&
-        casecmp (value_.c_str () + p + 1, e) != 0)
+        icasecmp (value_.c_str () + p + 1, e) != 0)
       p = string::npos;
 
     return string (value_, 0, p);

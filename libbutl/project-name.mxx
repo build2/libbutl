@@ -22,7 +22,7 @@ export module butl.project_name;
 import std.core;
 import std.io;
 #endif
-import butl.utility; // casecmp(), sanitize_identifier()
+import butl.utility; // icasecmp(), sanitize_identifier()
 #else
 #include <libbutl/utility.mxx>
 #endif
@@ -100,7 +100,7 @@ LIBBUTL_MODEXPORT namespace butl
     //
     int compare (const project_name& n) const {return compare (n.value_);}
     int compare (const std::string& n) const {return compare (n.c_str ());}
-    int compare (const char* n) const {return butl::casecmp (value_, n);}
+    int compare (const char* n) const {return icasecmp (value_, n);}
 
   private:
     std::string value_;

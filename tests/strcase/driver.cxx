@@ -28,35 +28,35 @@ main ()
   const string upper ("+/0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
   const string lower ("+/0123456789abcdefghijklmnopqrstuvwxyz");
 
-  assert (casecmp (upper, lower) == 0);
-  assert (casecmp (upper, lower, upper.size ()) == 0);
-  assert (casecmp (upper, lower, 100) == 0);
-  assert (casecmp ("a", "A1") < 0);
-  assert (casecmp ("A1", "a") > 0);
-  assert (casecmp ("a", "A1", 1) == 0);
-  assert (casecmp ("A1", "a", 1) == 0);
-  assert (casecmp ("a", "b", 0) == 0);
+  assert (icasecmp (upper, lower) == 0);
+  assert (icasecmp (upper, lower, upper.size ()) == 0);
+  assert (icasecmp (upper, lower, 100) == 0);
+  assert (icasecmp ("a", "A1") < 0);
+  assert (icasecmp ("A1", "a") > 0);
+  assert (icasecmp ("a", "A1", 1) == 0);
+  assert (icasecmp ("A1", "a", 1) == 0);
+  assert (icasecmp ("a", "b", 0) == 0);
 
   for (size_t i (0); i < upper.size (); ++i)
   {
-    assert (casecmp (upper[i], lower[i]) == 0);
+    assert (icasecmp (upper[i], lower[i]) == 0);
 
     if (i > 0)
     {
-      assert (casecmp (upper[i], lower[i - 1]) > 0);
-      assert (casecmp (lower[i - 1], upper[i]) < 0);
+      assert (icasecmp (upper[i], lower[i - 1]) > 0);
+      assert (icasecmp (lower[i - 1], upper[i]) < 0);
     }
   }
 
-  // As casecmp() compares strings as if they have been converted to the
+  // As icasecmp() compares strings as if they have been converted to the
   // lower case the characters [\]^_` (located between 'Z' and 'a' in the ASCII
   // table) evaluates as less than any alphabetic character.
   //
   string ascii_91_96 ("[\\]^_`");
   for (const auto& c: ascii_91_96)
   {
-    assert (casecmp (&c, "A", 1) < 0);
-    assert (casecmp (&c, "a", 1) < 0);
+    assert (icasecmp (&c, "A", 1) < 0);
+    assert (icasecmp (&c, "a", 1) < 0);
   }
 
   assert (ucase (lower) == upper);

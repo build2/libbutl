@@ -33,7 +33,7 @@ import butl.fdstream;
 import butl.small_vector;
 #endif
 
-import butl.utility; // casecmp()
+import butl.utility; // icasecmp()
 #else
 #include <libbutl/utility.mxx>
 #endif
@@ -178,8 +178,7 @@ namespace butl
     if (n == string::npos)
       throw invalid_argument ("no protocol in URL");
 
-    if (casecmp (u, "ftp", n) == 0 ||
-        casecmp (u, "tftp", n) == 0)
+    if (icasecmp (u, "ftp", n) == 0 || icasecmp (u, "tftp", n) == 0)
     {
       switch (m)
       {
@@ -189,8 +188,7 @@ namespace butl
         throw invalid_argument ("POST method with FTP protocol");
       }
     }
-    else if (casecmp (u, "http", n) == 0 ||
-             casecmp (u, "https", n) == 0)
+    else if (icasecmp (u, "http", n) == 0 || icasecmp (u, "https", n) == 0)
     {
       o.push_back ("--fail");     // Fail on HTTP errors (e.g., 404).
       o.push_back ("--location"); // Follow redirects.
