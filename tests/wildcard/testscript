@@ -7,8 +7,8 @@
 {
   test.options = -mn
 
-  $* foo/ foo  == 1 : dir-vs-file
-  $* foo  foo/ == 1 : file-vs-dir
+  $* foo  foo/ == 1 : dir-vs-file
+  $* foo/ foo  == 1 : file-vs-dir
 
   : no-star
   :
@@ -18,15 +18,15 @@
     {
       $* foo/ foo/ : dir
       $* foo  foo  : file
-      $* f?o  foo  : qmark
+      $* foo  f?o  : qmark
       $* ''   ''   : empty
     }
 
     : no-match
     :
     {
-      $* oo  foo == 1 : name-char
-      $* foo oo  == 1 : pattern-char
+      $* foo oo   == 1 : name-char
+      $* oo  foo  == 1 : pattern-char
     }
   }
 
@@ -39,17 +39,17 @@
       : match
       :
       {
-        $* *      ''      : empty
-        $* *.txt  foo.txt : suffix-only
-        $* foo*   foo.txt : prefix-only
-        $* f*.txt foo.txt : prefix-suffix
+        $* ''      *       : empty
+        $* foo.txt *.txt   : suffix-only
+        $* foo.txt foo*    : prefix-only
+        $* foo.txt f*.txt  : prefix-suffix
       }
 
       : no-match
       :
       {
-        $* fox* foo.txt == 1 : pattern-prefix-char
-        $* foo* fo      == 1 : short-name
+        $* foo.txt fox* == 1 : pattern-prefix-char
+        $* fo      foo* == 1 : short-name
       }
     }
 
@@ -59,18 +59,18 @@
       : match
       :
       {
-        $* **    ''      : empty1
-        $* ***   ''      : empty2
-        $* f*.*  f.txt   : empty3
-        $* f**.* f.txt   : empty4
-        $* f*.*  foo.txt : non-empty
-        $* f*?*  foo-txt : qmark
+        $* ''      **    : empty1
+        $* ''      ***   : empty2
+        $* f.txt   f*.*  : empty3
+        $* f.txt   f**.* : empty4
+        $* foo.txt f*.*  : non-empty
+        $* foo-txt f*?*  : qmark
       }
 
       : no-match
       :
       {
-        $* f*.* foo-txt == 1
+        $* foo-txt f*.* == 1
       }
     }
   }
@@ -81,16 +81,16 @@
     : ordinary-char
     :
     {
-      $* a[bc]d   abd      : first
-      $* a[0-9b]d abd      : after-range
-      $* a[bc]d   acd      : last
-      $* a[]bc]d  a]d      : closing-bracket
-      $* a[-bc]d  a-d      : first-dash
-      $* a[bc-]d  a-d      : last-dash
-      $* a[*]d    a*d      : star
-      $* a[?]d    a?d      : question
-      $* a[[]d    a[d      : open-bracket
-      $* a[xy]d   abd == 1 : not-match
+      $* abd a[bc]d        : first
+      $* abd a[0-9b]d      : after-range
+      $* acd a[bc]d        : last
+      $* a]d a[]bc]d       : closing-bracket
+      $* a-d a[-bc]d       : first-dash
+      $* a-d a[bc-]d       : last-dash
+      $* a*d a[*]d         : star
+      $* a?d a[?]d         : question
+      $* a[d a[[]d         : open-bracket
+      $* abd a[xy]d   == 1 : not-match
 
       : not-expr
       :
@@ -105,19 +105,19 @@
     : range
     :
     {
-      $* a[0-8]d   a0d      : min
-      $* a[0-8]d   a8d      : max
-      $* a[0-8]d   a5d      : mid
-      $* a[0-8]d   a9d == 1 : out
-      $* a[a0-8]d  a1d      : after-char
-      $* a[x0-9y]d abd == 1 : not-match
+      $* a0d a[0-8]d        : min
+      $* a8d a[0-8]d        : max
+      $* a5d a[0-8]d        : mid
+      $* a9d a[0-8]d   == 1 : out
+      $* a1d a[a0-8]d       : after-char
+      $* abd a[x0-9y]d == 1 : not-match
     }
 
     : inverse
     :
     {
-      $* a[!xy]d abd      : match
-      $* a[!ab]d abd == 1 : not-match
+      $* abd a[!xy]d      : match
+      $* abd a[!ab]d == 1 : not-match
     }
   }
 
@@ -126,10 +126,10 @@
   : Test patterns combining backtracking with the bracket expressions.
   :
   {
-    $* [0-9]a*b        9axb   : bracket-star
-    $* a*b[0-9]        axyb0  : star-bracket
-    $* a*b[0-9]x*y     ab1xzy : star-bracket-star
-    $* a*[0-9]x*y[a-z] ax2xyb : star-bracket-star-bracket
+    $* 9axb   [0-9]a*b        : bracket-star
+    $* axyb0  a*b[0-9]        : star-bracket
+    $* ab1xzy a*b[0-9]x*y     : star-bracket-star
+    $* ax2xyb a*[0-9]x*y[a-z] : star-bracket-star-bracket
   }
 
   : case-sensitivity
@@ -138,13 +138,13 @@
   :
   if ($cxx.target.class != 'windows')
   {
-    $* F*O/     foo/ == 1
-    $* f[A-Z]o/ foo/ == 1
+    $* foo/ F*O/     == 1
+    $* foo/ f[A-Z]o/ == 1
   }
   else
   {
-    $* F*O/     foo/
-    $* f[A-Z]o/ foo/
+    $* foo/ F*O/
+    $* foo/ f[A-Z]o/
   }
 }
 
@@ -661,7 +661,7 @@
     {
       : partial
       :
-      $* foo/f** foo/fox >>/EOO
+      $* foo/fox foo/f** >>/EOO
       foo/fox
       EOO
 
@@ -693,13 +693,13 @@
         {
           : file
           :
-          $* f* foo >>EOO
+          $* foo f* >>EOO
           foo
           EOO
 
           : dir
           :
-          $* f*/ foo/ >>/EOO
+          $* foo/ f*/ >>/EOO
           foo/
           EOO
         }
@@ -709,13 +709,13 @@
         {
           : file
           :
-          $* f*/b* foo/bar >>/EOO
+          $* foo/bar f*/b* >>/EOO
           foo/bar
           EOO
 
           : dir
           :
-          $* f*/b*/ foo/bar/ >>/EOO
+          $* foo/bar/ f*/b*/ >>/EOO
           foo/bar/
           EOO
         }
@@ -729,13 +729,13 @@
         {
           : file
           :
-          $* f** foo >>EOO
+          $* foo f** >>EOO
           foo
           EOO
 
           : dir
           :
-          $* f**/ foo/ >>/EOO
+          $* foo/ f**/ >>/EOO
           foo/
           EOO
         }
@@ -745,13 +745,13 @@
         {
           : file
           :
-          $* f** foo/fox >>/EOO
+          $* foo/fox f** >>/EOO
           foo/fox
           EOO
 
           : dir
           :
-          $* f**/ foo/fox/ >>/EOO
+          $* foo/fox/ f**/ >>/EOO
           foo/
           foo/fox/
           EOO
@@ -766,13 +766,13 @@
         {
           : file
           :
-          $* f*** foo fox/ >>EOO
+          $* foo f*** fox/ >>EOO
           foo
           EOO
 
           : dir
           :
-          $* f***/ foo/ fox/ >>/EOO
+          $* foo/ f***/ fox/ >>/EOO
 
           foo/
           EOO
@@ -783,13 +783,13 @@
         {
           : file
           :
-          $* f*** foo/fox >>/EOO
+          $* foo/fox f*** >>/EOO
           foo/fox
           EOO
 
           : dir
           :
-          $* f***/ foo/fox/ foo/ >>/EOO
+          $* foo/fox/ f***/ foo/ >>/EOO
 
           foo/
           foo/fox/
@@ -818,7 +818,7 @@
 
         : iterate
         :
-        $* $wd/f**/ $wd/foo/fox/ >>/"EOO"
+        $* $wd/foo/fox/ $wd/f**/ >>/"EOO"
         $wd/foo/
         $wd/foo/fox/
         EOO
@@ -829,13 +829,13 @@
       {
         : reduce
         :
-        $* $wd/foo foo $wd >>/"EOO"
+        $* foo $wd/foo $wd >>/"EOO"
         $wd/foo
         EOO
 
         : iterate
         :
-        $* $wd/f**/ foo/fox/ >>/"EOO"
+        $* foo/fox/ $wd/f**/ >>/"EOO"
         $wd/pattern/iterate/foo/
         $wd/pattern/iterate/foo/fox/
         EOO
@@ -846,13 +846,13 @@
       {
         : reduce
         :
-        $* foo $wd/foo $wd >>/"EOO"
+        $* $wd/foo foo $wd >>/"EOO"
         foo
         EOO
 
         : iterate
         :
-        $* f**/ $wd/entry/iterate/foo/fox/ >>/"EOO"
+        $* $wd/entry/iterate/foo/fox/ f**/ >>/"EOO"
         foo/
         foo/fox/
         EOO
@@ -868,7 +868,7 @@
     {
       : partial
       :
-      $* foo/f** fox/bar/baz/fix == 1
+      $* fox/bar/baz/fix foo/f** == 1
 
       : reduce
       :
@@ -882,7 +882,7 @@
 
           : not-file
           :
-          $* foo foo/ == 1
+          $* foo/ foo == 1
 
           : empy
           :
@@ -893,11 +893,11 @@
 
             : pattern
             :
-            $* '' foo == 1
+            $* foo '' == 1
 
             : path
             :
-            $* foo '' == 1
+            $* '' foo == 1
           }
         }
 
@@ -906,22 +906,22 @@
         {
           : not-exists
           :
-          $* foo/ fox/ == 1
+          $* fox/ foo/ == 1
 
           : not-dir
           :
-          $* foo/ foo == 1
+          $* foo foo/ == 1
 
           : empy
           :
           {
             : pattern
             :
-            $* '' foo/ == 1
+            $* foo/ '' == 1
 
             : path
             :
-            $* foo/ '' == 1
+            $* '' foo/ == 1
           }
         }
       }
@@ -941,15 +941,15 @@
           {
             : not-exists
             :
-            $* f* bar == 1
+            $* bar f* == 1
 
             : not-file
             :
-            $* f* foo/ == 1
+            $* foo/ f* == 1
 
             : empty
             :
-            $* f* '' == 1
+            $* '' f* == 1
           }
 
           : dir
@@ -957,15 +957,15 @@
           {
             : not-exists
             :
-            $* f*/ bar/ == 1
+            $* bar/ f*/ == 1
 
             : not-dir
             :
-            $* f*/ foo == 1
+            $* foo f*/ == 1
 
             : empty
             :
-            $* f*/ '' == 1
+            $* '' f*/ == 1
           }
         }
 
@@ -977,15 +977,15 @@
           {
             : not-exists-other
             :
-            $* f*/b* foo/fox == 1
+            $* foo/fox f*/b* == 1
 
             : not-exists-none
             :
-            $* f*/b* foo/ == 1
+            $* foo/ f*/b* == 1
 
             : not-file
             :
-            $* f*/b* foo/bar/ == 1
+            $* foo/bar/ f*/b* == 1
           }
 
           : dir
@@ -993,15 +993,15 @@
           {
             : not-exists-other
             :
-            $* f*/b*/ foo/fox/ == 1
+            $* foo/fox/ f*/b*/ == 1
 
             : not-exists-none
             :
-            $* f*/b*/ foo/ == 1
+            $* foo/ f*/b*/ == 1
 
             : not-dir
             :
-            $* f*/b*/ foo/bar == 1
+            $* foo/bar f*/b*/ == 1
           }
         }
       }
@@ -1017,11 +1017,11 @@
           {
             : not-exists
             :
-            $* f** bar == 1
+            $* bar f** == 1
 
             : not-file
             :
-            $* f** foo/ == 1
+            $* foo/ f** == 1
           }
 
           : dir
@@ -1029,11 +1029,11 @@
           {
             : not-exists
             :
-            $* f**/ bar/ == 1
+            $* bar/ f**/ == 1
 
             : not-dir
             :
-            $* f**/ foo == 1
+            $* foo f**/ == 1
           }
         }
 
@@ -1045,15 +1045,15 @@
           {
             : not-exists-other
             :
-            $* f** foo/bar == 1
+            $* foo/bar f** == 1
 
             : not-exists-none
             :
-            $* f** foo/ == 1
+            $* foo/ f** == 1
 
             : not-file
             :
-            $* f** foo/fox/ == 1
+            $* foo/fox/ f** == 1
           }
 
           : dir
@@ -1061,15 +1061,15 @@
           {
             : not-exists-other
             :
-            $* f*/b*/ foo/fox/ == 1
+            $* foo/fox/ f*/b*/ == 1
 
             : not-exists-none
             :
-            $* f*/b*/ foo/ == 1
+            $* foo/ f*/b*/ == 1
 
             : not-dir
             :
-            $* f*/b*/ foo/bar == 1
+            $* foo/bar f*/b*/ == 1
           }
         }
       }
@@ -1086,11 +1086,11 @@
           {
             : not-exists
             :
-            $* f*** bar baz/ == 1
+            $* bar f*** baz/ == 1
 
             : not-file
             :
-            $* f*** foo/ fox/ == 1
+            $* foo/ f*** fox/ == 1
           }
 
           : dir
@@ -1098,11 +1098,11 @@
           {
             : not-exists
             :
-            $* f***/ bar/ baz/ == 1
+            $* bar/ f***/ baz/ == 1
 
             : not-dir
             :
-            $* f***/ foo == 1
+            $* foo f***/ == 1
           }
         }
 
@@ -1114,15 +1114,15 @@
           {
             : not-exists-other
             :
-            $* f*** foo/bar == 1
+            $* foo/bar f*** == 1
 
             : not-exists-none
             :
-            $* f*** foo/ == 1
+            $* foo/ f*** == 1
 
             : not-file
             :
-            $* f*** foo/fox/ fix/ == 1
+            $* foo/fox/ f*** fix/ == 1
           }
 
           : dir
@@ -1130,15 +1130,15 @@
           {
             : not-exists-other
             :
-            $* f***/ bar/baz/ bak/ == 1
+            $* bar/baz/ f***/ bak/ == 1
 
             : not-exists-none
             :
-            $* f***/ bar/ == 1
+            $* bar/ f***/ == 1
 
             : not-dir
             :
-            $* f***/ bar/foo == 1
+            $* bar/foo f***/ == 1
           }
         }
       }
@@ -1159,11 +1159,11 @@
         {
           : not-exists
           :
-          $* foo $~/fox == 1
+          $* $~/fox foo == 1
 
           : not-file
           :
-          $* $~/foo foo/ == 1
+          $* foo/ $~/foo == 1
         }
 
         : dir
@@ -1171,11 +1171,11 @@
         {
           : not-exists
           :
-          $* $~/foo/ fox/ == 1
+          $* fox/ $~/foo/ == 1
 
           : not-dir
           :
-          $* foo/ $~/foo == 1
+          $* $~/foo foo/ == 1
         }
       }
 
@@ -1187,15 +1187,15 @@
         {
           : not-exists-other
           :
-          $* $~/f** foo/bar == 1
+          $* foo/bar $~/f** == 1
 
           : not-exists-none
           :
-          $* f** $~/foo/ == 1
+          $* $~/foo/ f** == 1
 
           : not-file
           :
-          $* $~/f** $~/foo/fox/ == 1
+          $* $~/foo/fox/ $~/f** == 1
         }
 
         : dir
@@ -1203,15 +1203,15 @@
         {
           : not-exists-other
           :
-          $* $~/f*/b*/ $~/foo/fox/ == 1
+          $* $~/foo/fox/ $~/f*/b*/ == 1
 
           : not-exists-none
           :
-          $* $~/f*/b*/ foo/ == 1
+          $* foo/ $~/f*/b*/ == 1
 
           : not-dir
           :
-          $* f*/b*/ $~/foo/bar == 1
+          $* $~/foo/bar f*/b*/ == 1
         }
       }
     }
@@ -1225,12 +1225,12 @@
     : middle
     :
     {
-      $* a/*/b  a/b   >/ a/b
-      $* a/*/b  a/x/b >/ a/x/b
-      $* a/**/b a/b   >/ a/b
-      $* a/**/b a/x/b >/ a/x/b
+      $* a/b   a/*/b  >/ a/b
+      $* a/x/b a/*/b  >/ a/x/b
+      $* a/b   a/**/b >/ a/b
+      $* a/x/b a/**/b >/ a/x/b
 
-      $* a/***/b a/b >>/EOO
+      $* a/b a/***/b >>/EOO
         a/b
         a/b
         EOO
@@ -1238,9 +1238,9 @@
       : multiple
       :
       {
-        $* a/**/*/b a/b >/ a/b
+        $* a/b a/**/*/b >/ a/b
 
-        $* a/**/*/b a/x/b >>/EOO
+        $* a/x/b a/**/*/b >>/EOO
           a/x/b
           a/x/b
           EOO
@@ -1251,15 +1251,15 @@
     :
     if ($cxx.target.class != 'windows')
     {
-      $* /*/a /a   > /a
-      $* /*/a /b/a > /b/a
+      $* /a   /*/a > /a
+      $* /b/a /*/a > /b/a
 
       : multiple
       :
       {
-        $* /*/*/a /a > /a
+        $* /a /*/*/a > /a
 
-        $* /*/*/a /b/a >>EOO
+        $* /b/a /*/*/a >>EOO
           /b/a
           /b/a
           EOO
@@ -1269,15 +1269,15 @@
     : leading
     :
     {
-      $* */a a   >/ a
-      $* */a b/a >/ b/a
+      $* a   */a >/ a
+      $* b/a */a >/ b/a
 
       : multiple
       :
       {
-        $* */*/a a >/ a
+        $* a */*/a >/ a
 
-        $* */*/a b/a >>/EOO
+        $* b/a */*/a >>/EOO
           b/a
           b/a
           EOO
@@ -1293,49 +1293,49 @@
       : match an absent component.
       :
       {
-        $* a/* a/b >/ a/b
+        $* a/b a/* >/ a/b
 
-        $* a/* a    == 1
-        $* a/* a/   == 1
-        $* a/* a/b/ == 1
+        $* a    a/* == 1
+        $* a/   a/* == 1
+        $* a/b/ a/* == 1
 
         : multiple
         :
         {
-          $* a/*/* a/b >/ a/b
+          $* a/b a/*/* >/ a/b
 
-          $* a/*/* a    == 1
-          $* a/*/* a/   == 1
-          $* a/*/* a/b/ == 1
+          $* a    a/*/* == 1
+          $* a/   a/*/* == 1
+          $* a/b/ a/*/* == 1
         }
       }
 
       : dir
       :
       {
-        $* a/*/ a/  >/ a/
-        $* a/*/ a/b >/ a/
+        $* a/  a/*/ >/ a/
+        $* a/b a/*/ >/ a/
 
-        $* a/*/ a/b/ >>/EOO
+        $* a/b/ a/*/ >>/EOO
           a/b/
           a/
           EOO
 
-        $* a/*/ a == 1
+        $* a a/*/ == 1
 
         : multiple
         :
         {
-          $* a/*/*/ a/  >/ a/
-          $* a/*/*/ a/b >/ a/
+          $* a/  a/*/*/ >/ a/
+          $* a/b a/*/*/ >/ a/
 
-          $* a/*/*/ a/b/ >>/EOO
+          $* a/b/ a/*/*/ >>/EOO
             a/b/
             a/b/
             a/
             EOO
 
-          $* a/*/*/ a == 1
+          $* a a/*/*/ == 1
         }
       }
     }
@@ -1345,30 +1345,30 @@
       : adjacent
       :
       {
-        $* */* a   >/ a
-        $* */* a/b >/ a/b
+        $* a   */* >/ a
+        $* a/b */* >/ a/b
 
-        $* */*   a/ == 1
+        $* a/ */* == 1
       }
 
       : apart
       :
       {
-        $* */a/* a/b   >/ a/b
-        $* */a/* c/a/b >/ c/a/b
+        $* a/b   */a/* >/ a/b
+        $* c/a/b */a/* >/ c/a/b
 
-        $* */a/* a    == 1
-        $* */a/* b/a  == 1
-        $* */a/* b/a/ == 1
+        $* a    */a/* == 1
+        $* b/a  */a/* == 1
+        $* b/a/ */a/* == 1
 
         : recursive
         :
         {
-          $* **/a/** a/b/c/d       >/ a/b/c/d
-          $* **/a/** d/c/b/a/b/c/d >/ d/c/b/a/b/c/d
+          $* a/b/c/d       **/a/** >/ a/b/c/d
+          $* d/c/b/a/b/c/d **/a/** >/ d/c/b/a/b/c/d
 
-          $* **/a/** a       == 1
-          $* **/a/** d/c/b/a == 1
+          $* a       **/a/** == 1
+          $* d/c/b/a **/a/** == 1
         }
       }
     }

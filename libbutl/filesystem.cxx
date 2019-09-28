@@ -1798,7 +1798,7 @@ namespace butl
   }
 
   bool
-  path_match (const string& pattern, const string& name)
+  path_match (const string& name, const string& pattern)
   {
     // Implementation notes:
     //
@@ -1993,7 +1993,7 @@ namespace butl
                                          ? pattern_dir
                                          : filesystem.start_dir ()));
 
-      if (!path_match (pcr, se.leaf ().representation ()))
+      if (!path_match (se.leaf ().representation (), pcr))
         continue;
 
       // If the callback function returns false, then we stop the entire search
@@ -2469,8 +2469,8 @@ namespace butl
   }
 
   bool
-  path_match (const path& pattern,
-              const path& entry,
+  path_match (const path& entry,
+              const path& pattern,
               const dir_path& start,
               path_match_flags flags)
   {

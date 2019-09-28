@@ -47,9 +47,9 @@ int _CRT_glob = 0;
 
 // Usages:
 //
-// argv[0] -mn <pattern> <name>
+// argv[0] -mn <name> <pattern>
 // argv[0] -sd [-i] [-n] <pattern> [<dir>]
-// argv[0] -sp [-i] [-n] <pattern> <path> [<dir>]
+// argv[0] -sp [-i] [-n] <path> <pattern> [<dir>]
 //
 // Execute actions specified by the first option. Exit with code 0 if succeed,
 // 1 if fail, 2 on the underlying OS error (print error description to STDERR).
@@ -96,9 +96,9 @@ try
   {
     assert (argc == 4);
 
-    string pattern (argv[2]);
-    string name (argv[3]);
-    return path_match (pattern, name) ? 0 : 1;
+    string name (argv[2]);
+    string pattern (argv[3]);
+    return path_match (name, pattern) ? 0 : 1;
   }
   else if (op == "-sd" || op == "-sp")
   {
@@ -119,13 +119,16 @@ try
         break; // End of options.
     }
 
-    assert (i != argc); // Still need pattern.
-    path pattern (argv[i++]);
-
     optional<path> entry;
 
     if (op == "-sp")
+    {
+      assert (i != argc);
       entry = path (argv[i++]);
+    }
+
+    assert (i != argc); // Still need pattern.
+    path pattern (argv[i++]);
 
     dir_path start;
     if (i != argc)
@@ -217,11 +220,11 @@ try
 
         // Test path match.
         //
-        assert (path_match (pattern, p.first, start, flags));
+        assert (path_match (p.first, pattern, start, flags));
       }
     }
     else if (entry)
-      assert (!path_match (pattern, *entry, start, flags));
+      assert (!path_match (*entry, pattern, start, flags));
 
     // Print the found paths.
     //

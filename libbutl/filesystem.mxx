@@ -775,7 +775,7 @@ LIBBUTL_MODEXPORT namespace butl
   // directory separator).
   //
   LIBBUTL_SYMEXPORT bool
-  path_match (const std::string& pattern, const std::string& name);
+  path_match (const std::string& name, const std::string& pattern);
 
   // Return true if path entry matches pattern. Note that the match is
   // performed literally, with no paths normalization being performed. The
@@ -786,8 +786,8 @@ LIBBUTL_MODEXPORT namespace butl
   // wildcard sequences (see path_search() for details).
   //
   LIBBUTL_SYMEXPORT bool
-  path_match (const path& pattern,
-              const path& entry,
+  path_match (const path& entry,
+              const path& pattern,
               const dir_path& start = dir_path (),
               path_match_flags = path_match_flags::none);
 
