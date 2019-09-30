@@ -52,12 +52,15 @@ import butl.timestamp;
 
 import butl.regex;
 import butl.path_io;
+import butl.utility;      // operator<<(ostream,exception),
+                          // throw_generic_error()
 import butl.optional;
 import butl.filesystem;
 import butl.small_vector;
 #else
 #include <libbutl/regex.mxx>
 #include <libbutl/path-io.mxx>
+#include <libbutl/utility.mxx>
 #include <libbutl/optional.mxx>
 #include <libbutl/filesystem.mxx>
 #include <libbutl/small-vector.mxx>

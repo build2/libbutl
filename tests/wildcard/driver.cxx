@@ -24,11 +24,13 @@ import butl.path;
 import butl.utility;    // operator<<(ostream, exception)
 import butl.optional;
 import butl.filesystem;
+import butl.path_pattern;
 #else
 #include <libbutl/path.mxx>
 #include <libbutl/utility.mxx>
 #include <libbutl/optional.mxx>
 #include <libbutl/filesystem.mxx>
+#include <libbutl/path-pattern.mxx>
 #endif
 
 using namespace std;
