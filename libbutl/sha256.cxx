@@ -67,7 +67,7 @@ namespace butl
 {
   sha256::
   sha256 ()
-      : done_ (false)
+      : done_ (false), empty_ (true)
   {
     SHA256_Init (reinterpret_cast<SHA256_CTX*> (buf_));
   }
@@ -75,7 +75,13 @@ namespace butl
   void sha256::
   append (const void* b, size_t n)
   {
-    SHA256_Update (reinterpret_cast<SHA256_CTX*> (buf_), b, n);
+    if (n != 0)
+    {
+      SHA256_Update (reinterpret_cast<SHA256_CTX*> (buf_), b, n);
+
+      if (empty_)
+        empty_ = false;
+    }
   }
 
   void sha256::

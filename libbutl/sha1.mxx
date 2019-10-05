@@ -74,6 +74,11 @@ LIBBUTL_MODEXPORT namespace butl
     explicit
     sha1 (ifdstream& i): sha1 () {append (i);}
 
+    // Check if any data has been hashed.
+    //
+    bool
+    empty () const {return empty_;}
+
     // Extract result.
     //
     // It can be obtained as either a 20-byte binary digest or as a 40-
@@ -119,5 +124,6 @@ LIBBUTL_MODEXPORT namespace butl
 
     mutable digest_type bin_;
     mutable bool done_;
+    bool empty_;
   };
 }

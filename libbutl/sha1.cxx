@@ -73,7 +73,7 @@ namespace butl
 {
   sha1::
   sha1 ()
-      : done_ (false)
+      : done_ (false), empty_ (true)
   {
     SHA1_Init (reinterpret_cast<SHA1_CTX*> (buf_));
   }
@@ -81,7 +81,13 @@ namespace butl
   void sha1::
   append (const void* b, size_t n)
   {
-    SHA1_Update (reinterpret_cast<SHA1_CTX*> (buf_), b, n);
+    if (n != 0)
+    {
+      SHA1_Update (reinterpret_cast<SHA1_CTX*> (buf_), b, n);
+
+      if (empty_)
+        empty_ = false;
+    }
   }
 
   void sha1::
