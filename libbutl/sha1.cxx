@@ -71,11 +71,12 @@ using namespace std;
 
 namespace butl
 {
-  sha1::
-  sha1 ()
-      : done_ (false), empty_ (true)
+  void sha1::
+  reset ()
   {
     SHA1_Init (reinterpret_cast<SHA1_CTX*> (buf_));
+    done_ = false;
+    empty_ = true;
   }
 
   void sha1::

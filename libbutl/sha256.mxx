@@ -41,7 +41,7 @@ LIBBUTL_MODEXPORT namespace butl
   class LIBBUTL_SYMEXPORT sha256
   {
   public:
-    sha256 ();
+    sha256 () {reset ();}
 
     // Append binary data.
     //
@@ -112,6 +112,11 @@ LIBBUTL_MODEXPORT namespace butl
     //
     bool
     empty () const {return empty_;}
+
+    // Reset to the default-constructed state.
+    //
+    void
+    reset ();
 
     // Extract result.
     //

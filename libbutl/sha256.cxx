@@ -65,11 +65,12 @@ using namespace std;
 
 namespace butl
 {
-  sha256::
-  sha256 ()
-      : done_ (false), empty_ (true)
+  void sha256::
+  reset ()
   {
     SHA256_Init (reinterpret_cast<SHA256_CTX*> (buf_));
+    done_ = false;
+    empty_ = true;
   }
 
   void sha256::
