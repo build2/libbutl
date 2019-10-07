@@ -31,7 +31,10 @@ using namespace butl;
 
 static const char text1[] = "ABCDEF\nXYZ";
 static const char text2[] = "12345\nDEF";
+
+#ifndef _WIN32
 static const char text3[] = "XAB\r\n9";
+#endif
 
 static string
 from_file (const path& f)
