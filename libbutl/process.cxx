@@ -183,12 +183,13 @@ namespace butl
   // process
   //
   static process_path
-  path_search (const char*, const dir_path&, bool);
+  path_search (const char*, const dir_path&, bool, const char*);
 
   process_path process::
-  path_search (const char* f, bool init, const dir_path& fb, bool po)
+  path_search (const char* f, bool init,
+               const dir_path& fb, bool po, const char* ps)
   {
-    process_path r (try_path_search (f, init, fb, po));
+    process_path r (try_path_search (f, init, fb, po, ps));
 
     if (r.empty ())
       throw process_error (ENOENT);
@@ -197,9 +198,10 @@ namespace butl
   }
 
   process_path process::
-  try_path_search (const char* f, bool init, const dir_path& fb, bool po)
+  try_path_search (const char* f, bool init,
+                   const dir_path& fb, bool po, const char* ps)
   {
-    process_path r (butl::path_search (f, fb, po));
+    process_path r (butl::path_search (f, fb, po, ps));
 
     if (!init && !r.empty ())
     {
@@ -250,7 +252,7 @@ namespace butl
 #ifndef _WIN32
 
   static process_path
-  path_search (const char* f, const dir_path& fb, bool)
+  path_search (const char* f, const dir_path& fb, bool, const char* paths)
   {
     // Note that there is a similar version for Win32.
 
@@ -326,8 +328,11 @@ namespace butl
     // 2. We do not continue searching on EACCES from exec().
     // 3. We do not execute via default shell on ENOEXEC from exec().
     //
-    optional<string> p (getenv ("PATH"));
-    for (const char* b (p ? p->c_str () : nullptr), *e;
+    optional<string> paths_env;
+    if (paths == nullptr && (paths_env = getenv ("PATH")))
+      paths = paths_env->c_str ();
+
+    for (const char* b (paths), *e;
          b != nullptr;
          b = (e != nullptr ? e + 1 : e))
     {
@@ -930,7 +935,7 @@ namespace butl
 #else // _WIN32
 
   static process_path
-  path_search (const char* f, const dir_path& fb, bool po)
+  path_search (const char* f, const dir_path& fb, bool po, const char* paths)
   {
     // Note that there is a similar version for Win32.
 
@@ -1104,8 +1109,11 @@ namespace butl
 
     // Now search in PATH. Recall is unchanged.
     //
-    optional<string> p (getenv ("PATH"));
-    for (const char* b (p ? p->c_str () : nullptr), *e;
+    optional<string> paths_env;
+    if (paths == nullptr && (paths_env = getenv ("PATH")))
+      paths = paths_env->c_str ();
+
+    for (const char* b (paths), *e;
          b != nullptr;
          b = (e != nullptr ? e + 1 : e))
     {

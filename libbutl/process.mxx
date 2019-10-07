@@ -405,10 +405,14 @@ LIBBUTL_MODEXPORT namespace butl
     // (or in CWD if there is a directory component) ignoring other places
     // (like calling process' directory and, gasp, CWD on Windows).
     //
+    // If the paths argument is not NULL, search in this list of paths rather
+    // than in the PATH environment variable.
+    //
     static process_path
     path_search (const char*& args0,
                  const dir_path& fallback = dir_path (),
-                 bool path_only = false);
+                 bool path_only = false,
+                 const char* paths = nullptr);
 
     // This version is primarily useful when you want to pre-search the
     // executable before creating the args[] array. In this case you will
@@ -425,30 +429,42 @@ LIBBUTL_MODEXPORT namespace butl
     //
     static process_path
     path_search (const char* file, bool init,
-                 const dir_path& = dir_path (), bool = false);
+                 const dir_path& = dir_path (),
+                 bool = false,
+                 const char* = nullptr);
 
     static process_path
     path_search (const std::string&, bool,
-                 const dir_path& = dir_path (), bool = false);
+                 const dir_path& = dir_path (),
+                 bool = false,
+                 const char* = nullptr);
 
     static process_path
     path_search (const path&, bool,
-                 const dir_path& = dir_path (), bool = false);
+                 const dir_path& = dir_path (),
+                 bool = false,
+                 const char* = nullptr);
 
     // As above but if not found return empty process_path instead of
     // throwing.
     //
     static process_path
     try_path_search (const char*, bool,
-                     const dir_path& = dir_path (), bool = false);
+                     const dir_path& = dir_path (),
+                     bool = false,
+                     const char* = nullptr);
 
     static process_path
     try_path_search (const std::string&, bool,
-                     const dir_path& = dir_path (), bool = false);
+                     const dir_path& = dir_path (),
+                     bool = false,
+                     const char* = nullptr);
 
     static process_path
     try_path_search (const path&, bool,
-                     const dir_path& = dir_path (), bool = false);
+                     const dir_path& = dir_path (),
+                     bool = false,
+                     const char* = nullptr);
 
     // Print process commmand line. If the number of elements is specified,
     // then it will print the piped multi-process command line, if present.
