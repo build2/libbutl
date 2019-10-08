@@ -102,11 +102,11 @@ LIBBUTL_MODEXPORT namespace butl
     // Canonical directory and path seperators.
     //
 #ifdef _WIN32
-    static const C directory_separator = '\\';
-    static const C path_separator = ';';
+    static constexpr const C directory_separator = '\\';
+    static constexpr const C path_separator = ';';
 #else
-    static C const directory_separator = '/';
-    static C const path_separator = ':';
+    static constexpr const C directory_separator = '/';
+    static constexpr const C path_separator = ':';
 #endif
 
     // Canonical and alternative directory separators. Canonical should be
