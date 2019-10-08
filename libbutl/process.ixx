@@ -79,6 +79,16 @@ namespace butl
     return effect.empty () ? recall_string () : effect.string ().c_str ();
   }
 
+  inline void process_path::
+  clear_recall ()
+  {
+    if (!effect.empty ())
+    {
+      recall = std::move (effect);
+      effect.clear ();
+    }
+  }
+
   // process_exit
   //
 #ifdef _WIN32

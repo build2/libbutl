@@ -124,6 +124,11 @@ LIBBUTL_MODEXPORT namespace butl
       return initial == nullptr && recall.empty () && effect.empty ();
     }
 
+    // Clear recall making it the same as effective.
+    //
+    void
+    clear_recall ();
+
     // Moveable-only type.
     //
     process_path (process_path&&);
@@ -406,7 +411,10 @@ LIBBUTL_MODEXPORT namespace butl
     // (like calling process' directory and, gasp, CWD on Windows).
     //
     // If the paths argument is not NULL, search in this list of paths rather
-    // than in the PATH environment variable.
+    // than in the PATH environment variable. Note that in this case you may
+    // want to clear the recall path (process_path::clear_recall()) since the
+    // path won't be "recallable" (unless you've passed a cache of the PATH
+    // environment variable or some such).
     //
     static process_path
     path_search (const char*& args0,
