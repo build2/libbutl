@@ -44,6 +44,8 @@ LIBBUTL_MODEXPORT namespace butl
                       public std::vector<T, small_allocator<T, N>>
   {
   public:
+    static constexpr const std::size_t small_size = N;
+
     using buffer_type = small_allocator_buffer<T, N>;
     using allocator_type = small_allocator<T, N>;
     using base_type = std::vector<T, allocator_type>;

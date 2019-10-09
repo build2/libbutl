@@ -68,6 +68,8 @@ LIBBUTL_MODEXPORT namespace butl
     static_assert (N == 1, "only small_list or 1 currently supported");
 
   public:
+    static constexpr const std::size_t small_size = N;
+
     using buffer_type = small_list_buffer<T, N>;
     using allocator_type = small_allocator<T, N, buffer_type>;
     using base_type = std::list<T, allocator_type>;
