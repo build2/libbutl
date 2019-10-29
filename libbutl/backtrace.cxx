@@ -12,14 +12,17 @@
 // With glibc linking with -rdynamic gives (non-static) function names.
 // FreeBSD requires explicitly linking -lexecinfo.
 //
+// Note that some libc implementation on Linux (most notably, musl), don't
+// support this, at least not out of the box.
+//
 #ifndef BUILD2_BOOTSTRAP
-#  if defined(__linux__) || \
+#  if defined(__GLIBC__) || \
       defined(__APPLE__) || \
       defined(__FreeBSD__)
 #    define LIBBUTL_BACKTRACE
 #  endif
 #else
-#  if defined(__linux__) || \
+#  if defined(__GLIBC__) || \
       defined(__APPLE__)
 #    define LIBBUTL_BACKTRACE
 #  endif

@@ -8,5 +8,5 @@ exe{driver}: {hxx cxx}{*} $libs testscript
 
 # Make sure backtrace() includes function names.
 #
-if ($cxx.target.class == 'linux')
+if ($cxx.target.class == 'linux' && $cc.stdlib == 'glibc')
   cxx.loptions += -rdynamic
