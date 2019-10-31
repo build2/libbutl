@@ -291,10 +291,20 @@ namespace butl
       }
 
       s.append (f, fn);
-      ep = path (move (s)); // Move back into result.
 
-      if (norm)
-        ep.normalize ();
+      // Assume that invalid path may not refer to an existing file.
+      //
+      try
+      {
+        ep = path (move (s)); // Move back into result.
+
+        if (norm)
+          ep.normalize ();
+      }
+      catch (const invalid_path&)
+      {
+        return false;
+      }
 
       return exists (ep.string ().c_str ());
     };
@@ -339,17 +349,10 @@ namespace butl
       e = strchr (b, traits::path_separator);
 
       // Empty path (i.e., a double colon or a colon at the beginning or end
-      // of PATH) means search in the current dirrectory. Silently skip
-      // invalid paths.
+      // of PATH) means search in the current directory.
       //
-      try
-      {
-        if (search (b, e != nullptr ? e - b : strlen (b)))
-          return r;
-      }
-      catch (const invalid_path&)
-      {
-      }
+      if (search (b, e != nullptr ? e - b : strlen (b)))
+        return r;
     }
 
     // If we were given a fallback, try that.
