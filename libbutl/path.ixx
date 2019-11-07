@@ -701,4 +701,42 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     if (!d.path_.empty () && d.tsep_ == 0)
       d.tsep_ = 1; // Canonical separator is always first.
   }
+
+  // basic_path_name_value
+  //
+  template <typename P>
+  inline basic_path_name_value<P>::
+  basic_path_name_value (basic_path_name_value&& p)
+      : basic_path_name_value (std::move (p.path_), std::move (p.name))
+  {
+  }
+
+  template <typename P>
+  inline basic_path_name_value<P>::
+  basic_path_name_value (const basic_path_name_value& p)
+      : basic_path_name_value (p.path_, p.name)
+  {
+  }
+
+  template <typename P>
+  inline basic_path_name_value<P>& basic_path_name_value<P>::
+  operator= (basic_path_name_value&& p)
+  {
+    if (this != &p)
+    {
+      path_ = std::move (p.path_);
+      this->name = std::move (p.name);
+    }
+  }
+
+  template <typename P>
+  inline basic_path_name_value<P>& basic_path_name_value<P>::
+  operator= (const basic_path_name_value& p)
+  {
+    if (this != &p)
+    {
+      path_ = p.path_;
+      this->name = p.name;
+    }
+  }
 }

@@ -8,6 +8,8 @@
 
 // C includes.
 
+#include <cassert>
+
 #ifndef __cpp_lib_modules_ts
 #include <ostream>
 #endif
@@ -45,6 +47,8 @@ LIBBUTL_MODEXPORT namespace butl
   inline std::basic_ostream<C>&
   operator<< (std::basic_ostream<C>& os, const basic_path_name<P>& pn)
   {
+    assert (!pn.empty ());
+
     return os << (pn.name ? *pn.name : pn.path->string ());
   }
 }
