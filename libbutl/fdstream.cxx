@@ -48,6 +48,7 @@
 #include <new>          // bad_alloc
 #include <limits>       // numeric_limits
 #include <cstring>      // memcpy(), memmove()
+#include <iostream>     // cin, cout
 #include <exception>    // uncaught_exception[s]()
 #include <stdexcept>    // invalid_argument
 #include <system_error>
@@ -944,6 +945,44 @@ namespace butl
                   (m & fdopen_mode::out) == fdopen_mode::out
                   ? m
                   : m | translate_mode (out)));
+  }
+
+  istream&
+  open_file_or_stdin (path_name& pn, ifdstream& ifs)
+  {
+    assert (pn.path != nullptr);
+
+    if (pn.path->string () != "-")
+    {
+      ifs.open (*pn.path);
+      return ifs;
+    }
+    else
+    {
+      cin.exceptions (ifs.exceptions ());
+      if (!pn.name)
+        pn.name = "<stdin>";
+      return cin;
+    }
+  }
+
+  ostream&
+  open_file_or_stdout (path_name& pn, ofdstream& ofs)
+  {
+    assert (pn.path != nullptr);
+
+    if (pn.path->string () != "-")
+    {
+      ofs.open (*pn.path);
+      return ofs;
+    }
+    else
+    {
+      cout.exceptions (ofs.exceptions ());
+      if (!pn.name)
+        pn.name = "<stdout>";
+      return cout;
+    }
   }
 
   // fd*() functions

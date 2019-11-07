@@ -29,11 +29,13 @@ export module butl.path;
 #ifdef __cpp_lib_modules_ts
 import std.core;
 #endif
+import butl.optional;
 import butl.small_vector;
 #ifdef _WIN32
 import butl.utility;
 #endif
 #else
+#include <libbutl/optional.mxx>
 #include <libbutl/small-vector.mxx>
 #ifdef _WIN32
 #include <libbutl/utility.mxx> // *case*()
@@ -488,10 +490,10 @@ LIBBUTL_MODEXPORT namespace butl
   };
 
   // This implementation of a filesystem path has two types: path, which can
-  // represent any path (file, directory, etc.) and dir_path, which is derived
+  // represent any path (file, directory, etc) and dir_path, which is derived
   // from path. The internal representation of directories maintains a
-  // trailing slash. However, it is ignored in path comparison, size, and
-  // string spelling. For example:
+  // trailing directory separator (slash). However, it is ignored in path
+  // comparison, size, and string spelling. For example:
   //
   // path p1 ("foo");       // File path.
   // path p2 ("bar/");      // Directory path.
@@ -527,6 +529,22 @@ LIBBUTL_MODEXPORT namespace butl
   template <class P, class C, class K> P path_cast (const basic_path<C, K>&);
   template <class P, class C, class K> P path_cast (basic_path<C, K>&&);
 
+  // In certain cases we may need to translate a special path (e.g., `-`) to a
+  // name that may not be a valid path (e.g., `<stdin>` or `<stdout>`), for
+  // example, for diagnostics. In this case we can use path_name which
+  // contains the original path plus an optional translation as a string. Note
+  // that this is a view-like type with the original path shallow-referenced
+  // rather than copied.
+  //
+  // Note: we could also have a copying version that derives from the view
+  // (and thus can be passed down as a view).
+  //
+  template <typename P>
+  struct basic_path_name;
+
+  using path_name = basic_path_name<path>;
+  using dir_path_name = basic_path_name<dir_path>;
+
   // Low-level path data storage. It is also used by the implementation to
   // pass around initialized/valid paths.
   //
@@ -555,6 +573,7 @@ LIBBUTL_MODEXPORT namespace butl
     // Notes:
     //  - If path_ is empty, then tsep_ can only be 0.
     //  - We could have used a much narrower integer for tsep_.
+    //  - We could give the rest of tsep_ to the user to use as flags, etc.
     //
     string_type path_;
     difference_type tsep_;
@@ -599,7 +618,6 @@ LIBBUTL_MODEXPORT namespace butl
         tsep_ = 0;
     }
   };
-
 
   template <typename C>
   struct any_path_kind
@@ -1295,7 +1313,6 @@ LIBBUTL_MODEXPORT namespace butl
     return r;
   }
 
-
   // Note that the result of (foo / "bar") is always a path, even if foo
   // is dir_path. An idiom to force it to dir_path is:
   //
@@ -1318,6 +1335,31 @@ LIBBUTL_MODEXPORT namespace butl
     r /= y;
     return r;
   }
+
+  template <typename P>
+  struct basic_path_name
+  {
+    using path_type = P;
+    using string_type = typename path_type::string_type;
+
+    const path_type*      path;
+    optional<string_type> name;
+
+    explicit
+    basic_path_name (const path_type& p, optional<string_type> n = nullopt)
+        : path (&p), name (std::move (n)) {}
+
+    explicit
+    basic_path_name (path_type&&, optional<string_type> = nullopt) = delete;
+
+    explicit
+    basic_path_name (string_type n)
+        : path (nullptr), name (std::move (n)) {}
+
+    explicit
+    basic_path_name (const path_type* p, optional<string_type> n = nullopt)
+        : path (p), name (std::move (n)) {}
+  };
 
   // For operator<< (ostream) see the path-io header.
 }

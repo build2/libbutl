@@ -29,17 +29,22 @@ import butl.path;
 
 LIBBUTL_MODEXPORT namespace butl
 {
-  // This is the default path IO implementation. The reason it is
-  // separate is because one often wants a custom implementation.
-  // For example, we may want to print paths as relative to the
-  // working directory. Or we may want to print '~' for the home
-  // directory prefix. Or we may want to print dir_path with a
-  // trailing '/'.
+  // This is the default path IO implementation. It is separate to allo custom
+  // implementations. For example, we may want to print paths as relative to
+  // the working directory. Or we may want to print '~' for the home directory
+  // prefix. Or we may want to print dir_path with a trailing '/'.
   //
   template <typename C, typename K>
   inline std::basic_ostream<C>&
-  operator<< (std::basic_ostream<C>& os, basic_path<C, K> const& p)
+  operator<< (std::basic_ostream<C>& os, const basic_path<C, K>& p)
   {
     return os << p.string ();
+  }
+
+  template <typename C, typename P>
+  inline std::basic_ostream<C>&
+  operator<< (std::basic_ostream<C>& os, const basic_path_name<P>& pn)
+  {
+    return os << (pn.name ? *pn.name : pn.path->string ());
   }
 }

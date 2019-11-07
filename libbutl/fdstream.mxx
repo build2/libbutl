@@ -645,6 +645,24 @@ LIBBUTL_MODEXPORT namespace butl
     bool is_open () const {return buf_.is_open ();}
   };
 
+  // Open a file or, if the file name is `-`, stdin/stdout.
+  //
+  // In case of the stdin/stdout, these functions simply adjust the exception
+  // mask on std::cin/cout to match the i/ofdstreams argument.
+  //
+  // Return a reference to the opened i/ofdstream or cin/cout and, in the
+  // latter case, set the translated name in path_name to <stdin>/<stdout>
+  // (unless it is already present).
+  //
+  // Note that ofdstream::close() should be called explicitly unless stdout
+  // was opened (but harmless to call even if it was).
+  //
+  LIBBUTL_SYMEXPORT std::istream&
+  open_file_or_stdin (path_name&, ifdstream&);
+
+  LIBBUTL_SYMEXPORT std::ostream&
+  open_file_or_stdout (path_name&, ofdstream&);
+
   // The std::getline() replacement that provides a workaround for libstdc++'s
   // ios::failure ABI fiasco (#66145) by throwing ios::failure, as it is
   // defined at libbutl build time (new ABI on recent distributions) rather
