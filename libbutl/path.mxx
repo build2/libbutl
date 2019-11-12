@@ -1382,35 +1382,24 @@ LIBBUTL_MODEXPORT namespace butl
     using path_type = typename base::path_type;
     using string_type = typename base::string_type;
 
+    path_type path;
+
     explicit
     basic_path_name_value (path_type p, optional<string_type> n = nullopt)
-        : base (&path_, std::move (n)), path_ (std::move (p)) {}
+        : base (&path, std::move (n)), path (std::move (p)) {}
 
-    int
-    compare (const basic_path_name_value& x) const
-    {
-      if (int r = path_.compare (x.path_))
-        return r;
-
-      return this->name < x.name ? -1 : this->name > x.name ? 1 : 0;
-    }
+    // Note that a NULL path is converted to empty path.
+    //
+    explicit
+    basic_path_name_value (const basic_path_name<P>& v)
+        : base (&path, v.name),
+          path (v.path != nullptr ? *v.path : path_type ()) {}
 
     basic_path_name_value (basic_path_name_value&&);
     basic_path_name_value (const basic_path_name_value&);
     basic_path_name_value& operator= (basic_path_name_value&&);
     basic_path_name_value& operator= (const basic_path_name_value&);
-
-  private:
-    P path_;
   };
-
-  template <typename P>
-  inline bool
-  operator< (const basic_path_name_value<P>& x,
-             const basic_path_name_value<P>& y)
-  {
-    return x.compare (y) < 0;
-  }
 }
 
 LIBBUTL_MODEXPORT namespace std

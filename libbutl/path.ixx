@@ -707,14 +707,14 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   template <typename P>
   inline basic_path_name_value<P>::
   basic_path_name_value (basic_path_name_value&& p)
-      : basic_path_name_value (std::move (p.path_), std::move (p.name))
+      : basic_path_name_value (std::move (p.path), std::move (p.name))
   {
   }
 
   template <typename P>
   inline basic_path_name_value<P>::
   basic_path_name_value (const basic_path_name_value& p)
-      : basic_path_name_value (p.path_, p.name)
+      : basic_path_name_value (p.path, p.name)
   {
   }
 
@@ -724,7 +724,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   {
     if (this != &p)
     {
-      path_ = std::move (p.path_);
+      path = std::move (p.path);
       this->name = std::move (p.name);
     }
 
@@ -737,7 +737,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   {
     if (this != &p)
     {
-      path_ = p.path_;
+      path = p.path;
       this->name = p.name;
     }
 
