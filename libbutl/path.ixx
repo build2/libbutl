@@ -727,6 +727,8 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
       path_ = std::move (p.path_);
       this->name = std::move (p.name);
     }
+
+    return *this;
   }
 
   template <typename P>
@@ -738,5 +740,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
       path_ = p.path_;
       this->name = p.name;
     }
+
+    return *this;
   }
 }
