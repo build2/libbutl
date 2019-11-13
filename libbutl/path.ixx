@@ -743,4 +743,28 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
     return *this;
   }
+
+  template <typename C, typename K>
+  inline std::basic_ostream<C>&
+  to_stream (std::basic_ostream<C>& os,
+             const basic_path<C, K>& p,
+             bool representation)
+  {
+    os << p.string ();
+
+    if (representation)
+    {
+      C sep (p.separator ());
+
+#ifndef _WIN32
+      if (sep != 0 && !p.root ())
+        os << sep;
+#else
+      if (sep != 0)
+        os << sep;
+#endif
+    }
+
+    return os;
+  }
 }

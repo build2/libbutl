@@ -10,6 +10,7 @@
 
 #ifndef __cpp_lib_modules_ts
 #include <string>
+#include <ostream>
 #include <cstddef>    // ptrdiff_t
 #include <cstdint>    // uint16_t
 #include <utility>    // move(), swap()
@@ -1371,6 +1372,12 @@ LIBBUTL_MODEXPORT namespace butl
     bool
     empty () const {return path == nullptr && !name;}
   };
+
+  template <typename C, typename K>
+  std::basic_ostream<C>&
+  to_stream (std::basic_ostream<C>& os,
+             const basic_path<C, K>& p,
+             bool representation);
 
   // For operator<< (ostream) see the path-io header.
 

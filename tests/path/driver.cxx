@@ -5,6 +5,7 @@
 #include <cassert>
 
 #ifndef __cpp_lib_modules_ts
+#include <sstream>
 #include <iostream>
 #include <type_traits>
 #endif
@@ -17,10 +18,10 @@ import std.core;
 import std.io;
 #endif
 import butl.path;
-import butl.path_io;
+//import butl.path_io;
 #else
 #include <libbutl/path.mxx>
-#include <libbutl/path-io.mxx>
+//#include <libbutl/path-io.mxx>
 #endif
 
 using namespace std;
@@ -44,16 +45,31 @@ main ()
   static_assert (is_nothrow_move_constructible<dir_path>::value, "");
 #endif
 
-  auto test = [] (const char* p, const char* s, const char* r)
+  auto ts = [] (const path& p, bool representation)
   {
-    path x (p);
-    return x.string () == s && x.representation () == r;
+    ostringstream os;
+    to_stream (os, p, representation);
+    return os.str ();
   };
 
-  auto dir_test = [] (const char* p, const char* s, const char* r)
+  auto test = [&ts] (const char* p, const char* s, const char* r)
+  {
+    path x (p);
+
+    return x.string () == s                        &&
+           x.representation () == r                &&
+           ts (x, false /* representation */) == s &&
+           ts (x, true /* representation */) == r;
+  };
+
+  auto dir_test = [&ts] (const char* p, const char* s, const char* r)
   {
     dir_path x (p);
-    return x.string () == s && x.representation () == r;
+
+    return x.string () == s                        &&
+           x.representation () == r                &&
+           ts (x, false /* representation */) == s &&
+           ts (x, true /* representation */) == r;
   };
 
 #ifndef _WIN32
