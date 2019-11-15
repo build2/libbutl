@@ -552,6 +552,15 @@ LIBBUTL_MODEXPORT namespace butl
   using path_name_value = basic_path_name_value<path>;
   using dir_name_value = basic_path_name_value<dir_path>;
 
+  // A "full" view version of the above that also shallow-references the
+  // optional name. The "partial" view derives from this "full" view.
+  //
+  template <typename P>
+  struct basic_path_name_view;
+
+  using path_name_view = basic_path_name_view<path>;
+  using dir_name_view = basic_path_name_view<dir_path>;
+
   // Low-level path data storage. It is also used by the implementation to
   // pass around initialized/valid paths.
   //
@@ -1343,43 +1352,91 @@ LIBBUTL_MODEXPORT namespace butl
     return r;
   }
 
+  template <typename C, typename K>
+  std::basic_ostream<C>&
+  to_stream (std::basic_ostream<C>&,
+             const basic_path<C, K>&,
+             bool representation);
+
+  // For operator<< (ostream) see the path-io header.
+
+  // path_name
+  //
+
   template <typename P>
-  struct basic_path_name
+  struct basic_path_name_view
   {
     using path_type = P;
     using string_type = typename path_type::string_type;
 
-    const path_type*      path;
+    const path_type*             path;
+    const optional<string_type>* name;
+
+    explicit
+    basic_path_name_view (const basic_path_name<P>& v)
+        : path (v.path), name (&v.name) {}
+
+    basic_path_name_view (const path_type* p, const optional<string_type>* n)
+        : path (p), name (n) {}
+
+    basic_path_name_view () // Create empty/NULL path name.
+        : path (nullptr), name (nullptr) {}
+
+
+    bool
+    null () const
+    {
+      return path == nullptr && (name == nullptr || !*name);
+    }
+
+    bool
+    empty () const
+    {
+      // assert (!null ());
+      return name != nullptr && *name ? (*name)->empty () : path->empty ();
+    }
+  };
+
+  template <typename P>
+  struct basic_path_name: basic_path_name_view<P>
+  {
+    using base = basic_path_name_view<P>;
+
+    using path_type = typename base::path_type;
+    using string_type = typename base::string_type;
+
     optional<string_type> name;
+
+    // Note that a NULL name is converted to absent.
+    //
+    explicit
+    basic_path_name (const basic_path_name_view<P>& v)
+        : base (v.path, &name),
+          name (v.name != nullptr ? *v.name : nullopt) {}
 
     explicit
     basic_path_name (const path_type& p, optional<string_type> n = nullopt)
-        : path (&p), name (std::move (n)) {}
+        : base (&p, &name), name (std::move (n)) {}
 
     explicit
     basic_path_name (path_type&&, optional<string_type> = nullopt) = delete;
 
     explicit
     basic_path_name (string_type n)
-        : path (nullptr), name (std::move (n)) {}
+        : base (nullptr, &name), name (std::move (n)) {}
 
     explicit
     basic_path_name (const path_type* p, optional<string_type> n = nullopt)
-        : path (p), name (std::move (n)) {}
+        : base (p, &name), name (std::move (n)) {}
 
-    basic_path_name (): path (nullptr) {} // Create empty/NULL path name.
+    basic_path_name (): // Create empty/NULL path name.
+        base (nullptr, &name) {}
 
-    bool
-    empty () const {return path == nullptr && !name;}
+    basic_path_name (basic_path_name&&);
+    basic_path_name (const basic_path_name&);
+    basic_path_name& operator= (basic_path_name&&);
+    basic_path_name& operator= (const basic_path_name&);
   };
-
-  template <typename C, typename K>
-  std::basic_ostream<C>&
-  to_stream (std::basic_ostream<C>& os,
-             const basic_path<C, K>& p,
-             bool representation);
-
-  // For operator<< (ostream) see the path-io header.
 
   template <typename P>
   struct basic_path_name_value: basic_path_name<P>
@@ -1391,16 +1448,18 @@ LIBBUTL_MODEXPORT namespace butl
 
     path_type path;
 
+    // Note that a NULL path/name is converted to empty/absent.
+    //
+    explicit
+    basic_path_name_value (const basic_path_name_view<P>& v)
+        : base (&path, v.name != nullptr ? *v.name : nullopt),
+          path (v.path != nullptr ? *v.path : path_type ()) {}
+
     explicit
     basic_path_name_value (path_type p, optional<string_type> n = nullopt)
         : base (&path, std::move (n)), path (std::move (p)) {}
 
-    // Note that a NULL path is converted to empty path.
-    //
-    explicit
-    basic_path_name_value (const basic_path_name<P>& v)
-        : base (&path, v.name),
-          path (v.path != nullptr ? *v.path : path_type ()) {}
+    basic_path_name_value (): base (&path) {} // Create empty/NULL path name.
 
     basic_path_name_value (basic_path_name_value&&);
     basic_path_name_value (const basic_path_name_value&);

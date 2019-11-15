@@ -46,10 +46,10 @@ LIBBUTL_MODEXPORT namespace butl
 
   template <typename C, typename P>
   inline std::basic_ostream<C>&
-  operator<< (std::basic_ostream<C>& os, const basic_path_name<P>& pn)
+  operator<< (std::basic_ostream<C>& os, const basic_path_name_view<P>& v)
   {
-    assert (!pn.empty ());
+    assert (!v.null ());
 
-    return pn.name ? (os << *pn.name) : (os << *pn.path);
+    return v.name != nullptr && *v.name ? (os << **v.name) : (os << *v.path);
   }
 }

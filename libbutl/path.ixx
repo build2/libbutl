@@ -702,6 +702,72 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
       d.tsep_ = 1; // Canonical separator is always first.
   }
 
+  template <typename C, typename K>
+  inline std::basic_ostream<C>&
+  to_stream (std::basic_ostream<C>& os,
+             const basic_path<C, K>& p,
+             bool representation)
+  {
+    os << p.string ();
+
+    if (representation)
+    {
+      C sep (p.separator ());
+
+#ifndef _WIN32
+      if (sep != 0 && !p.root ())
+        os << sep;
+#else
+      if (sep != 0)
+        os << sep;
+#endif
+    }
+
+    return os;
+  }
+
+  // basic_path_name
+  //
+  template <typename P>
+  inline basic_path_name<P>::
+  basic_path_name (basic_path_name&& p)
+      : basic_path_name (p.path, std::move (p.name))
+  {
+  }
+
+  template <typename P>
+  inline basic_path_name<P>::
+  basic_path_name (const basic_path_name& p)
+      : basic_path_name (p.path, p.name)
+  {
+  }
+
+  template <typename P>
+  inline basic_path_name<P>& basic_path_name<P>::
+  operator= (basic_path_name&& p)
+  {
+    if (this != &p)
+    {
+      this->path = p.path;
+      name = std::move (p.name);
+    }
+
+    return *this;
+  }
+
+  template <typename P>
+  inline basic_path_name<P>& basic_path_name<P>::
+  operator= (const basic_path_name& p)
+  {
+    if (this != &p)
+    {
+      this->path = p.path;
+      name = p.name;
+    }
+
+    return *this;
+  }
+
   // basic_path_name_value
   //
   template <typename P>
@@ -742,29 +808,5 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     }
 
     return *this;
-  }
-
-  template <typename C, typename K>
-  inline std::basic_ostream<C>&
-  to_stream (std::basic_ostream<C>& os,
-             const basic_path<C, K>& p,
-             bool representation)
-  {
-    os << p.string ();
-
-    if (representation)
-    {
-      C sep (p.separator ());
-
-#ifndef _WIN32
-      if (sep != 0 && !p.root ())
-        os << sep;
-#else
-      if (sep != 0)
-        os << sep;
-#endif
-    }
-
-    return os;
   }
 }
