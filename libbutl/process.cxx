@@ -624,12 +624,14 @@ namespace butl
       // "text file busy" issue: if some other thread creates a shell script
       // and the write-open file descriptor leaks into some child process,
       // then exec() for this script fails with ETXTBSY (see exec() man page
-      // for details).
+      // for details). If that's the case, it feels like such a descriptor
+      // should not stay open for too long. Thus, we will retry the exec()
+      // calls for about half a second.
       //
       handle = fork ();
 
       if (handle == -1)
-        fail (false);
+        fail (false /* child */);
 
       if (handle == 0)
       {
@@ -647,7 +649,7 @@ namespace butl
           assert (fd > -1);
 
           if (dup2 (fd, sd) == -1)
-            fail (true);
+            fail (true /* child */);
 
           pd.in.reset ();  // Silently close.
           pd.out.reset (); // Silently close.
@@ -680,7 +682,7 @@ namespace butl
         // Change current working directory if requested.
         //
         if (cwd != nullptr && *cwd != '\0' && chdir (cwd) != 0)
-          fail (true);
+          fail (true /* child */);
 
         // Set/unset environment variables if requested.
         //
@@ -704,8 +706,21 @@ namespace butl
           }
         }
 
-        if (execv (pp.effect_string (), const_cast<char**> (&args[0])) == -1)
-          fail (true);
+        // Try to re-exec after the "text file busy" failure for 450ms.
+        //
+        // Note that execv() does not return on success.
+        //
+        for (size_t i (1); i != 10; ++i)
+        {
+          execv (pp.effect_string (), const_cast<char**> (&args[0]));
+
+          if (errno != ETXTBSY)
+            break;
+
+          this_thread::sleep_for (i * 10ms);
+        }
+
+        fail (true /* child */);
       }
     } // Release the lock in parent.
 #endif // LIBBUTL_POSIX_SPAWN_CHDIR
