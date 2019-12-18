@@ -192,8 +192,44 @@ LIBBUTL_MODEXPORT namespace butl
   // Note that it doesn't make sure the first character is not a digit.
   //
   std::string& sanitize_identifier (std::string&);
-  std::string sanitize_identifier (std::string&&);
-  std::string sanitize_identifier (const std::string&);
+  std::string  sanitize_identifier (std::string&&);
+  std::string  sanitize_identifier (const std::string&);
+
+  // Return true if the string is a valid UTF-8 encoded byte sequence and,
+  // optionally, its decoded codepoints belong to the specified types or to
+  // the codepoint whitelist ("\r\n\t" by default), unless it is NULL.
+  //
+  // Note that the Unicode Standard considers a UTF-8 byte sequence decoded
+  // into a codepoint of the surrogate type as invalid. Thus, the surrogate
+  // type may not be specified.
+  //
+  enum class codepoint_types: std::uint16_t
+  {
+    // Useful to only allow the whitelisted codepoints or when building the
+    // type set incrementally.
+    //
+    none          = 0x00,
+
+    graphic       = 0x01, // L(etter), M(ark), N(number), P(uncturation),
+                          // S(symbol), Zs(separator, space)
+    format        = 0x02,
+    control       = 0x04,
+    private_use   = 0x08,
+    non_character = 0x10,
+    reserved      = 0x20,
+
+    any           = 0x3f
+  };
+
+  LIBBUTL_SYMEXPORT bool
+  utf8 (const std::string&,
+        codepoint_types = codepoint_types::any,
+        const char32_t* whitelist = nullptr);
+
+  codepoint_types operator&  (codepoint_types,  codepoint_types);
+  codepoint_types operator|  (codepoint_types,  codepoint_types);
+  codepoint_types operator&= (codepoint_types&, codepoint_types);
+  codepoint_types operator|= (codepoint_types&, codepoint_types);
 
   // If an input stream is in a failed state, then return true if this is
   // because of the eof and throw istream::failure otherwise. If the stream
@@ -219,14 +255,12 @@ LIBBUTL_MODEXPORT namespace butl
   //
   // Note that on Windows setting an empty value usets the variable.
   //
-  LIBBUTL_SYMEXPORT
-  void
+  LIBBUTL_SYMEXPORT void
   setenv (const std::string& name, const std::string& value);
 
   // Throw system_error on failure.
   //
-  LIBBUTL_SYMEXPORT
-  void
+  LIBBUTL_SYMEXPORT void
   unsetenv (const std::string&);
 
   // Key comparators (i.e., to be used in sets, maps, etc).

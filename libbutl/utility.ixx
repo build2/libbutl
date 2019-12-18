@@ -217,6 +217,34 @@ namespace butl
     return sanitize_identifier (std::string (s));
   }
 
+  inline codepoint_types
+  operator&= (codepoint_types& x, codepoint_types y)
+  {
+    return x = static_cast<codepoint_types> (
+      static_cast<std::uint16_t> (x) &
+      static_cast<std::uint16_t> (y));
+  }
+
+  inline codepoint_types
+  operator|= (codepoint_types& x, codepoint_types y)
+  {
+    return x = static_cast<codepoint_types> (
+      static_cast<std::uint16_t> (x) |
+      static_cast<std::uint16_t> (y));
+  }
+
+  inline codepoint_types
+  operator& (codepoint_types x, codepoint_types y)
+  {
+    return x &= y;
+  }
+
+  inline codepoint_types
+  operator| (codepoint_types x, codepoint_types y)
+  {
+    return x |= y;
+  }
+
   inline bool
   eof (std::istream& is)
   {
