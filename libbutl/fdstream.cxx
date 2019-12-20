@@ -72,6 +72,9 @@ import butl.filesystem;
 import butl.small_vector;
 #endif
 
+import butl.utility; // throw_*_ios_failure(), function_cast()
+#else
+#include <libbutl/utility.mxx>
 #endif
 
 using namespace std;
@@ -1723,8 +1726,8 @@ namespace butl
 
     using func = BOOL (*) (HANDLE, file_info, LPVOID, DWORD);
 
-    func f (reinterpret_cast<func> (
-      GetProcAddress (kh, "GetFileInformationByHandleEx")));
+    func f (function_cast<func> (
+              GetProcAddress (kh, "GetFileInformationByHandleEx")));
 
     if (f == nullptr)
       return false;
