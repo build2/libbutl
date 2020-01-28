@@ -197,7 +197,7 @@ LIBBUTL_MODEXPORT namespace butl
 
   // Return true if the string is a valid UTF-8 encoded byte sequence and,
   // optionally, its decoded codepoints belong to the specified types or to
-  // the codepoint whitelist ("\r\n\t" by default), unless it is NULL.
+  // the codepoint whitelist.
   //
   // Note that the Unicode Standard considers a UTF-8 byte sequence decoded
   // into a codepoint of the surrogate type as invalid. Thus, the surrogate
