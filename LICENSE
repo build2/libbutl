@@ -1,10 +1,10 @@
 libbutl/sha1.c:
 
-3-clause BSD, see the file header for details.
+3-clause BSD License, see the file header for details.
 
 libbutl/{sha256c.c, strptime.c, timelocal.h, timelocal.c}:
 
-2-clause BSD, see the file headers for details.
+2-clause BSD License, see the file headers for details.
 
 The rest:
 
