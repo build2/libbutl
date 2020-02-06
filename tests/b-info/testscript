@@ -1,5 +1,4 @@
 # file      : tests/b-info/testscript
-# copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
 # Note that when cross-testing we unlikely be able to run build2 on the

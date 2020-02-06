@@ -1,5 +1,4 @@
 // file      : tests/timestamp/driver.cxx -*- C++ -*-
-// copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
 #include <time.h> // tzset() (POSIX), _tzset() (Windows)

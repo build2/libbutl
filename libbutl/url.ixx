@@ -1,5 +1,4 @@
 // file      : libbutl/url.ixx -*- C++ -*-
-// copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
 LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.

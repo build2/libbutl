@@ -1,7 +1,8 @@
 /*	$KAME: sha1.c,v 1.5 2000/11/08 06:13:08 itojun Exp $	*/
 /*
  * Copyright (C) 1995, 1996, 1997, and 1998 WIDE Project.
- * Copyright (c) 2017-2019 Code Synthesis Ltd
+ * Copyright (c) Code Synthesis Ltd and the build2 contributors; see
+ * the accompanying COPYRIGHT file for details.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

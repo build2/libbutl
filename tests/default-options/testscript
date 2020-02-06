@@ -1,5 +1,4 @@
 # file      : tests/default-options/testscript
-# copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
 # Note that when cross-testing the driver may not be able to run the command

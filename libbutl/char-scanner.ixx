@@ -1,5 +1,4 @@
 // file      : libbutl/char-scanner.ixx -*- C++ -*-
-// copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
 namespace butl

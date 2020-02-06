@@ -1,5 +1,4 @@
 # file      : tests/command/testscript
-# copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 # license   : MIT; see accompanying LICENSE file
 
 cmd="'$0' -C -A" # Command that prints its arguments to stdout.

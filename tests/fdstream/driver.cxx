@@ -1,5 +1,4 @@
 // file      : tests/fdstream/driver.cxx -*- C++ -*-
-// copyright : Copyright (c) 2014-2019 Code Synthesis Ltd
 // license   : MIT; see accompanying LICENSE file
 
 #ifdef _WIN32
