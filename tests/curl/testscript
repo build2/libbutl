@@ -24,16 +24,16 @@ sudo /usr/sbin/in.tftpd \
 
   $* 'tftp' &foo &bar 2>>EOE;
 
-  curl -sS tftp://localhost:55123/test-driver/tftp/foo
+  curl -s -S tftp://localhost:55123/test-driver/tftp/foo
   curl: (68) TFTP: File Not Found
 
-  curl -sS --upload-file foo-src tftp://localhost:55123/test-driver/tftp/foo
+  curl -s -S --upload-file foo-src tftp://localhost:55123/test-driver/tftp/foo
 
-  curl -sS --upload-file - tftp://localhost:55123/test-driver/tftp/bar
+  curl -s -S --upload-file - tftp://localhost:55123/test-driver/tftp/bar
 
-  curl -sS tftp://localhost:55123/test-driver/tftp/foo
+  curl -s -S tftp://localhost:55123/test-driver/tftp/foo
 
-  curl -sS tftp://localhost:55123/test-driver/tftp/foo
+  curl -s -S tftp://localhost:55123/test-driver/tftp/foo
   EOE
 
   diff -u foo-src foo;
@@ -45,12 +45,12 @@ sudo /usr/sbin/in.tftpd \
 {
   $* 'http' 2>>EOE
 
-  curl -sS --fail --location https://build2.org/bogus
+  curl -s -S --fail --location https://build2.org/bogus
   curl: (22) The requested URL returned error: 404 Not Found
 
-  curl -sS --fail --location https://build2.org
+  curl -s -S --fail --location https://build2.org
 
-  curl -sS --fail --location --data-binary @- https://build2.org/bogus
+  curl -s -S --fail --location --data-binary @- https://build2.org/bogus
   curl: (22) The requested URL returned error: 404 Not Found
   EOE
 }
