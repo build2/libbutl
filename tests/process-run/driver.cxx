@@ -94,9 +94,9 @@ main (int argc, const char* argv[])
 
   // Stream conversion and redirection.
   //
-  assert (run (fdnull (), 1, 2, p, "-c", "-i"));
-  assert (run (fdnull (), 2, 2, p, "-c", "-o", "abc"));
-  assert (run (fdnull (), 1, 1, p, "-c", "-e", "abc"));
+  assert (run (fdopen_null (), 1, 2, p, "-c", "-i"));
+  assert (run (fdopen_null (), 2, 2, p, "-c", "-o", "abc"));
+  assert (run (fdopen_null (), 1, 1, p, "-c", "-e", "abc"));
 
   {
     fdpipe pipe (fdopen_pipe ());

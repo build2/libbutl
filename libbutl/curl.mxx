@@ -70,7 +70,7 @@ LIBBUTL_MODEXPORT namespace butl
   //         "http://example.org");
   //
   //   curl (nullfd,
-  //         fdnull (), // Write result to /dev/null.
+  //         fdopen_null (), // Write result to /dev/null.
   //         2,
   //         curl::get,
   //         "tftp://localhost/foo");

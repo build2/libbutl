@@ -121,7 +121,7 @@ main (int argc, const char* argv[])
 
   // Run as a parent.
   //
-  auto_fd null (fdnull ());
+  auto_fd null (fdopen_null ());
   process_exit pe1 (process_run (0                       /* stdin */,
                                  1                       /* stdout */,
                                  quiet ? null.get () : 2 /* stderr */,

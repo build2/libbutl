@@ -1217,7 +1217,7 @@ namespace butl
   }
 
   auto_fd
-  fdnull ()
+  fdopen_null ()
   {
     int fd (open ("/dev/null", O_RDWR | O_CLOEXEC));
 
@@ -1483,7 +1483,7 @@ namespace butl
   }
 
   auto_fd
-  fdnull (bool temp)
+  fdopen_null (bool temp)
   {
     // No need to translate \r\n before sending it to void.
     //

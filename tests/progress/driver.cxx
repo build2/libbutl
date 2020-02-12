@@ -37,7 +37,7 @@ import butl.optional;     // @@ MOD Clang should not be necessary.
 import butl.small_vector; // @@ MOD Clang should not be necessary.
 #else
 #include <libbutl/process.mxx>
-#include <libbutl/fdstream.mxx>    // fdnull(), stderr_fd()
+#include <libbutl/fdstream.mxx>    // fdopen_null(), stderr_fd()
 #include <libbutl/diagnostics.mxx>
 #endif
 
@@ -112,7 +112,8 @@ main (int argc, const char* argv[])
   }
 
   process pr (!no_child
-              ? process_start (fdnull (), fdnull (), 2, argv[0], "-c")
+              ? process_start (fdopen_null (), fdopen_null (), 2,
+                               argv[0], "-c")
               : process (process_exit (0))); // Exited normally.
 
   for (size_t i (100); i != 0; --i)

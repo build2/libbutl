@@ -38,7 +38,7 @@ namespace butl
   process::pipe openssl::
   map_in (nullfd_t, io_data& d)
   {
-    d.pipe.in = fdnull (); // /dev/null
+    d.pipe.in = fdopen_null (); // /dev/null
     return pipe (d.pipe);
   }
 
@@ -59,7 +59,7 @@ namespace butl
     {
       d.options.push_back ("-in");
       d.options.push_back (f.string ().c_str ());
-      d.pipe.in = fdnull (); // /dev/null
+      d.pipe.in = fdopen_null (); // /dev/null
       r = pipe (d.pipe);
     }
 
@@ -77,7 +77,7 @@ namespace butl
                           ? fdopen_mode::binary
                           : fdopen_mode::none);
     pipe r (d.pipe);
-    
+
     out.open (move (d.pipe.out));
     return r;
   }
@@ -85,7 +85,7 @@ namespace butl
   process::pipe openssl::
   map_out (nullfd_t, io_data& d)
   {
-    d.pipe.out = fdnull ();
+    d.pipe.out = fdopen_null ();
     return pipe (d.pipe); // /dev/null
   }
 
@@ -106,7 +106,7 @@ namespace butl
     {
       d.options.push_back ("-out");
       d.options.push_back (f.string ().c_str ());
-      d.pipe.out = fdnull (); // /dev/null
+      d.pipe.out = fdopen_null (); // /dev/null
       r = pipe (d.pipe);
     }
 
@@ -124,7 +124,7 @@ namespace butl
                           ? fdopen_mode::binary
                           : fdopen_mode::none);
     pipe r (d.pipe);
-    
+
     in.open (move (d.pipe.in), fdstream_mode::skip);
     return r;
   }

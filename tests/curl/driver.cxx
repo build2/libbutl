@@ -55,7 +55,7 @@ tftp ()
   // GET non-existent.
   //
   {
-    curl c (p, nullfd, fdnull (), 2, curl::get, u + "/foo");
+    curl c (p, nullfd, fdopen_null (), 2, curl::get, u + "/foo");
     assert (!c.wait ());
   }
 
@@ -88,7 +88,7 @@ tftp ()
   // GET to /dev/null.
   //
   {
-    curl c (p, nullfd, fdnull (), 2, curl::get, u + "/foo");
+    curl c (p, nullfd, fdopen_null (), 2, curl::get, u + "/foo");
     assert (c.wait ());
   }
 }
@@ -103,14 +103,14 @@ http ()
   // GET non-existent.
   //
   {
-    curl c (p, nullfd, fdnull (), 2, curl::get, u + "/bogus");
+    curl c (p, nullfd, fdopen_null (), 2, curl::get, u + "/bogus");
     assert (!c.wait ());
   }
 
   // GET to /dev/null.
   //
   {
-    curl c (p, nullfd, fdnull (), 2, curl::get, u);
+    curl c (p, nullfd, fdopen_null (), 2, curl::get, u);
     assert (c.wait ());
   }
 

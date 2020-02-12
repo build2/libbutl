@@ -530,7 +530,7 @@ LIBBUTL_MODEXPORT namespace butl
   // make stdin read from /dev/null, stdout redirect to stderr, and inherit
   // the parent's stderr.
   //
-  // process_run (fdnull (), 2, 2, ...)
+  // process_run (fdopen_null (), 2, 2, ...)
   //
   // The P argument is the program path. It can be anything that can be passed
   // to process::path_search() (const char*, std::string, path) or the

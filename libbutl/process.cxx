@@ -135,7 +135,7 @@ import std.threading;
 #endif
 
 import butl.utility;  // icasecmp()
-import butl.fdstream; // fdnull()
+import butl.fdstream; // fdopen_null()
 #else
 #include <libbutl/utility.mxx>
 #include <libbutl/fdstream.mxx>
@@ -412,7 +412,7 @@ namespace butl
     {
       try
       {
-        return fdnull ();
+        return fdopen_null ();
       }
       catch (const ios_base::failure& e)
       {
@@ -1510,7 +1510,7 @@ namespace butl
       //
       try
       {
-        return fdnull (true);
+        return fdopen_null (true /* temp */);
       }
       catch (const ios_base::failure& e)
       {
