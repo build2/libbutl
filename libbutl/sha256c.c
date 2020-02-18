@@ -1,7 +1,6 @@
 /*-
  * Copyright 2005 Colin Percival
- * Copyright (c) Code Synthesis Ltd and the build2 contributors; see
- * the accompanying COPYRIGHT file for details.
+ * Copyright (c) the build2 authors (see the COPYRIGHT file).
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
