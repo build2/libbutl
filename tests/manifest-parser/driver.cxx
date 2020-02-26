@@ -40,6 +40,9 @@ namespace butl
   static bool
   equal (const optional<pairs>& actual, const optional<pairs>& expected);
 
+  static pairs
+  parse (const char* m, manifest_parser::filter_function f = {});
+
   // Test manifest as it is represented in the stream, including format
   // version and end-of-manifest values.
   //
@@ -188,6 +191,41 @@ namespace butl
       assert (p.first == "" && p.second == "comment");
     }
 
+    // UTF-8.
+    //
+    assert (test (":1\n#\xD0\xB0\n\xD0\xB0y\xD0\xB0:\xD0\xB0z\xD0\xB0",
+                  {{"","1"},
+                   {"\xD0\xB0y\xD0\xB0", "\xD0\xB0z\xD0\xB0"},
+                   {"",""},
+                   {"",""}}));
+
+    assert (fail (":1\n#\xD0\n\xD0\xB0y\xD0\xB0:\xD0\xB0z\xD0\xB0"));
+    assert (fail (":1\n#\xD0\xB0\n\xB0y\xD0\xB0:\xD0\xB0z\xD0\xB0"));
+    assert (fail (":1\n#\xD0\xB0\n\xD0y\xD0\xB0:\xD0\xB0z\xD0\xB0"));
+    assert (fail (":1\n#\xD0\xB0\n\xD0\xB0y\xD0:\xD0\xB0z\xD0\xB0"));
+    assert (fail (":1\n#\xD0\xB0\n\xD0\xB0y\xD0\xB0:\xD0z\xD0\xB0"));
+    assert (fail (":1\n#\xD0\xB0\n\xD0\xB0y\xD0\xB0:\xD0\xB0z\xD0"));
+    assert (fail (":1\r\r\xB0#\n\xD0\xB0y\xD0\xB0:\xD0\xB0z\xD0\xB0"));
+    assert (fail (":1\r\xD0#\n\xD0\xB0y\xD0\xB0:\xD0\xB0z\xD0\xB0"));
+    assert (fail (":1\n#\xD0\xB0\n\xD0\xB0y\xD0\xB0:\xD0\xB0z\xD0\xB0\r\xD0"));
+
+    // Test parsing failure for manifest with multi-byte UTF-8 sequences
+    // (the column is properly reported, etc).
+    //
+    try
+    {
+      parse (":1\na\xD0\xB0\xD0\xB0\xFE");
+      assert (false);
+    }
+    catch (const manifest_parsing& e)
+    {
+      assert (e.line == 2   &&
+              e.column == 4 &&
+              e.description ==
+              "invalid manifest name: "
+              "invalid UTF-8 sequence first byte (0xFE)");
+    }
+
     // Filtering.
     //
     assert (test (":1\na: abc\nb: bca\nc: cab",
@@ -281,7 +319,7 @@ namespace butl
   }
 
   static pairs
-  parse (const char* m, manifest_parser::filter_function f = {})
+  parse (const char* m, manifest_parser::filter_function f)
   {
     istringstream is (m);
     is.exceptions (istream::failbit | istream::badbit);

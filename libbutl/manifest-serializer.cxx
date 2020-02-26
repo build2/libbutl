@@ -30,6 +30,11 @@ import std.io;
 import butl.manifest_types;
 #endif
 
+import butl.utf8;
+import butl.utility;
+#else
+#include <libbutl/utf8.mxx>
+#include <libbutl/utility.mxx>
 #endif
 
 using namespace std;
@@ -86,13 +91,13 @@ namespace butl
           break;
         }
 
-        write_name (n);
+        size_t l (write_name (n));
         os_ << ':';
 
         if (!v.empty ())
         {
           os_ << ' ';
-          write_value (v, n.size () + 2);
+          write_value (v, l + 2);
         }
 
         os_ << endl;
@@ -110,6 +115,10 @@ namespace butl
   {
     if (s_ == end)
       throw serialization (name_, "serialization after eos");
+
+    string what;
+    if (!utf8 (t, what, codepoint_types::graphic, U"\n\r\t"))
+      throw serialization (name_, "invalid comment: " + what);
 
     os_ << '#';
 
@@ -144,7 +153,7 @@ namespace butl
     return r;
   }
 
-  void manifest_serializer::
+  size_t manifest_serializer::
   write_name (const string& n)
   {
     if (n.empty ())
@@ -153,43 +162,76 @@ namespace butl
     if (n[0] == '#')
       throw serialization (name_, "name starts with '#'");
 
+    size_t r (0);
+    pair<bool, bool> v;
+    utf8_validator val (codepoint_types::graphic, U"\n\r\t");
+
+    string what;
     for (char c: n)
     {
-      switch (c)
+      v = val.validate (c, what);
+
+      if (!v.first)
+        throw serialization (name_, "invalid name: " + what);
+
+      if (v.second) // Sequence last byte?
       {
-      case ' ':
-      case '\t':
-      case '\r':
-      case '\n': throw serialization (name_, "name contains whitespace");
-      case ':':  throw serialization (name_, "name contains ':'");
-      default:   break;
+        // Note: ASCII characters may not be a part of a multi-byte sequence.
+        //
+        switch (c)
+        {
+        case ' ':
+        case '\t':
+        case '\r':
+        case '\n': throw serialization (name_, "name contains whitespace");
+        case ':':  throw serialization (name_, "name contains ':'");
+        default:   break;
+        }
+
+        ++r;
       }
     }
 
+    // Make sure that the last UTF-8 sequence is complete.
+    //
+    if (!v.second)
+      throw serialization (name_, "invalid name: incomplete UTF-8 sequence");
+
     os_ << n;
+    return r;
   }
 
   void manifest_serializer::
   write_value (const char* s, size_t n, size_t cl)
   {
-    char c ('\0');
+    utf8_validator val (codepoint_types::graphic, U"\n\r\t");
 
-    // The idea is to break on the 77th character (i.e., write it
-    // on the next line) which means we have written 76 characters
+    char c ('\0');
+    bool b (true); // Begin of UTF-8 byte sequence.
+
+    // The idea is to break on the 77th codepoint (i.e., write it
+    // on the next line) which means we have written 76 codepoints
     // on this line plus 2 for '\' and '\n', which gives us 78.
     //
-    for (const char* e (s + n); s != e; s++, cl++)
+    string what;
+    for (const char* e (s + n); s != e; s++)
     {
       char pc (c);
       c = *s;
+
+      pair<bool, bool> v (val.validate (c, what));
+
+      if (!v.first)
+        throw serialization (name_, "invalid value: " + what);
 
       // Note that even the "hard" break (see below) is not that hard when it
       // comes to breaking the line right after the backslash. Doing so would
       // inject the redundant newline character, as the line-terminating
       // backslash would be escaped. So we delay breaking till the next
-      // non-backslash character.
+      // non-backslash character. We also delay until the beginning of a UTF-8
+      // sequence.
       //
-      if (pc != '\\' && !long_lines_)
+      if (pc != '\\' && b && !long_lines_)
       {
         bool br (false); // Break the line.
 
@@ -237,7 +279,17 @@ namespace butl
       }
 
       os_ << c;
+
+      b = v.second;
+
+      if (b)
+        ++cl;
     }
+
+    // Make sure that the last UTF-8 sequence is complete.
+    //
+    if (!b)
+      throw serialization (name_, "invalid value: incomplete UTF-8 sequence");
 
     // What comes next is always a newline. If the last character that
     // we have written is a backslash, escape it.
@@ -256,7 +308,7 @@ namespace butl
 
     // Use the multi-line mode in any of the following cases:
     //
-    // - column offset is too large (say greater than 39 (78/2) characters; we
+    // - column offset is too large (say greater than 39 (78/2) codepoints; we
     //   cannot start on the next line since that would start the multi-line
     //   mode)
     // - value contains newlines

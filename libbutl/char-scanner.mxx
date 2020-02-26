@@ -10,6 +10,8 @@
 #ifndef __cpp_lib_modules_ts
 #include <string>  // char_traits
 #include <cstdint> // uint64_t
+#include <climits> // INT_*
+#include <utility> // pair, make_pair()
 #include <istream>
 #endif
 
@@ -30,12 +32,26 @@ import butl.fdstream;
 
 LIBBUTL_MODEXPORT namespace butl
 {
+  // Refer to utf8_validator for details.
+  //
+  struct noop_validator
+  {
+    std::pair<bool, bool>
+    validate (char) {return std::make_pair (true, true);}
+
+    std::pair<bool, bool>
+    validate (char c, std::string&) {return validate (c);}
+  };
+
   // Low-level character stream scanner. Normally used as a base for
   // higher-level lexers.
   //
-  class LIBBUTL_SYMEXPORT char_scanner
+  template <typename V = noop_validator>
+  class char_scanner
   {
   public:
+    using validator_type = V;
+
     // If the crlf argument is true, then recognize Windows newlines (0x0D
     // 0x0A) and convert them to just '\n' (0x0A). Note that a standalone
     // 0x0D is treated "as if" it was followed by 0x0A and multiple 0x0D
@@ -49,7 +65,13 @@ LIBBUTL_MODEXPORT namespace butl
     // and position in the stream (useful when re-scanning data saved with the
     // save_* facility).
     //
-    char_scanner (std::istream& is,
+    char_scanner (std::istream&,
+                  bool crlf = true,
+                  std::uint64_t line = 1,
+                  std::uint64_t position = 0);
+
+    char_scanner (std::istream&,
+                  validator_type,
                   bool crlf = true,
                   std::uint64_t line = 1,
                   std::uint64_t position = 0);
@@ -62,10 +84,10 @@ LIBBUTL_MODEXPORT namespace butl
   public:
 
     // Extended character. It includes line/column/position information and is
-    // capable of representing EOF.
+    // capable of representing EOF and invalid characters.
     //
-    // Note that implicit conversion of EOF to char_type results in NUL
-    // character (which means in most cases it is safe to compare xchar to
+    // Note that implicit conversion of EOF/invalid to char_type results in
+    // NUL character (which means in most cases it is safe to compare xchar to
     // char without checking for EOF).
     //
     class xchar
@@ -76,6 +98,9 @@ LIBBUTL_MODEXPORT namespace butl
       using char_type = traits_type::char_type;
 
       int_type value;
+
+      // Note that the column is of the codepoint this byte belongs to.
+      //
       std::uint64_t line;
       std::uint64_t column;
 
@@ -84,9 +109,12 @@ LIBBUTL_MODEXPORT namespace butl
       //
       std::uint64_t position;
 
+      static int_type
+      invalid () {return traits_type::eof () != INT_MIN ? INT_MIN : INT_MAX;}
+
       operator char_type () const
       {
-        return value != traits_type::eof ()
+        return value != traits_type::eof () && value != invalid ()
           ? static_cast<char_type> (value)
           : char_type (0);
       }
@@ -98,8 +126,18 @@ LIBBUTL_MODEXPORT namespace butl
           : value (v), line (l), column (c), position (p) {}
     };
 
+    // Note that if any of the get() or peek() functions return an invalid
+    // character, then the scanning has failed and none of them should be
+    // called again.
+
     xchar
     get ();
+
+    // As above but in case of an invalid character also return the
+    // description of why it is invalid.
+    //
+    xchar
+    get (std::string& what);
 
     void
     get (const xchar& peeked); // Get previously peeked character (faster).
@@ -107,17 +145,24 @@ LIBBUTL_MODEXPORT namespace butl
     void
     unget (const xchar&);
 
-    // Note that if there is an "ungot" character, peek() will return
-    // that.
+    // Note that if there is an "ungot" character, peek() will return that.
     //
     xchar
     peek ();
 
-    // Tests. In the future we can add tests line alpha(), alnum(),
-    // etc.
+    // As above but in case of an invalid character also return the
+    // description of why it is invalid.
+    //
+    xchar
+    peek (std::string& what);
+
+    // Tests. In the future we can add tests line alpha(), alnum(), etc.
     //
     static bool
     eos (const xchar& c) {return c.value == xchar::traits_type::eof ();}
+
+    static bool
+    invalid (const xchar& c) {return c.value == xchar::invalid ();}
 
     // Line, column and position of the next character to be extracted from
     // the stream by peek() or get().
@@ -159,8 +204,8 @@ LIBBUTL_MODEXPORT namespace butl
     };
 
   protected:
-    using int_type = xchar::int_type;
-    using char_type = xchar::char_type;
+    using int_type  = typename xchar::int_type;
+    using char_type = typename xchar::char_type;
 
     int_type
     peek_ ();
@@ -171,11 +216,27 @@ LIBBUTL_MODEXPORT namespace butl
     std::uint64_t
     pos_ () const;
 
+    xchar
+    get (std::string* what);
+
+    xchar
+    peek (std::string* what);
+
   protected:
     std::istream& is_;
 
-    // Note that if you are reading from the buffer directly, then it is
-    // also your responsibility to save the data.
+    validator_type val_;
+    bool decoded_   = true;  // The peeked character is last byte of sequence.
+    bool validated_ = false; // The peeked character has been validated.
+
+    // Note that if you are reading from the buffer directly, then it is also
+    // your responsibility to call the validator and save the data (see
+    // save_*().
+    //
+    // Besides that, make sure that the peek() call preceding the scan is
+    // followed by the get() call (see validated_, decoded_, and unpeek_ for
+    // the hairy details; realistically, you would probably only direct-scan
+    // ASCII fragments).
     //
     fdbuf* buf_; // NULL if not ifdstream.
     const char_type* gptr_;
@@ -195,3 +256,4 @@ LIBBUTL_MODEXPORT namespace butl
 }
 
 #include <libbutl/char-scanner.ixx>
+#include <libbutl/char-scanner.txx>

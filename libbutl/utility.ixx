@@ -2,8 +2,11 @@
 // license   : MIT; see accompanying LICENSE file
 
 #ifndef __cpp_lib_modules_ts
-#include <cstdlib> // getenv()
-#include <algorithm>
+#include <cctype>    // toupper(), tolower(), is*()
+#include <cwctype>   // isw*()
+#include <cstdlib>   // getenv()
+#include <algorithm> // for_each()
+#include <stdexcept> // invalid_argument
 #endif
 
 namespace butl
@@ -216,34 +219,6 @@ namespace butl
     return sanitize_identifier (std::string (s));
   }
 
-  inline codepoint_types
-  operator&= (codepoint_types& x, codepoint_types y)
-  {
-    return x = static_cast<codepoint_types> (
-      static_cast<std::uint16_t> (x) &
-      static_cast<std::uint16_t> (y));
-  }
-
-  inline codepoint_types
-  operator|= (codepoint_types& x, codepoint_types y)
-  {
-    return x = static_cast<codepoint_types> (
-      static_cast<std::uint16_t> (x) |
-      static_cast<std::uint16_t> (y));
-  }
-
-  inline codepoint_types
-  operator& (codepoint_types x, codepoint_types y)
-  {
-    return x &= y;
-  }
-
-  inline codepoint_types
-  operator| (codepoint_types x, codepoint_types y)
-  {
-    return x |= y;
-  }
-
   inline bool
   eof (std::istream& is)
   {
@@ -254,6 +229,74 @@ namespace butl
       return true;
 
     throw std::istream::failure ("");
+  }
+
+  inline optional<std::size_t>
+  utf8_length_impl (const std::string& s,
+                    std::string* what,
+                    codepoint_types ts,
+                    const char32_t* wl)
+  {
+    using namespace std;
+
+    // Optimize for an empty string.
+    //
+    if (s.empty ())
+      return 0;
+
+    size_t r (0);
+    pair<bool, bool> v;
+    utf8_validator val (ts, wl);
+
+    for (char c: s)
+    {
+      v = val.validate (c, what);
+
+      if (!v.first) // Invalid byte?
+        return nullopt;
+
+      if (v.second) // Last byte in the sequence?
+        ++r;
+    }
+
+    // Make sure that the last UTF-8 sequence is complete.
+    //
+    if (!v.second)
+    {
+      if (what != nullptr)
+        *what = "incomplete UTF-8 sequence";
+
+      return nullopt;
+    }
+
+    return r;
+  }
+
+  inline std::size_t
+  utf8_length (const std::string& s, codepoint_types ts, const char32_t* wl)
+  {
+    using namespace std;
+
+    string what;
+    if (optional<size_t> r = utf8_length_impl (s, &what, ts, wl))
+      return *r;
+
+    throw invalid_argument (what);
+  }
+
+  inline bool
+  utf8 (const std::string& s,
+        std::string& what,
+        codepoint_types ts,
+        const char32_t* wl)
+  {
+    return utf8_length_impl (s, &what, ts, wl).has_value ();
+  }
+
+  inline bool
+  utf8 (const std::string& s, codepoint_types ts, const char32_t* wl)
+  {
+    return utf8_length_impl (s, nullptr, ts, wl).has_value ();
   }
 
   inline optional<std::string>

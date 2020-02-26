@@ -60,7 +60,7 @@ LIBBUTL_MODEXPORT namespace butl
                                   const std::string& value);
 
     // Unless long_lines is true, break lines in values (including multi-line)
-    // so that their length does not exceed 78 characters (including '\n').
+    // so that their length does not exceed 78 codepoints (including '\n').
     //
     manifest_serializer (std::ostream& os,
                          const std::string& name,
@@ -108,23 +108,23 @@ LIBBUTL_MODEXPORT namespace butl
     void
     write_next (const std::string& name, const std::string& value);
 
-    // Validate and write a name.
+    // Validate and write a name and return its length in codepoints.
     //
-    void
+    size_t
     write_name (const std::string&);
 
     // Write a value assuming the current line already has the specified
-    // offset. If the resulting line length would be too large then the
-    // multi-line representation will be used. It is assumed that the name,
-    // followed by the colon, is already written.
+    // codepoint offset. If the resulting line length would be too large then
+    // the multi-line representation will be used. It is assumed that the
+    // name, followed by the colon, is already written.
     //
     void
     write_value (const std::string&, std::size_t offset);
 
     // Write the specified number of characters from the specified string
     // (assuming there are no newlines) split into multiple lines at or near
-    // the 78 characters boundary. Assume the current line already has the
-    // specified offset.
+    // the 78 codepoints boundary. Assume the current line already has the
+    // specified codepoint offset.
     //
     void
     write_value (const char* s, std::size_t n, std::size_t offset);

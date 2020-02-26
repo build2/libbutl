@@ -89,7 +89,7 @@ namespace butl
     parse_name (r);
 
     skip_spaces ();
-    c = get ();
+    c = get ("manifest");
 
     if (eos (c))
     {
@@ -117,7 +117,7 @@ namespace butl
     skip_spaces ();
     parse_value (r);
 
-    c = peek ();
+    c = peek ("manifest");
 
     // The character after the value should be either a newline or eos.
     //
@@ -126,7 +126,7 @@ namespace butl
     r.end_pos = c.position;
 
     if (c == '\n')
-      get ();
+      get (c);
 
     // Now figure out whether what we've got makes sense, depending
     // on the state we are in.
@@ -217,6 +217,8 @@ namespace butl
   void manifest_parser::
   parse_name (name_value& r)
   {
+    auto peek = [this] () {return manifest_parser::peek ("manifest name");};
+
     xchar c (peek ());
 
     r.name_line = c.line;
@@ -228,13 +230,19 @@ namespace butl
         break;
 
       r.name += c;
-      get ();
+      get (c);
     }
   }
 
   void manifest_parser::
   parse_value (name_value& r)
   {
+    auto peek = [this] () {return manifest_parser::peek ("manifest value");};
+
+    // Here we don't always track the last peeked character.
+    //
+    auto get = [this] () {manifest_parser::get ("manifest value");};
+
     xchar c (peek ());
 
     r.value_line = c.line;
@@ -408,6 +416,8 @@ namespace butl
   pair<manifest_parser::xchar, uint64_t> manifest_parser::
   skip_spaces ()
   {
+    auto peek = [this] () {return manifest_parser::peek ("manifest");};
+
     xchar c (peek ());
     bool start (c.column == 1);
     uint64_t lp (c.position);
@@ -437,12 +447,12 @@ namespace butl
           if (!start)
             return make_pair (c, lp);
 
-          get ();
+          get (c);
 
           // Read until newline or eos.
           //
           for (c = peek (); !eos (c) && c != '\n'; c = peek ())
-            get ();
+            get (c);
 
           continue;
         }
@@ -450,7 +460,7 @@ namespace butl
         return make_pair (c, lp); // Not a space.
       }
 
-      get ();
+      get (c);
     }
 
     return make_pair (c, lp);

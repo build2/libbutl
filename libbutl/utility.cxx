@@ -35,6 +35,9 @@ import std.io;
 #endif
 #endif
 
+import butl.utf8;
+#else
+#include <libbutl/utf8.mxx>
 #endif
 
 namespace butl
@@ -188,6 +191,135 @@ namespace butl
       l.resize (n);
 
     return l;
+  }
+
+  void
+  to_utf8 (string& s, char repl, codepoint_types ts, const char32_t* wl)
+  {
+    using iterator = string::iterator;
+
+    utf8_validator val (ts, wl);
+
+    iterator i (s.begin ()); // Source current position.
+    iterator e (s.end ());   // Source end position.
+    iterator d (i);          // Destination current position.
+    iterator b (d);          // Begin of the current destination sequence.
+
+    // Replace the current byte and prepare for the next sequence.
+    //
+    auto replace_byte = [&d, &b, repl] ()
+    {
+      *d++ = repl;
+      b = d;
+    };
+
+    // Replace bytes of the current sequence excluding the current byte and
+    // prepare for the next sequence.
+    //
+    auto replace_sequence = [&d, &b, repl] ()
+    {
+      for (; b != d; ++b)
+        *b = repl;
+    };
+
+    // Replace sequence bytes with a single replacement byte and prepare for
+    // the next sequence.
+    //
+    auto replace_codepoint = [&d, &b, &replace_byte] ()
+    {
+      d = b;           // Rewind to the beginning of the sequence.
+      replace_byte ();
+    };
+
+    // Iterate over the byte string appending valid bytes, replacing invalid
+    // bytes/codepoints, and recovering after invalid bytes.
+    //
+    for (; i != e; ++i)
+    {
+      char c (*i);
+      pair<bool, bool> v (val.validate (c));
+
+      // Append a valid byte and prepare for the next sequence if the sequence
+      // end is reached.
+      //
+      auto append_byte = [&d, &b, &v, &c] ()
+      {
+        *d++ = c;
+
+        if (v.second) // Sequence last byte?
+          b = d;
+      };
+
+      // If this is a valid byte/codepoint, then append the byte and proceed
+      // to the next string byte.
+      //
+      if (v.first)
+      {
+        append_byte ();
+        continue;
+      }
+
+      // If this is an invalid codepoint, then replace the sequence with a
+      // single replacement character and proceed to the next byte sequence
+      // (no recovery is necessary).
+      //
+      if (v.second)
+      {
+        replace_codepoint ();
+        continue;
+      }
+
+      // Now, given this is an invalid byte, replace the current sequence
+      // bytes and recover.
+      //
+      replace_sequence ();
+
+      // Stay in the recovery cycle until a valid byte is encountered. Note
+      // that we start from where we left off, not from the next byte (see
+      // utf8_validator::recover() for details).
+      //
+      for (; i != e; ++i)
+      {
+        c = *i;
+        v = val.recover (c);
+
+        // End the recovery cycle for a valid byte.
+        //
+        if (v.first)
+        {
+          append_byte ();
+          break;
+        }
+
+        // End the recovery cycle for a decoded but invalid (ASCII-range)
+        // codepoint.
+        //
+        if (v.second)
+        {
+          replace_codepoint ();
+          break;
+        }
+
+        replace_byte ();
+      }
+
+      // Bail out if we reached the end of the byte string. Note that while we
+      // failed to recover (otherwise i != e), all the bytes are already
+      // replaced.
+      //
+      if (i == e)
+        break;
+    }
+
+    // If the last byte sequence is incomplete, then replace its bytes.
+    //
+    if (b != d)
+      replace_sequence ();
+
+    // Shrink the byte string if we replaced any invalid codepoints.
+    //
+    if (d != e)
+      s.resize (d - s.begin ());
   }
 
   void

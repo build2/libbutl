@@ -41,6 +41,8 @@ using namespace std;
 
 namespace butl
 {
+  using std::to_string;
+
   // Parse uint64_t from the specified string starting at the specified
   // position and check the min/max constraints. If successful, save the
   // result, update the position to point to the next character, and return

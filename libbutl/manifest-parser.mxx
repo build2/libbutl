@@ -25,10 +25,12 @@ export module butl.manifest_parser;
 import std.core;
 import std.io;
 #endif
+import butl.utf8;
 import butl.optional;
 import butl.char_scanner;
 import butl.manifest_types;
 #else
+#include <libbutl/utf8.mxx>
 #include <libbutl/optional.mxx>
 #include <libbutl/char-scanner.mxx>
 #include <libbutl/manifest-types.mxx>
@@ -54,7 +56,8 @@ LIBBUTL_MODEXPORT namespace butl
     std::string description;
   };
 
-  class LIBBUTL_SYMEXPORT manifest_parser: protected butl::char_scanner
+  class LIBBUTL_SYMEXPORT manifest_parser:
+    protected char_scanner<utf8_validator>
   {
   public:
     // The filter, if specified, is called by next() prior to returning the
@@ -69,7 +72,10 @@ LIBBUTL_MODEXPORT namespace butl
     manifest_parser (std::istream& is,
                      const std::string& name,
                      std::function<filter_function> filter = {})
-      : char_scanner (is), name_ (name), filter_ (std::move (filter)) {}
+      : char_scanner (is,
+                      utf8_validator (codepoint_types::graphic, U"\n\r\t")),
+        name_ (name),
+        filter_ (std::move (filter)) {}
 
     const std::string&
     name () const {return name_;}
@@ -97,6 +103,8 @@ LIBBUTL_MODEXPORT namespace butl
     split_comment (const std::string&);
 
   private:
+    using base = char_scanner<utf8_validator>;
+
     void
     parse_next (manifest_name_value&);
 
@@ -114,12 +122,33 @@ LIBBUTL_MODEXPORT namespace butl
     std::pair<xchar, std::uint64_t>
     skip_spaces ();
 
+    // As base::get() but in case of an invalid character throws
+    // manifest_parsing.
+    //
+    xchar
+    get (const char* what);
+
+    // Get previously peeked character (faster).
+    //
+    void
+    get (const xchar&);
+
+    // As base::peek() but in case of an invalid character throws
+    // manifest_parsing.
+    //
+    xchar
+    peek (const char* what);
+
   private:
     const std::string name_;
     const std::function<filter_function> filter_;
 
     enum {start, body, end} s_ = start;
     std::string version_; // Current format version.
+
+    // Buffer for a get()/peek() potential error.
+    //
+    std::string ebuf_;
   };
 
   // Parse and return a single manifest. Throw manifest_parsing in case of an

@@ -16,13 +16,10 @@
 #include <iosfwd>       // ostream
 #include <istream>
 #include <cstddef>      // size_t
-#include <utility>      // move(), forward()
+#include <utility>      // move(), forward(), pair
 #include <cstring>      // strcmp(), strlen()
 #include <exception>    // exception, uncaught_exception[s]()
 //#include <functional> // hash
-
-#include <cctype>  // toupper(), tolower(), is*()
-#include <cwctype> // isw*()
 #endif
 
 #include <libbutl/ft/lang.hxx>      // thread_local
@@ -34,8 +31,12 @@ export module butl.utility;
 import std.core;
 import std.io;
 #endif
+import butl.utf8;
+import butl.unicode;
 import butl.optional;
 #else
+#include <libbutl/utf8.mxx>
+#include <libbutl/unicode.mxx>
 #include <libbutl/optional.mxx>
 #endif
 
@@ -194,41 +195,44 @@ LIBBUTL_MODEXPORT namespace butl
   std::string  sanitize_identifier (std::string&&);
   std::string  sanitize_identifier (const std::string&);
 
-  // Return true if the string is a valid UTF-8 encoded byte sequence and,
-  // optionally, its decoded codepoints belong to the specified types or to
-  // the codepoint whitelist.
+  // Return true if the string is a valid UTF-8 encoded byte string and,
+  // optionally, its decoded codepoints belong to the specified types or
+  // codepoint whitelist.
   //
-  // Note that the Unicode Standard considers a UTF-8 byte sequence decoded
-  // into a codepoint of the surrogate type as invalid. Thus, the surrogate
-  // type may not be specified.
-  //
-  enum class codepoint_types: std::uint16_t
-  {
-    // Useful to only allow the whitelisted codepoints or when building the
-    // type set incrementally.
-    //
-    none          = 0x00,
-
-    graphic       = 0x01, // L(etter), M(ark), N(number), P(uncturation),
-                          // S(symbol), Zs(separator, space)
-    format        = 0x02,
-    control       = 0x04,
-    private_use   = 0x08,
-    non_character = 0x10,
-    reserved      = 0x20,
-
-    any           = 0x3f
-  };
-
-  LIBBUTL_SYMEXPORT bool
+  bool
   utf8 (const std::string&,
         codepoint_types = codepoint_types::any,
         const char32_t* whitelist = nullptr);
 
-  codepoint_types operator&  (codepoint_types,  codepoint_types);
-  codepoint_types operator|  (codepoint_types,  codepoint_types);
-  codepoint_types operator&= (codepoint_types&, codepoint_types);
-  codepoint_types operator|= (codepoint_types&, codepoint_types);
+  // As above but in case of an invalid sequence also return the description
+  // of why it is invalid.
+  //
+  bool
+  utf8 (const std::string&,
+        std::string& what,
+        codepoint_types = codepoint_types::any,
+        const char32_t* whitelist = nullptr);
+
+  // Return UTF-8 byte string length in codepoints. Throw
+  // std::invalid_argument if this is not a valid UTF-8.
+  //
+  std::size_t
+  utf8_length (const std::string&,
+               codepoint_types = codepoint_types::any,
+               const char32_t* whitelist = nullptr);
+
+  // Fixup the specified string (in place) to be valid UTF-8 replacing invalid
+  // bytes and codepoints with the specified character, for example, '?'.
+  //
+  // Potential future improvements:
+  //  - char32_t replacement (will need UTF-8 encoding)
+  //  - different replacement for bytes and codepoints
+  //
+  LIBBUTL_SYMEXPORT void
+  to_utf8 (std::string&,
+           char replacement,
+           codepoint_types = codepoint_types::any,
+           const char32_t* whitelist = nullptr);
 
   // If an input stream is in a failed state, then return true if this is
   // because of the eof and throw istream::failure otherwise. If the stream

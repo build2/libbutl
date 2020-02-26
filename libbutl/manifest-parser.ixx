@@ -3,6 +3,37 @@
 
 namespace butl
 {
+
+  inline auto manifest_parser::
+  get (const char* what) -> xchar
+  {
+    xchar c (base::get (ebuf_));
+
+    if (invalid (c))
+      throw manifest_parsing (name_,
+                              c.line, c.column,
+                              std::string ("invalid ") + what + ": " + ebuf_);
+    return c;
+  }
+
+  inline void manifest_parser::
+  get (const xchar& peeked)
+  {
+    base::get (peeked);
+  }
+
+  inline auto manifest_parser::
+  peek (const char* what) -> xchar
+  {
+    xchar c (base::peek (ebuf_));
+
+    if (invalid (c))
+      throw manifest_parsing (name_,
+                              c.line, c.column,
+                              std::string ("invalid ") + what + ": " + ebuf_);
+    return c;
+  }
+
   inline manifest_name_value manifest_parser::
   next ()
   {

@@ -46,6 +46,7 @@ main ()
   assert (test ({{"#", "x"}}, "# x\n"));
   assert (test ({{"#", "x"},{"#", "y"},{"#", ""}}, "# x\n# y\n#\n"));
   assert (fail ({{"",""},{"#", "x"}})); // serialization after eos
+  assert (fail ({{"#", "\xB0"}}));      // invalid UTF-8 sequence
 
   // Empty manifest stream.
   //
@@ -89,6 +90,12 @@ main ()
   assert (fail ({{"","1"},{"a b",""}}));
   assert (fail ({{"","1"},{"a\tb",""}}));
   assert (fail ({{"","1"},{"a\n",""}}));
+  assert (fail ({{"","1"},{"a\xB0",""}})); // invalid UTF-8 sequence
+
+  // Invalid value.
+  //
+  assert (fail ({{"","1"},{"a","\xB0"}})); // invalid UTF-8 sequence
+  assert (fail ({{"","1"},{"a","\xD0"}})); // incomplete UTF-8 sequence
 
   // Simple value.
   //
@@ -172,11 +179,22 @@ main ()
              "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\\Y\\\n"
              "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy");
 
+  // Hard break after the UTF-8/delayed hard break.
+  //
+  string l6 ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+             "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\xF0\x90\x8C\x82"
+             "\xF0\x90\x8C\x82yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy");
+
+  string e6 ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+             "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\xF0\x90\x8C\x82\\\n"
+             "\xF0\x90\x8C\x82yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy");
+
   assert (test ({{"","1"},{"a",l1},{"",""},{"",""}}, ": 1\na: " + e1 + "\n"));
   assert (test ({{"","1"},{"a",l2},{"",""},{"",""}}, ": 1\na: " + e2 + "\n"));
   assert (test ({{"","1"},{"a",l3},{"",""},{"",""}}, ": 1\na: " + e3 + "\n"));
   assert (test ({{"","1"},{"a",l4},{"",""},{"",""}}, ": 1\na: " + e4 + "\n"));
   assert (test ({{"","1"},{"a",l5},{"",""},{"",""}}, ": 1\na: " + e5 + "\n"));
+  assert (test ({{"","1"},{"a",l6},{"",""},{"",""}}, ": 1\na: " + e6 + "\n"));
 
   // Multi-line value.
   //

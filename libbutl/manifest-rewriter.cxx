@@ -30,8 +30,10 @@ import butl.fdstream;
 import butl.manifest_types;
 #endif
 
+import butl.utility;             // utf8_length()
 import butl.manifest_serializer;
 #else
+#include <libbutl/utility.mxx>
 #include <libbutl/manifest-serializer.mxx>
 #endif
 
@@ -101,8 +103,16 @@ namespace butl
 
       manifest_serializer s (os, path_.string (), long_lines_);
 
+      // Note that the name can be surrounded with the ASCII whitespace
+      // characters and the start_pos refers to the first character in the
+      // line.
+      //
+      // Also note that we assume the already serialized name to be a valid
+      // UTF-8 byte string and so utf8_length() may not throw.
+      //
       s.write_value (nv.value,
-                     static_cast<size_t> (nv.colon_pos - nv.start_pos + 2));
+                     static_cast<size_t> (nv.colon_pos - nv.start_pos) -
+                     (nv.name.size () - utf8_length (nv.name)) + 2);
     }
 
     os << suffix;
@@ -128,15 +138,21 @@ namespace butl
     os << '\n';
 
     manifest_serializer s (os, path_.string (), long_lines_);
-    s.write_name (nv.name);
+    size_t n (s.write_name (nv.name));
 
     os << ':';
 
     if (!nv.value.empty ())
     {
       os << ' ';
+
+      // Note that the name can be surrounded with the ASCII whitespace
+      // characters and the start_pos refers to the first character in the
+      // line.
+      //
       s.write_value (nv.value,
-                     static_cast<size_t> (nv.colon_pos - nv.start_pos + 2));
+                     static_cast<size_t> (nv.colon_pos - nv.start_pos) -
+                     (nv.name.size () - n) + 2);
     }
 
     os << suffix;

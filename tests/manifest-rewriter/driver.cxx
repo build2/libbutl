@@ -90,6 +90,10 @@ namespace butl
                   {{"abc", "xyz"}}) ==
             ":1\n                                     abc: \\\nxyz\n\\");
 
+    assert (edit (":1\n                                     a\xD0\xB0g : b",
+                  {{"a\xD0\xB0g", "xyz"}}) ==
+            ":1\n                                     a\xD0\xB0g : \\\nxyz\n\\");
+
     // Test editing of manifests that contains CR characters.
     //
     assert (edit (":1\r\na: b\r\r\n", {{"a", "xyz"}}) == ":1\r\na: xyz\r\r\n");

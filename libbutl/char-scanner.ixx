@@ -3,8 +3,30 @@
 
 namespace butl
 {
-  inline auto char_scanner::
-  get () -> xchar
+  template <typename V>
+  inline char_scanner<V>::
+  char_scanner (std::istream& is, bool crlf, std::uint64_t l, std::uint64_t p)
+      : char_scanner (is, validator_type (), crlf, l, p)
+  {
+  }
+
+  template <typename V>
+  inline auto char_scanner<V>::
+  peek (std::string& what) -> xchar
+  {
+    return peek (&what);
+  }
+
+  template <typename V>
+  inline auto char_scanner<V>::
+  peek () -> xchar
+  {
+    return peek (nullptr /* what */);
+  }
+
+  template <typename V>
+  inline auto char_scanner<V>::
+  get (std::string* what) -> xchar
   {
     if (unget_)
     {
@@ -13,13 +35,28 @@ namespace butl
     }
     else
     {
-      xchar c (peek ());
+      xchar c (peek (what));
       get (c);
       return c;
     }
   }
 
-  inline void char_scanner::
+  template <typename V>
+  inline auto char_scanner<V>::
+  get (std::string& what) -> xchar
+  {
+    return get (&what);
+  }
+
+  template <typename V>
+  inline auto char_scanner<V>::
+  get () -> xchar
+  {
+    return get (nullptr /* what */);
+  }
+
+  template <typename V>
+  inline void char_scanner<V>::
   unget (const xchar& c)
   {
     // Because iostream::unget cannot work once eos is reached, we have to
@@ -29,7 +66,8 @@ namespace butl
     ungetc_ = c;
   }
 
-  inline auto char_scanner::
+  template <typename V>
+  inline auto char_scanner<V>::
   peek_ () -> int_type
   {
     if (gptr_ != egptr_)
@@ -48,7 +86,8 @@ namespace butl
     return r;
   }
 
-  inline void char_scanner::
+  template <typename V>
+  inline void char_scanner<V>::
   get_ ()
   {
     int_type c;
@@ -61,11 +100,14 @@ namespace butl
     else
       c = is_.get (); // About as fast as ignore() and way faster than tellg().
 
+    validated_ = false;
+
     if (save_ != nullptr && c != xchar::traits_type::eof ())
       save_->push_back (static_cast<char_type> (c));
   }
 
-  inline std::uint64_t char_scanner::
+  template <typename V>
+  inline std::uint64_t char_scanner<V>::
   pos_ () const
   {
     return buf_ != nullptr ? buf_->tellg () : 0;
