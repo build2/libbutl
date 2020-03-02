@@ -25,6 +25,15 @@
   directory
   /.
   EOO
+
+  : followed-symlink
+  :
+  cat <:'abc' >=f;
+  ln -s f l;
+  $* -l l >>EOO
+  regular
+  3
+  EOO
 }
 
 : non-existent

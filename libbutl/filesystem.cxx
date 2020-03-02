@@ -33,6 +33,8 @@
 #  endif
 #endif
 
+#include <iostream> // @@ TMP
+
 #include <cassert>
 
 #ifndef __cpp_lib_modules_ts
@@ -191,6 +193,67 @@ namespace butl
     return junction_target_exists (p.string ().c_str (), ignore_error);
   }
 
+  static inline bool
+  symlink (DWORD a) noexcept
+  {
+    return a != INVALID_FILE_ATTRIBUTES &&
+           (a & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
+  }
+
+  static inline bool
+  symlink (const path& p) noexcept
+  {
+    return symlink (GetFileAttributesA (p.string ().c_str ()));
+  }
+
+  // @@ TODO
+  //
+  static pair<bool, entry_stat>
+  symlink_target_entry (const char* p, bool ignore_error)
+  {
+    HANDLE h (CreateFile (p,
+                          FILE_READ_ATTRIBUTES,
+                          FILE_SHARE_READ | FILE_SHARE_WRITE,
+                          NULL,
+                          OPEN_EXISTING,
+                          FILE_FLAG_BACKUP_SEMANTICS,
+                          NULL));
+
+    if (h == INVALID_HANDLE_VALUE)
+    {
+      DWORD ec;
+
+      if (ignore_error || error_file_not_found (ec = GetLastError ()))
+        return make_pair (false, entry_stat {entry_type::unknown, 0});
+
+      throw_system_error (ec);
+    }
+
+    DWORD ec (0);
+    BY_HANDLE_FILE_INFORMATION fi;
+
+    if (!GetFileInformationByHandle (h, &fi))
+      ec = GetLastError ();
+
+    CloseHandle (h);
+
+    if (ec != 0)
+    {
+      if (ignore_error)
+        return make_pair (false, entry_stat {entry_type::unknown, 0});
+
+      throw_system_error (ec);
+    }
+
+    if ((fi.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
+      return make_pair (true,
+                        entry_stat {entry_type::regular,
+                                    (uint64_t (fi.nFileSizeHigh) << 32) |
+                                    fi.nFileSizeLow});
+    else
+      return make_pair (true, entry_stat {entry_type::directory, 0});
+  }
+
   pair<bool, entry_stat>
   path_entry (const char* p, bool fl, bool ie)
   {
@@ -208,15 +271,15 @@ namespace butl
       p = d.c_str ();
     }
 
-    // Note that VC's implementations of _stat64() follows junctions and fails
-    // for dangling ones. MinGW GCC's implementation returns the information
-    // about the junction itself. That's why we handle junctions specially,
-    // not relying on _stat64().
+    // Note that VC's implementations of _stat64() follows reparse points and
+    // fails for dangling ones. MinGW GCC's implementation returns the
+    // information about the reparse itself. That's why we handle junctions
+    // and symlinks specially, not relying on _stat64().
     //
     DWORD a (GetFileAttributesA (p));
     if (a == INVALID_FILE_ATTRIBUTES) // Presumably not exists.
       return make_pair (false, entry_stat {entry_type::unknown, 0});
-
+/*
     if (junction (a))
     {
       if (!fl)
@@ -225,6 +288,14 @@ namespace butl
       return junction_target_exists (p, ie)
         ? make_pair (true,  entry_stat {entry_type::directory, 0})
         : make_pair (false, entry_stat {entry_type::unknown, 0});
+    }
+*/
+    if (symlink (a))
+    {
+      if (!fl)
+        return make_pair (true, entry_stat {entry_type::symlink, 0});
+
+      return symlink_target_entry (p, ie);
     }
 
     entry_type et (entry_type::unknown);
@@ -494,7 +565,31 @@ namespace butl
   mksymlink (const path& target, const path& link, bool dir)
   {
     if (!dir)
+    {
+      // Try to create a symbolic link and assume symlinks are not supported
+      // on error, unless target or link paths is invalid.
+      //
+      //
+      if (CreateSymbolicLinkA (link.string ().c_str (),
+                               target.string ().c_str (),
+                               SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE))
+        return;
+
+      if (GetLastError () == ERROR_INVALID_PARAMETER)
+      {
+        auto invalid = [] (const path& p)
+        {
+          return GetFileAttributesA (p.string ().c_str ()) ==
+                 INVALID_FILE_ATTRIBUTES &&
+                 GetLastError () == ERROR_INVALID_PARAMETER;
+        };
+
+        if (invalid (target) || invalid (link))
+          throw_generic_error (EINVAL);
+      }
+
       throw_generic_error (ENOSYS, "file symlinks not supported");
+    }
 
     dir_path ld (path_cast<dir_path> (link));
 
