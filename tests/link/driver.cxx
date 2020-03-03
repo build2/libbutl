@@ -35,33 +35,18 @@ using namespace butl;
 
 static const char text[] = "ABCDEF";
 
-enum class mklink
-{
-  sym,
-  hard,
-  any
-};
-
 static bool
-link_file (const path& target, const path& link, mklink ml, bool check_content)
+link_file (const path& target, const path& link, bool hard, bool check_content)
 {
   try
   {
-    switch (ml)
-    {
-    case mklink::sym:  mksymlink  (target, link);                  break;
-    case mklink::hard: mkhardlink (target, link);                  break;
-    case mklink::any:  mkanylink  (target, link, true /* copy */); break;
-    }
+    if (hard)
+      mkhardlink (target, link);
+    else
+      mksymlink (target, link);
   }
-  catch (const system_error& e)
+  catch (const system_error&)
   {
-    cerr << e << endl;
-    return false;
-  }
-  catch (const pair<entry_type, system_error>& e)
-  {
-    cerr << e.second << endl;
     return false;
   }
 
@@ -154,25 +139,21 @@ main ()
 
   // Create the file hard link.
   //
-  assert (link_file (fp, td / path ("hlink"), mklink::hard, true));
+  assert (link_file (fp, td / path ("hlink"), true, true));
 
 #ifndef _WIN32
   // Create the file symlink using an absolute path.
   //
-  assert (link_file (fp, td / path ("slink"), mklink::sym, true));
+  assert (link_file (fp, td / path ("slink"), false, true));
 
   // Create the file symlink using a relative path.
   //
-  assert (link_file (fn, td / path ("rslink"), mklink::sym, true));
+  assert (link_file (fn, td / path ("rslink"), false, true));
 
   // Create the file symlink using an unexistent file path.
   //
-  assert (link_file (fp + "-a", td / path ("sa"), mklink::sym, false));
+  assert (link_file (fp + "-a", td / path ("sa"), false, false));
 #endif
-
-  // Create the file any link.
-  //
-  assert (link_file (fp, td / path ("alink"), mklink::any, true));
 
   // Prepare the target directory.
   //
@@ -188,8 +169,8 @@ main ()
   }
 
 #ifndef _WIN32
-  assert (link_file (fp, dp / path ("hlink"), mklink::hard, true));
-  assert (link_file (fp, dp / path ("slink"), mklink::sym, true));
+  assert (link_file (fp, dp / path ("hlink"), true, true));
+  assert (link_file (fp, dp / path ("slink"), false, true));
 #endif
 
   // Create the directory symlink using an absolute path.

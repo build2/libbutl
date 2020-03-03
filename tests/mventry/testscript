@@ -130,7 +130,7 @@ if ($test.target == $build.host)
       : target stays intact.
       :
       echo 'foo' >=a;
-      $lns &b;
+      $lns;
       echo 'bar' >=c &!c;
       $* c b;
       cat a >'foo';
@@ -149,7 +149,6 @@ if ($test.target == $build.host)
     : dir
     :
     {
-#\
       : from
       :
       : Make sure that if source is a symlink it refers the same target after
@@ -161,7 +160,7 @@ if ($test.target == $build.host)
       touch a/b;
       test -f c/b;
       test -d b == 1
-#\
+
       : to
       :
       : Make sure that if destination is a symlink it is get overwritten and

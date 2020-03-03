@@ -25,36 +25,20 @@ import butl.filesystem;
 using namespace std;
 using namespace butl;
 
-// Usage: argv[0] [-l] <path>
+// Usage: argv[0] <path>
 //
 // If path entry exists then print it's type and size (meaningful for the
 // regular file only) to STDOUT, and exit with the zero code. Otherwise exit
 // with the one code. Don't follow symlink. On failure print the error
 // description to STDERR and exit with the two code.
 //
-// -l
-//    Follow symlinks.
-//
 int
 main (int argc, const char* argv[])
 try
 {
-  bool follow_symlinks (false);
+  assert (argc == 2);
 
-  int i (1);
-  for (; i != argc; ++i)
-  {
-    string v (argv[i]);
-
-    if (v == "-l")
-      follow_symlinks = true;
-    else
-      break;
-  }
-
-  assert (i == argc - 1);
-
-  auto es (path_entry (argv[i], follow_symlinks));
+  auto es (path_entry (argv[1]));
 
   if (!es.first)
     return 1;
