@@ -91,38 +91,21 @@ main ()
   assert (encode ("BXzS@#", "Qlh6U0Aj"));
   assert (encode ("BXzS@#/", "Qlh6U0AjLw=="));
 
-  const char* s (R"delim(
-class fdstream_base
-{
-protected:
-  fdstream_base () = default;
-  fdstream_base (int fd): buf_ (fd) {}
+  const char* s (
+"class fdstream_base\n"
+"{\n"
+"protected:\n"
+"  fdstream_base () = default;\n"
+"  fdstream_base (int fd): buf_ (fd) {}\n"
+"\n"
+"protected:\n"
+"  fdbuf buf_;\n"
+"};\n");
 
-protected:
-  fdbuf buf_;
-};
+  const char* r (
+"Y2xhc3MgZmRzdHJlYW1fYmFzZQp7CnByb3RlY3RlZDoKICBmZHN0cmVhbV9iYXNlICgpID0gZGVm\n"
+"YXVsdDsKICBmZHN0cmVhbV9iYXNlIChpbnQgZmQpOiBidWZfIChmZCkge30KCnByb3RlY3RlZDoK\n"
+"ICBmZGJ1ZiBidWZfOwp9Owo=");
 
-class ifdstream: fdstream_base, public std::istream
-{
-public:
-  ifdstream (): std::istream (&buf_) {}
-  ifdstream (int fd): fdstream_base (fd), std::istream (&buf_) {}
-
-  void close () {buf_.close ();}
-  void open (int fd) {buf_.open (fd);}
-  bool is_open () const {return buf_.is_open ();}
-};
-)delim");
-
-  const char* r (R"delim(
-CmNsYXNzIGZkc3RyZWFtX2Jhc2UKewpwcm90ZWN0ZWQ6CiAgZmRzdHJlYW1fYmFzZSAoKSA9IGRl
-ZmF1bHQ7CiAgZmRzdHJlYW1fYmFzZSAoaW50IGZkKTogYnVmXyAoZmQpIHt9Cgpwcm90ZWN0ZWQ6
-CiAgZmRidWYgYnVmXzsKfTsKCmNsYXNzIGlmZHN0cmVhbTogZmRzdHJlYW1fYmFzZSwgcHVibGlj
-IHN0ZDo6aXN0cmVhbQp7CnB1YmxpYzoKICBpZmRzdHJlYW0gKCk6IHN0ZDo6aXN0cmVhbSAoJmJ1
-Zl8pIHt9CiAgaWZkc3RyZWFtIChpbnQgZmQpOiBmZHN0cmVhbV9iYXNlIChmZCksIHN0ZDo6aXN0
-cmVhbSAoJmJ1Zl8pIHt9CgogIHZvaWQgY2xvc2UgKCkge2J1Zl8uY2xvc2UgKCk7fQogIHZvaWQg
-b3BlbiAoaW50IGZkKSB7YnVmXy5vcGVuIChmZCk7fQogIGJvb2wgaXNfb3BlbiAoKSBjb25zdCB7
-cmV0dXJuIGJ1Zl8uaXNfb3BlbiAoKTt9Cn07Cg==)delim");
-
-  assert (encode (s, r + 1));
+  assert (encode (s, r));
 }
