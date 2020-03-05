@@ -14,7 +14,7 @@ namespace butl
   inline bool
   file_empty (const path& f)
   {
-    auto p (path_entry (f));
+    auto p (path_entry (f, true /* follow_symlinks */));
 
     if (p.first && p.second.type == entry_type::regular)
       return p.second.size == 0;
