@@ -25,7 +25,7 @@ windows = ($tclass == 'windows')
 
 # Exclude these from compilation on non-Windows targets.
 #
-lib{butl}: {hxx cxx}{win32-utility}: include = $windows
+lib{butl}: {hxx ixx cxx}{win32-utility}: include = $windows
 
 # Our C-files are included into sha256.cxx (sha256c.c) and timestamp.cxx
 # (strptime.c timelocal.h timelocal.c), so treat them as files exclude from

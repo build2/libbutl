@@ -1181,49 +1181,6 @@ namespace butl
     return process_path ();
   }
 
-  class auto_handle
-  {
-  public:
-    explicit
-    auto_handle (HANDLE h = INVALID_HANDLE_VALUE) noexcept: handle_ (h) {}
-
-    auto_handle (const auto_handle&) = delete;
-    auto_handle& operator= (const auto_handle&) = delete;
-
-    ~auto_handle () noexcept {reset ();}
-
-    HANDLE
-    get () const noexcept {return handle_;}
-
-    HANDLE
-    release () noexcept
-    {
-      HANDLE r (handle_);
-      handle_ = INVALID_HANDLE_VALUE;
-      return r;
-    }
-
-    void
-    reset (HANDLE h = INVALID_HANDLE_VALUE) noexcept
-    {
-      if (handle_ != INVALID_HANDLE_VALUE)
-      {
-        bool r (CloseHandle (handle_));
-
-        // The valid process, thread or file handle that has no IO operations
-        // being performed on it should close successfully, unless something
-        // is severely damaged.
-        //
-        assert (r);
-      }
-
-      handle_ = h;
-    }
-
-  private:
-    HANDLE handle_;
-  };
-
   // Make handles inheritable. The process_spawn_mutex must be pre-acquired for
   // exclusive access. Revert handles inheritability state in destructor.
   //

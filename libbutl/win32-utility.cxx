@@ -9,9 +9,14 @@
 #ifdef _WIN32
 
 #ifndef __cpp_lib_modules_ts
+#include <string>
 #include <memory> // unique_ptr
+
+#include <libbutl/utility.mxx> // throw_system_error()
 #else
 import std.core;
+
+import butl.utility;
 #endif
 
 using namespace std;
@@ -20,6 +25,25 @@ namespace butl
 {
   namespace win32
   {
+    const nullhandle_t nullhandle (INVALID_HANDLE_VALUE);
+
+    void auto_handle::
+    close ()
+    {
+      if (handle_ != INVALID_HANDLE_VALUE)
+      {
+        bool r (CloseHandle (handle_));
+
+        // If CloseHandle() failed then no reason to expect it to succeed the
+        // next time.
+        //
+        handle_ = INVALID_HANDLE_VALUE;
+
+        if (!r)
+          throw_system_error (GetLastError ());
+      }
+    }
+
     struct msg_deleter
     {
       void operator() (char* p) const {LocalFree (p);}
@@ -40,7 +64,7 @@ namespace butl
             (char*)&msg,
             0,
             0))
-        return "unknown error code " + to_string (code);
+        return "unknown error code " + std::to_string (code);
 
       unique_ptr<char, msg_deleter> m (msg);
       return msg;

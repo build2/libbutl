@@ -419,26 +419,40 @@ main (int argc, const char* argv[])
     ofs.clear (ofdstream::failbit);
   }
 
-#ifndef _WIN32
-
-  // Fail for an existing symlink to unexistent file.
+  // Note that on Windows regular file symlinks may not be supported (see
+  // mksymlink() for details), so the following tests are allowed to fail
+  // with ENOSYS on Windows.
   //
-  path link (td / path ("link"));
-  mksymlink (td / path ("unexistent"), link);
-
   try
   {
-    fdopen (link, (fdopen_mode::out    |
-                   fdopen_mode::create |
-                   fdopen_mode::exclusive));
+    // Fail for an existing symlink to unexistent file.
+    //
+    path link (td / path ("link"));
+    mksymlink (td / path ("unexistent"), link);
 
-    assert (false);
+    try
+    {
+      fdopen (link, (fdopen_mode::out    |
+                     fdopen_mode::create |
+                     fdopen_mode::exclusive));
+
+      assert (false);
+    }
+    catch (const ios::failure&)
+    {
+    }
   }
-  catch (const ios::failure&)
+  catch (const system_error& e)
   {
+#ifndef _WIN32
+    assert (false);
+#else
+    assert (e.code ().category () == generic_category () &&
+            e.code ().value () == ENOSYS);
+#endif
   }
 
-#else
+#ifdef _WIN32
 
   // Check translation modes.
   //

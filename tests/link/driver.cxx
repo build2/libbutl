@@ -35,18 +35,33 @@ using namespace butl;
 
 static const char text[] = "ABCDEF";
 
+enum class mklink
+{
+  sym,
+  hard,
+  any
+};
+
 static bool
-link_file (const path& target, const path& link, bool hard, bool check_content)
+link_file (const path& target, const path& link, mklink ml, bool check_content)
 {
   try
   {
-    if (hard)
-      mkhardlink (target, link);
-    else
-      mksymlink (target, link);
+    switch (ml)
+    {
+    case mklink::sym:  mksymlink  (target, link);                  break;
+    case mklink::hard: mkhardlink (target, link);                  break;
+    case mklink::any:  mkanylink  (target, link, true /* copy */); break;
+    }
   }
   catch (const system_error&)
   {
+    //cerr << e << endl;
+    return false;
+  }
+  catch (const pair<entry_type, system_error>&)
+  {
+    //cerr << e.second << endl;
     return false;
   }
 
@@ -139,21 +154,25 @@ main ()
 
   // Create the file hard link.
   //
-  assert (link_file (fp, td / path ("hlink"), true, true));
+  assert (link_file (fp, td / path ("hlink"), mklink::hard, true));
 
 #ifndef _WIN32
   // Create the file symlink using an absolute path.
   //
-  assert (link_file (fp, td / path ("slink"), false, true));
+  assert (link_file (fp, td / path ("slink"), mklink::sym, true));
 
   // Create the file symlink using a relative path.
   //
-  assert (link_file (fn, td / path ("rslink"), false, true));
+  assert (link_file (fn, td / path ("rslink"), mklink::sym, true));
 
   // Create the file symlink using an unexistent file path.
   //
-  assert (link_file (fp + "-a", td / path ("sa"), false, false));
+  assert (link_file (fp + "-a", td / path ("sa"), mklink::sym, false));
 #endif
+
+  // Create the file any link.
+  //
+  assert (link_file (fp, td / path ("alink"), mklink::any, true));
 
   // Prepare the target directory.
   //
@@ -169,8 +188,8 @@ main ()
   }
 
 #ifndef _WIN32
-  assert (link_file (fp, dp / path ("hlink"), true, true));
-  assert (link_file (fp, dp / path ("slink"), false, true));
+  assert (link_file (fp, dp / path ("hlink"), mklink::hard, true));
+  assert (link_file (fp, dp / path ("slink"), mklink::sym, true));
 #endif
 
   // Create the directory symlink using an absolute path.
@@ -250,23 +269,63 @@ main ()
   assert (link_dir (dp, ld, false /* hard */, true /* check_content */));
   rmdir_r (dp);
 
-  // On Wine dangling junctions are not visible. That's why we also re-create
-  // the target before the junction removal.
-  //
-#if 0
   {
     pair<bool, entry_stat> pe (path_entry (ld));
     assert (pe.first && pe.second.type == entry_type::symlink);
   }
-#endif
 
   {
     pair<bool, entry_stat> pe (path_entry (ld, true /* follow_symlinks */));
     assert (!pe.first);
   }
 
-  assert (try_mkdir (dp) == mkdir_status::success);
   assert (try_rmsymlink (ld) == rmfile_status::success);
+
+  // Try to create a dangling regular file symlink and make sure it is
+  // properly removed via its parent recursive removal.
+  //
+  assert (try_mkdir (dp) == mkdir_status::success);
+
+  // Note that on Windows regular file symlinks may not be supported (see
+  // mksymlink() for details), so the following tests are allowed to fail
+  // with ENOSYS on Windows.
+  //
+  try
+  {
+    mksymlink (dp / "non-existing", dp / "lnk");
+    assert (!dir_empty (dp));
+    assert (dir_iterator (dp, true /* ignore_dangling */) == dir_iterator ());
+  }
+  catch (const system_error& e)
+  {
+#ifndef _WIN32
+    assert (false);
+#else
+    assert (e.code ().category () == generic_category () &&
+            e.code ().value () == ENOSYS);
+#endif
+  }
+
+  rmdir_r (dp);
+
+  // Create a dangling directory symlink and make sure it is properly removed
+  // via its parent recursive removal. Also make sure that removing directory
+  // symlink keeps its target intact.
+  //
+  assert (try_mkdir (dp) == mkdir_status::success);
+
+  dir_path tgd (td / dir_path ("tdir"));
+  assert (try_mkdir (tgd) == mkdir_status::success);
+
+  mksymlink  (dp / "non-existing", dp / "lnk1", true /* dir */);
+  assert (!dir_empty (dp));
+  assert (dir_iterator (dp, true /* ignore_dangling */) == dir_iterator ());
+
+  mksymlink  (tgd, dp / "lnk2", true /* dir */);
+  assert (dir_iterator (dp, true /* ignore_dangling */) != dir_iterator ());
+
+  rmdir_r (dp);
+  assert (dir_exists (tgd));
 
   try
   {

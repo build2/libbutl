@@ -115,9 +115,9 @@ LIBBUTL_MODEXPORT namespace butl
   };
 
   // Return a flag indicating if the path is to an existing filesystem entry
-  // and its type if so. Note that by default this function doesn't follow
-  // symlinks. Underlying OS errors are reported by throwing std::system_error,
-  // unless ignore_error is true.
+  // and its info if so. Note that by default this function doesn't follow
+  // symlinks. Underlying OS errors are reported by throwing
+  // std::system_error, unless ignore_error is true.
   //
   LIBBUTL_SYMEXPORT std::pair<bool, entry_stat>
   path_entry (const char*,
@@ -192,9 +192,9 @@ LIBBUTL_MODEXPORT namespace butl
   LIBBUTL_SYMEXPORT void
   rmdir_r (const dir_path&, bool dir = true, bool ignore_error = false);
 
-  // Try to remove the file (or symlinks) returning not_exist if
-  // it does not exist. Unless ignore_error is true, all other
-  // errors are reported by throwing std::system_error.
+  // Try to remove the file (or symlink) returning not_exist if it does not
+  // exist. Unless ignore_error is true, all other errors are reported by
+  // throwing std::system_error.
   //
   // Note that if it is known that the path refers to a symlink, then usage of
   // try_rmsymlink() function must be preferred, as a more efficient one.
@@ -241,25 +241,41 @@ LIBBUTL_MODEXPORT namespace butl
   // Create a symbolic link to a file (default) or directory (third argument
   // is true). Throw std::system_error on failures.
   //
-  // Note that on Windows file symlinks are currently not supported. Directory
-  // symlinks are supported via the junction mechanism that doesn't require
-  // a process to have administrative privileges. This choice, however,
-  // introduces the following restrictions:
+  // Note that on Windows symlinks are supported partially:
   //
-  //  - The relative target path is completed against the current directory and
-  //    is normalized.
+  // - File symlinks are implemented via the Windows symlink mechanism and may
+  //   only be created on Windows 10 Build 14972 and above with either the
+  //   Developer Mode enabled or if the process runs in the elevated command
+  //   prompt.
   //
-  //  - The target directory must exist. If it doesn't exists at the moment of
-  //    a symlink creation, then mksymlink() call will fail. If the target is
-  //    deleted at a later stage, then the filesystem API functions may fail
-  //    when encounter such a symlink. This includes try_rmsymlink().
+  // - Directory symlinks are implemented via the Windows junction mechanism
+  //   that doesn't require a process to have administrative privileges and so
+  //   a junction can be created regardless of the Windows version and mode.
+  //   Note that junctions, in contrast to symlinks, may only store target
+  //   absolute paths. Thus, when create a directory symlink we complete its
+  //   target path against the current directory (unless it is already
+  //   absolute) and normalize.
   //
-  //  - Dangling symlinks are not visible when iterating over a directory with
-  //    dir_iterator. As a result, a directory that contains such symlinks can
-  //    not be recursively deleted.
+  //   (@@ TODO: At some point we may want to support creating directory
+  //    symlinks if possible and falling back to junctions otherwise. One
+  //    potential issue here is with relative target paths which the caller
+  //    cannot rely on staying relative. Plus there is the below bug.)
   //
-  //  @@ Note that the above restrictions seems to be Wine-specific (as of
-  //     4.0).
+  // - Functions other than mksymlink() fully support symlinks, considering
+  //   the Windows file symlinks (file-type reparse points referring to files)
+  //   as regular file symlinks and the Windows directory symlinks (file-type
+  //   reparse points referring to directories) and junctions (directory-type
+  //   reparse points referring to directories) as directory symlinks. The
+  //   known issues are:
+  //
+  //   - path_entry() call that follows a symlink (but not a junction) with a
+  //     directory target may throw std::system_error due to the underlying
+  //     CreateFile() function call failing with the ERROR_ACCESS_DENIED
+  //     error. This appears to be a bug that has been noticed only on Windows
+  //     with the Developer Mode enabled.
+  //
+  // Also note that symlinks are currently not supported properly on Wine due
+  // to some differences in the underlying API behavior.
   //
   LIBBUTL_SYMEXPORT void
   mksymlink (const path& target, const path& link, bool dir = false);
@@ -629,7 +645,7 @@ LIBBUTL_MODEXPORT namespace butl
 
   private:
     entry_type
-    type (bool link) const;
+    type (bool follow_symlinks) const;
 
   private:
     friend class dir_iterator;
@@ -655,10 +671,6 @@ LIBBUTL_MODEXPORT namespace butl
     // If it is requested to ignore dangling symlinks, then the increment
     // operator will skip symlinks that refer to non-existing or inaccessible
     // targets. That implies that it will always try to stat() symlinks.
-    //
-    // Note that we currently do not fully support symlinks on Windows, so the
-    // ignore_dangling argument affects only directory symlinks (see
-    // mksymlink() for details).
     //
     explicit
     dir_iterator (const dir_path&, bool ignore_dangling);

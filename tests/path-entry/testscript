@@ -10,21 +10,176 @@
   : printed on Windows. This why we exclude it, to get consistent behavior on
   : both POSIX and Windows.
   :
-  cat <:'abc' >=f;
-  $* f >>EOO
-  regular
-  3
-  EOO
+  {
+    cat <:'abc' >=f;
+    $* f >>~/EOO/
+      type: regular
+      size: 3
+      /.+
+      EOO
+  }
 
   : dir
   :
   : Note that the size value is meaningless for directory entries.
   :
-  mkdir -p d;
-  $* d >>~/EOO/
-  directory
-  /.
-  EOO
+  {
+    mkdir -p d;
+    $* d >>~/EOO/
+      type: directory
+      /.+
+      EOO
+  }
+
+  : followed-symlink
+  :
+  {
+    cat <:'abc' >=f;
+    ln -s f l;
+    $* -l l >>~/EOO/
+      type: regular
+      size: 3
+      /.+
+      EOO
+  }
+
+  : symlink
+  :
+  : If we are not cross-testing let's test if symlinks are properly followed.
+  : On Windows that involves mklink command usability test. If we fail to
+  : create a trial link (say because we are not in the Developer Mode and are
+  : running non-elevated console), then the test group will be silently
+  : skipped.
+  :
+  if ($test.target == $build.host)
+  {
+    +if ($cxx.target.class != 'windows')
+      lns = ln -s t l &l
+    else
+      echo 'yes' >=t
+      if cmd /C 'mklink l t' >- 2>- &?l && cat l >'yes'
+        lns = cmd /C 'mklink l t' &l >-
+      end
+
+      jnc = cmd /C 'mklink /J l t' &l >-
+    end
+
+    : symlink
+    :
+    if! $empty($lns)
+    {
+      : file
+      :
+      {
+        : get-info
+        :
+        : Test that the target type, size, permissions and file times are
+        : obtained via a symlink.
+        :
+        {
+          cat <:'abc' >=t;
+          $lns;
+          $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' t | set ti;
+          $* -l l >"$ti"
+        }
+
+        : set-info
+        :
+        : Test that permissions and file times are set via a symlink.
+        :
+        {
+          cat <:'abc' >=t;
+          $lns;
+          $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' l | set ti;
+          sed -n -e 's/permissions: (.+)/\1/p' <"$ti" >~/'4.{2}'/;
+          sed -n -e 's/mtime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:00';
+          sed -n -e 's/atime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:01'
+        }
+
+        : touch
+        :
+        : Test that a symlink touch touches the target.
+        :
+        {
+          cat <:'abc' >=t;
+          $lns;
+          $* t | set ti;
+          sleep 2;
+          $* -t l | set li;
+          if ("$ti" == "$li")
+            exit "link touch doesn't change target"
+          end
+        }
+      }
+
+      : dir
+      :
+      : Note that the following tests may fail on Windows (see symlinks known
+      : issues in libbutl/filesystem.mxx).
+      :
+      if ($cxx.target.class != 'windows')
+      {
+        : get-info
+        :
+        : Test that the target type, size, permissions and file times are
+        : obtained via a symlink.
+        :
+        {
+          mkdir t;
+          $lns;
+          $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' t | set ti;
+          $* -l l >"$ti";
+          $* -p 600 t >- # @@ TMP; until build2 is staged.
+        }
+
+        : set-info
+        :
+        : Test that permissions and file times are set via a symlink.
+        :
+        {
+          mkdir t;
+          $lns;
+          $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' l | set ti;
+          sed -n -e 's/permissions: (.+)/\1/p' <"$ti" >~/'4.{2}'/;
+          sed -n -e 's/mtime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:00';
+          sed -n -e 's/atime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:01';
+          $* -p 600 t >- # @@ TMP; until build2 is staged.
+        }
+      }
+    }
+
+    : junction
+    :
+    if! $empty($jnc)
+    {
+      : get-info
+      :
+      : Test that the target type, size, permissions and file times are
+      : obtained via a junction.
+      :
+      {
+        mkdir t;
+        $jnc;
+        $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' t | set ti;
+        $* -l l >"$ti";
+        $* -p 600 t >- # @@ TMP; until build2 is staged.
+      }
+
+      : set-info
+      :
+      : Test that permissions and file times are set via a junction.
+      :
+      {
+        mkdir t;
+        $jnc;
+        $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' l | set ti;
+        sed -n -e 's/permissions: (.+)/\1/p' <"$ti" >~/'4.{2}'/;
+        sed -n -e 's/mtime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:00';
+        sed -n -e 's/atime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:01';
+        $* -p 600 t >- # @@ TMP; until build2 is staged.
+      }
+    }
+  }
 }
 
 : non-existent

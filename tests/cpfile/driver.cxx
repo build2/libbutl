@@ -30,10 +30,7 @@ using namespace butl;
 
 static const char text1[] = "ABCDEF\nXYZ";
 static const char text2[] = "12345\nDEF";
-
-#ifndef _WIN32
 static const char text3[] = "XAB\r\n9";
-#endif
 
 static string
 from_file (const path& f)
@@ -135,72 +132,85 @@ main ()
 
   assert (from_file (hlink) == text2);
 
+  // Note that on Windows regular file symlinks may not be supported (see
+  // mksymlink() for details), so the following tests are allowed to fail
+  // with ENOSYS on Windows.
+  //
+  try
+  {
+    // Check that 'from' being a symbolic link is properly resolved.
+    //
+    path fslink (td / path ("fslink"));
+    mksymlink (from, fslink);
+
+    cpfile (fslink, to, cpflags::overwrite_content);
+
+    // Make sure 'to' is not a symbolic link to 'from' and from_file() just
+    // follows it.
+    //
+    assert (try_rmfile (from) == rmfile_status::success);
+    assert (from_file (to) == text2);
+
+    // Check that 'to' being a symbolic link is properly resolved.
+    //
+    path tslink (td / path ("tslink"));
+    mksymlink (to, tslink);
+
+    to_file (from, text3);
+    cpfile (from, tslink, cpflags::overwrite_content);
+    assert (from_file (to) == text3);
+
+    // Check that permissions are properly overwritten when 'to' is a symbolic
+    // link.
+    //
+    to_file (from, text1);
+    path_permissions (from, permissions::ru | permissions::xu);
+
+    cpfile (
+      from, tslink, cpflags::overwrite_content | cpflags::overwrite_permissions);
+
+    assert (from_file (to) == text1);
+    assert (path_permissions (to) == path_permissions (from));
+
+    path_permissions (to, p);
+    path_permissions (from, p);
+
+    // Check that no-overwrite file copy fails even if 'to' symlink points to
+    // non-existent file.
+    //
+    assert (try_rmfile (to) == rmfile_status::success);
+
+    try
+    {
+      cpfile (from, tslink, cpflags::none);
+      assert (false);
+    }
+    catch (const system_error&)
+    {
+    }
+
+    // Check that copy fail if 'from' symlink points to non-existent file. The
+    // std::system_error is thrown as cpfile() fails to obtain permissions for
+    // the 'from' symlink target.
+    //
+    try
+    {
+      cpfile (tslink, from, cpflags::none);
+      assert (false);
+    }
+    catch (const system_error&)
+    {
+    }
+  }
+  catch (const system_error& e)
+  {
 #ifndef _WIN32
-
-  // Check that 'from' being a symbolic link is properly resolved.
-  //
-  path fslink (td / path ("fslink"));
-  mksymlink (from, fslink);
-
-  cpfile (fslink, to, cpflags::overwrite_content);
-
-  // Make sure 'to' is not a symbolic link to 'from' and from_file() just
-  // follows it.
-  //
-  assert (try_rmfile (from) == rmfile_status::success);
-  assert (from_file (to) == text2);
-
-  // Check that 'to' being a symbolic link is properly resolved.
-  //
-  path tslink (td / path ("tslink"));
-  mksymlink (to, tslink);
-
-  to_file (from, text3);
-  cpfile (from, tslink, cpflags::overwrite_content);
-  assert (from_file (to) == text3);
-
-  // Check that permissions are properly overwritten when 'to' is a symbolic
-  // link.
-  //
-  to_file (from, text1);
-  path_permissions (from, permissions::ru | permissions::xu);
-
-  cpfile (
-    from, tslink, cpflags::overwrite_content | cpflags::overwrite_permissions);
-
-  assert (from_file (to) == text1);
-  assert (path_permissions (to) == path_permissions (from));
-
-  path_permissions (to, p);
-  path_permissions (from, p);
-
-  // Check that no-overwrite file copy fails even if 'to' symlink points to
-  // non-existent file.
-  //
-  assert (try_rmfile (to) == rmfile_status::success);
-
-  try
-  {
-    cpfile (from, tslink, cpflags::none);
     assert (false);
-  }
-  catch (const system_error&)
-  {
-  }
-
-  // Check that copy fail if 'from' symlink points to non-existent file. The
-  // std::system_error is thrown as cpfile() fails to obtain permissions for
-  // the 'from' symlink target.
-  //
-  try
-  {
-    cpfile (tslink, from, cpflags::none);
-    assert (false);
-  }
-  catch (const system_error&)
-  {
-  }
+#else
+    assert (e.code ().category () == generic_category () &&
+            e.code ().value () == ENOSYS);
 #endif
+  }
 
   rmdir_r (td);
 }

@@ -149,6 +149,10 @@
 
 : path-directory-search
 :
+: Note that we always need to make sure that no auxiliary files (stdout, etc)
+: are created in the directories we search through not to end up with a race
+: condition (trying to query type of a removed filesystem entry, etc).
+:
 {
   test.options = -sd
 
@@ -294,19 +298,21 @@
       : file
       :
       {
-        +mkdir -p foo fox fix/bar baz/foo/zab baz/foo/zab/baz
-        +touch foo/bar foo/fox fox/baz baz/foo/zab/bar
+        +mkdir -p wd/foo wd/fox wd/fix/bar wd/baz/foo/zab wd/baz/foo/zab/baz
+        +touch wd/foo/bar wd/foo/fox wd/fox/baz wd/baz/foo/zab/bar
+
+        wd = ../wd
 
         : immediate
         :
-        $* f*/b* .. >>/EOO
+        $* f*/b* $wd >>/EOO
         foo/bar
         fox/baz
         EOO
 
         : recursive
         :
-        $* f**/b** .. >>/EOO
+        $* f**/b** $wd >>/EOO
         baz/foo/zab/bar
         foo/bar
         fox/baz
@@ -315,15 +321,17 @@
         : self-recursive
         :
         {
+          wd = ../../wd
+
           : pattern
           :
-          $* foo/f*** ../.. >>/EOO
+          $* foo/f*** $wd >>/EOO
           foo/fox
           EOO
 
           : start
           :
-          $* f*** ../../foo >>/EOO
+          $* f*** $wd/foo >>/EOO
           fox
           EOO
 
@@ -340,19 +348,21 @@
       : dir
       :
       {
-        +mkdir -p foo/bar foo/fox/box fox/baz fix baz/foo/zab/baz
-        +touch fix/bar baz/foo/zab/bar
+        +mkdir -p wd/foo/bar wd/foo/fox/box wd/fox/baz wd/fix wd/baz/foo/zab/baz
+        +touch wd/fix/bar wd/baz/foo/zab/bar
+
+        wd = ../wd
 
         : immediate
         :
-        $* f*/b*/ .. >>/EOO
+        $* f*/b*/ $wd >>/EOO
         foo/bar/
         fox/baz/
         EOO
 
         : recursive
         :
-        $* f**/b**/ .. >>/EOO
+        $* f**/b**/ $wd >>/EOO
         baz/foo/zab/baz/
         foo/bar/
         foo/fox/box/
@@ -363,9 +373,11 @@
         : self-recursive
         :
         {
+          wd = ../../wd
+
           : pattern
           :
-          $* foo/f***/b**/ ../.. >>/EOO
+          $* foo/f***/b**/ $wd >>/EOO
           foo/bar/
           foo/fox/box/
           foo/fox/box/
@@ -373,7 +385,7 @@
 
           : start
           :
-          $* f***/b**/ ../../foo >>/EOO
+          $* f***/b**/ $wd/foo >>/EOO
           bar/
           fox/box/
           fox/box/
@@ -394,13 +406,13 @@
     : fast-forward
     :
     {
-      +mkdir -p foo/bar/baz foo/box
-      +touch foo/bar/baz/fox
+      +mkdir -p wd/foo/bar/baz wd/foo/box
+      +touch wd/foo/bar/baz/fox
 
       : partial
       :
       {
-        wd = ../..
+        wd = ../../wd
 
         : file
         :
@@ -418,7 +430,7 @@
       : reduce
       :
       {
-        wd = ../../..
+        wd = ../../../wd
 
         : exists
         :
@@ -457,11 +469,11 @@
   : dot-started
   :
   {
-    +mkdir -p z/.z/.z z/z a/.z .a/.z
-    +touch z/.z.cxx z/z.cxx z/.z/.z.cxx z/.z/z.cxx z/z/.z.cxx z/z/z.cxx \
-           a/z.cxx a/.z.cxx .a/z.cxx .a/.z.cxx
+    +mkdir -p wd/z/.z/.z wd/z/z wd/a/.z wd/.a/.z
+    +touch wd/z/.z.cxx wd/z/z.cxx wd/z/.z/.z.cxx wd/z/.z/z.cxx wd/z/z/.z.cxx \
+           wd/z/z/z.cxx wd/a/z.cxx wd/a/.z.cxx wd/.a/z.cxx wd/.a/.z.cxx
 
-    wd=../../..
+    wd=../../../wd
 
     : recursive
     :

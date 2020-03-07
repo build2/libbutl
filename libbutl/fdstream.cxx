@@ -1091,19 +1091,34 @@ namespace butl
     // to take care of preserving the permissions ourselves. Note that Wine's
     // implementation of _sopen() works properly.
     //
+    // Also note that _sopen() creates a dangling symlink target if _O_EXCL is
+    // set. Thus, we need to prevent such a creation manually.
+    //
     bool pass_perm (of & _O_CREAT);
 
-    if (pass_perm && file_exists (path (f)))
+    if (pass_perm)
     {
-      // If the _O_CREAT flag is set then we need to clear it so that we can
-      // omit the permissions. But if the _O_EXCL flag is set as well we can't
-      // do that as fdopen() wouldn't fail as expected.
-      //
-      if (of & _O_EXCL)
-        throw_generic_ios_failure (EEXIST);
+      if (file_exists (f)) // Follows symlink.
+      {
+        // If the _O_CREAT flag is set then we need to clear it so that we can
+        // omit the permissions. But if the _O_EXCL flag is set as well we can't
+        // do that as fdopen() wouldn't fail as expected.
+        //
+        if (of & _O_EXCL)
+          throw_generic_ios_failure (EEXIST);
 
-      of &= ~_O_CREAT;
-      pass_perm = false;
+        of &= ~_O_CREAT;
+        pass_perm = false;
+      }
+      else if (of & _O_EXCL)
+      {
+        pair<bool, entry_stat> pe (path_entry (f)); // Doesn't follow symlink.
+
+        // Fail for a dangling symlink.
+        //
+        if (pe.first && pe.second.type == entry_type::symlink)
+          throw_generic_ios_failure (EEXIST);
+      }
     }
 
     // Make sure the file descriptor is not inheritable by default.

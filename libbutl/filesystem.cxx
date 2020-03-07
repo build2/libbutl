@@ -95,7 +95,7 @@ namespace butl
   bool
   dir_exists (const char* p, bool ie)
   {
-    auto pe (path_entry (p, true, ie));
+    auto pe (path_entry (p, true /* follow_symlinks */, ie));
     return pe.first && pe.second.type == entry_type::directory;
   }
 
@@ -128,6 +128,147 @@ namespace butl
     return make_pair (true, entry_stat {t, static_cast<uint64_t> (s.st_size)});
   }
 
+  permissions
+  path_permissions (const path& p)
+  {
+    struct stat s;
+    if (stat (p.string ().c_str (), &s) != 0)
+      throw_generic_error (errno);
+
+    return static_cast<permissions> (s.st_mode &
+                                     (S_IRWXU | S_IRWXG | S_IRWXO));
+  }
+
+  void
+  path_permissions (const path& p, permissions f)
+  {
+    if (chmod (p.string ().c_str (), static_cast<mode_t> (f)) == -1)
+      throw_generic_error (errno);
+  }
+
+  // Figuring out whether we have the nanoseconds in struct stat. Some
+  // platforms (e.g., FreeBSD), may provide some "compatibility" #define's,
+  // so use the second argument to not end up with the same signatures.
+  //
+  template <typename S>
+  static inline constexpr auto
+  mnsec (const S* s, bool) -> decltype(s->st_mtim.tv_nsec)
+  {
+    return s->st_mtim.tv_nsec; // POSIX (GNU/Linux, Solaris).
+  }
+
+  template <typename S>
+  static inline constexpr auto
+  mnsec (const S* s, int) -> decltype(s->st_mtimespec.tv_nsec)
+  {
+    return s->st_mtimespec.tv_nsec; // *BSD, MacOS.
+  }
+
+  template <typename S>
+  static inline constexpr auto
+  mnsec (const S* s, float) -> decltype(s->st_mtime_n)
+  {
+    return s->st_mtime_n; // AIX 5.2 and later.
+  }
+
+  // Things are not going to end up well with only seconds resolution so
+  // let's make it a compile error.
+  //
+  // template <typename S>
+  // static inline constexpr int
+  // mnsec (...) {return 0;}
+
+  template <typename S>
+  static inline constexpr auto
+  ansec (const S* s, bool) -> decltype(s->st_atim.tv_nsec)
+  {
+    return s->st_atim.tv_nsec; // POSIX (GNU/Linux, Solaris).
+  }
+
+  template <typename S>
+  static inline constexpr auto
+  ansec (const S* s, int) -> decltype(s->st_atimespec.tv_nsec)
+  {
+    return s->st_atimespec.tv_nsec; // *BSD, MacOS.
+  }
+
+  template <typename S>
+  static inline constexpr auto
+  ansec (const S* s, float) -> decltype(s->st_atime_n)
+  {
+    return s->st_atime_n; // AIX 5.2 and later.
+  }
+
+  // template <typename S>
+  // static inline constexpr int
+  // ansec (...) {return 0;}
+
+  // Return the modification and access times of a regular file or directory.
+  //
+  static entry_time
+  entry_tm (const char* p, bool dir)
+  {
+    struct stat s;
+    if (stat (p, &s) != 0)
+    {
+      if (errno == ENOENT || errno == ENOTDIR)
+        return {timestamp_nonexistent, timestamp_nonexistent};
+      else
+        throw_generic_error (errno);
+    }
+
+    if (dir ? !S_ISDIR (s.st_mode) : !S_ISREG (s.st_mode))
+      return {timestamp_nonexistent, timestamp_nonexistent};
+
+    auto tm = [] (time_t sec, auto nsec) -> timestamp
+    {
+      return system_clock::from_time_t (sec) +
+        chrono::duration_cast<duration> (chrono::nanoseconds (nsec));
+    };
+
+    return {tm (s.st_mtime, mnsec<struct stat> (&s, true)),
+            tm (s.st_atime, ansec<struct stat> (&s, true))};
+  }
+
+  // Set the modification and access times for a regular file or directory.
+  //
+  static void
+  entry_tm (const char* p, const entry_time& t, bool dir)
+  {
+    struct stat s;
+    if (stat (p, &s) != 0)
+      throw_generic_error (errno);
+
+    // If the entry is of the wrong type, then let's pretend that it doesn't
+    // exists. In other words, the entry of the required type doesn't exist.
+    //
+    if (dir ? !S_ISDIR (s.st_mode) : !S_ISREG (s.st_mode))
+      return throw_generic_error (ENOENT);
+
+    // Note: timeval has the microsecond resolution.
+    //
+    auto tm = [] (timestamp t, time_t sec, auto nsec) -> timeval
+    {
+      using usec_type = decltype (timeval::tv_usec);
+
+      if (t == timestamp_nonexistent)
+        return {sec, static_cast<usec_type> (nsec / 1000)};
+
+      uint64_t usec (chrono::duration_cast<chrono::microseconds> (
+                       t.time_since_epoch ()).count ());
+
+      return {static_cast<time_t> (usec / 1000000),     // Seconds.
+              static_cast<usec_type> (usec % 1000000)}; // Microseconds.
+    };
+
+    timeval times[2];
+    times[0] = tm (t.access, s.st_atime, ansec<struct stat> (&s, true));
+    times[1] = tm (t.modification, s.st_mtime, mnsec<struct stat> (&s, true));
+
+    if (utimes (p, times) != 0)
+      throw_generic_error (errno);
+  }
+
 #else
 
   static inline bool
@@ -142,53 +283,143 @@ namespace butl
   }
 
   static inline bool
-  junction (DWORD a) noexcept
+  readonly (DWORD a) noexcept
   {
-    return a != INVALID_FILE_ATTRIBUTES            &&
-           (a & FILE_ATTRIBUTE_REPARSE_POINT) != 0 &&
-           (a & FILE_ATTRIBUTE_DIRECTORY) != 0;
+    return (a & FILE_ATTRIBUTE_READONLY) != 0;
   }
 
   static inline bool
-  junction (const path& p) noexcept
+  reparse_point (DWORD a) noexcept
   {
-    return junction (GetFileAttributesA (p.string ().c_str ()));
+    return (a & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
   }
 
-  // Return true if the junction exists and is referencing an existing
-  // directory. Assume that the path references a junction. Underlying OS
-  // errors are reported by throwing std::system_error, unless ignore_error
-  // is true.
+  // Note: returns true for junctions.
   //
-  static bool
-  junction_target_exists (const char* p, bool ignore_error)
+  static inline bool
+  directory (DWORD a) noexcept
   {
-    HANDLE h (CreateFile (p,
-                          FILE_READ_ATTRIBUTES,
-                          FILE_SHARE_READ | FILE_SHARE_WRITE,
-                          NULL,
-                          OPEN_EXISTING,
-                          FILE_FLAG_BACKUP_SEMANTICS,
-                          NULL));
+    return (a & FILE_ATTRIBUTE_DIRECTORY) != 0;
+  }
 
-    if (h == INVALID_HANDLE_VALUE)
+  static inline bool
+  junction (DWORD a) noexcept
+  {
+    return reparse_point (a) && directory (a);
+  }
+
+  static inline bool
+  junction (const char* p) noexcept
+  {
+    DWORD a (GetFileAttributesA (p));
+    return a != INVALID_FILE_ATTRIBUTES && junction (a);
+  }
+
+  // Open a filesystem entry for reading and optionally writing its
+  // meta-information and return the entry handle and meta-information if the
+  // path refers to an existing entry and nullhandle otherwise. Follow reparse
+  // points.
+  //
+  // Note that normally to update an entry meta-information you need the
+  // current info, unless you rewrite it completely (attributes, modification
+  // time, etc).
+  //
+  static inline pair<win32::auto_handle, BY_HANDLE_FILE_INFORMATION>
+  entry_info_handle (const char* p, bool write, bool ie = false)
+  {
+    using namespace win32;
+
+    // Open the entry for reading/writing its meta-information. Follow reparse
+    // points.
+    //
+    // Note that the FILE_READ_ATTRIBUTES flag is not required.
+    //
+    auto_handle h (
+      CreateFile (p,
+                  write ? FILE_WRITE_ATTRIBUTES : 0,
+                  0,
+                  NULL,
+                  OPEN_EXISTING,
+                  FILE_FLAG_BACKUP_SEMANTICS, // Required for a directory.
+                  NULL));
+
+    if (h == nullhandle)
     {
       DWORD ec;
-
-      if (ignore_error || error_file_not_found (ec = GetLastError ()))
-        return false;
+      if (ie || error_file_not_found (ec = GetLastError ()))
+        return make_pair (nullhandle, BY_HANDLE_FILE_INFORMATION ());
 
       throw_system_error (ec);
     }
 
-    CloseHandle (h);
-    return true;
+    BY_HANDLE_FILE_INFORMATION r;
+    if (!GetFileInformationByHandle (h.get (), &r))
+    {
+      if (ie)
+        return make_pair (nullhandle, BY_HANDLE_FILE_INFORMATION ());
+
+      throw_system_error (GetLastError ());
+    }
+
+    return make_pair (move (h), r);
   }
 
-  static inline bool
-  junction_target_exists (const path& p, bool ignore_error)
+  static inline pair<win32::auto_handle, BY_HANDLE_FILE_INFORMATION>
+  entry_info_handle (const path& p, bool write, bool ie = false)
   {
-    return junction_target_exists (p.string ().c_str (), ignore_error);
+    return entry_info_handle (p.string ().c_str (), write, ie);
+  }
+
+  // Return a flag indicating whether the path is to an existing filesystem
+  // entry and its meta-information if so. Follow reparse points.
+  //
+  static inline pair<bool, BY_HANDLE_FILE_INFORMATION>
+  path_entry_info (const char* p, bool ie = false)
+  {
+    using namespace win32;
+
+    pair<auto_handle, BY_HANDLE_FILE_INFORMATION> hi (
+      entry_info_handle (p, false /* write */, ie));
+
+    if (hi.first == nullhandle)
+      return make_pair (false, BY_HANDLE_FILE_INFORMATION ());
+
+    if (!ie)
+      hi.first.close (); // Checks for error.
+
+    return make_pair (true, hi.second);
+  }
+
+  static inline pair<bool, BY_HANDLE_FILE_INFORMATION>
+  path_entry_info (const path& p, bool ie = false)
+  {
+    return path_entry_info (p.string ().c_str (), ie);
+  }
+
+  // As above but return entry_stat.
+  //
+  static inline pair<bool, entry_stat>
+  path_entry_stat (const char* p, bool ie)
+  {
+    pair<bool, BY_HANDLE_FILE_INFORMATION> pi (path_entry_info (p, ie));
+
+    if (!pi.first)
+      return make_pair (false, entry_stat {entry_type::unknown, 0});
+
+    if (directory (pi.second.dwFileAttributes))
+      return make_pair (true, entry_stat {entry_type::directory, 0});
+    else
+      return make_pair (
+        true,
+        entry_stat {entry_type::regular,
+                    ((uint64_t (pi.second.nFileSizeHigh) << 32) |
+                     pi.second.nFileSizeLow)});
+  }
+
+  static inline pair<bool, entry_stat>
+  path_entry_stat (const path& p, bool ie)
+  {
+    return path_entry_stat (p.string ().c_str (), ie);
   }
 
   pair<bool, entry_stat>
@@ -208,49 +439,196 @@ namespace butl
       p = d.c_str ();
     }
 
-    // Note that VC's implementations of _stat64() follows junctions and fails
-    // for dangling ones. MinGW GCC's implementation returns the information
-    // about the junction itself. That's why we handle junctions specially,
-    // not relying on _stat64().
+    // Get the path entry attributes and bail out if it doesn't exist. Note:
+    // doesn't follow reparse points.
     //
     DWORD a (GetFileAttributesA (p));
-    if (a == INVALID_FILE_ATTRIBUTES) // Presumably not exists.
-      return make_pair (false, entry_stat {entry_type::unknown, 0});
+    if (a == INVALID_FILE_ATTRIBUTES)
+    {
+      DWORD ec;
+      if (ie || error_file_not_found (ec = GetLastError ()))
+        return make_pair (false, entry_stat {entry_type::unknown, 0});
 
-    if (junction (a))
+      throw_system_error (ec);
+    }
+
+    if (reparse_point (a))
     {
       if (!fl)
         return make_pair (true, entry_stat {entry_type::symlink, 0});
 
-      return junction_target_exists (p, ie)
-        ? make_pair (true,  entry_stat {entry_type::directory, 0})
-        : make_pair (false, entry_stat {entry_type::unknown, 0});
+      // Fall through to stat the reparse point target.
+      //
     }
-
-    entry_type et (entry_type::unknown);
-    struct __stat64 s; // For 64-bit size.
-
-    if (_stat64 (p, &s) != 0)
+    else
     {
-      if (errno == ENOENT || errno == ENOTDIR || ie)
-        return make_pair (false, entry_stat {et, 0});
-      else
-        throw_generic_error (errno);
+      if (directory (a))
+        return make_pair (true, entry_stat {entry_type::directory, 0});
+
+      // Fall through to obtain the regular file size.
+      //
     }
 
-    // Note that we currently support only directory symlinks (see mksymlink()
-    // for details).
+    // Note that previously we used _stat64() to get the entry information but
+    // this doesn't work well for MinGW GCC where _stat64() returns the
+    // information about the reparse point itself and strangely ends up with
+    // ENOENT for symlink's target directory immediate sub-entries (but not
+    // for the more nested sub-entries).
     //
-    if (S_ISREG (s.st_mode))
-      et = entry_type::regular;
-    else if (S_ISDIR (s.st_mode))
-      et = entry_type::directory;
-    //
-    //else if (S_ISLNK (s.st_mode))
-    //  et = entry_type::symlink;
+    return path_entry_stat (p, ie);
+  }
 
-    return make_pair (true,
-                      entry_stat {et, static_cast<uint64_t> (s.st_size)});
+  permissions
+  path_permissions (const path& p)
+  {
+    pair<bool, BY_HANDLE_FILE_INFORMATION> pi (path_entry_info (p));
+
+    if (!pi.first)
+      throw_generic_error (ENOENT);
+
+    // On Windows a filesystem entry is always readable. Also there is no
+    // notion of group/other permissions at OS level, so we extrapolate user
+    // permissions to group/other permissions (as the _stat() function does).
+    //
+    permissions r (permissions::ru | permissions::rg | permissions::ro);
+
+    if (!readonly (pi.second.dwFileAttributes))
+      r |= permissions::wu | permissions::wg | permissions::wo;
+
+    return r;
+  }
+
+  static inline FILETIME
+  to_filetime (timestamp t)
+  {
+    // Time in FILETIME is in 100 nanosecond "ticks" since "Windows epoch"
+    // (1601-01-01T00:00:00Z). To convert "UNIX epoch"
+    // (1970-01-01T00:00:00Z) to it we need to add 11644473600 seconds.
+    //
+    uint64_t ticks (chrono::duration_cast<chrono::nanoseconds> (
+                      t.time_since_epoch ()).count ());
+
+    ticks /= 100;                       // Now in 100 nanosecond "ticks".
+    ticks += 11644473600ULL * 10000000; // Now in "Windows epoch".
+
+    FILETIME r;
+    r.dwHighDateTime = (ticks >> 32) & 0xFFFFFFFF;
+    r.dwLowDateTime = ticks & 0xFFFFFFFF;
+    return r;
+  }
+
+  void
+  path_permissions (const path& p, permissions f)
+  {
+    using namespace win32;
+
+    pair<auto_handle, BY_HANDLE_FILE_INFORMATION> hi (
+      entry_info_handle (p, true /* write */));
+
+    if (hi.first == nullhandle)
+      throw_generic_error (ENOENT);
+
+    const BY_HANDLE_FILE_INFORMATION& fi (hi.second);
+    DWORD attrs (fi.dwFileAttributes);
+
+    if ((f & permissions::wu) != permissions::none)
+      attrs &= ~FILE_ATTRIBUTE_READONLY;
+    else
+      attrs |= FILE_ATTRIBUTE_READONLY;
+
+    if (attrs != fi.dwFileAttributes)
+    {
+      auto tm = [] (const FILETIME& t)
+      {
+        LARGE_INTEGER r;               // Is a union.
+        r.LowPart  = t.dwLowDateTime;
+        r.HighPart = t.dwHighDateTime;
+        return r;
+      };
+
+      FILE_BASIC_INFO bi {tm (fi.ftCreationTime),
+                          tm (fi.ftLastAccessTime),
+                          tm (fi.ftLastWriteTime),
+                          tm (to_filetime (system_clock::now ())),
+                          attrs};
+
+      if (!SetFileInformationByHandle (hi.first.get (),
+                                       FileBasicInfo,
+                                       &bi,
+                                       sizeof (bi)))
+        throw_system_error (GetLastError ());
+    }
+
+    hi.first.close (); // Checks for error.
+  }
+
+  // Return the modification and access times of a regular file or directory.
+  //
+  static entry_time
+  entry_tm (const char* p, bool dir)
+  {
+    pair<bool, BY_HANDLE_FILE_INFORMATION> pi (path_entry_info (p));
+
+    // If the entry is of the wrong type, then let's pretend that it doesn't
+    // exists.
+    //
+    if (!pi.first || directory (pi.second.dwFileAttributes) != dir)
+      return {timestamp_nonexistent, timestamp_nonexistent};
+
+    auto tm = [] (const FILETIME& t) -> timestamp
+    {
+      // Time in FILETIME is in 100 nanosecond "ticks" since "Windows epoch"
+      // (1601-01-01T00:00:00Z). To convert it to "UNIX epoch"
+      // (1970-01-01T00:00:00Z) we need to subtract 11644473600 seconds.
+      //
+      uint64_t nsec ((static_cast<uint64_t> (t.dwHighDateTime) << 32) |
+                     t.dwLowDateTime);
+
+      nsec -= 11644473600ULL * 10000000; // Now in UNIX epoch.
+      nsec *= 100;                       // Now in nanoseconds.
+
+      return timestamp (
+        chrono::duration_cast<duration> (chrono::nanoseconds (nsec)));
+    };
+
+    return {tm (pi.second.ftLastWriteTime), tm (pi.second.ftLastAccessTime)};
+  }
+
+  // Set the modification and access times for a regular file or directory.
+  //
+  static void
+  entry_tm (const char* p, const entry_time& t, bool dir)
+  {
+    using namespace win32;
+
+    pair<auto_handle, BY_HANDLE_FILE_INFORMATION> hi (
+      entry_info_handle (p, true /* write */));
+
+    // If the entry is of the wrong type, then let's pretend that it doesn't
+    // exists.
+    //
+    if (hi.first == nullhandle ||
+        directory (hi.second.dwFileAttributes) != dir)
+      return throw_generic_error (ENOENT);
+
+    auto tm = [] (timestamp t, FILETIME& ft) -> const FILETIME*
+    {
+      if (t == timestamp_nonexistent)
+        return NULL;
+
+      ft = to_filetime (t);
+      return &ft;
+    };
+
+    FILETIME at;
+    FILETIME mt;
+    if (!SetFileTime (hi.first.get (),
+                      NULL /* lpCreationTime */,
+                      tm (t.access, at),
+                      tm (t.modification, mt)))
+      throw_system_error (GetLastError ());
+
+    hi.first.close (); // Checks for error.
   }
 
 #endif
@@ -270,7 +648,9 @@ namespace butl
 #ifndef _WIN32
       if (utime (p.string ().c_str (), nullptr) == -1)
 #else
-      if (_utime (p.string ().c_str (), nullptr) == -1)
+        // Note: follows reparse points.
+        //
+        if (_utime (p.string ().c_str (), nullptr) == -1)
 #endif
         throw_generic_error (errno);
 
@@ -332,12 +712,50 @@ namespace butl
   try_rmdir (const dir_path& p, bool ignore_error)
   {
     rmdir_status r (rmdir_status::success);
+    const char* d (p.string ().c_str ());
 
 #ifndef _WIN32
-    if (rmdir (p.string ().c_str ()) != 0)
+    int rr (rmdir (d));
 #else
-    if (_rmdir (p.string ().c_str ()) != 0)
+    // Note that we should only remove regular directories but not junctions.
+    // However, _rmdir() removes both and thus we need to check the entry type
+    // ourselves prior to removal.
+    //
+    DWORD a (GetFileAttributesA (d));
+    bool va (a != INVALID_FILE_ATTRIBUTES);
+
+    // Let's also check for non-directory not to end up with not very specific
+    // EINVAL.
+    //
+    if (va && (!directory (a) || reparse_point (a)))
+      throw_generic_error (ENOTDIR);
+
+    int rr (_rmdir (d));
+
+    // On Windows a directory with the read-only attribute can not be deleted.
+    // This can be the reason if the deletion fails with the 'permission
+    // denied' error code. In such a case we just reset the attribute and
+    // repeat the attempt. If the attempt fails, then we try to restore the
+    // attribute.
+    //
+    if (rr != 0 && errno == EACCES)
+    {
+      if (va           &&
+          readonly (a) &&
+          SetFileAttributes (d, a & ~FILE_ATTRIBUTE_READONLY))
+      {
+        rr = _rmdir (d);
+
+        // Restoring the attribute is unlikely to fail since we managed to
+        // reset it earlier.
+        //
+        if (rr != 0)
+          SetFileAttributes (d, a);
+      }
+    }
 #endif
+
+    if (rr != 0)
     {
       if (errno == ENOENT)
         r = rmdir_status::not_exist;
@@ -405,7 +823,7 @@ namespace butl
     // attempt. If the attempt fails, then we try to restore the attribute.
     //
     // Yet another reason for the 'permission denied' failure can be a
-    // directory symlink.
+    // junction.
     //
     // And also there are some unknown reasons for the 'permission denied'
     // failure (see mventry() for details). If that's the case, we will keep
@@ -425,18 +843,20 @@ namespace butl
         DWORD a (GetFileAttributesA (f));
         if (a != INVALID_FILE_ATTRIBUTES)
         {
-          bool readonly ((a & FILE_ATTRIBUTE_READONLY) != 0);
+          bool ro (readonly (a));
 
-          // Note that we support only directory symlinks on Windows.
+          // Note that the reparse point can be a junction which we need to
+          // remove as a directory.
           //
-          bool symlink (junction (a));
+          bool jn (junction (a));
 
-          if (readonly || symlink)
+          if (ro || jn)
           {
-            bool restore (readonly &&
-                          SetFileAttributes (f, a & ~FILE_ATTRIBUTE_READONLY));
+            bool restore (ro &&
+                          SetFileAttributes (f,
+                                             a & ~FILE_ATTRIBUTE_READONLY));
 
-            ur = symlink ? _rmdir (f) : _unlink (f);
+            ur = jn ? _rmdir (f) : _unlink (f);
 
             // Restoring the attribute is unlikely to fail since we managed to
             // reset it earlier.
@@ -475,12 +895,6 @@ namespace butl
       throw_generic_error (errno);
   }
 
-  rmfile_status
-  try_rmsymlink (const path& link, bool, bool ie)
-  {
-    return try_rmfile (link, ie);
-  }
-
   void
   mkhardlink (const path& target, const path& link, bool)
   {
@@ -493,9 +907,57 @@ namespace butl
   void
   mksymlink (const path& target, const path& link, bool dir)
   {
-    if (!dir)
-      throw_generic_error (ENOSYS, "file symlinks not supported");
+    using namespace win32;
 
+    if (!dir)
+    {
+      // Try to create a regular symbolic link without elevated privileges by
+      // passing the new SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE flag.
+      // The flag is new and it may not be defined at compile-time so we pass
+      // its literal value.
+      //
+      // We may also be running on an earlier version of Windows (before 10
+      // build 14972) that doesn't support it. The natural way to handle that
+      // would have been to check the build of Windows that we are running on
+      // but that turns out to not be that easy (requires a deprecated API,
+      // specific executable manifest setup, a dance on one leg, and who knows
+      // what else).
+      //
+      // So instead we are going to just make the call and if the result is
+      // the invalid argument error, assume that the flag is not recognized.
+      // Except that this error can also be returned if the link path or the
+      // target path are invalid. So if we get this error, we also stat the
+      // two paths to make sure we don't get the same error for them.
+      //
+      if (CreateSymbolicLinkA (link.string ().c_str (),
+                               target.string ().c_str (),
+                               0x2))
+        return;
+
+      // Note that ERROR_INVALID_PARAMETER means that either the function
+      // doesn't recognize the SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE
+      // flag (that happens on elder systems) or the target or link paths are
+      // invalid. Thus, we additionally check the paths to distinguish the
+      // cases.
+      //
+      if (GetLastError () == ERROR_INVALID_PARAMETER)
+      {
+        auto invalid = [] (const path& p)
+        {
+          return GetFileAttributesA (p.string ().c_str ()) ==
+                 INVALID_FILE_ATTRIBUTES &&
+                 GetLastError () == ERROR_INVALID_PARAMETER;
+        };
+
+        if (invalid (target) || invalid (link))
+          throw_generic_error (EINVAL);
+      }
+
+      throw_generic_error (ENOSYS, "file symlinks not supported");
+    }
+
+    // Create as a junction.
+    //
     dir_path ld (path_cast<dir_path> (link));
 
     mkdir_status rs (try_mkdir (ld));
@@ -511,29 +973,17 @@ namespace butl
     //
     auto_rmdir rm (ld);
 
-    HANDLE h (CreateFile (link.string ().c_str (),
-                          GENERIC_WRITE,
-                          0,
-                          NULL,
-                          OPEN_EXISTING,
-                          FILE_FLAG_BACKUP_SEMANTICS |
-                          FILE_FLAG_OPEN_REPARSE_POINT,
-                          NULL));
+    auto_handle h (CreateFile (link.string ().c_str (),
+                               GENERIC_WRITE,
+                               0,
+                               NULL,
+                               OPEN_EXISTING,
+                               FILE_FLAG_BACKUP_SEMANTICS |
+                               FILE_FLAG_OPEN_REPARSE_POINT,
+                               NULL));
 
-    if (h == INVALID_HANDLE_VALUE)
+    if (h == nullhandle)
       throw_system_error (GetLastError ());
-
-    unique_ptr<HANDLE, void (*)(HANDLE*)> deleter (
-      &h,
-      [] (HANDLE* h)
-      {
-        bool r (CloseHandle (*h));
-
-        // The valid file handle that has no IO operations being performed on
-        // it should close successfully, unless something is severely damaged.
-        //
-        assert (r);
-      });
 
     // We will fill the uninitialized members later.
     //
@@ -547,18 +997,17 @@ namespace butl
 
       // Mount point reparse buffer.
       //
-      WORD    substitute_name_offset = 0;
+      WORD    substitute_name_offset;
       WORD    substitute_name_length;
       WORD    print_name_offset;
-      WORD    print_name_length      = 0;
+      WORD    print_name_length;
 
-      // Reserve space for two NULL characters (for the names above).
+      // Reserve space for NULL character-terminated path and print name.
       //
-      wchar_t path_buffer[MAX_PATH + 2];
+      wchar_t path_buffer[2 * MAX_PATH + 2];
     } rb;
 
-    // Make the target path absolute, decorate it and convert to a
-    // wide-character string.
+    // Make the target path absolute and decorate it.
     //
     path atd (target);
 
@@ -574,43 +1023,62 @@ namespace butl
       throw_generic_error (EINVAL);
     }
 
-    string td ("\\??\\" + atd.string () + "\\");
-    const char* s (td.c_str ());
-
-    // Zero-initialize the conversion state (and disambiguate with the
-    // function declaration).
+    // Convert a path from the character string to the wide-character string
+    // representation and return the resulting string length in characters
+    // (first) and in bytes (second). Append the trailing NULL character to
+    // the resulting string but exclude it from the length.
     //
-    mbstate_t state ((mbstate_t ()));
-    size_t n (mbsrtowcs (rb.path_buffer, &s, MAX_PATH + 1, &state));
+    auto conv = [] (const string& from, wchar_t* to)
+    {
+      const char* s (from.c_str ());
 
-    if (n == static_cast<size_t> (-1))
-      throw_generic_error (errno);
+      // Zero-initialize the conversion state (and disambiguate with the
+      // function declaration).
+      //
+      mbstate_t state ((mbstate_t ()));
+      size_t n (mbsrtowcs (to, &s, MAX_PATH + 1, &state));
 
-    if (s != NULL) // Not enough space in the destination buffer.
-      throw_generic_error (ENAMETOOLONG);
+      if (n == static_cast<size_t> (-1))
+        throw_generic_error (errno);
+
+      if (s != NULL) // Not enough space in the destination buffer.
+        throw_generic_error (ENAMETOOLONG);
+
+      return make_pair (n, static_cast<WORD> (n * sizeof (wchar_t)));
+    };
+
+    // Convert the junction target path (\??\C:\...\).
+    //
+    pair<size_t, WORD> np (conv ("\\??\\" + atd.string () + "\\",
+                                 rb.path_buffer));
+
+    // Convert the junction target print name (C:\...).
+    //
+    pair<size_t, WORD> nn (conv (atd.string (),
+                                 rb.path_buffer + np.first + 1));
 
     // Fill the rest of the structure and setup the reparse point.
     //
-    // The path length not including NULL character, in bytes.
+    // The path offset and length, in bytes.
     //
-    WORD nb (static_cast<WORD> (n) * sizeof (wchar_t));
-    rb.substitute_name_length = nb;
+    rb.substitute_name_offset = 0;
+    rb.substitute_name_length = np.second;
 
-    // The print name offset, in bytes.
+    // The print name offset and length, in bytes.
     //
-    rb.print_name_offset  = nb + sizeof (wchar_t);
-    rb.path_buffer[n + 1] = L'\0'; // Terminate the (empty) print name.
+    rb.print_name_offset = np.second + sizeof (wchar_t);
+    rb.print_name_length = nn.second;
 
     // The mount point reparse buffer size.
     //
     rb.reparse_data_length =
-      4 * sizeof (WORD)     + // Size of *_name_* fields.
-      nb + sizeof (wchar_t) + // Path length, in bytes.
-      sizeof (wchar_t);       // Print (empty) name length, in bytes.
+      4 * sizeof (WORD)            + // Size of *_name_* fields.
+      np.second + sizeof (wchar_t) + // Path length, in bytes.
+      nn.second + sizeof (wchar_t);  // Print name length, in bytes.
 
     DWORD r;
     if (!DeviceIoControl (
-          h,
+          h.get (),
           FSCTL_SET_REPARSE_POINT,
           &rb,
           sizeof (DWORD) + 2 * sizeof (WORD) + // Size of the header.
@@ -621,16 +1089,9 @@ namespace butl
           NULL))
       throw_system_error (GetLastError ());
 
+    h.close (); // Checks for error.
+
     rm.cancel ();
-  }
-
-  rmfile_status
-  try_rmsymlink (const path& link, bool dir, bool ie)
-  {
-    if (!dir)
-      throw_generic_error (ENOSYS, "file symlinks not supported");
-
-    return try_rmfile (link, ie);
   }
 
   void
@@ -671,6 +1132,12 @@ namespace butl
       throw_generic_error (ENOSYS, "directory hard links not supported");
   }
 #endif
+
+  rmfile_status
+  try_rmsymlink (const path& link, bool, bool ie)
+  {
+    return try_rmfile (link, ie);
+  }
 
   entry_type
   mkanylink (const path& target, const path& link, bool copy, bool rel)
@@ -814,63 +1281,6 @@ namespace butl
     rm.cancel ();
   }
 
-  // Figuring out whether we have the nanoseconds in struct stat. Some
-  // platforms (e.g., FreeBSD), may provide some "compatibility" #define's,
-  // so use the second argument to not end up with the same signatures.
-  //
-  template <typename S>
-  static inline constexpr auto
-  mnsec (const S* s, bool) -> decltype(s->st_mtim.tv_nsec)
-  {
-    return s->st_mtim.tv_nsec; // POSIX (GNU/Linux, Solaris).
-  }
-
-  template <typename S>
-  static inline constexpr auto
-  mnsec (const S* s, int) -> decltype(s->st_mtimespec.tv_nsec)
-  {
-    return s->st_mtimespec.tv_nsec; // *BSD, MacOS.
-  }
-
-  template <typename S>
-  static inline constexpr auto
-  mnsec (const S* s, float) -> decltype(s->st_mtime_n)
-  {
-    return s->st_mtime_n; // AIX 5.2 and later.
-  }
-
-  // Things are not going to end up well with only seconds resolution so
-  // let's make it a compile error.
-  //
-  // template <typename S>
-  // static inline constexpr int
-  // mnsec (...) {return 0;}
-
-  template <typename S>
-  static inline constexpr auto
-  ansec (const S* s, bool) -> decltype(s->st_atim.tv_nsec)
-  {
-    return s->st_atim.tv_nsec; // POSIX (GNU/Linux, Solaris).
-  }
-
-  template <typename S>
-  static inline constexpr auto
-  ansec (const S* s, int) -> decltype(s->st_atimespec.tv_nsec)
-  {
-    return s->st_atimespec.tv_nsec; // *BSD, MacOS.
-  }
-
-  template <typename S>
-  static inline constexpr auto
-  ansec (const S* s, float) -> decltype(s->st_atime_n)
-  {
-    return s->st_atime_n; // AIX 5.2 and later.
-  }
-
-  // template <typename S>
-  // static inline constexpr int
-  // ansec (...) {return 0;}
-
   void
   mventry (const path& from, const path& to, cpflags fl)
   {
@@ -957,20 +1367,35 @@ namespace butl
       ec = GetLastError ();
 
       // If the destination already exists, then MoveFileExA() succeeds only
-      // if it is a regular file or a symlink. Lets also support an empty
-      // directory special case to comply with POSIX. If the destination is an
-      // empty directory we will just remove it and retry the move operation.
+      // if it is a regular file or a symlink but not a junction, failing with
+      // ERROR_ALREADY_EXISTS (ERROR_ACCESS_DENIED under Wine) for a regular
+      // directory and ERROR_ACCESS_DENIED for a junction. Thus, we remove a
+      // junction and retry the move operation.
       //
-      // Note that under Wine we endup with ERROR_ACCESS_DENIED error code in
-      // that case, and with ERROR_ALREADY_EXISTS when run natively.
+      // Lets also support an empty directory special case to comply with
+      // POSIX. If the destination is an empty directory we will just remove
+      // it and retry the move operation.
       //
-      if ((ec == ERROR_ALREADY_EXISTS || ec == ERROR_ACCESS_DENIED) && td &&
-          try_rmdir (path_cast<dir_path> (to)) != rmdir_status::not_empty)
+      if (ec == ERROR_ALREADY_EXISTS || ec == ERROR_ACCESS_DENIED)
       {
-        if (MoveFileExA (f, t, mfl))
-          return;
+        bool retry (false);
 
-        ec = GetLastError ();
+        if (te.first && te.second.type == entry_type::symlink && junction (t))
+        {
+          try_rmsymlink (to);
+          retry = true;
+        }
+        else if (td)
+          retry = try_rmdir (path_cast<dir_path> (to)) !=
+                  rmdir_status::not_empty;
+
+        if (retry)
+        {
+          if (MoveFileExA (f, t, mfl))
+            return;
+
+          ec = GetLastError ();
+        }
       }
 
       if (ec != ERROR_SHARING_VIOLATION)
@@ -978,73 +1403,6 @@ namespace butl
     }
 
     throw_system_error (ec);
-
-#endif
-  }
-
-  // Return the modification and access times of a regular file or directory.
-  //
-  static entry_time
-  entry_tm (const char* p, bool dir)
-  {
-#ifndef _WIN32
-
-    struct stat s;
-    if (stat (p, &s) != 0)
-    {
-      if (errno == ENOENT || errno == ENOTDIR)
-        return {timestamp_nonexistent, timestamp_nonexistent};
-      else
-        throw_generic_error (errno);
-    }
-
-    if (dir ? !S_ISDIR (s.st_mode) : !S_ISREG (s.st_mode))
-      return {timestamp_nonexistent, timestamp_nonexistent};
-
-    auto tm = [] (time_t sec, auto nsec) -> timestamp
-    {
-      return system_clock::from_time_t (sec) +
-        chrono::duration_cast<duration> (chrono::nanoseconds (nsec));
-    };
-
-    return {tm (s.st_mtime, mnsec<struct stat> (&s, true)),
-            tm (s.st_atime, ansec<struct stat> (&s, true))};
-
-#else
-
-    WIN32_FILE_ATTRIBUTE_DATA s;
-
-    if (!GetFileAttributesExA (p, GetFileExInfoStandard, &s))
-    {
-      DWORD ec (GetLastError ());
-
-      if (error_file_not_found (ec))
-        return {timestamp_nonexistent, timestamp_nonexistent};
-
-      throw_system_error (ec);
-    }
-
-    if ((s.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) !=
-        (dir ? FILE_ATTRIBUTE_DIRECTORY : 0))
-      return {timestamp_nonexistent, timestamp_nonexistent};
-
-    auto tm = [] (const FILETIME& t) -> timestamp
-    {
-      // Time in FILETIME is in 100 nanosecond "ticks" since "Windows epoch"
-      // (1601-01-01T00:00:00Z). To convert it to "UNIX epoch"
-      // (1970-01-01T00:00:00Z) we need to subtract 11644473600 seconds.
-      //
-      uint64_t nsec ((static_cast<uint64_t> (t.dwHighDateTime) << 32) |
-                     t.dwLowDateTime);
-
-      nsec -= 11644473600ULL * 10000000; // Now in UNIX epoch.
-      nsec *= 100;                       // Now in nanoseconds.
-
-      return timestamp (
-        chrono::duration_cast<duration> (chrono::nanoseconds (nsec)));
-    };
-
-    return {tm (s.ftLastWriteTime), tm (s.ftLastAccessTime)};
 
 #endif
   }
@@ -1061,110 +1419,6 @@ namespace butl
     return entry_tm (p, true);
   }
 
-  // Set the modification and access times for a regular file or directory.
-  //
-  static void
-  entry_tm (const char* p, const entry_time& t, bool dir)
-  {
-#ifndef _WIN32
-
-    struct stat s;
-    if (stat (p, &s) != 0)
-      throw_generic_error (errno);
-
-    // If the entry is of the wrong type, then let's pretend that it doesn't
-    // exists. In other words, the entry of the required type doesn't exist.
-    //
-    if (dir ? !S_ISDIR (s.st_mode) : !S_ISREG (s.st_mode))
-      return throw_generic_error (ENOENT);
-
-    // Note: timeval has the microsecond resolution.
-    //
-    auto tm = [] (timestamp t, time_t sec, auto nsec) -> timeval
-    {
-      using usec_type = decltype (timeval::tv_usec);
-
-      if (t == timestamp_nonexistent)
-        return {sec, static_cast<usec_type> (nsec / 1000)};
-
-      uint64_t usec (chrono::duration_cast<chrono::microseconds> (
-                       t.time_since_epoch ()).count ());
-
-      return {static_cast<time_t> (usec / 1000000),     // Seconds.
-              static_cast<usec_type> (usec % 1000000)}; // Microseconds.
-    };
-
-    timeval times[2];
-    times[0] = tm (t.access, s.st_atime, ansec<struct stat> (&s, true));
-    times[1] = tm (t.modification, s.st_mtime, mnsec<struct stat> (&s, true));
-
-    if (utimes (p, times) != 0)
-      throw_generic_error (errno);
-
-#else
-
-    DWORD attr (GetFileAttributesA (p));
-
-    if (attr == INVALID_FILE_ATTRIBUTES)
-      throw_system_error (GetLastError ());
-
-    // If the entry is of the wrong type, then let's pretend that it doesn't
-    // exists.
-    //
-    if ((attr & FILE_ATTRIBUTE_DIRECTORY) !=
-        (dir ? FILE_ATTRIBUTE_DIRECTORY : 0))
-      return throw_generic_error (ENOENT);
-
-    HANDLE h (CreateFile (p,
-                          FILE_WRITE_ATTRIBUTES,
-                          FILE_SHARE_READ | FILE_SHARE_WRITE,
-                          NULL,
-                          OPEN_EXISTING,
-                          dir ? FILE_FLAG_BACKUP_SEMANTICS : 0,
-                          NULL));
-
-    if (h == INVALID_HANDLE_VALUE)
-      throw_system_error (GetLastError ());
-
-    unique_ptr<HANDLE, void (*)(HANDLE*)> deleter (
-      &h, [] (HANDLE* h)
-      {
-        bool r (CloseHandle (*h));
-
-        // The valid file handle that has no IO operations being performed on
-        // it should close successfully, unless something is severely damaged.
-        //
-        assert (r);
-      });
-
-    auto tm = [] (timestamp t, FILETIME& ft) -> const FILETIME*
-    {
-      if (t == timestamp_nonexistent)
-        return NULL;
-
-      // Time in FILETIME is in 100 nanosecond "ticks" since "Windows epoch"
-      // (1601-01-01T00:00:00Z). To convert "UNIX epoch"
-      // (1970-01-01T00:00:00Z) to it we need to add 11644473600 seconds.
-      //
-      uint64_t ticks (chrono::duration_cast<chrono::nanoseconds> (
-                        t.time_since_epoch ()).count ());
-
-      ticks /= 100;                       // Now in 100 nanosecond "ticks".
-      ticks += 11644473600ULL * 10000000; // Now in "Windows epoch".
-
-      ft.dwHighDateTime = (ticks >> 32) & 0xFFFFFFFF;
-      ft.dwLowDateTime = ticks & 0xFFFFFFFF;
-      return &ft;
-    };
-
-    FILETIME at;
-    FILETIME mt;
-    if (!SetFileTime (h, NULL, tm (t.access, at), tm (t.modification, mt)))
-      throw_system_error (GetLastError ());
-
-#endif
-  }
-
   void
   file_time (const char* p, const entry_time& t)
   {
@@ -1175,62 +1429,6 @@ namespace butl
   dir_time (const char* p, const entry_time& t)
   {
     entry_tm (p, t, true);
-  }
-
-  permissions
-  path_permissions (const path& p)
-  {
-#ifndef _WIN32
-    struct stat s;
-    if (stat (p.string ().c_str (), &s) != 0)
-#else
-    struct _stat s;
-    if (_stat (p.string ().c_str (), &s) != 0)
-#endif
-      throw_generic_error (errno);
-
-    // VC++ has no S_IRWXU defined. MINGW GCC <= 4.9 has no S_IRWXG, S_IRWXO
-    // defined.
-    //
-    // We could extrapolate user permissions to group/other permissions if
-    // S_IRWXG/S_IRWXO are undefined. That is, we could consider their absence
-    // as meaning that the platform does not distinguish between permissions
-    // for different kinds of users. Let's wait for a use-case first.
-    //
-    mode_t f (S_IREAD | S_IWRITE | S_IEXEC);
-
-#ifdef S_IRWXG
-    f |= S_IRWXG;
-#endif
-
-#ifdef S_IRWXO
-    f |= S_IRWXO;
-#endif
-
-    return static_cast<permissions> (s.st_mode & f);
-  }
-
-  void
-  path_permissions (const path& p, permissions f)
-  {
-    mode_t m (S_IREAD | S_IWRITE | S_IEXEC);
-
-#ifdef S_IRWXG
-    m |= S_IRWXG;
-#endif
-
-#ifdef S_IRWXO
-    m |= S_IRWXO;
-#endif
-
-    m &= static_cast<mode_t> (f);
-
-#ifndef _WIN32
-    if (chmod (p.string ().c_str (), m) == -1)
-#else
-    if (_chmod (p.string ().c_str (), m) == -1)
-#endif
-      throw_generic_error (errno);
   }
 
   // dir_{entry,iterator}
@@ -1278,11 +1476,11 @@ namespace butl
   }
 
   entry_type dir_entry::
-  type (bool link) const
+  type (bool follow_symlinks) const
   {
     path_type p (b_ / p_);
     struct stat s;
-    if ((link
+    if ((follow_symlinks
          ? stat (p.string ().c_str (), &s)
          : lstat (p.string ().c_str (), &s)) != 0)
       throw_generic_error (errno);
@@ -1439,10 +1637,10 @@ namespace butl
   }
 
   entry_type dir_entry::
-  type (bool link) const
+  type (bool follow_symlinks) const
   {
     path_type p (base () / path ());
-    pair<bool, entry_stat> e (path_entry (p, link));
+    pair<bool, entry_stat> e (path_entry (p, follow_symlinks));
 
     if (!e.first)
       throw_generic_error (ENOENT);
@@ -1486,6 +1684,8 @@ namespace butl
   void dir_iterator::
   next ()
   {
+    using namespace win32;
+
     for (;;)
     {
       bool r;
@@ -1522,22 +1722,35 @@ namespace butl
 
         e_.p_ = move (p);
 
-        // An entry with the _A_SUBDIR attribute can also be a junction.
+        // Note that the entry can be a reparse point regardless of the
+        // _A_SUBDIR attribute presence and so its type detection always
+        // requires to additionally query the entry information. Thus, we
+        // evaluate its type lazily.
         //
-        e_.t_ = (fi.attrib & _A_SUBDIR) == 0       ? entry_type::regular :
-                junction (e_.base () / e_.path ()) ? entry_type::symlink :
-                entry_type::directory;
+        e_.t_ = entry_type::unknown;
 
         e_.lt_ = entry_type::unknown;
 
-        // If requested, we ignore dangling symlinks, skipping ones with
-        // non-existing or inaccessible targets.
+        // If requested, we ignore dangling symlinks and junctions, skipping
+        // ones with non-existing or inaccessible targets.
         //
-        if (ignore_dangling_                   &&
-            e_.ltype () == entry_type::symlink &&
-            !junction_target_exists (e_.base () / e_.path (),
-                                     true /* ignore_error */))
-          continue;
+        // Note that ltype() queries the entry information and so can throw.
+        //
+        if (ignore_dangling_ && e_.ltype () == entry_type::symlink)
+        {
+          // Query the target info.
+          //
+          pair<bool, entry_stat> te (
+            path_entry_stat (e_.base () / e_.path (),
+                             true /* ignore_error */));
+
+          if (!te.first)
+            continue;
+
+          // While at it, set the target type.
+          //
+          e_.lt_ = te.second.type;
+        }
       }
       else if (errno == ENOENT)
       {
