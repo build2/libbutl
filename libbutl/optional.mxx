@@ -7,13 +7,13 @@
 
 // C includes.
 
-// Note: the Clang check must come before GCC since also defines __GNUC__.
+// Note: the Clang check must come before GCC since it also defines __GNUC__.
 //
 #if   defined(ODB_COMPILER)
    //
    // Make sure we use butl::optional during ODB compilation (has to be this
    // way until we completely switch to std::optional since we use the same
-   // generated code for all compiler).
+   // generated code for all compilers).
    //
 #elif defined(_MSC_VER)
    //
