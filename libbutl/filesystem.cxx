@@ -317,7 +317,10 @@ namespace butl
 
   // Open a filesystem entry for reading and optionally writing its
   // meta-information and return the entry handle and meta-information if the
-  // path refers to an existing entry and nullhandle otherwise. Follow reparse
+  // path refers to an existing entry and nullhandle otherwise. Underlying OS
+  // errors are reported by throwing std::system_error, unless ignore_error is
+  // true in which case nullhandle is returned. In the later case the OS error
+  // can be obtained by the subsequent GetLastError() call. Follow reparse
   // points.
   //
   // Note that normally to update an entry meta-information you need the
@@ -396,32 +399,6 @@ namespace butl
     return path_entry_info (p.string ().c_str (), ie);
   }
 
-  // As above but return entry_stat.
-  //
-  static inline pair<bool, entry_stat>
-  path_entry_stat (const char* p, bool ie)
-  {
-    pair<bool, BY_HANDLE_FILE_INFORMATION> pi (path_entry_info (p, ie));
-
-    if (!pi.first)
-      return make_pair (false, entry_stat {entry_type::unknown, 0});
-
-    if (directory (pi.second.dwFileAttributes))
-      return make_pair (true, entry_stat {entry_type::directory, 0});
-    else
-      return make_pair (
-        true,
-        entry_stat {entry_type::regular,
-                    ((uint64_t (pi.second.nFileSizeHigh) << 32) |
-                     pi.second.nFileSizeLow)});
-  }
-
-  static inline pair<bool, entry_stat>
-  path_entry_stat (const path& p, bool ie)
-  {
-    return path_entry_stat (p.string ().c_str (), ie);
-  }
-
   pair<bool, entry_stat>
   path_entry (const char* p, bool fl, bool ie)
   {
@@ -439,8 +416,7 @@ namespace butl
       p = d.c_str ();
     }
 
-    // Get the path entry attributes and bail out if it doesn't exist. Note:
-    // doesn't follow reparse points.
+    // Detect the entry type.
     //
     DWORD a (GetFileAttributesA (p));
     if (a == INVALID_FILE_ATTRIBUTES)
@@ -469,13 +445,27 @@ namespace butl
       //
     }
 
+    // Stat the entry following reparse points.
+    //
     // Note that previously we used _stat64() to get the entry information but
     // this doesn't work well for MinGW GCC where _stat64() returns the
     // information about the reparse point itself and strangely ends up with
     // ENOENT for symlink's target directory immediate sub-entries (but not
     // for the more nested sub-entries).
     //
-    return path_entry_stat (p, ie);
+    pair<bool, BY_HANDLE_FILE_INFORMATION> pi (path_entry_info (p, ie));
+
+    if (!pi.first)
+      return make_pair (false, entry_stat {entry_type::unknown, 0});
+
+    if (directory (pi.second.dwFileAttributes))
+      return make_pair (true, entry_stat {entry_type::directory, 0});
+    else
+      return make_pair (
+        true,
+        entry_stat {entry_type::regular,
+                    ((uint64_t (pi.second.nFileSizeHigh) << 32) |
+                     pi.second.nFileSizeLow)});
   }
 
   permissions
@@ -943,8 +933,8 @@ namespace butl
       auto invalid = [] (const path& p)
       {
         return GetFileAttributesA (p.string ().c_str ()) ==
-        INVALID_FILE_ATTRIBUTES &&
-        GetLastError () == ERROR_INVALID_PARAMETER;
+               INVALID_FILE_ATTRIBUTES &&
+               GetLastError () == ERROR_INVALID_PARAMETER;
       };
 
       if (invalid (target) || invalid (link))
@@ -1575,23 +1565,42 @@ namespace butl
         // If requested, we ignore dangling symlinks, skipping ones with
         // non-existing or inaccessible targets.
         //
-        // Note that ltype () can potentially lstat() (see d_type() for
-        // details) and so throw.
-        //
-        if (ignore_dangling_ && e_.ltype () == entry_type::symlink)
+        if (ignore_dangling_)
         {
-          struct stat s;
-          path pe (e_.base () / e_.path ());
+          // Note that ltype () can potentially lstat() (see d_type() for
+          // details) and so throw. We, however, need to skip the entry if it
+          // is already removed (due to a race) and throw on any other error.
+          //
+          path fp (e_.base () / e_.path ());
+          const char* p (fp.string ().c_str ());
 
-          if (stat (pe.string ().c_str (), &s) != 0)
+          if (e_.t_ == entry_type::unknown)
           {
-            if (errno == ENOENT || errno == ENOTDIR || errno == EACCES)
-              continue;
+            struct stat s;
+            if (lstat (p, &s) != 0)
+            {
+              if (errno == ENOENT || errno == ENOTDIR)
+                continue;
 
-            throw_generic_error (errno);
+              throw_generic_error (errno);
+            }
+
+            e_.t_ = type (s);
           }
 
-          e_.lt_ = type (s); // While at it, set the target type.
+          if (e_.t_ == entry_type::symlink)
+          {
+            struct stat s;
+            if (stat (p, &s) != 0)
+            {
+              if (errno == ENOENT || errno == ENOTDIR || errno == EACCES)
+                continue;
+
+              throw_generic_error (errno);
+            }
+
+            e_.lt_ = type (s); // While at it, set the target type.
+          }
         }
       }
       else if (errno == 0)
@@ -1735,22 +1744,69 @@ namespace butl
         // If requested, we ignore dangling symlinks and junctions, skipping
         // ones with non-existing or inaccessible targets.
         //
-        // Note that ltype() queries the entry information and so can throw.
-        //
-        if (ignore_dangling_ && e_.ltype () == entry_type::symlink)
+        if (ignore_dangling_)
         {
-          // Query the target info.
+          // Check the last error code throwing for codes other than "path not
+          // found" and "access denied".
           //
-          pair<bool, entry_stat> te (
-            path_entry_stat (e_.base () / e_.path (),
-                             true /* ignore_error */));
+          auto verify_error = [] ()
+          {
+            DWORD ec (GetLastError ());
+            if (!error_file_not_found (ec) && ec != ERROR_ACCESS_DENIED)
+              throw_system_error (ec);
+          };
 
-          if (!te.first)
+          // Note that ltype() queries the entry information due to the type
+          // lazy evaluation (see above) and so can throw. We, however, need
+          // to skip the entry if it is already removed (due to a race) and
+          // throw on any other error.
+          //
+          path fp (e_.base () / e_.path ());
+          const char* p (fp.string ().c_str ());
+
+          DWORD a (GetFileAttributesA (p));
+          if (a == INVALID_FILE_ATTRIBUTES)
+          {
+            // Note that sometimes trying to obtain attributes for a
+            // filesystem entry that was potentially removed ends up with
+            // ERROR_ACCESS_DENIED. One can argue that there can be another
+            // reason for this error (antivirus, indexer, etc). However, given
+            // that the entry is seen by a _find*() function and normally you
+            // can retrieve attributes for a read-only entry and for an entry
+            // opened in the non-shared mode (see the CreateFile() function
+            // documentation for details) the only meaningful explanation for
+            // ERROR_ACCESS_DENIED is that the entry is being removed. Also
+            // the DeleteFile() documentation mentions such a possibility.
+            //
+            verify_error ();
             continue;
+          }
 
-          // While at it, set the target type.
-          //
-          e_.lt_ = te.second.type;
+          e_.t_ = reparse_point (a) ? entry_type::symlink   :
+                  directory (a)     ? entry_type::directory :
+                                      entry_type::regular   ;
+
+          if (e_.t_ == entry_type::symlink)
+          {
+            // Query the target info.
+            //
+            pair<auto_handle, BY_HANDLE_FILE_INFORMATION> ti (
+              entry_info_handle (p, true /* ignore_error */));
+
+            if (ti.first == nullhandle)
+            {
+              verify_error ();
+              continue;
+            }
+
+            ti.first.close (); // Checks for error.
+
+            // While at it, set the target type.
+            //
+            e_.lt_ = directory (ti.second.dwFileAttributes)
+                     ? entry_type::directory
+                     : entry_type::regular;
+          }
         }
       }
       else if (errno == ENOENT)
