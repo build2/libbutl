@@ -248,18 +248,15 @@ LIBBUTL_MODEXPORT namespace butl
   //   Developer Mode enabled or if the process runs in the elevated command
   //   prompt.
   //
-  // - Directory symlinks are implemented via the Windows junction mechanism
-  //   that doesn't require a process to have administrative privileges and so
-  //   a junction can be created regardless of the Windows version and mode.
-  //   Note that junctions, in contrast to symlinks, may only store target
-  //   absolute paths. Thus, when create a directory symlink we complete its
-  //   target path against the current directory (unless it is already
-  //   absolute) and normalize.
-  //
-  //   (@@ TODO: At some point we may want to support creating directory
-  //    symlinks if possible and falling back to junctions otherwise. One
-  //    potential issue here is with relative target paths which the caller
-  //    cannot rely on staying relative.)
+  // - Directory symlinks are implemented via the Windows symlink mechanism if
+  //   possible (see above) and via the Windows junction mechanism otherwise.
+  //   Note that creating a junction doesn't require a process to have
+  //   administrative privileges and so succeeds regardless of the Windows
+  //   version and mode. Also note that junctions, in contrast to symlinks,
+  //   may only store target absolute paths. Thus, when create a junction we
+  //   complete its target path against the current directory (unless it is
+  //   already absolute) and normalize, which makes it impossible for a
+  //   mksymlink() caller to rely on target path staying relative.
   //
   // - Functions other than mksymlink() fully support symlinks, considering
   //   the Windows file symlinks (file-type reparse points referring to files)

@@ -909,52 +909,53 @@ namespace butl
   {
     using namespace win32;
 
-    if (!dir)
+    // Try to create a symbolic link without elevated privileges by passing
+    // the new SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE flag. The flag is
+    // new and it may not be defined at compile-time so we pass its literal
+    // value.
+    //
+    // We may also be running on an earlier version of Windows (before 10
+    // build 14972) that doesn't support it. The natural way to handle that
+    // would have been to check the build of Windows that we are running on
+    // but that turns out to not be that easy (requires a deprecated API,
+    // specific executable manifest setup, a dance on one leg, and who knows
+    // what else).
+    //
+    // So instead we are going to just make the call and if the result is the
+    // invalid argument error, assume that the flag is not recognized. Except
+    // that this error can also be returned if the link path or the target
+    // path are invalid. So if we get this error, we also stat the two paths
+    // to make sure we don't get the same error for them.
+    //
+    if (CreateSymbolicLinkA (link.string ().c_str (),
+                             target.string ().c_str (),
+                             0x2 | (dir ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0)))
+      return;
+
+    // Note that ERROR_INVALID_PARAMETER means that either the function
+    // doesn't recognize the SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE
+    // flag (that happens on elder systems) or the target or link paths are
+    // invalid. Thus, we additionally check the paths to distinguish the
+    // cases.
+    //
+    if (GetLastError () == ERROR_INVALID_PARAMETER)
     {
-      // Try to create a regular symbolic link without elevated privileges by
-      // passing the new SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE flag.
-      // The flag is new and it may not be defined at compile-time so we pass
-      // its literal value.
-      //
-      // We may also be running on an earlier version of Windows (before 10
-      // build 14972) that doesn't support it. The natural way to handle that
-      // would have been to check the build of Windows that we are running on
-      // but that turns out to not be that easy (requires a deprecated API,
-      // specific executable manifest setup, a dance on one leg, and who knows
-      // what else).
-      //
-      // So instead we are going to just make the call and if the result is
-      // the invalid argument error, assume that the flag is not recognized.
-      // Except that this error can also be returned if the link path or the
-      // target path are invalid. So if we get this error, we also stat the
-      // two paths to make sure we don't get the same error for them.
-      //
-      if (CreateSymbolicLinkA (link.string ().c_str (),
-                               target.string ().c_str (),
-                               0x2))
-        return;
-
-      // Note that ERROR_INVALID_PARAMETER means that either the function
-      // doesn't recognize the SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE
-      // flag (that happens on elder systems) or the target or link paths are
-      // invalid. Thus, we additionally check the paths to distinguish the
-      // cases.
-      //
-      if (GetLastError () == ERROR_INVALID_PARAMETER)
+      auto invalid = [] (const path& p)
       {
-        auto invalid = [] (const path& p)
-        {
-          return GetFileAttributesA (p.string ().c_str ()) ==
-                 INVALID_FILE_ATTRIBUTES &&
-                 GetLastError () == ERROR_INVALID_PARAMETER;
-        };
+        return GetFileAttributesA (p.string ().c_str ()) ==
+        INVALID_FILE_ATTRIBUTES &&
+        GetLastError () == ERROR_INVALID_PARAMETER;
+      };
 
-        if (invalid (target) || invalid (link))
-          throw_generic_error (EINVAL);
-      }
-
-      throw_generic_error (ENOSYS, "file symlinks not supported");
+      if (invalid (target) || invalid (link))
+        throw_generic_error (EINVAL);
     }
+
+    // Fallback to creating a junction if we failed to create a directory
+    // symlink and bail out for a file symlink.
+    //
+    if (!dir)
+      throw_generic_error (ENOSYS, "file symlinks not supported");
 
     // Create as a junction.
     //
