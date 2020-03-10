@@ -24,11 +24,13 @@ $* a >"dir     b"
 if ($test.target == $build.host)
 {
   +if ($cxx.target.class != 'windows')
-    lns = ln -s wd/t wd/l &wd/l
+    lnf = ln -s wd/t wd/l &wd/l
+    lnd = $lnf
   else
     echo 'yes' >=t
     if cmd /C 'mklink l t' >- 2>- &?l && cat l >'yes'
-      lns = cmd /C 'mklink wd\l t' &wd/l >-
+      lnf = cmd /C 'mklink wd\l t' &wd/l >-
+      lnd = cmd /C 'mklink /D wd\l t' &wd/l >-
     end
 
     jnc = cmd /C 'mklink /J wd\l wd\t' &wd/l >-
@@ -36,7 +38,7 @@ if ($test.target == $build.host)
 
   : symlink
   :
-  if! $empty($lns)
+  if! $empty($lnf)
   {
     : file
     :
@@ -44,7 +46,7 @@ if ($test.target == $build.host)
       +mkdir wd
       +touch --no-cleanup wd/t
       +touch wd/f
-      +$lns
+      +$lnf
       +$* wd >>~%EOO%
         %(reg     f|reg     t|sym reg l)%{3}
         EOO
@@ -60,16 +62,10 @@ if ($test.target == $build.host)
       +mkdir wd
       +mkdir --no-cleanup wd/t
       +mkdir wd/d
-      +$lns
-
-      # Note that this test may fail on Windows (see symlinks known issues in
-      # libbutl/filesystem.mxx).
-      #
-      +if ($cxx.target.class != 'windows')
-         $* wd >>~%EOO%
-          %(dir     d|dir     t|sym dir l)%{3}
-          EOO
-      end
+      +$lnd
+      +$* wd >>~%EOO%
+        %(dir     d|dir     t|sym dir l)%{3}
+        EOO
 
       +rmdir wd/t
 

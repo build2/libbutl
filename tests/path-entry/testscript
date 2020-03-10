@@ -54,11 +54,13 @@
   if ($test.target == $build.host)
   {
     +if ($cxx.target.class != 'windows')
-      lns = ln -s t l &l
+      lnf = ln -s t l &l
+      lnd = $lnf
     else
       echo 'yes' >=t
       if cmd /C 'mklink l t' >- 2>- &?l && cat l >'yes'
-        lns = cmd /C 'mklink l t' &l >-
+        lnf = cmd /C 'mklink l t' &l >-
+        lnd = cmd /C 'mklink /D l t' &l >-
       end
 
       jnc = cmd /C 'mklink /J l t' &l >-
@@ -66,7 +68,7 @@
 
     : symlink
     :
-    if! $empty($lns)
+    if! $empty($lnf)
     {
       : file
       :
@@ -78,7 +80,7 @@
         :
         {
           cat <:'abc' >=t;
-          $lns;
+          $lnf;
           $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' t | set ti;
           $* -l l >"$ti"
         }
@@ -89,7 +91,7 @@
         :
         {
           cat <:'abc' >=t;
-          $lns;
+          $lnf;
           $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' l | set ti;
           sed -n -e 's/permissions: (.+)/\1/p' <"$ti" >~/'4.{2}'/;
           sed -n -e 's/mtime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:00';
@@ -102,7 +104,7 @@
         :
         {
           cat <:'abc' >=t;
-          $lns;
+          $lnf;
           $* t | set ti;
           sleep 2;
           $* -t l | set li;
@@ -114,10 +116,6 @@
 
       : dir
       :
-      : Note that the following tests may fail on Windows (see symlinks known
-      : issues in libbutl/filesystem.mxx).
-      :
-      if ($cxx.target.class != 'windows')
       {
         : get-info
         :
@@ -126,10 +124,9 @@
         :
         {
           mkdir t;
-          $lns;
+          $lnd;
           $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' t | set ti;
-          $* -l l >"$ti";
-          $* -p 600 t >- # @@ TMP; until build2 is staged.
+          $* -l l >"$ti"
         }
 
         : set-info
@@ -138,12 +135,11 @@
         :
         {
           mkdir t;
-          $lns;
+          $lnd;
           $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' l | set ti;
           sed -n -e 's/permissions: (.+)/\1/p' <"$ti" >~/'4.{2}'/;
           sed -n -e 's/mtime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:00';
-          sed -n -e 's/atime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:01';
-          $* -p 600 t >- # @@ TMP; until build2 is staged.
+          sed -n -e 's/atime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:01'
         }
       }
     }
@@ -161,8 +157,7 @@
         mkdir t;
         $jnc;
         $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' t | set ti;
-        $* -l l >"$ti";
-        $* -p 600 t >- # @@ TMP; until build2 is staged.
+        $* -l l >"$ti"
       }
 
       : set-info
@@ -175,8 +170,7 @@
         $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' l | set ti;
         sed -n -e 's/permissions: (.+)/\1/p' <"$ti" >~/'4.{2}'/;
         sed -n -e 's/mtime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:00';
-        sed -n -e 's/atime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:01';
-        $* -p 600 t >- # @@ TMP; until build2 is staged.
+        sed -n -e 's/atime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:01'
       }
     }
   }

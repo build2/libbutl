@@ -98,19 +98,21 @@
 if ($test.target == $build.host)
 {
   +if ($cxx.target.class != 'windows')
-    lns = ln -s a b
+    lnf = ln -s t l &l
+    lnd = $lnf
   else
-    echo 'yes' >=a
-    if cmd /C 'mklink b a' >- 2>- &?b && cat b >'yes'
-      lns = cmd /C 'mklink b a' >-
+    echo 'yes' >=t
+    if cmd /C 'mklink l t' >- 2>- &?l && cat l >'yes'
+      lnf = cmd /C 'mklink l t' &l >-
+      lnd = cmd /C 'mklink /D l t' &l >-
     end
 
-    jnc = cmd /C 'mklink /J b a' >-
+    jnc = cmd /C 'mklink /J l t' &l >-
   end
 
   : symlink
   :
-  if! $empty($lns)
+  if! $empty($lnf)
   {
     : file
     :
@@ -120,34 +122,34 @@ if ($test.target == $build.host)
       : Make sure that if source is a symlink it refers the same target after
       : rename.
       :
-      echo 'foo' >=a;
-      $lns &!b;
-      $* b c &c;
-      test -f a;
-      test -f b == 1;
-      echo 'bar' >=a;
-      cat c >'bar'
+      echo 'foo' >=t;
+      $lnf;
+      $* l ll &!l &ll;
+      test -f t;
+      test -f l == 1;
+      echo 'bar' >=t;
+      cat ll >'bar'
 
       : to
       :
       : Make sure that if destination is a symlink it is get overwritten and
       : it's target stays intact.
       :
-      echo 'foo' >=a;
-      $lns &b;
-      echo 'bar' >=c &!c;
-      $* c b;
-      cat a >'foo';
-      test -f c == 1;
-      echo 'baz' >=a;
-      cat b >'bar'
+      echo 'foo' >=t;
+      $lnf;
+      echo 'bar' >=f;
+      $* f l &!f;
+      cat t >'foo';
+      test -f f == 1;
+      echo 'baz' >=t;
+      cat l >'bar'
 
       : over-existing-dir
       :
-      echo 'foo' >=a;
-      $lns &b;
-      mkdir c;
-      $* b c 2>- == 1
+      echo 'foo' >=t;
+      $lnf;
+      mkdir d;
+      $* t d 2>- == 1
     }
 
     : dir
@@ -158,32 +160,33 @@ if ($test.target == $build.host)
       : Make sure that if source is a symlink it refers the same target after
       : rename.
       :
-      mkdir -p a;
-      $lns &!b;
-      $* b c &c;
-      touch a/b;
-      test -f c/b;
-      test -d b == 1
+      mkdir -p t;
+      $lnd;
+      $* l ll &!l &ll;
+      touch t/f;
+      test -f ll/f;
+      test -f l == 1;
+      test -d l == 1
 
       : to
       :
       : Make sure that if destination is a symlink it is get overwritten and
       : it's target stays intact.
       :
-      mkdir -p a;
-      $lns;
-      echo 'foo' >=c &!c;
-      $* c b &b;
-      cat b >'foo';
-      test -d a;
-      test -f c == 1
+      mkdir -p t;
+      $lnd;
+      echo 'foo' >=f;
+      $* f l &!f;
+      cat l >'foo';
+      test -d t;
+      test -f f == 1
 
       : over-existing-dir
       :
-      mkdir a;
-      $lns &b;
-      mkdir c;
-      $* b c 2>- == 1
+      mkdir t;
+      $lnd;
+      mkdir d;
+      $* l d 2>- == 1
     }
   }
 
@@ -196,32 +199,33 @@ if ($test.target == $build.host)
     : Make sure that if source is a junction it refers the same target after
     : rename.
     :
-    mkdir -p a;
-    $jnc &!b;
-    $* b c &c;
-    touch a/b;
-    test -f c/b;
-    test -d b == 1
+    mkdir -p t;
+    $jnc;
+    $* l ll &!l &ll;
+    touch t/f;
+    test -f ll/f;
+    test -f l == 1;
+    test -d l == 1
 
     : to
     :
     : Make sure that if destination is a junction it is get overwritten and
     : it's target stays intact.
     :
-    mkdir -p a;
+    mkdir -p t;
     $jnc;
-    echo 'foo' >=c &!c;
-    $* c b &b;
-    cat b >'foo';
-    test -d a;
-    test -f c == 1
+    echo 'foo' >=f;
+    $* f l &!f;
+    cat l >'foo';
+    test -d t;
+    test -f f == 1
 
     : over-existing-dir
     :
-    mkdir a;
-    $jnc &b;
-    mkdir c;
-    $* b c 2>- == 1
+    mkdir t;
+    $jnc;
+    mkdir d;
+    $* l d 2>- == 1
   }
 }
 

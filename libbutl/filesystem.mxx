@@ -259,20 +259,13 @@ LIBBUTL_MODEXPORT namespace butl
   //   (@@ TODO: At some point we may want to support creating directory
   //    symlinks if possible and falling back to junctions otherwise. One
   //    potential issue here is with relative target paths which the caller
-  //    cannot rely on staying relative. Plus there is the below bug.)
+  //    cannot rely on staying relative.)
   //
   // - Functions other than mksymlink() fully support symlinks, considering
   //   the Windows file symlinks (file-type reparse points referring to files)
   //   as regular file symlinks and the Windows directory symlinks (file-type
   //   reparse points referring to directories) and junctions (directory-type
-  //   reparse points referring to directories) as directory symlinks. The
-  //   known issues are:
-  //
-  //   - path_entry() call that follows a symlink (but not a junction) with a
-  //     directory target may throw std::system_error due to the underlying
-  //     CreateFile() function call failing with the ERROR_ACCESS_DENIED
-  //     error. This appears to be a bug that has been noticed only on Windows
-  //     with the Developer Mode enabled.
+  //   reparse points referring to directories) as directory symlinks.
   //
   // Also note that symlinks are currently not supported properly on Wine due
   // to some differences in the underlying API behavior.
