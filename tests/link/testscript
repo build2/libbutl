@@ -1,0 +1,79 @@
+# file      : tests/link/testscript
+# license   : MIT; see accompanying LICENSE file
+
+: basics
+:
+$*
+
+: follow-symlinks
+:
+: Note that we may not be able to create symlinks on Windows and so test on
+: POSIX only. But that'is ok since the follow_symlinks() implementation is not
+: platform-specific.
+:
+if ($cxx.target.class != 'windows')
+{
+  : not-symlink
+  :
+  {
+    touch f;
+    $* -f f >f
+  }
+
+  : not-exists
+  :
+  {
+    $* -f f >f
+  }
+
+  : single-link
+  :
+  {
+    : absolute
+    :
+    {
+      $* -s $~/f l &l;
+      $* -f l >/"$~/f"
+    }
+
+    : relative
+    :
+    {
+      $* -s d/f l &l;
+      $* -f l >/'d/f'
+    }
+  }
+
+  : multiple-links
+  :
+  {
+    : relative-path
+    :
+    {
+      mkdir -p d1/d2;
+      $* -s ../d3/f d1/d2/l1 &d1/d2/l1;
+
+      $* -f d1/d2/l1                  >/'d1/d3/f';
+      $* -f ../relative-path/d1/d2/l1 >/'../relative-path/d1/d3/f';
+
+      mkdir d4;
+      $* -s ../d1/d2/l1 d4/l2 &d4/l2;
+
+      $* -f d4/l2    >/'d1/d3/f';
+      $* -f $~/d4/l2 >/"$~/d1/d3/f"
+    }
+
+    : absolute-path
+    :
+    {
+      mkdir -p d1/d2;
+      $* -s ../d3/f d1/d2/l1 &d1/d2/l1;
+
+      mkdir d4;
+      $* -s $~/d1/d2/l1 d4/l2 &d4/l2;
+
+      $* -f d4/l2    >/"$~/d1/d3/f";
+      $* -f $~/d4/l2 >/"$~/d1/d3/f"
+    }
+  }
+}

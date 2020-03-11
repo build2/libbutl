@@ -10,6 +10,7 @@
 #ifndef _WIN32
 #  include <stdio.h>     // rename()
 #  include <utime.h>     // utime()
+#  include <limits.h>    // PATH_MAX
 #  include <dirent.h>    // struct dirent, *dir()
 #  include <unistd.h>    // symlink(), link(), stat(), rmdir(), unlink()
 #  include <sys/time.h>  // utimes()
@@ -25,7 +26,8 @@
 #  include <sys/stat.h>  // _stat(), S_I*
 #  include <sys/utime.h> // _utime()
 
-#  include <cwchar> // mbsrtowcs(), mbstate_t
+#  include <cwchar>  // mbsrtowcs(), wcsrtombs(), mbstate_t
+#  include <cstring> // strncmp()
 
 #  ifdef _MSC_VER // Unlikely to be fixed in newer versions.
 #    define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
@@ -74,10 +76,20 @@ import butl.small_vector;
 #include <libbutl/small-vector.mxx>
 #endif
 
+#ifndef _WIN32
+#  ifndef PATH_MAX
+#    define PATH_MAX 4096
+#  endif
+#endif
+
 using namespace std;
 
 namespace butl
 {
+#ifdef _WIN32
+  using namespace win32;
+#endif
+
   bool
   file_exists (const char* p, bool fl, bool ie)
   {
@@ -294,7 +306,7 @@ namespace butl
     return (a & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
   }
 
-  // Note: returns true for junctions.
+  // Return true for both directories and directory-type reparse points.
   //
   static inline bool
   directory (DWORD a) noexcept
@@ -302,36 +314,43 @@ namespace butl
     return (a & FILE_ATTRIBUTE_DIRECTORY) != 0;
   }
 
+  // Return true for regular directories.
+  //
   static inline bool
-  junction (DWORD a) noexcept
+  regular_directory (DWORD a) noexcept
   {
-    return reparse_point (a) && directory (a);
+    return directory (a) && !reparse_point (a);
+  }
+
+  // Return true for directory-type reparse points.
+  //
+  static inline bool
+  directory_reparse_point (DWORD a) noexcept
+  {
+    return directory (a) && reparse_point (a);
   }
 
   static inline bool
-  junction (const char* p) noexcept
+  directory_reparse_point (const char* p) noexcept
   {
     DWORD a (GetFileAttributesA (p));
-    return a != INVALID_FILE_ATTRIBUTES && junction (a);
+    return a != INVALID_FILE_ATTRIBUTES && directory_reparse_point (a);
   }
 
   // Open a filesystem entry for reading and optionally writing its
   // meta-information and return the entry handle and meta-information if the
-  // path refers to an existing entry and nullhandle otherwise. Underlying OS
-  // errors are reported by throwing std::system_error, unless ignore_error is
-  // true in which case nullhandle is returned. In the later case the OS error
-  // can be obtained by the subsequent GetLastError() call. Follow reparse
-  // points.
-  //
-  // Note that normally to update an entry meta-information you need the
-  // current info, unless you rewrite it completely (attributes, modification
-  // time, etc).
+  // path refers to an existing entry and nullhandle otherwise. Follow reparse
+  // points by default. Underlying OS errors are reported by throwing
+  // std::system_error, unless ignore_error is true in which case nullhandle
+  // is returned. In the later case the error code can be obtained by calling
+  // GetLastError().
   //
   static inline pair<win32::auto_handle, BY_HANDLE_FILE_INFORMATION>
-  entry_info_handle (const char* p, bool write, bool ie = false)
+  entry_info_handle (const char* p,
+                     bool write,
+                     bool fr = true,
+                     bool ie = false)
   {
-    using namespace win32;
-
     // Open the entry for reading/writing its meta-information. Follow reparse
     // points.
     //
@@ -343,7 +362,8 @@ namespace butl
                   0,
                   NULL,
                   OPEN_EXISTING,
-                  FILE_FLAG_BACKUP_SEMANTICS, // Required for a directory.
+                  FILE_FLAG_BACKUP_SEMANTICS | // Required for a directory.
+                  (fr ? 0 : FILE_FLAG_OPEN_REPARSE_POINT),
                   NULL));
 
     if (h == nullhandle)
@@ -367,22 +387,14 @@ namespace butl
     return make_pair (move (h), r);
   }
 
-  static inline pair<win32::auto_handle, BY_HANDLE_FILE_INFORMATION>
-  entry_info_handle (const path& p, bool write, bool ie = false)
-  {
-    return entry_info_handle (p.string ().c_str (), write, ie);
-  }
-
   // Return a flag indicating whether the path is to an existing filesystem
-  // entry and its meta-information if so. Follow reparse points.
+  // entry and its meta-information if so. Follow reparse points by default.
   //
   static inline pair<bool, BY_HANDLE_FILE_INFORMATION>
-  path_entry_info (const char* p, bool ie = false)
+  path_entry_info (const char* p, bool fr = true, bool ie = false)
   {
-    using namespace win32;
-
     pair<auto_handle, BY_HANDLE_FILE_INFORMATION> hi (
-      entry_info_handle (p, false /* write */, ie));
+      entry_info_handle (p, false /* write */, fr, ie));
 
     if (hi.first == nullhandle)
       return make_pair (false, BY_HANDLE_FILE_INFORMATION ());
@@ -394,9 +406,242 @@ namespace butl
   }
 
   static inline pair<bool, BY_HANDLE_FILE_INFORMATION>
-  path_entry_info (const path& p, bool ie = false)
+  path_entry_info (const path& p, bool fr = true, bool ie = false)
   {
-    return path_entry_info (p.string ().c_str (), ie);
+    return path_entry_info (p.string ().c_str (), fr, ie);
+  }
+
+  // Reparse point data.
+  //
+  struct symlink_buf
+  {
+    WORD substitute_name_offset;
+    WORD substitute_name_length;
+    WORD print_name_offset;
+    WORD print_name_length;
+
+    ULONG flags;
+
+    // Reserve space for the target path, target print name and their trailing
+    // NULL characters.
+    //
+    wchar_t buf[2 * _MAX_PATH + 2];
+  };
+
+  struct mount_point_buf
+  {
+    WORD substitute_name_offset;
+    WORD substitute_name_length;
+    WORD print_name_offset;
+    WORD print_name_length;
+
+    // Reserve space for the target path, target print name and their trailing
+    // NULL characters.
+    //
+    wchar_t buf[2 * _MAX_PATH + 2];
+  };
+
+  // The original type is REPARSE_DATA_BUFFER structure.
+  //
+  struct reparse_point_buf
+  {
+    // Header.
+    //
+    DWORD tag;
+    WORD  data_length;
+    WORD  reserved = 0;
+
+    union
+    {
+      symlink_buf     symlink;
+      mount_point_buf mount_point;
+    };
+
+    reparse_point_buf (DWORD t): tag (t) {}
+    reparse_point_buf () = default;
+  };
+
+  // Try to read and parse the reparse point data at the specified path and
+  // return the following values based on the reparse point existence/type:
+  //
+  // doesn't exist                 - {entry_type::unknown, <empty-path>}
+  // symlink or junction           - {entry_type::symlink, <target-path>}
+  // some other reparse point type - {entry_type::other,   <empty-path>}
+  //
+  // Underlying OS errors are reported by throwing std::system_error, unless
+  // ignore_error is true in which case entry_type::unknown is returned. In
+  // the later case the error code can be obtained by calling GetLastError().
+  //
+  static pair<entry_type, path>
+  reparse_point_entry (const char* p, bool ie = false)
+  {
+    auto_handle h (CreateFile (p,
+                               FILE_READ_EA,
+                               0,
+                               NULL,
+                               OPEN_EXISTING,
+                               FILE_FLAG_BACKUP_SEMANTICS |
+                               FILE_FLAG_OPEN_REPARSE_POINT,
+                               NULL));
+
+    if (h == nullhandle)
+    {
+      DWORD ec;
+      if (ie || error_file_not_found (ec = GetLastError ()))
+        return make_pair (entry_type::unknown, path ());
+
+      throw_system_error (ec);
+    }
+
+    reparse_point_buf rp;
+
+    // Note that the wcsrtombs() function used for the path conversion
+    // requires the source string to be NULL-terminated. However, the reparse
+    // point target path returned by the DeviceIoControl() call is not
+    // NULL-terminated. Thus, we reserve space in the buffer for the
+    // trailing NULL character, which the parse() lambda adds later prior to
+    // the conversion.
+    //
+    DWORD n;
+    if (!DeviceIoControl (
+          h.get (),
+          FSCTL_GET_REPARSE_POINT,
+          NULL,
+          0,
+          &rp,
+          sizeof (rp) - sizeof (wchar_t), // Reserve for the NULL character.
+          &n,                             // May not be NULL.
+          NULL))
+    {
+      if (ie)
+        return make_pair (entry_type::unknown, path ());
+
+      throw_system_error (GetLastError ());
+    }
+
+    if (!ie)
+      h.close (); // Checks for error.
+
+    // Try to parse a sub-string in the wide character buffer as a path. The
+    // sub-string offset and length are expressed in bytes. Verify that the
+    // resulting path is absolute if the absolute argument is true and is
+    // relative otherwise (but is not empty). Return nullopt if anything goes
+    // wrong.
+    //
+    // Expects the buffer to have a room for the terminating NULL character
+    // (see above for details).
+    //
+    auto parse = [] (wchar_t* s,
+                     size_t off,
+                     size_t len,
+                     bool absolute) -> optional<path>
+    {
+      // The offset and length must be divisible by the wide character size
+      // without a remainder.
+      //
+      if (off % sizeof (wchar_t) != 0 || len % sizeof (wchar_t) != 0)
+        return nullopt;
+
+      off /= sizeof (wchar_t);
+      len /= sizeof (wchar_t);
+
+      // Add the trailing NULL character to the buffer, saving the character
+      // it overwrites to restore it later.
+      //
+      size_t n (off + len);
+      wchar_t c (s[n]);
+      s[n] = L'\0';
+
+      const wchar_t* from (s + off);
+      char buf[_MAX_PATH + 1];
+
+      // Zero-initialize the conversion state (and disambiguate with the
+      // function declaration).
+      //
+      mbstate_t state ((mbstate_t ()));
+
+      size_t r (wcsrtombs (buf, &from, sizeof (buf), &state));
+      s[n] = c; // Restore the character overwritten by the NULL character.
+
+      if (r == static_cast<size_t> (-1))
+        return nullopt;
+
+      if (from != NULL) // Not enough space in the destination buffer.
+        return nullopt;
+
+      // The buffer contains an absolute path, distinguished by the special
+      // prefix. For example: \??\C:\tmp.
+      //
+      bool abs (strncmp (buf, "\\??\\", 4) == 0);
+
+      if (abs != absolute)
+        return nullopt;
+
+      // A prefix starting with the backslash but different from the '\??\'
+      // denotes some special Windows path that we don't support. For example,
+      // volume mount point paths that looks as follows:
+      //
+      // \\?\Volume{9a687afc-534d-11ea-9433-806e6f6e6963}
+      //
+      if (!abs && buf[0] == '\\')
+        return nullopt;
+
+      try
+      {
+        path r (buf + (abs ? 4 : 0));
+
+        if (r.absolute () != abs || r.empty ())
+          return nullopt;
+
+        return r;
+      }
+      catch (const invalid_path&)
+      {
+        return nullopt;
+      }
+    };
+
+    // Try to parse the reparse point data for the symlink-related tags.
+    // Return entry_type::other on any parsing failure.
+    //
+    optional<path> r;
+    switch (rp.tag)
+    {
+    case IO_REPARSE_TAG_SYMLINK:
+      {
+        symlink_buf& b (rp.symlink);
+
+        // Note that the SYMLINK_FLAG_RELATIVE flag may not be defined at
+        // compile-time so we pass its literal value (0x1).
+        //
+        r = parse (b.buf,
+                   b.substitute_name_offset,
+                   b.substitute_name_length,
+                   (b.flags & 0x1) == 0);
+
+        break;
+      }
+    case IO_REPARSE_TAG_MOUNT_POINT:
+      {
+        mount_point_buf& b (rp.mount_point);
+        r = parse (b.buf,
+                   b.substitute_name_offset,
+                   b.substitute_name_length,
+                   true /* absolute */);
+
+        break;
+      }
+    }
+
+    return r
+           ? make_pair (entry_type::symlink, move (*r))
+           : make_pair (entry_type::other,   path ());
+  }
+
+  static inline pair<entry_type, path>
+  reparse_point_entry (const path& p, bool ie = false)
+  {
+    return reparse_point_entry (p.string ().c_str (), ie);
   }
 
   pair<bool, entry_stat>
@@ -416,47 +661,39 @@ namespace butl
       p = d.c_str ();
     }
 
-    // Detect the entry type.
+    // Stat the entry not following reparse points.
     //
-    DWORD a (GetFileAttributesA (p));
-    if (a == INVALID_FILE_ATTRIBUTES)
-    {
-      DWORD ec;
-      if (ie || error_file_not_found (ec = GetLastError ()))
-        return make_pair (false, entry_stat {entry_type::unknown, 0});
-
-      throw_system_error (ec);
-    }
-
-    if (reparse_point (a))
-    {
-      if (!fl)
-        return make_pair (true, entry_stat {entry_type::symlink, 0});
-
-      // Fall through to stat the reparse point target.
-      //
-    }
-    else
-    {
-      if (directory (a))
-        return make_pair (true, entry_stat {entry_type::directory, 0});
-
-      // Fall through to obtain the regular file size.
-      //
-    }
-
-    // Stat the entry following reparse points.
-    //
-    // Note that previously we used _stat64() to get the entry information but
-    // this doesn't work well for MinGW GCC where _stat64() returns the
-    // information about the reparse point itself and strangely ends up with
-    // ENOENT for symlink's target directory immediate sub-entries (but not
-    // for the more nested sub-entries).
-    //
-    pair<bool, BY_HANDLE_FILE_INFORMATION> pi (path_entry_info (p, ie));
+    pair<bool, BY_HANDLE_FILE_INFORMATION> pi (
+      path_entry_info (p, false /* follow_reparse_points */, ie));
 
     if (!pi.first)
       return make_pair (false, entry_stat {entry_type::unknown, 0});
+
+    if (reparse_point (pi.second.dwFileAttributes))
+    {
+      pair<entry_type, path> rp (reparse_point_entry (p, ie));
+
+      if (rp.first == entry_type::symlink)
+      {
+        // If following symlinks is requested, then follow the reparse point,
+        // overwrite its own information with the resolved target information,
+        // and fall through. Otherwise, return the symlink entry type.
+        //
+        if (fl)
+        {
+          pi = path_entry_info (p, true /* follow_reparse_points */, ie);
+
+          if (!pi.first)
+            return make_pair (false, entry_stat {entry_type::unknown, 0});
+        }
+        else
+          return make_pair (true, entry_stat {entry_type::symlink, 0});
+      }
+      else if (rp.first == entry_type::unknown)
+        return make_pair (false, entry_stat {entry_type::unknown, 0});
+      else // entry_type::other
+        return make_pair (true, entry_stat {entry_type::other, 0});
+    }
 
     if (directory (pi.second.dwFileAttributes))
       return make_pair (true, entry_stat {entry_type::directory, 0});
@@ -488,68 +725,22 @@ namespace butl
     return r;
   }
 
-  static inline FILETIME
-  to_filetime (timestamp t)
-  {
-    // Time in FILETIME is in 100 nanosecond "ticks" since "Windows epoch"
-    // (1601-01-01T00:00:00Z). To convert "UNIX epoch"
-    // (1970-01-01T00:00:00Z) to it we need to add 11644473600 seconds.
-    //
-    uint64_t ticks (chrono::duration_cast<chrono::nanoseconds> (
-                      t.time_since_epoch ()).count ());
-
-    ticks /= 100;                       // Now in 100 nanosecond "ticks".
-    ticks += 11644473600ULL * 10000000; // Now in "Windows epoch".
-
-    FILETIME r;
-    r.dwHighDateTime = (ticks >> 32) & 0xFFFFFFFF;
-    r.dwLowDateTime = ticks & 0xFFFFFFFF;
-    return r;
-  }
-
   void
   path_permissions (const path& p, permissions f)
   {
-    using namespace win32;
+    path tp (followsymlink (p));
+    const char* t (tp.string ().c_str ());
 
-    pair<auto_handle, BY_HANDLE_FILE_INFORMATION> hi (
-      entry_info_handle (p, true /* write */));
+    DWORD a (GetFileAttributesA (t));
+    if (a == INVALID_FILE_ATTRIBUTES)
+      throw_system_error (GetLastError ());
 
-    if (hi.first == nullhandle)
-      throw_generic_error (ENOENT);
+    DWORD na ((f & permissions::wu) != permissions::none // Writable?
+              ? (a & ~FILE_ATTRIBUTE_READONLY)
+              : (a | FILE_ATTRIBUTE_READONLY));
 
-    const BY_HANDLE_FILE_INFORMATION& fi (hi.second);
-    DWORD attrs (fi.dwFileAttributes);
-
-    if ((f & permissions::wu) != permissions::none)
-      attrs &= ~FILE_ATTRIBUTE_READONLY;
-    else
-      attrs |= FILE_ATTRIBUTE_READONLY;
-
-    if (attrs != fi.dwFileAttributes)
-    {
-      auto tm = [] (const FILETIME& t)
-      {
-        LARGE_INTEGER r;               // Is a union.
-        r.LowPart  = t.dwLowDateTime;
-        r.HighPart = t.dwHighDateTime;
-        return r;
-      };
-
-      FILE_BASIC_INFO bi {tm (fi.ftCreationTime),
-                          tm (fi.ftLastAccessTime),
-                          tm (fi.ftLastWriteTime),
-                          tm (to_filetime (system_clock::now ())),
-                          attrs};
-
-      if (!SetFileInformationByHandle (hi.first.get (),
-                                       FileBasicInfo,
-                                       &bi,
-                                       sizeof (bi)))
-        throw_system_error (GetLastError ());
-    }
-
-    hi.first.close (); // Checks for error.
+    if (na != a && !SetFileAttributesA (t, na))
+      throw_system_error (GetLastError ());
   }
 
   // Return the modification and access times of a regular file or directory.
@@ -584,13 +775,30 @@ namespace butl
     return {tm (pi.second.ftLastWriteTime), tm (pi.second.ftLastAccessTime)};
   }
 
+  static inline FILETIME
+  to_filetime (timestamp t)
+  {
+    // Time in FILETIME is in 100 nanosecond "ticks" since "Windows epoch"
+    // (1601-01-01T00:00:00Z). To convert "UNIX epoch"
+    // (1970-01-01T00:00:00Z) to it we need to add 11644473600 seconds.
+    //
+    uint64_t ticks (chrono::duration_cast<chrono::nanoseconds> (
+                      t.time_since_epoch ()).count ());
+
+    ticks /= 100;                       // Now in 100 nanosecond "ticks".
+    ticks += 11644473600ULL * 10000000; // Now in "Windows epoch".
+
+    FILETIME r;
+    r.dwHighDateTime = (ticks >> 32) & 0xFFFFFFFF;
+    r.dwLowDateTime = ticks & 0xFFFFFFFF;
+    return r;
+  }
+
   // Set the modification and access times for a regular file or directory.
   //
   static void
   entry_tm (const char* p, const entry_time& t, bool dir)
   {
-    using namespace win32;
-
     pair<auto_handle, BY_HANDLE_FILE_INFORMATION> hi (
       entry_info_handle (p, true /* write */));
 
@@ -707,42 +915,49 @@ namespace butl
 #ifndef _WIN32
     int rr (rmdir (d));
 #else
-    // Note that we should only remove regular directories but not junctions.
-    // However, _rmdir() removes both and thus we need to check the entry type
-    // ourselves prior to removal.
+    // Note that we should only remove regular directories but not directory-
+    // type reparse points (entry_type::{symlink,other} types). However,
+    // _rmdir() removes both and thus we need to check the entry type
+    // ourselves prior to the removal.
     //
     DWORD a (GetFileAttributesA (d));
-    bool va (a != INVALID_FILE_ATTRIBUTES);
 
-    // Let's also check for non-directory not to end up with not very specific
-    // EINVAL.
+    if (a == INVALID_FILE_ATTRIBUTES)
+    {
+      DWORD ec (GetLastError ());
+      if (error_file_not_found (ec))
+        return rmdir_status::not_exist;
+
+      throw_system_error (ec);
+    }
+
+    // While at it, let's also check for non-directory not to end up with not
+    // very specific EINVAL.
     //
-    if (va && (!directory (a) || reparse_point (a)))
+    if (reparse_point (a) || !directory (a))
       throw_generic_error (ENOTDIR);
+
+    // On Windows a directory with the read-only attribute can not be deleted.
+    // Thus, we reset the attribute prior to removal and try to restore it if
+    // the operation fails.
+    //
+    bool ro (readonly (a));
+
+    // If we failed to reset the read-only attribute for any reason just try
+    // to remove the entry and end up with the 'not found' or 'permission
+    // denied' error code.
+    //
+    if (ro && !SetFileAttributes (d, a & ~FILE_ATTRIBUTE_READONLY))
+      ro = false;
 
     int rr (_rmdir (d));
 
-    // On Windows a directory with the read-only attribute can not be deleted.
-    // This can be the reason if the deletion fails with the 'permission
-    // denied' error code. In such a case we just reset the attribute and
-    // repeat the attempt. If the attempt fails, then we try to restore the
-    // attribute.
+    // Restoring the attribute is unlikely to fail since we managed to reset
+    // it earlier.
     //
-    if (rr != 0 && errno == EACCES)
-    {
-      if (va           &&
-          readonly (a) &&
-          SetFileAttributes (d, a & ~FILE_ATTRIBUTE_READONLY))
-      {
-        rr = _rmdir (d);
+    if (rr != 0 && ro)
+      SetFileAttributes (d, a);
 
-        // Restoring the attribute is unlikely to fail since we managed to
-        // reset it earlier.
-        //
-        if (rr != 0)
-          SetFileAttributes (d, a);
-      }
-    }
 #endif
 
     if (rr != 0)
@@ -813,7 +1028,8 @@ namespace butl
     // attempt. If the attempt fails, then we try to restore the attribute.
     //
     // Yet another reason for the 'permission denied' failure can be a
-    // junction.
+    // directory. We need to fail for a regular directory and retry using
+    // _rmdir() for a directory-type reparse point.
     //
     // And also there are some unknown reasons for the 'permission denied'
     // failure (see mventry() for details). If that's the case, we will keep
@@ -833,20 +1049,22 @@ namespace butl
         DWORD a (GetFileAttributesA (f));
         if (a != INVALID_FILE_ATTRIBUTES)
         {
+          if (regular_directory (a))
+            break;
+
           bool ro (readonly (a));
 
-          // Note that the reparse point can be a junction which we need to
-          // remove as a directory.
+          // Remove a directory-type reparse point as a directory.
           //
-          bool jn (junction (a));
+          bool dir (directory (a));
 
-          if (ro || jn)
+          if (ro || dir)
           {
             bool restore (ro &&
                           SetFileAttributes (f,
                                              a & ~FILE_ATTRIBUTE_READONLY));
 
-            ur = jn ? _rmdir (f) : _unlink (f);
+            ur = dir ? _rmdir (f) : _unlink (f);
 
             // Restoring the attribute is unlikely to fail since we managed to
             // reset it earlier.
@@ -885,6 +1103,30 @@ namespace butl
       throw_generic_error (errno);
   }
 
+  path
+  readsymlink (const path& p)
+  {
+    char buf [PATH_MAX + 1];
+    ssize_t r (readlink (p.string ().c_str (), buf, sizeof (buf)));
+
+    if (r == -1)
+      throw_generic_error (errno);
+
+    if (static_cast<size_t> (r) == sizeof (buf))
+      throw_generic_error (ENAMETOOLONG);
+
+    buf[r] = '\0';
+
+    try
+    {
+      return path (buf);
+    }
+    catch (const invalid_path&)
+    {
+      throw_generic_error (EINVAL);
+    }
+  }
+
   void
   mkhardlink (const path& target, const path& link, bool)
   {
@@ -897,12 +1139,16 @@ namespace butl
   void
   mksymlink (const path& target, const path& link, bool dir)
   {
-    using namespace win32;
+    // Canonicalize the reparse point target path to make sure that Windows
+    // API won't fail resolving it.
+    //
+    path tg (target);
+    tg.canonicalize ();
 
     // Try to create a symbolic link without elevated privileges by passing
     // the new SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE flag. The flag is
     // new and it may not be defined at compile-time so we pass its literal
-    // value.
+    // value (0x2).
     //
     // We may also be running on an earlier version of Windows (before 10
     // build 14972) that doesn't support it. The natural way to handle that
@@ -917,28 +1163,46 @@ namespace butl
     // path are invalid. So if we get this error, we also stat the two paths
     // to make sure we don't get the same error for them.
     //
-    if (CreateSymbolicLinkA (link.string ().c_str (),
-                             target.string ().c_str (),
-                             0x2 | (dir ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0)))
-      return;
-
-    // Note that ERROR_INVALID_PARAMETER means that either the function
-    // doesn't recognize the SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE
-    // flag (that happens on elder systems) or the target or link paths are
-    // invalid. Thus, we additionally check the paths to distinguish the
-    // cases.
+    // Note that the CreateSymbolicLinkA() function is only available starting
+    // with Windows Vista/Server 2008. To allow programs linked to libbutl to
+    // run on earlier Windows versions we will link the API in run-time. We
+    // also use the SYMBOLIC_LINK_FLAG_DIRECTORY flag literal value (0x1) as
+    // it may not be defined at compile-time.
     //
-    if (GetLastError () == ERROR_INVALID_PARAMETER)
+    HMODULE kh (GetModuleHandle ("kernel32.dll"));
+    if (kh != nullptr)
     {
-      auto invalid = [] (const path& p)
-      {
-        return GetFileAttributesA (p.string ().c_str ()) ==
-               INVALID_FILE_ATTRIBUTES &&
-               GetLastError () == ERROR_INVALID_PARAMETER;
-      };
+      using func = BOOL (*) (const char*, const char*, DWORD);
 
-      if (invalid (target) || invalid (link))
-        throw_generic_error (EINVAL);
+      func f (function_cast<func> (GetProcAddress (kh,
+                                                   "CreateSymbolicLinkA")));
+
+      if (f != nullptr)
+      {
+        if (f (link.string ().c_str (),
+               tg.string ().c_str (),
+               0x2 | (dir ? 0x1 : 0)))
+          return;
+
+        // Note that ERROR_INVALID_PARAMETER means that either the function
+        // doesn't recognize the SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE
+        // flag (that happens on elder systems) or the target or link paths are
+        // invalid. Thus, we additionally check the paths to distinguish the
+        // cases.
+        //
+        if (GetLastError () == ERROR_INVALID_PARAMETER)
+        {
+          auto invalid = [] (const path& p)
+          {
+            return GetFileAttributesA (p.string ().c_str ()) ==
+                   INVALID_FILE_ATTRIBUTES &&
+                   GetLastError () == ERROR_INVALID_PARAMETER;
+          };
+
+          if (invalid (tg) || invalid (link))
+            throw_generic_error (EINVAL);
+        }
+      }
     }
 
     // Fallback to creating a junction if we failed to create a directory
@@ -964,7 +1228,7 @@ namespace butl
     //
     auto_rmdir rm (ld);
 
-    auto_handle h (CreateFile (link.string ().c_str (),
+    auto_handle h (CreateFile (ld.string ().c_str (),
                                GENERIC_WRITE,
                                0,
                                NULL,
@@ -976,38 +1240,19 @@ namespace butl
     if (h == nullhandle)
       throw_system_error (GetLastError ());
 
-    // We will fill the uninitialized members later.
+    // Complete and normalize the target path.
     //
-    struct
+    if (tg.relative ())
     {
-      // Header.
-      //
-      DWORD   reparse_tag            = IO_REPARSE_TAG_MOUNT_POINT;
-      WORD    reparse_data_length;
-      WORD    reserved               = 0;
+      tg = link.directory () / tg;
 
-      // Mount point reparse buffer.
-      //
-      WORD    substitute_name_offset;
-      WORD    substitute_name_length;
-      WORD    print_name_offset;
-      WORD    print_name_length;
-
-      // Reserve space for NULL character-terminated path and print name.
-      //
-      wchar_t path_buffer[2 * MAX_PATH + 2];
-    } rb;
-
-    // Make the target path absolute and decorate it.
-    //
-    path atd (target);
-
-    if (atd.relative ())
-      atd.complete ();
+      if (tg.relative ())
+        tg.complete ();
+    }
 
     try
     {
-      atd.normalize ();
+      tg.normalize ();
     }
     catch (const invalid_path&)
     {
@@ -1027,7 +1272,7 @@ namespace butl
       // function declaration).
       //
       mbstate_t state ((mbstate_t ()));
-      size_t n (mbsrtowcs (to, &s, MAX_PATH + 1, &state));
+      size_t n (mbsrtowcs (to, &s, _MAX_PATH + 1, &state));
 
       if (n == static_cast<size_t> (-1))
         throw_generic_error (errno);
@@ -1038,31 +1283,36 @@ namespace butl
       return make_pair (n, static_cast<WORD> (n * sizeof (wchar_t)));
     };
 
-    // Convert the junction target path (\??\C:\...\).
+    // We will fill the uninitialized members later.
     //
-    pair<size_t, WORD> np (conv ("\\??\\" + atd.string () + "\\",
-                                 rb.path_buffer));
+    reparse_point_buf rp (IO_REPARSE_TAG_MOUNT_POINT);
+    mount_point_buf&  mp (rp.mount_point);
 
-    // Convert the junction target print name (C:\...).
+    // Decorate, convert and copy the junction target path (\??\C:\...) into
+    // the wide-character buffer.
     //
-    pair<size_t, WORD> nn (conv (atd.string (),
-                                 rb.path_buffer + np.first + 1));
+    pair<size_t, WORD> np (conv ("\\??\\" + tg.string (), mp.buf));
+
+    // Convert and copy the junction target print name (C:\...) into the
+    // wide-character buffer.
+    //
+    pair<size_t, WORD> nn (conv (tg.string (), mp.buf + np.first + 1));
 
     // Fill the rest of the structure and setup the reparse point.
     //
     // The path offset and length, in bytes.
     //
-    rb.substitute_name_offset = 0;
-    rb.substitute_name_length = np.second;
+    mp.substitute_name_offset = 0;
+    mp.substitute_name_length = np.second;
 
     // The print name offset and length, in bytes.
     //
-    rb.print_name_offset = np.second + sizeof (wchar_t);
-    rb.print_name_length = nn.second;
+    mp.print_name_offset = np.second + sizeof (wchar_t);
+    mp.print_name_length = nn.second;
 
     // The mount point reparse buffer size.
     //
-    rb.reparse_data_length =
+    rp.data_length =
       4 * sizeof (WORD)            + // Size of *_name_* fields.
       np.second + sizeof (wchar_t) + // Path length, in bytes.
       nn.second + sizeof (wchar_t);  // Print name length, in bytes.
@@ -1071,18 +1321,31 @@ namespace butl
     if (!DeviceIoControl (
           h.get (),
           FSCTL_SET_REPARSE_POINT,
-          &rb,
+          &rp,
           sizeof (DWORD) + 2 * sizeof (WORD) + // Size of the header.
-          rb.reparse_data_length,              // Size of the mount point
+          rp.data_length,                      // Size of the mount point
           NULL,                                // reparse buffer.
           0,
-          &r,
+          &r,                                  // May not be NULL.
           NULL))
       throw_system_error (GetLastError ());
 
     h.close (); // Checks for error.
 
     rm.cancel ();
+  }
+
+  path
+  readsymlink (const path& p)
+  {
+    pair<entry_type, path> rp (reparse_point_entry (p));
+
+    if (rp.first == entry_type::symlink)
+      return move (rp.second);
+    else if (rp.first == entry_type::unknown)
+      throw_generic_error (ENOENT);
+    else // entry_type::other
+      throw_generic_error (EINVAL);
   }
 
   void
@@ -1123,6 +1386,61 @@ namespace butl
       throw_generic_error (ENOSYS, "directory hard links not supported");
   }
 #endif
+
+  pair<path, bool>
+  try_followsymlink (const path& p)
+  {
+    path r (p);
+    bool exists;
+
+    for (size_t i (0); true; ++i)
+    {
+      pair<bool, entry_stat> pe (path_entry (r));
+
+      exists = pe.first;
+
+      // Check if we reached the end of the symlink chain.
+      //
+      if (!exists || pe.second.type != entry_type::symlink)
+        break;
+
+      // Bail out if the symlink chain is too long or is a cycle.
+      //
+      // Note that there is no portable and easy way to obtain the
+      // corresponding OS-level limit. However, the maximum chain length of 50
+      // symlinks feels to be sufficient given that on Linux the maximum
+      // number of followed symbolic links is 40 and on Windows the maximum
+      // number of reparse points per path is 31.
+      //
+      if (i == 50)
+        throw_generic_error (ELOOP);
+
+      path tp (readsymlink (r));
+
+      // Rebase a relative target path over the resulting path and reset the
+      // resulting path to an absolute target path.
+      //
+      bool rel (tp.relative ());
+      r = rel ? r.directory () / tp : move (tp);
+
+      // Note that we could potentially optimize and delay the resulting path
+      // normalization until the symlink chain is followed. However, this
+      // imposes a risk that the path can become too long for Windows API to
+      // properly handle it.
+      //
+      if (rel)
+      try
+      {
+        r.normalize ();
+      }
+      catch (const invalid_path&)
+      {
+        throw_generic_error (EINVAL);
+      }
+    }
+
+    return make_pair (move (r), exists);
+  }
 
   rmfile_status
   try_rmsymlink (const path& link, bool, bool ie)
@@ -1358,10 +1676,11 @@ namespace butl
       ec = GetLastError ();
 
       // If the destination already exists, then MoveFileExA() succeeds only
-      // if it is a regular file or a symlink but not a junction, failing with
+      // if it is a regular file or a file-type reparse point, failing with
       // ERROR_ALREADY_EXISTS (ERROR_ACCESS_DENIED under Wine) for a regular
-      // directory and ERROR_ACCESS_DENIED for a junction. Thus, we remove a
-      // junction and retry the move operation.
+      // directory and ERROR_ACCESS_DENIED for a directory-type reparse point.
+      // Thus, we remove a directory-type reparse point and retry the move
+      // operation.
       //
       // Lets also support an empty directory special case to comply with
       // POSIX. If the destination is an empty directory we will just remove
@@ -1371,9 +1690,12 @@ namespace butl
       {
         bool retry (false);
 
-        if (te.first && te.second.type == entry_type::symlink && junction (t))
+        if (te.first && directory_reparse_point (t))
         {
-          try_rmsymlink (to);
+          // Note that the entry being removed is of the entry_type::symlink
+          // or entry_type::other type.
+          //
+          try_rmfile (to);
           retry = true;
         }
         else if (td)
@@ -1694,8 +2016,6 @@ namespace butl
   void dir_iterator::
   next ()
   {
-    using namespace win32;
-
     for (;;)
     {
       bool r;
@@ -1732,10 +2052,8 @@ namespace butl
 
         e_.p_ = move (p);
 
-        // Note that the entry can be a reparse point regardless of the
-        // _A_SUBDIR attribute presence and so its type detection always
-        // requires to additionally query the entry information. Thus, we
-        // evaluate its type lazily.
+        // Note that the entry type detection always requires to additionally
+        // query the entry information. Thus, we evaluate its type lazily.
         //
         e_.t_ = entry_type::unknown;
 
@@ -1782,16 +2100,36 @@ namespace butl
             continue;
           }
 
-          e_.t_ = reparse_point (a) ? entry_type::symlink   :
-                  directory (a)     ? entry_type::directory :
-                                      entry_type::regular   ;
+          if (reparse_point (a))
+          {
+            pair<entry_type, path> rp (
+              reparse_point_entry (p, true /* ignore_error */));
+
+            if (rp.first == entry_type::unknown)
+            {
+              verify_error ();
+              continue;
+            }
+
+            e_.t_ = rp.first;
+          }
+          else
+            e_.t_ = directory (a)
+                    ? entry_type::directory
+                    : entry_type::regular;
 
           if (e_.t_ == entry_type::symlink)
           {
             // Query the target info.
             //
+            // Note that we use entry_info_handle() rather than
+            // path_entry_info() to be able to verify an error on failure.
+            //
             pair<auto_handle, BY_HANDLE_FILE_INFORMATION> ti (
-              entry_info_handle (p, true /* ignore_error */));
+              entry_info_handle (p,
+                                 false /* write */,
+                                 true /* follow_reparse_points */,
+                                 true /* ignore_error */));
 
             if (ti.first == nullhandle)
             {

@@ -53,6 +53,12 @@ link_file (const path& target, const path& link, mklink ml, bool check_content)
     case mklink::hard: mkhardlink (target, link);                  break;
     case mklink::any:  mkanylink  (target, link, true /* copy */); break;
     }
+
+    pair<bool, entry_stat> es (path_entry (link));
+    assert (es.first);
+
+    if (es.second.type == entry_type::symlink && readsymlink (link) != target)
+      return false;
   }
   catch (const system_error&)
   {
@@ -87,6 +93,12 @@ link_dir (const dir_path& target,
       mkhardlink (target, link);
     else
       mksymlink (target, link);
+
+    pair<bool, entry_stat> es (path_entry (link));
+    assert (es.first);
+
+    if (es.second.type == entry_type::symlink)
+      readsymlink (link); // // Check for errors.
   }
   catch (const system_error&)
   {
@@ -120,9 +132,86 @@ link_dir (const dir_path& target,
   return te == le;
 }
 
+// Usages:
+//
+// argv[0]
+// argv[0] -s <target> <link>
+// argv[0] -f <path>
+//
+// In the first form run the basic symbolic and hard link tests.
+//
+// In the second form create a symlink. On error print the diagnostics to
+// stderr and exit with the one code.
+//
+// In the third form follow symlinks and print the resulting target path to
+// stdout. On error print the diagnostics to stderr and exit with the one
+// code.
+//
 int
-main ()
+main (int argc, const char* argv[])
 {
+  bool create_symlink  (false);
+  bool follow_symlinks (false);
+
+  int i (1);
+  for (; i != argc; ++i)
+  {
+    string v (argv[i]);
+
+    if (v == "-s")
+      create_symlink = true;
+    else if (v == "-f")
+      follow_symlinks = true;
+    else
+      break;
+  }
+
+  if (create_symlink)
+  {
+    assert (!follow_symlinks);
+    assert (i + 2 == argc);
+
+    try
+    {
+      path t (argv[i]);
+      path l (argv[i + 1]);
+
+      bool dir (dir_exists (t.relative () ? l.directory () / t : t));
+      mksymlink (t, l, dir);
+
+      path lt (readsymlink (l));
+
+      // The targets may only differ for Windows directory junctions.
+      //
+      assert (lt == t || dir);
+
+      return 0;
+    }
+    catch (const system_error& e)
+    {
+      cerr << "error: " << e << endl;
+      return 1;
+    }
+  }
+  else if (follow_symlinks)
+  {
+    assert (!create_symlink);
+    assert (i + 1 == argc);
+
+    try
+    {
+      cout << try_followsymlink (path (argv[i])).first << endl;
+      return 0;
+    }
+    catch (const system_error& e)
+    {
+      cerr << "error: " << e << endl;
+      return 1;
+    }
+  }
+  else
+    assert (i == argc);
+
   dir_path td (dir_path::temp_directory () / dir_path ("butl-link"));
 
   // Recreate the temporary directory (that possibly exists from the previous

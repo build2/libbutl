@@ -3,4 +3,4 @@
 
 import libs = libbutl%lib{butl}
 
-exe{driver}: {hxx cxx}{*} $libs
+exe{driver}: {hxx cxx}{*} $libs testscript

@@ -203,7 +203,8 @@ LIBBUTL_MODEXPORT namespace butl
 
   // Note that on Windows the read-only attribute is reset prior to the file
   // removal (as it can't otherwise be deleted). In such a case the operation
-  // is not atomic.
+  // is not atomic. It is also not atomic for the directory-type reparse point
+  // removal.
   //
   LIBBUTL_SYMEXPORT rmfile_status
   try_rmfile (const path&, bool ignore_error = false);
@@ -239,7 +240,8 @@ LIBBUTL_MODEXPORT namespace butl
   using auto_rmdir = auto_rm<dir_path>; // Note: recursive (rm_r).
 
   // Create a symbolic link to a file (default) or directory (third argument
-  // is true). Throw std::system_error on failures.
+  // is true). Assume a relative target to be relative to the link's
+  // directory. Throw std::system_error on failures.
   //
   // Note that on Windows symlinks are supported partially:
   //
@@ -253,16 +255,28 @@ LIBBUTL_MODEXPORT namespace butl
   //   Note that creating a junction doesn't require a process to have
   //   administrative privileges and so succeeds regardless of the Windows
   //   version and mode. Also note that junctions, in contrast to symlinks,
-  //   may only store target absolute paths. Thus, when create a junction we
-  //   complete its target path against the current directory (unless it is
-  //   already absolute) and normalize, which makes it impossible for a
-  //   mksymlink() caller to rely on target path staying relative.
+  //   may only store target absolute paths. Thus, when create a junction with
+  //   a relative target we complete it using the link directory and, if the
+  //   latter is also relative, using the process' current working directory.
+  //   This makes it impossible for a mksymlink() caller to rely on the target
+  //   path staying relative. Note that we also normalize the junction target
+  //   path regardless if we complete it or not.
   //
-  // - Functions other than mksymlink() fully support symlinks, considering
-  //   the Windows file symlinks (file-type reparse points referring to files)
-  //   as regular file symlinks and the Windows directory symlinks (file-type
-  //   reparse points referring to directories) and junctions (directory-type
-  //   reparse points referring to directories) as directory symlinks.
+  // - Functions other than mksymlink() fully support Windows reparse points
+  //   and treat them as follows:
+  //
+  //   - consider the file symlink entries (file-type reparse points tagged
+  //     as IO_REPARSE_TAG_SYMLINK and referring to files) as regular file
+  //     symlinks (having the entry_type::symlink type).
+  //
+  //   - consider the directory symlink entries (same as above but refer to
+  //     directories) and junctions (directory-type reparse points tagged as
+  //     IO_REPARSE_TAG_MOUNT_POINT and referring to directories) as directory
+  //     symlinks (having the entry_type::symlink type).
+  //
+  //   - consider all other reparse point types (volume mount points, Unix
+  //     domain sockets, etc) as other entries (having the entry_type::other
+  //     type).
   //
   // Also note that symlinks are currently not supported properly on Wine due
   // to some differences in the underlying API behavior.
@@ -278,6 +292,39 @@ LIBBUTL_MODEXPORT namespace butl
   {
     mksymlink (target, link, true);
   }
+
+  // Return the symbolic link target. Throw std::system_error on failures.
+  //
+  // Note that this function doesn't follow symlinks, so if a symlink refers
+  // to another symlink then the second link's path is returned.
+  //
+  // Also note that the function returns the exact target path as it is stored
+  // in the symlink filesystem entry, without completing or normalizing it.
+  //
+  LIBBUTL_SYMEXPORT path
+  readsymlink (const path&);
+
+  // Follow a symbolic link chain until non-symlink filesystem entry is
+  // encountered and return its path. Throw std::system_error on failures,
+  // including on encountering a non-existent filesystem entry anywhere in the
+  // chain (but see try_followsymlink() below).
+  //
+  // The resulting path is constructed by starting with the specified path and
+  // then by sequentially resolving the symlink chain rebasing a relative
+  // target path over the current resulting path and resetting it to the path
+  // itself on encountering an absolute target path. For example:
+  //
+  // for  a/b/c -> ../d/e            the result is a/d/e
+  // for  a/b/c -> /x/y/z -> ../d/e  the result is /x/d/e
+  //
+  path
+  followsymlink (const path&);
+
+  // As above but instead of failing on the dangling symlink return its path
+  // (first) as well as as an indication of this condition (false as second).
+  //
+  LIBBUTL_SYMEXPORT std::pair<path, bool>
+  try_followsymlink (const path&);
 
   // Remove a symbolic link to a file (default) or directory (third argument
   // is true). Throw std::system_error on failures.

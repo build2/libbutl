@@ -12,10 +12,10 @@
   :
   {
     cat <:'abc' >=f;
-    $* f >>~/EOO/
+    $* f >>~%EOO%
       type: regular
       size: 3
-      /.+
+      %.+
       EOO
   }
 
@@ -25,9 +25,9 @@
   :
   {
     mkdir -p d;
-    $* d >>~/EOO/
+    $* d >>~%EOO%
       type: directory
-      /.+
+      %.+
       EOO
   }
 
@@ -36,10 +36,10 @@
   {
     cat <:'abc' >=f;
     ln -s f l;
-    $* -l l >>~/EOO/
+    $* -l l >>~%EOO%
       type: regular
       size: 3
-      /.+
+      %.+
       EOO
   }
 
@@ -54,7 +54,7 @@
   if ($test.target == $build.host)
   {
     +if ($cxx.target.class != 'windows')
-      lnf = ln -s t l &l
+      lnf = ^ln -s t l &l
       lnd = $lnf
     else
       echo 'yes' >=t
@@ -156,7 +156,12 @@
       {
         mkdir t;
         $jnc;
-        $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' t | set ti;
+
+        # Pass the absolute path so the junction's target path matches.
+        #
+        $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' $~/t | \
+        set ti;
+
         $* -l l >"$ti"
       }
 

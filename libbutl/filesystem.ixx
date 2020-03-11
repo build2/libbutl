@@ -38,6 +38,17 @@ namespace butl
     return e ? rmdir_status::success : rmdir_status::not_exist;
   }
 
+  inline path
+  followsymlink (const path& p)
+  {
+    std::pair<path, bool> r (try_followsymlink (p));
+
+    if (!r.second)
+      throw_generic_error (ENOENT);
+
+    return std::move (r.first);
+  }
+
   // auto_rm
   //
   template <typename P>
