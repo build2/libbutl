@@ -137,7 +137,7 @@ namespace butl
 
     // Sort the remaining command line elements into the arguments and
     // redirects, performing the substitutions. Complete relative redirects
-    // against CWD and use the rightmost redirect.
+    // using CWD and use the rightmost redirect.
     //
     vector<string> args;
 

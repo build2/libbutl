@@ -362,7 +362,9 @@ LIBBUTL_MODEXPORT namespace butl
   // no directories, only files), whichever is possible in that order. If
   // `relative` is true, then make the symlink target relative to the link
   // directory (note: it is the caller's responsibility to make sure this is
-  // possible).
+  // possible). Otherwise, assume a relative target to be relative to the
+  // link directory and complete it accordingly when create a hardlink or a
+  // copy.
   //
   // On success, return the type of entry created: `regular` for copy,
   // `symlink` for symlink, and `other` for hardlink. On failure, throw a

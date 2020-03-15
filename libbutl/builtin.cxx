@@ -277,7 +277,7 @@ namespace butl
   }
 
   // Return the current working directory if wd is empty and wd otherwise,
-  // completed against the current directory if it is relative. Fail if
+  // completed using the current directory if it is relative. Fail if
   // std::system_error is thrown by the underlying function call.
   //
   dir_path
@@ -779,7 +779,7 @@ namespace butl
     assert (link.absolute () && link.normalized ());
 
     // Determine the target type, fail if the target doesn't exist. Note that
-    // to do that we need to complete a relative target path against the link
+    // to do that we need to complete a relative target path using the link
     // directory making the target path absolute.
     //
     const path& atp (target.relative ()

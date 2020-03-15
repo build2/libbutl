@@ -1453,9 +1453,11 @@ namespace butl
   {
     using error = pair<entry_type, system_error>;
 
+    const path& tp (rel ? target.relative (link.directory ()) : target);
+
     try
     {
-      mksymlink (rel ? target.relative (link.directory ()) : target, link);
+      mksymlink (tp, link);
       return entry_type::symlink;
     }
     catch (system_error& e)
@@ -1469,9 +1471,19 @@ namespace butl
         if (c == ENOSYS || // Not implemented.
             c == EPERM)    // Not supported by the filesystem(s).
         {
+          // Note that for hardlinking/copying we need to complete a relative
+          // target using the link directory.
+          //
+          const path& ctp (tp.relative () ? link.directory () / tp : tp);
+
           try
           {
-            mkhardlink (target, link);
+            // The target can be a symlink (or a symlink chain) with a
+            // relative target that, unless the (final) symlink and the
+            // hardlink are in the same directory, will result in a dangling
+            // link.
+            //
+            mkhardlink (followsymlink (ctp), link);
             return entry_type::other;
           }
           catch (system_error& e)
@@ -1485,7 +1497,7 @@ namespace butl
               {
                 try
                 {
-                  cpfile (target, link);
+                  cpfile (ctp, link);
                   return entry_type::regular;
                 }
                 catch (system_error& e)
@@ -2416,7 +2428,7 @@ namespace butl
     recursive_dir_iterator (recursive_dir_iterator&&) = default;
 
     // Return false if no more entries left. Otherwise save the next entry path
-    // and return true. The path is relative against the directory being
+    // and return true. The path is relative to the directory being
     // traversed and contains a trailing separator for sub-directories. Throw
     // std::system_error in case of a failure (insufficient permissions,
     // dangling symlink encountered, etc).

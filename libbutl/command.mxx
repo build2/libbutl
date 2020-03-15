@@ -55,7 +55,7 @@ LIBBUTL_MODEXPORT namespace butl
   // possible substitutions (so the redirect character cannot be the result of
   // a substitution; see below).
   //
-  // The relative redirect file paths are completed against the command
+  // The relative redirect file paths are completed using the command
   // current working directory. Note that if it is altered via the process
   // environment, then the new value is used.
   //
