@@ -650,7 +650,7 @@
   {
     mkdir a;
     touch --no-cleanup a/b;
-    ln -s a/b a/l;
+    ^ln -s b a/l &a/l;
     rm a/b;
 
     touch a/c;

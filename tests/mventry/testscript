@@ -98,7 +98,7 @@
 if ($test.target == $build.host)
 {
   +if ($cxx.target.class != 'windows')
-    lnf = ln -s t l &l
+    lnf = ^ln -s t l &l
     lnd = $lnf
   else
     echo 'yes' >=t

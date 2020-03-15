@@ -242,16 +242,17 @@ namespace butl
     return ops;
   }
 
-  // Parse and normalize a path. Also, unless it is already absolute, make the
-  // path absolute using the specified directory (must be an absolute path).
-  // Fail if the path is empty, and on parsing and normalization errors.
+  // Parse and normalize a path. Also make a relative path absolute using the
+  // specified directory path if it is not empty (in which case it must be
+  // absolute). Fail if the path is empty, and on parsing and normalization
+  // errors.
   //
   static path
   parse_path (string s,
               const dir_path& d,
               const function<error_record ()>& fail)
   {
-    assert (d.absolute ());
+    assert (d.empty () || d.absolute ());
 
     try
     {
@@ -260,7 +261,7 @@ namespace butl
       if (p.empty ())
         throw invalid_path ("");
 
-      if (p.relative ())
+      if (p.relative () && !d.empty ())
         p = d / move (p);
 
       p.normalize ();
@@ -775,26 +776,31 @@ namespace butl
              const builtin_callbacks& cbs,
              const function<error_record ()>& fail)
   {
-    assert (target.absolute () && target.normalized ());
     assert (link.absolute () && link.normalized ());
 
-    // Determine the target type, fail if the target doesn't exist.
+    // Determine the target type, fail if the target doesn't exist. Note that
+    // to do that we need to complete a relative target path against the link
+    // directory making the target path absolute.
     //
+    const path& atp (target.relative ()
+                     ? link.directory () / target
+                     : target);
+
     bool dir (false);
 
     try
     {
-      pair<bool, entry_stat> pe (path_entry (target));
+      pair<bool, entry_stat> pe (path_entry (atp));
 
       if (!pe.first)
-        fail () << "unable to create symlink to '" << target << "': no such "
+        fail () << "unable to create symlink to '" << atp << "': no such "
                 << "file or directory";
 
       dir = pe.second.type == entry_type::directory;
     }
     catch (const system_error& e)
     {
-      fail () << "unable to stat '" << target << "': " << e;
+      fail () << "unable to stat '" << atp << "': " << e;
     }
 
     // First we try to create a symlink. If that fails (e.g., "Windows
@@ -824,11 +830,14 @@ namespace butl
             (c == ENOSYS || // Not implemented.
              c == EPERM)))  // Not supported by the filesystem(s).
         fail () << "unable to create symlink '" << link << "' to '"
-                << target << "': " << e;
+                << atp << "': " << e;
 
+      // Note that for hardlinking/copying we need to use the complete
+      // (absolute) target path.
+      //
       try
       {
-        mkhardlink (target, link, dir);
+        mkhardlink (atp, link, dir);
 
         if (cbs.create)
           call (fail, cbs.create, link, false /* pre */);
@@ -840,16 +849,16 @@ namespace butl
               (c == ENOSYS || // Not implemented.
                c == EPERM  || // Not supported by the filesystem(s).
                c == EXDEV)))  // On different filesystems.
-          fail () << "unable to create hardlink '" << link << "' to '"
-                  << target << "': " << e;
+          fail () << "unable to create hardlink '" << link << "' to '" << atp
+                  << "': " << e;
 
         if (dir)
-          cpdir (path_cast<dir_path> (target), path_cast<dir_path> (link),
+          cpdir (path_cast<dir_path> (atp), path_cast<dir_path> (link),
                  false /* attrs */,
                  cbs,
                  fail);
         else
-          cpfile (target, link,
+          cpfile (atp, link,
                   false /* overwrite */,
                   true /* attrs */,
                   cbs,
@@ -924,7 +933,9 @@ namespace butl
       //
       if (!link.to_directory ())
       {
-        path target (parse_path (move (*i++), wd, fail));
+        // Don't complete a relative target and pass it to mksymlink() as is.
+        //
+        path target (parse_path (move (*i++), dir_path (), fail));
 
         // If there are multiple targets but no trailing separator for the
         // link, then, most likelly, it is missing.
@@ -940,7 +951,10 @@ namespace butl
       {
         for (; i != e; ++i)
         {
-          path target (parse_path (move (*i), wd, fail));
+          // Don't complete a relative target and pass it to mksymlink() as
+          // is.
+          //
+          path target (parse_path (move (*i), dir_path (), fail));
 
           // Synopsis 2: create a target path symlink in the specified
           // directory.

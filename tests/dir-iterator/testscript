@@ -24,7 +24,7 @@ $* a >"dir     b"
 if ($test.target == $build.host)
 {
   +if ($cxx.target.class != 'windows')
-    lnf = ln -s wd/t wd/l &wd/l
+    lnf = ^ln -s t wd/l &wd/l
     lnd = $lnf
   else
     echo 'yes' >=t

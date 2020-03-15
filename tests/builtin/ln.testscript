@@ -112,7 +112,7 @@ $* -u >'option -u' 2>"ln: unknown option '-u'" == 1
     {
       touch a;
 
-      $* -s a b/c >>/~%EOO% 2>>/~%EOE% != 0
+      $* -s $~/a b/c >>/~%EOO% 2>>/~%EOE% != 0
         %create .+/b/c true%
         EOO
         %(
@@ -185,7 +185,7 @@ $* -u >'option -u' 2>"ln: unknown option '-u'" == 1
     {
       mkdir a;
 
-      $* -s a b/c >>/~%EOO% 2>>/~%EOE% != 0
+      $* -s $~/a b/c >>/~%EOO% 2>>/~%EOE% != 0
         %create .+/b/c true%
         EOO
         %(
@@ -205,7 +205,7 @@ $* -u >'option -u' 2>"ln: unknown option '-u'" == 1
   touch a;
   mkdir b c;
 
-  $* -s a b c/ >>/~%EOO% &c/a &c/b;
+  $* -s ../a ../b c/ >>/~%EOO% &c/a &c/b;
     %create .+/c/a true%
     %create .+/c/a false%
     %create .+/c/b true%
