@@ -194,4 +194,14 @@ LIBBUTL_MODEXPORT namespace butl
                const char* format,
                bool local,
                const char** end = nullptr);
+
+  // Rebase a time point from UNIX epoch to midnight in the local time zone
+  // (so the returned duration is always less than 24 hours).
+  //
+  // Specifically, convert the time point from Epoch to the local time and
+  // return the time elapsed since midnight. Throw std::system_error on
+  // underlying time conversion function failures.
+  //
+  LIBBUTL_SYMEXPORT duration
+  daytime (timestamp);
 }

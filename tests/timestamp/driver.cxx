@@ -225,4 +225,16 @@ main ()
 
   assert (parse (
     "Apr  8 19:31:10 2016", "%b %d %H:%M:%S %Y", "Apr 08 19:31:10 2016"));
+
+  {
+    timestamp t (from_string ("Apr 8 19:31:10 2016",
+                              "%b %d %H:%M:%S %Y",
+                              true /* local */));
+
+    timestamp mt (from_string ("Apr 8 00:00:00 2016",
+                               "%b %d %H:%M:%S %Y",
+                               true /* local */));
+
+    assert (daytime (t) == t - mt);
+  }
 }

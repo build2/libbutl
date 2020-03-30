@@ -662,4 +662,32 @@ namespace butl
     return system_clock::from_time_t (time) +
       chrono::duration_cast<duration> (t.second);
   }
+
+  duration
+  daytime (timestamp t)
+  {
+    // Convert the time from Epoch to the local time.
+    //
+    time_t time (system_clock::to_time_t (t));
+
+    std::tm tm;
+    if (details::localtime (&time, &tm) == nullptr)
+      throw_generic_error (errno);
+
+    // Roll the time back to the latest midnight.
+    //
+    tm.tm_hour = 0;
+    tm.tm_min = 0;
+    tm.tm_sec = 0;
+
+    // Convert the local midnight to time from Epoch.
+    //
+    time = mktime (&tm);
+    if (time == -1)
+      throw_generic_error (errno);
+
+    // Note: preserves the accuracy of the original time.
+    //
+    return t - system_clock::from_time_t (time);
+  }
 }
