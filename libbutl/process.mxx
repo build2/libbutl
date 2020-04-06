@@ -494,7 +494,6 @@ LIBBUTL_MODEXPORT namespace butl
     quote_argument (const char*, std::string& buffer);
 #endif
 
-
   public:
     id_type
     id () const;
@@ -547,6 +546,16 @@ LIBBUTL_MODEXPORT namespace butl
     const process_path* path;
     const dir_path*     cwd  = nullptr;
     const char* const*  vars = nullptr;
+
+    // Return true if there is an "environment", that is, either the current
+    // working directory or environment variables.
+    //
+    bool
+    env () const
+    {
+      return (cwd != nullptr && !cwd->empty ()) ||
+             (vars != nullptr && *vars != nullptr);
+    }
 
     process_env (const process_path& p,
                  const dir_path& c = dir_path (),

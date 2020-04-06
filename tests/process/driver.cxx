@@ -7,6 +7,7 @@
 #include <ios>
 #include <string>
 #include <vector>
+#include <sstream>
 #include <iterator>  // istreambuf_iterator, ostream_iterator
 #include <algorithm> // copy()
 #include <iostream>
@@ -28,6 +29,7 @@ import butl.fdstream;
 #include <libbutl/path.mxx>
 #include <libbutl/utility.mxx>
 #include <libbutl/process.mxx>
+#include <libbutl/process-io.mxx>
 #include <libbutl/optional.mxx>
 #include <libbutl/fdstream.mxx>
 #endif
@@ -474,4 +476,38 @@ main (int argc, const char* argv[])
     assert (!exec (path ("testX.bat")));
   }
 #endif
+
+  // Test printing process_env to stream.
+  //
+  {
+    auto str = [] (const process_env& env)
+    {
+      ostringstream os;
+      os << env;
+      return os.str ();
+    };
+
+    process_path p;
+
+    assert (str (process_env (p)) == "");
+
+    {
+      dir_path d ("dir");
+      dir_path ds ("d ir");
+      assert (str (process_env (p, d)) == "PWD=dir");
+      assert (str (process_env (p, ds)) == "PWD=\"d ir\"");
+    }
+
+    {
+      dir_path ed; // Empty.
+      const char* vars[] = {nullptr};
+      assert (str (process_env (p, ed, vars)) == "");
+    }
+
+    {
+      const char* vars[] = {"A=B", "A=B C", "A B=C", "A", "A B", nullptr};
+      assert (str (process_env (p, vars)) ==
+              "A=B A=\"B C\" \"A B=C\" A= \"A B=\"");
+    }
+  }
 }
