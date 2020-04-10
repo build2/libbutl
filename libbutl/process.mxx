@@ -128,6 +128,11 @@ LIBBUTL_MODEXPORT namespace butl
     void
     clear_recall ();
 
+    explicit
+    process_path (path effect);
+    process_path (const char* initial, path&& recall, path&& effect);
+    process_path () = default;
+
     // Moveable-only type.
     //
     process_path (process_path&&);
@@ -136,8 +141,6 @@ LIBBUTL_MODEXPORT namespace butl
     process_path (const process_path&) = delete;
     process_path& operator= (const process_path&) = delete;
 
-    process_path () = default;
-    process_path (const char* i, path&& r, path&& e);
     ~process_path ();
 
     // Manual copying. Should not use args[0] RAII. See path_search() for the

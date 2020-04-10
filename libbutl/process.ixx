@@ -13,6 +13,14 @@ namespace butl
   }
 
   inline process_path::
+  process_path (path e)
+      : effect (std::move (e)),
+        args0_ (nullptr)
+  {
+    initial = effect.string ().c_str ();
+  }
+
+  inline process_path::
   process_path (const char* i, path&& r, path&& e)
       : initial (i),
         recall (std::move (r)),
