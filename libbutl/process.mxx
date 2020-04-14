@@ -103,8 +103,8 @@ LIBBUTL_MODEXPORT namespace butl
   //
   // Note that the call to path_search() below adjust args[0] to point to the
   // recall path which brings up lifetime issues. To address this this class
-  // also implements an RAII-based auto-restore of args[0] to its initial
-  // value.
+  // also implements an optional RAII-based auto-restore of args[0] to its
+  // initial value.
   //
   class process_path
   {
@@ -118,9 +118,11 @@ LIBBUTL_MODEXPORT namespace butl
     const char* recall_string () const;
     const char* effect_string () const;
 
-    bool empty () const
+    bool
+    empty () const
     {
-      return initial == nullptr && recall.empty () && effect.empty ();
+      return (initial == nullptr || *initial == '\0') &&
+        recall.empty () && effect.empty ();
     }
 
     // Clear recall making it the same as effective.
