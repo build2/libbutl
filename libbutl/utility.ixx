@@ -219,6 +219,34 @@ namespace butl
     return sanitize_identifier (std::string (s));
   }
 
+  inline void
+  sanitize_strlit (const std::string& s, std::string& o)
+  {
+    for (size_t i (0), j;; i = j + 1)
+    {
+      j = s.find_first_of ("\\\"\n", i);
+      o.append (s.c_str () + i, (j == std::string::npos ? s.size () : j) - i);
+
+      if (j == std::string::npos)
+        break;
+
+      switch (s[j])
+      {
+      case '\\': o += "\\\\"; break;
+      case '"':  o += "\\\""; break;
+      case '\n': o += "\\n";  break;
+      }
+    }
+  }
+
+  inline std::string
+  sanitize_strlit (const std::string& s)
+  {
+    std::string r;
+    sanitize_strlit (s, r);
+    return r;
+  }
+
   inline bool
   eof (std::istream& is)
   {

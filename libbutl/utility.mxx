@@ -195,6 +195,14 @@ LIBBUTL_MODEXPORT namespace butl
   std::string  sanitize_identifier (std::string&&);
   std::string  sanitize_identifier (const std::string&);
 
+  // Sanitize a string (e.g., a path) to be a valid C string literal by
+  // escaping backslahes, double-quotes, and newlines.
+  //
+  // Note that in the second version the result is appended to out.
+  //
+  std::string sanitize_strlit (const std::string&);
+  void        sanitize_strlit (const std::string&, std::string& out);
+
   // Return true if the string is a valid UTF-8 encoded byte string and,
   // optionally, its decoded codepoints belong to the specified types or
   // codepoint whitelist.
