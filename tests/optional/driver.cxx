@@ -20,7 +20,6 @@ import butl.optional;
 #endif
 
 using namespace std;
-using namespace butl;
 
 struct redirect
 {
@@ -33,22 +32,12 @@ struct redirect
   redirect& operator= (const redirect&) = delete;
 };
 
-struct command
-{
-  butl::optional<redirect> err;
-};
-
 int
 main ()
 {
-  /*(
-  command c;
-  vector<command> cs;
-  cs.emplace_back (move (c));
-//  cs.push_back (move (c));
-*/
+  using butl::optional;
 
-  redirect r;
-  vector<redirect> rs;
+  optional<redirect> r;
+  vector<optional<redirect>> rs;
   rs.emplace_back (move (r));
 }
