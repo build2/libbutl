@@ -7,8 +7,8 @@
 
 namespace butl
 {
-  template <typename V>
-  char_scanner<V>::
+  template <typename V, std::size_t N>
+  char_scanner<V, N>::
   char_scanner (std::istream& is,
                 validator_type v,
                 bool crlf,
@@ -26,12 +26,12 @@ namespace butl
   {
   }
 
-  template <typename V>
-  auto char_scanner<V>::
+  template <typename V, std::size_t N>
+  auto char_scanner<V, N>::
   peek (std::string* what) -> xchar
   {
-    if (unget_)
-      return ungetc_;
+    if (ungetn_ > 0)
+      return ungetb_[ungetn_ - 1];
 
     if (unpeek_)
       return unpeekc_;
@@ -108,12 +108,12 @@ namespace butl
     return xchar (v, line, column, position);
   }
 
-  template <typename V>
-  void char_scanner<V>::
+  template <typename V, std::size_t N>
+  void char_scanner<V, N>::
   get (const xchar& c)
   {
-    if (unget_)
-      unget_ = false;
+    if (ungetn_ > 0)
+      --ungetn_;
     else
     {
       if (unpeek_)

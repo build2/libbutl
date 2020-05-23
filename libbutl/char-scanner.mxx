@@ -9,6 +9,7 @@
 
 #ifndef __cpp_lib_modules_ts
 #include <string>  // char_traits
+#include <cstddef> // size_t
 #include <cstdint> // uint64_t
 #include <climits> // INT_*
 #include <utility> // pair, make_pair()
@@ -46,11 +47,12 @@ LIBBUTL_MODEXPORT namespace butl
   // Low-level character stream scanner. Normally used as a base for
   // higher-level lexers.
   //
-  template <typename V = noop_validator>
+  template <typename V = noop_validator, std::size_t N = 1>
   class char_scanner
   {
   public:
     using validator_type = V;
+    static constexpr const std::size_t unget_depth = N;
 
     // If the crlf argument is true, then recognize Windows newlines (0x0D
     // 0x0A) and convert them to just '\n' (0x0A). Note that a standalone
@@ -119,7 +121,7 @@ LIBBUTL_MODEXPORT namespace butl
           : char_type (0);
       }
 
-      xchar (int_type v,
+      xchar (int_type v = 0,
              std::uint64_t l = 0,
              std::uint64_t c = 0,
              std::uint64_t p = 0)
@@ -247,10 +249,10 @@ LIBBUTL_MODEXPORT namespace butl
     bool crlf_;
     bool eos_ = false;
 
-    bool unget_ = false;
-    bool unpeek_ = false;
+    std::size_t ungetn_ = 0;
+    xchar ungetb_[N];
 
-    xchar ungetc_ = '\0';
+    bool unpeek_ = false;
     xchar unpeekc_ = '\0';
   };
 }
