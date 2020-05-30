@@ -130,8 +130,11 @@ LIBBUTL_MODEXPORT namespace butl
     void
     clear_recall ();
 
+    // Make all three paths the same.
+    //
     explicit
     process_path (path effect);
+
     process_path (const char* initial, path&& recall, path&& effect);
     process_path () = default;
 

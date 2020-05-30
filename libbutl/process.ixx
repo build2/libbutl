@@ -12,12 +12,16 @@ namespace butl
       *args0_ = initial;
   }
 
+  // Note that moving the argument into recall and leaving effective empty
+  // complies with the constructor semantics and also makes sure that the
+  // move/copy constructors and assignment operators work correctly.
+  //
   inline process_path::
   process_path (path e)
-      : effect (std::move (e)),
+      : recall (std::move (e)),
         args0_ (nullptr)
   {
-    initial = effect.string ().c_str ();
+    initial = recall.string ().c_str ();
   }
 
   inline process_path::
