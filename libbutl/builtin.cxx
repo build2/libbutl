@@ -2109,19 +2109,20 @@ namespace butl
 
   const builtin_map builtins
   {
-    {"cat",   &async_impl<&cat>},
-    {"cp",    &sync_impl<&cp>},
-    {"echo",  &async_impl<&echo>},
-    {"false", &false_},
-    {"ln",    &sync_impl<&ln>},
-    {"mkdir", &sync_impl<&mkdir>},
-    {"mv",    &sync_impl<&mv>},
-    {"rm",    &sync_impl<&rm>},
-    {"rmdir", &sync_impl<&rmdir>},
-    {"sed",   &async_impl<&sed>},
-    {"sleep", &sync_impl<&sleep>},
-    {"test",  &sync_impl<&test>},
-    {"touch", &sync_impl<&touch>},
-    {"true",  &true_}
+    {"cat",   {&async_impl<&cat>,  2}},
+    {"cp",    {&sync_impl<&cp>,    2}},
+    {"diff",  {nullptr,            2}},
+    {"echo",  {&async_impl<&echo>, 2}},
+    {"false", {&false_,            0}},
+    {"ln",    {&sync_impl<&ln>,    2}},
+    {"mkdir", {&sync_impl<&mkdir>, 2}},
+    {"mv",    {&sync_impl<&mv>,    2}},
+    {"rm",    {&sync_impl<&rm>,    1}},
+    {"rmdir", {&sync_impl<&rmdir>, 1}},
+    {"sed",   {&async_impl<&sed>,  2}},
+    {"sleep", {&sync_impl<&sleep>, 1}},
+    {"test",  {&sync_impl<&test>,  1}},
+    {"touch", {&sync_impl<&touch>, 2}},
+    {"true",  {&true_,             0}}
   };
 }

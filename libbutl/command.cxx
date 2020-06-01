@@ -227,9 +227,9 @@ namespace butl
                                  msg.c_str ());
     }
 
-    builtin_function* bf (builtins.find (prog));
+    const builtin_info* bi (builtins.find (prog));
 
-    if (bf != nullptr) // Execute the builtin.
+    if (bi != nullptr && bi->function != nullptr) // Execute the builtin.
     {
       if (callback)
       {
@@ -259,17 +259,17 @@ namespace butl
       uint8_t r; // Storage.
       builtin_callbacks cb;
 
-      builtin b (bf (r,
-                     args,
-                     nullfd    /* stdin */,
-                     move (rd) /* stdout */,
-                     nullfd    /* stderr */,
-                     cwd,
-                     cb));
+      builtin b (bi->function (r,
+                               args,
+                               nullfd    /* stdin */,
+                               move (rd) /* stdout */,
+                               nullfd    /* stderr */,
+                               cwd,
+                               cb));
 
       return process_exit (b.wait ());
     }
-    else               // Execute the program.
+    else                                          // Execute the program.
     {
       // Strip the potential leading `^`, indicating that this is an external
       // program rather than a builtin. Consider only simple paths and don't

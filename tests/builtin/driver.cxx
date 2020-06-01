@@ -144,15 +144,21 @@ main (int argc, char* argv[])
 
   // Execute the builtin.
   //
-  builtin_function* bf (builtins.find (name));
+  const builtin_info* bi (builtins.find (name));
 
-  if (bf == nullptr)
+  if (bi == nullptr)
   {
     cerr << "unknown builtin '" << name << "'" << endl;
     return 1;
   }
 
+  if (bi->function == nullptr)
+  {
+    cerr << "external builtin '" << name << "'" << endl;
+    return 1;
+  }
+
   uint8_t r; // Storage.
-  builtin b (bf (r, args, nullfd, nullfd, nullfd, cwd, callbacks));
+  builtin b (bi->function (r, args, nullfd, nullfd, nullfd, cwd, callbacks));
   return b.wait ();
 }

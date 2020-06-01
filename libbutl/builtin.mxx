@@ -153,19 +153,38 @@ LIBBUTL_MODEXPORT namespace butl
                                     const dir_path& cwd,
                                     const builtin_callbacks&);
 
-  class builtin_map: public std::map<std::string, builtin_function*>
+  // Builtin function and weight.
+  //
+  // The weight between 0 and 2 reflects the builtin's contribution to the
+  // containing script semantics with 0 being the lowest/ignore. Current
+  // mapping is as follows:
+  //
+  // 0 - non-contributing (true, false)
+  // 1 - non-creative     (rm, rmdir, sleep, test)
+  // 2 - creative         (any builtin that may produce output)
+  //
+  // If the function is NULL, then the builtin has an external implementation
+  // and should be executed by running the program with this name.
+  //
+  struct builtin_info
+  {
+    builtin_function* function;
+    uint8_t           weight;
+  };
+
+  class builtin_map: public std::map<std::string, builtin_info>
   {
   public:
-    using base = std::map<std::string, builtin_function*>;
+    using base = std::map<std::string, builtin_info>;
     using base::base;
 
     // Return NULL if not a builtin.
     //
-    builtin_function*
+    const builtin_info*
     find (const std::string& n) const
     {
       auto i (base::find (n));
-      return i != end () ? i->second : nullptr;
+      return i != end () ? &i->second : nullptr;
     }
   };
 
