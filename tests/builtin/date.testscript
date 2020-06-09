@@ -1,0 +1,48 @@
+# file      : tests/builtin/date.testscript
+# license   : MIT; see accompanying LICENSE file
+
+test.arguments = "date"
+
+: timezone
+:
+: Here we also make sure that the dates are not only verified but can also be
+: seen if running with the verbosity level 2 and up, which helps with
+: troubleshooting.
+:
+{
+  $* | set local;
+  $* --utc | set utc;
+
+  echo "local: $local"  >~'%local: \S+ \S+ .+ \d{2}:\d{2}:\d{2} .+ \d+%';
+  echo "utc: $utc" >~'%utc: \S+ \S+ .+ \d{2}:\d{2}:\d{2} .+ \d+%'
+}
+
+: format
+:
+{
+  : non-empty
+  :
+  $* '+%Y-%m-%d %H:%M:%S%[.N]' >~'%\d+-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{9}%'
+
+  : empty
+  :
+  $* '+' >''
+
+  : no-leading-plus
+  :
+  $* '%Y-%m-%d %H:%M:%S' 2>>EOE!= 0
+    date: date format argument must start with '+'
+    EOE
+}
+
+: unknown-option
+:
+$* -d '+%Y-%m-%d %H:%M:%S' 2>>EOE!= 0
+  date: unknown option '-d'
+  EOE
+
+: unexpected-arg
+:
+$* '+%Y-%m-%d %H:%M:%S' '%Y' 2>>EOE!= 0
+  date: unexpected argument '%Y'
+  EOE

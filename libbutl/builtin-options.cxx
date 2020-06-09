@@ -895,6 +895,274 @@ namespace butl
     return r;
   }
 
+  // date_options
+  //
+
+  date_options::
+  date_options ()
+  : utc_ ()
+  {
+  }
+
+  bool date_options::
+  parse (int& argc,
+         char** argv,
+         bool erase,
+         ::butl::cli::unknown_mode opt,
+         ::butl::cli::unknown_mode arg)
+  {
+    ::butl::cli::argv_scanner s (argc, argv, erase);
+    bool r = _parse (s, opt, arg);
+    return r;
+  }
+
+  bool date_options::
+  parse (int start,
+         int& argc,
+         char** argv,
+         bool erase,
+         ::butl::cli::unknown_mode opt,
+         ::butl::cli::unknown_mode arg)
+  {
+    ::butl::cli::argv_scanner s (start, argc, argv, erase);
+    bool r = _parse (s, opt, arg);
+    return r;
+  }
+
+  bool date_options::
+  parse (int& argc,
+         char** argv,
+         int& end,
+         bool erase,
+         ::butl::cli::unknown_mode opt,
+         ::butl::cli::unknown_mode arg)
+  {
+    ::butl::cli::argv_scanner s (argc, argv, erase);
+    bool r = _parse (s, opt, arg);
+    end = s.end ();
+    return r;
+  }
+
+  bool date_options::
+  parse (int start,
+         int& argc,
+         char** argv,
+         int& end,
+         bool erase,
+         ::butl::cli::unknown_mode opt,
+         ::butl::cli::unknown_mode arg)
+  {
+    ::butl::cli::argv_scanner s (start, argc, argv, erase);
+    bool r = _parse (s, opt, arg);
+    end = s.end ();
+    return r;
+  }
+
+  bool date_options::
+  parse (::butl::cli::scanner& s,
+         ::butl::cli::unknown_mode opt,
+         ::butl::cli::unknown_mode arg)
+  {
+    bool r = _parse (s, opt, arg);
+    return r;
+  }
+
+  typedef
+  std::map<std::string, void (*) (date_options&, ::butl::cli::scanner&)>
+  _cli_date_options_map;
+
+  static _cli_date_options_map _cli_date_options_map_;
+
+  struct _cli_date_options_map_init
+  {
+    _cli_date_options_map_init ()
+    {
+      _cli_date_options_map_["--utc"] =
+      &::butl::cli::thunk< date_options, bool, &date_options::utc_ >;
+      _cli_date_options_map_["-u"] =
+      &::butl::cli::thunk< date_options, bool, &date_options::utc_ >;
+    }
+  };
+
+  static _cli_date_options_map_init _cli_date_options_map_init_;
+
+  bool date_options::
+  _parse (const char* o, ::butl::cli::scanner& s)
+  {
+    _cli_date_options_map::const_iterator i (_cli_date_options_map_.find (o));
+
+    if (i != _cli_date_options_map_.end ())
+    {
+      (*(i->second)) (*this, s);
+      return true;
+    }
+
+    return false;
+  }
+
+  bool date_options::
+  _parse (::butl::cli::scanner& s,
+          ::butl::cli::unknown_mode opt_mode,
+          ::butl::cli::unknown_mode arg_mode)
+  {
+    // Can't skip combined flags (--no-combined-flags).
+    //
+    assert (opt_mode != ::butl::cli::unknown_mode::skip);
+
+    bool r = false;
+    bool opt = true;
+
+    while (s.more ())
+    {
+      const char* o = s.peek ();
+
+      if (std::strcmp (o, "--") == 0)
+      {
+        opt = false;
+      }
+
+      if (opt)
+      {
+        if (_parse (o, s))
+        {
+          r = true;
+          continue;
+        }
+
+        if (std::strncmp (o, "-", 1) == 0 && o[1] != '\0')
+        {
+          // Handle combined option values.
+          //
+          std::string co;
+          if (const char* v = std::strchr (o, '='))
+          {
+            co.assign (o, 0, v - o);
+            ++v;
+
+            int ac (2);
+            char* av[] =
+            {
+              const_cast<char*> (co.c_str ()),
+              const_cast<char*> (v)
+            };
+
+            ::butl::cli::argv_scanner ns (0, ac, av);
+
+            if (_parse (co.c_str (), ns))
+            {
+              // Parsed the option but not its value?
+              //
+              if (ns.end () != 2)
+                throw ::butl::cli::invalid_value (co, v);
+
+              s.next ();
+              r = true;
+              continue;
+            }
+            else
+            {
+              // Set the unknown option and fall through.
+              //
+              o = co.c_str ();
+            }
+          }
+
+          // Handle combined flags.
+          //
+          char cf[3];
+          {
+            const char* p = o + 1;
+            for (; *p != '\0'; ++p)
+            {
+              if (!((*p >= 'a' && *p <= 'z') ||
+                    (*p >= 'A' && *p <= 'Z') ||
+                    (*p >= '0' && *p <= '9')))
+                break;
+            }
+
+            if (*p == '\0')
+            {
+              for (p = o + 1; *p != '\0'; ++p)
+              {
+                std::strcpy (cf, "-");
+                cf[1] = *p;
+                cf[2] = '\0';
+
+                int ac (1);
+                char* av[] =
+                {
+                  cf
+                };
+
+                ::butl::cli::argv_scanner ns (0, ac, av);
+
+                if (!_parse (cf, ns))
+                  break;
+              }
+
+              if (*p == '\0')
+              {
+                // All handled.
+                //
+                s.next ();
+                r = true;
+                continue;
+              }
+              else
+              {
+                // Set the unknown option and fall through.
+                //
+                o = cf;
+              }
+            }
+          }
+
+          switch (opt_mode)
+          {
+            case ::butl::cli::unknown_mode::skip:
+            {
+              s.skip ();
+              r = true;
+              continue;
+            }
+            case ::butl::cli::unknown_mode::stop:
+            {
+              break;
+            }
+            case ::butl::cli::unknown_mode::fail:
+            {
+              throw ::butl::cli::unknown_option (o);
+            }
+          }
+
+          break;
+        }
+      }
+
+      switch (arg_mode)
+      {
+        case ::butl::cli::unknown_mode::skip:
+        {
+          s.skip ();
+          r = true;
+          continue;
+        }
+        case ::butl::cli::unknown_mode::stop:
+        {
+          break;
+        }
+        case ::butl::cli::unknown_mode::fail:
+        {
+          throw ::butl::cli::unknown_argument (o);
+        }
+      }
+
+      break;
+    }
+
+    return r;
+  }
+
   // ln_options
   //
 

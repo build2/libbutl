@@ -29,6 +29,11 @@ namespace butl
     bool --preserve|-p;
   };
 
+  class date_options
+  {
+    bool --utc|-u;
+  };
+
   class ln_options
   {
     bool --symbolic|-s;

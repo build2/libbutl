@@ -166,6 +166,15 @@ namespace butl
     return this->preserve_;
   }
 
+  // date_options
+  //
+
+  inline const bool& date_options::
+  utc () const
+  {
+    return this->utc_;
+  }
+
   // ln_options
   //
 

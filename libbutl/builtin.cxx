@@ -680,6 +680,102 @@ namespace butl
     return 1;
   }
 
+  // date [-u|--utc] [+<format>]
+  //
+  // Note: must be executed asynchronously.
+  //
+  static uint8_t
+  date (const strings& args,
+        auto_fd in, auto_fd out, auto_fd err,
+        const dir_path&,
+        const builtin_callbacks& cbs) noexcept
+  try
+  {
+    uint8_t r (1);
+    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+
+    auto error = [&cerr] (bool fail = false)
+    {
+      return error_record (cerr, fail, "date");
+    };
+
+    auto fail = [&error] () {return error (true /* fail */);};
+
+    try
+    {
+      in.close ();
+      ofdstream cout (out != nullfd ? move (out) : fddup (stdout_fd ()));
+
+      // Parse arguments.
+      //
+      cli::vector_scanner scan (args);
+
+      date_options ops (
+        parse<date_options> (scan, args, cbs.parse_option, fail));
+
+      const char* format;
+
+      string fs; // Storage.
+      if (scan.more ())
+      {
+        fs = scan.next ();
+        if (fs[0] != '+')
+          fail () << "date format argument must start with '+'";
+
+        format = fs.c_str () + 1;
+      }
+      else
+        format = "%a %b %e %H:%M:%S %Z %Y";
+
+      if (scan.more ())
+        fail () << "unexpected argument '" << scan.next () << "'";
+
+      // Print the current time.
+      //
+      try
+      {
+        to_stream (cout,
+                   system_clock::now (),
+                   format,
+                   false /* special */,
+                   !ops.utc ());
+      }
+      catch (const system_error& e)
+      {
+        fail () << "unable to print time in format '" << format << "': " << e;
+      }
+
+      cout << '\n';
+      cout.close ();
+      r = 0;
+    }
+    // Can be thrown while closing cin or creating, writing to, or closing
+    // cout.
+    //
+    catch (const io_error& e)
+    {
+      error () << e;
+    }
+    catch (const failed&)
+    {
+      // Diagnostics has already been issued.
+    }
+    catch (const cli::exception& e)
+    {
+      error () << e;
+    }
+
+    cerr.close ();
+    return r;
+  }
+  // In particular, handles io_error exception potentially thrown while
+  // creating, writing to, or closing cerr.
+  //
+  catch (const std::exception&)
+  {
+    return 1;
+  }
+
   // echo <string>...
   //
   // Note: must be executed asynchronously.
@@ -2111,6 +2207,7 @@ namespace butl
   {
     {"cat",   {&async_impl<&cat>,  2}},
     {"cp",    {&sync_impl<&cp>,    2}},
+    {"date",  {&async_impl<&date>, 2}},
     {"diff",  {nullptr,            2}},
     {"echo",  {&async_impl<&echo>, 2}},
     {"false", {&false_,            0}},

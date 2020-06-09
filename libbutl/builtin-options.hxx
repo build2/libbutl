@@ -390,6 +390,71 @@ namespace butl
     bool preserve_;
   };
 
+  class date_options
+  {
+    public:
+    date_options ();
+
+    // Return true if anything has been parsed.
+    //
+    bool
+    parse (int& argc,
+           char** argv,
+           bool erase = false,
+           ::butl::cli::unknown_mode option = ::butl::cli::unknown_mode::fail,
+           ::butl::cli::unknown_mode argument = ::butl::cli::unknown_mode::stop);
+
+    bool
+    parse (int start,
+           int& argc,
+           char** argv,
+           bool erase = false,
+           ::butl::cli::unknown_mode option = ::butl::cli::unknown_mode::fail,
+           ::butl::cli::unknown_mode argument = ::butl::cli::unknown_mode::stop);
+
+    bool
+    parse (int& argc,
+           char** argv,
+           int& end,
+           bool erase = false,
+           ::butl::cli::unknown_mode option = ::butl::cli::unknown_mode::fail,
+           ::butl::cli::unknown_mode argument = ::butl::cli::unknown_mode::stop);
+
+    bool
+    parse (int start,
+           int& argc,
+           char** argv,
+           int& end,
+           bool erase = false,
+           ::butl::cli::unknown_mode option = ::butl::cli::unknown_mode::fail,
+           ::butl::cli::unknown_mode argument = ::butl::cli::unknown_mode::stop);
+
+    bool
+    parse (::butl::cli::scanner&,
+           ::butl::cli::unknown_mode option = ::butl::cli::unknown_mode::fail,
+           ::butl::cli::unknown_mode argument = ::butl::cli::unknown_mode::stop);
+
+    // Option accessors.
+    //
+    const bool&
+    utc () const;
+
+    // Implementation details.
+    //
+    protected:
+    bool
+    _parse (const char*, ::butl::cli::scanner&);
+
+    private:
+    bool
+    _parse (::butl::cli::scanner&,
+            ::butl::cli::unknown_mode option,
+            ::butl::cli::unknown_mode argument);
+
+    public:
+    bool utc_;
+  };
+
   class ln_options
   {
     public:
