@@ -300,24 +300,39 @@ namespace butl
     // those that we handle ourselves. Watch out for the escapes (%%).
     //
     size_t i (0), j (0); // put_time()'s range.
+
+    // Print the time partially, using the not printed part of the format
+    // string up to the current scanning position and setting the current
+    // character to NULL. Return true if the operation succeeded.
+    //
+    auto print = [&i, &j, &fmt, &os, &tm] ()
+    {
+      if (i != j)
+      {
+        fmt[j] = '\0'; // Note: there is no harm if j == n.
+        if (!(os << put_time (&tm, fmt + i)))
+          return false;
+      }
+
+      return true;
+    };
+
     for (; j != n; ++j)
     {
       if (fmt[j] == '%' && j + 1 != n)
       {
-        if (fmt[j + 1] == '[')
+        char c (fmt[j + 1]);
+
+        if (c == '[')
         {
           if (os.width () != 0)
             throw runtime_error (
               "padding is not supported when printing nanoseconds");
 
-          // Our fragment. First see if we need to call put_time().
+          // Our fragment.
           //
-          if (i != j)
-          {
-            fmt[j] = '\0';
-            if (!(os << put_time (&tm, fmt + i)))
-              return os;
-          }
+          if (!print ())
+            return os;
 
           j += 2; // Character after '['.
           if (j == n)
@@ -348,19 +363,39 @@ namespace butl
 
           i = j + 1; // j is incremented in the for-loop header.
         }
+        //
+        // Note that MinGW (as of GCC 9.2) libstdc++'s implementations of
+        // std::put_time() and std::strftime() don't recognize the %e
+        // specifier, converting it into the empty string (bug #95624). Thus,
+        // we handle this specifier ourselves for libstdc++ on Windows.
+        //
+#if defined(_WIN32) && defined(__GLIBCXX__)
+        else if (c == 'e')
+        {
+          if (!print ())
+            return os;
+
+          ostream::fmtflags fl (os.flags ());
+          char fc (os.fill (' '));
+
+          // Note: the width is automatically reset to 0 (unspecified) after
+          // we print the day.
+          //
+          os << dec << right << setw (2) << tm.tm_mday;
+
+          os.fill (fc);
+          os.flags (fl);
+
+          ++j;       // Positions at 'e'.
+          i = j + 1; // j is incremented in the for-loop header.
+        }
+#endif
         else
           ++j; // Skip % and the next character to handle %%.
       }
     }
 
-    // Do we need to call put_time() one last time?
-    //
-    if (i != j)
-    {
-      if (!(os << put_time (&tm, fmt + i)))
-        return os;
-    }
-
+    print (); // Call put_time() one last time, if required.
     return os;
   }
 

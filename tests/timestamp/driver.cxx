@@ -199,6 +199,9 @@ main ()
                  "%[.N]%Y-%m-%d %H:%M:%S",
                  "." + ns (384902285) + "2016-02-21 19:31:10"));
 
+  assert (parse ("Feb 1 2016", "%b %e %Y", "Feb  1 2016"));
+  assert (parse ("Feb 11 2016", "%b %e %Y", "Feb 11 2016"));
+
 //  setlocale (LC_ALL, "");
 //  setlocale (LC_ALL, "de_DE.utf-8");
 //  setlocale (LC_ALL, "de-de");

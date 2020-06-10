@@ -79,7 +79,7 @@ LIBBUTL_MODEXPORT namespace butl
 
   // Print human-readable representation of the timestamp.
   //
-  // By default the timestamp is printed by localtime_r() in the local
+  // By default the timestamp is converted by localtime_r() to the local
   // timezone, so tzset() from <time.h> should be called prior to using the
   // corresponding operator or the to_stream() function (normally from main()
   // or equivalent).
