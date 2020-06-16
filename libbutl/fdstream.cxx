@@ -1047,7 +1047,7 @@ namespace butl
     // which will cause all kinds of problems upstream (e.g., cpfile()). So we
     // detect and diagnose this.
     //
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__NetBSD__)
     {
       struct stat s;
       if (stat (f, &s) == 0 && S_ISDIR (s.st_mode))

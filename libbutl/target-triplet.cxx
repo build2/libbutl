@@ -60,8 +60,9 @@ namespace butl
       //
       string::size_type p (s.find ('-', ++f)), n (p - f);
 
-      if (n == 0)
-        bad ("empty vendor");
+      if (n == 0) {
+        goto netbsd_empty_vendor;
+      }
 
       // Do we have all four components? If so, then we don't need to do any
       // special recognition of two-component systems.
@@ -102,12 +103,19 @@ namespace butl
       }
     }
 
+netbsd_empty_vendor:
+
     // (l, npos) is SYSTEM
     //
     system.assign (s, ++l, string::npos);
 
     if (system.empty ())
       bad ("missing os/kernel/abi");
+
+    if (system.compare(0, 6, "netbsd") == 0)
+       vendor.assign("unknown");
+    else
+       bad("empty vendor");
 
     if (system.front () == '-' || system.back () == '-')
       bad ("invalid os/kernel/abi");

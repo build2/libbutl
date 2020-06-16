@@ -43,6 +43,8 @@
 //
 #  elif defined(__FreeBSD__) && __FreeBSD__ >= 8
 #    define LIBBUTL_POSIX_SPAWN
+#  elif defined(__NetBSD__)
+#    define LIBBUTL_POSIX_SPAWN
 //
 // posix_spawn() appeared in Version 3 of the Single UNIX Specification that
 // was implemented in MacOS 10.5 (see the man page for details).
