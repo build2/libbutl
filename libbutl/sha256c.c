@@ -68,7 +68,7 @@ main ()
 
 #endif /* SHA256_TEST_DRIVER */
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__NetBSD__)
 #  include <sys/endian.h> /* BYTE_ORDER, be32dec(), be32enc(), be64enc */
 #else
 #  if defined(_WIN32)
