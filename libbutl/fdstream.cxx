@@ -1043,9 +1043,9 @@ namespace butl
     of |= O_LARGEFILE;
 #endif
 
-    // Unlike other platforms, FreeBSD allows opening a directory as a file
-    // which will cause all kinds of problems upstream (e.g., cpfile()). So we
-    // detect and diagnose this.
+    // Unlike other platforms, *BSD allows opening a directory as a file which
+    // will cause all kinds of problems upstream (e.g., cpfile()). So we detect
+    // and diagnose this.
     //
 #if defined(__FreeBSD__) || defined(__NetBSD__)
     {

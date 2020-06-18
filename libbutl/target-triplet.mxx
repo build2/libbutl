@@ -80,6 +80,7 @@ LIBBUTL_MODEXPORT namespace butl
   //
   // x86_64-apple-darwin14.5.0         x86_64  apple      darwin         14.5.0
   // x86_64-unknown-freebsd10.2        x86_64             freebsd        10.2
+  // x86_64-unknown-netbsd9.0          x86_64             netbsd         9.0
   // i686-elf                          i686               elf
   // arm-eabi                          arm                eabi
   // arm-none-eabi                     arm                eabi

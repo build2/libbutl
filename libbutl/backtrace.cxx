@@ -9,15 +9,16 @@
 // complications of the build scripts/makefiles.
 //
 // With glibc linking with -rdynamic gives (non-static) function names.
-// FreeBSD requires explicitly linking -lexecinfo.
+// FreeBSD/NetBSD requires explicitly linking -lexecinfo.
 //
 // Note that some libc implementation on Linux (most notably, musl), don't
 // support this, at least not out of the box.
 //
 #ifndef BUILD2_BOOTSTRAP
-#  if defined(__GLIBC__) || \
-      defined(__APPLE__) || \
-      defined(__FreeBSD__)
+#  if defined(__GLIBC__)   || \
+      defined(__APPLE__)   || \
+      defined(__FreeBSD__) || \
+      defined(__NetBSD__)
 #    define LIBBUTL_BACKTRACE
 #  endif
 #else
@@ -71,7 +72,7 @@ namespace butl
 
 #ifdef LIBBUTL_BACKTRACE
 
-    // Note: backtrace() returns int on Linux and MacOS and size_t on FreeBSD.
+    // Note: backtrace() returns int on Linux and MacOS and size_t on *BSD.
     //
     void* buf[1024];
     auto n (::backtrace (buf, 1024));

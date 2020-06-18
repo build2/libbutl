@@ -89,6 +89,10 @@ main ()
                 "x86_64-linux-gnux32",
                 "x86_64", "", "linux-gnux32", "", "linux"));
 
+  assert (test ("x86_64--netbsd",
+                "x86_64-netbsd",
+                "x86_64", "", "netbsd", "", "bsd"));
+
   // Removal of none-.
   //
   assert (test ("arm-none",
@@ -108,6 +112,10 @@ main ()
   assert (test ("x86_64-unknown-freebsd10.2",
                 "x86_64-freebsd10.2",
                 "x86_64", "", "freebsd", "10.2", "bsd"));
+
+  assert (test ("x86_64-unknown-netbsd9.0",
+                "x86_64-netbsd9.0",
+                "x86_64", "", "netbsd", "9.0", "bsd"));
 
   assert (test ("x86_64-pc-openbsd5.6",
                 "x86_64-openbsd5.6",

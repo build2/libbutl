@@ -123,7 +123,7 @@ be64enc(void *pp, uint64_t u)
 	p[6] = (u >> 8) & 0xff;
 	p[7] = u & 0xff;
 }
-#endif /* __FreeBSD__ */
+#endif /* __FreeBSD__ || __NetBSD__ */
 
 /* The rest is the unmodified (except for a few explicit casts to make
    compilable in C++) latest implementation from FreeBSD sys/crypto/sha2/. */

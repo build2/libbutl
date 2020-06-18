@@ -43,7 +43,10 @@
 //
 #  elif defined(__FreeBSD__) && __FreeBSD__ >= 8
 #    define LIBBUTL_POSIX_SPAWN
-#  elif defined(__NetBSD__)
+//
+// On NetBSD posix_spawn() appeared in 6.0 (see the man page for details).
+//
+#  elif defined(__NetBSD__) && __NetBSD__ >= 6
 #    define LIBBUTL_POSIX_SPAWN
 //
 // posix_spawn() appeared in Version 3 of the Single UNIX Specification that

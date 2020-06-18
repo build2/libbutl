@@ -6,7 +6,10 @@ tsys   = $cxx.target.system
 
 : basic
 :
-if ($tclass == 'linux' || $tclass == 'macos' || $tsys == 'freebsd')
+if ($tclass == 'linux'  || \
+    $tclass == 'macos'  || \
+    $tsys == 'freebsd'  || \
+    $tsys == 'netbsd')
 {
   # The stack frame line format varies among OSes. The only common thing is
   # the '0x' function address prefix.
