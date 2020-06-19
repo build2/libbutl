@@ -1287,7 +1287,7 @@ namespace butl
           // rename() function) this is a noop.
           //
           if (exists && to == from)
-            fail () << "unable to move entity '" << from << "' to itself";
+            fail () << "unable to move entry '" << from << "' to itself";
 
           // Rename/move the filesystem entry, replacing an existing one.
           //
@@ -1300,7 +1300,7 @@ namespace butl
         }
         catch (const system_error& e)
         {
-          fail () << "unable to move entity '" << from << "' to '" << to
+          fail () << "unable to move entry '" << from << "' to '" << to
                   << "': " << e;
         }
       };
@@ -1321,7 +1321,7 @@ namespace butl
           fail () << "multiple source paths without trailing separator for "
                   << "destination directory";
 
-        // Synopsis 1: move an entity to the specified path.
+        // Synopsis 1: move an entry to the specified path.
         //
         mv (src, dst);
       }
