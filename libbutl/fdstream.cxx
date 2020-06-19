@@ -740,15 +740,14 @@ namespace butl
   static fdopen_mode
   translate_mode (ios_base::openmode m)
   {
-    enum
-    {
-      in    = ios_base::in,
-      out   = ios_base::out,
-      app   = ios_base::app,
-      bin   = ios_base::binary,
-      trunc = ios_base::trunc,
-      ate   = ios_base::ate
-    };
+    using openmode = ios_base::openmode;
+
+    const openmode in    (ios_base::in);
+    const openmode out   (ios_base::out);
+    const openmode app   (ios_base::app);
+    const openmode bin   (ios_base::binary);
+    const openmode trunc (ios_base::trunc);
+    const openmode ate   (ios_base::ate);
 
     const fdopen_mode fd_in     (fdopen_mode::in);
     const fdopen_mode fd_out    (fdopen_mode::out);
@@ -759,21 +758,20 @@ namespace butl
     const fdopen_mode fd_bin    (fdopen_mode::binary);
     const fdopen_mode fd_ate    (fdopen_mode::at_end);
 
-    fdopen_mode r;
-    switch (m & ~(ate | bin))
-    {
-    case in               : r = fd_in                           ; break;
-    case out              :
-    case out | trunc      : r = fd_out   | fd_trunc | fd_create ; break;
-    case app              :
-    case out | app        : r = fd_out   | fd_app   | fd_create ; break;
-    case out | in         : r = fd_inout                        ; break;
-    case out | in | trunc : r = fd_inout | fd_trunc | fd_create ; break;
-    case out | in | app   :
-    case in  | app        : r = fd_inout | fd_app   | fd_create ; break;
+    // Note: cannot use switch due to warnings (value no in enumerator).
+    //
+    openmode sm (m & ~(ate | bin));
+    fdopen_mode r (
+      sm == (in)                                ? fd_in                       :
+      sm == (out)          || sm == (out|trunc) ? fd_out|fd_trunc|fd_create   :
+      sm == (app)          || sm == (out|app)   ? fd_out|fd_app|fd_create     :
+      sm == (out|in)                            ? fd_inout                    :
+      sm == (out|in|trunc)                      ? fd_inout|fd_trunc|fd_create :
+      sm == (out|in|app)   || sm == (in|app)    ? fd_inout|fd_app|fd_create   :
+      fdopen_mode::none);
 
-    default: throw invalid_argument ("invalid open mode");
-    }
+    if (r == fdopen_mode::none)
+      throw invalid_argument ("invalid open mode");
 
     if (m & ate)
       r |= fd_ate;
