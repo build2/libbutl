@@ -1,6 +1,9 @@
 # file      : tests/path-entry/testscript
 # license   : MIT; see accompanying LICENSE file
 
+# Note that atime tests may fail if running on a mount with noatime (for
+# example, this happens on NetBSD).
+
 : existing
 :
 {

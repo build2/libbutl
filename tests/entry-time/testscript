@@ -39,6 +39,9 @@ t = ($cxx.target.class != 'macos' ? 1521456316789 : 1521456316000)
 : access
 :
 {
+  # Note that these tests may fail if running on a mount with noatime (for
+  # example, this happens on NetBSD).
+  #
   test.options += -a
 
   : dir
