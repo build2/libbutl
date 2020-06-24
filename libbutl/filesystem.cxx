@@ -255,7 +255,7 @@ namespace butl
     // exists. In other words, the entry of the required type doesn't exist.
     //
     if (dir ? !S_ISDIR (s.st_mode) : !S_ISREG (s.st_mode))
-      return throw_generic_error (ENOENT);
+      throw_generic_error (ENOENT);
 
     // Note: timeval has the microsecond resolution.
     //
@@ -360,11 +360,11 @@ namespace butl
       CreateFile (p,
                   write ? FILE_WRITE_ATTRIBUTES : 0,
                   0,
-                  NULL,
+                  nullptr,
                   OPEN_EXISTING,
                   FILE_FLAG_BACKUP_SEMANTICS | // Required for a directory.
                   (fr ? 0 : FILE_FLAG_OPEN_REPARSE_POINT),
-                  NULL));
+                  nullptr));
 
     if (h == nullhandle)
     {
@@ -478,11 +478,11 @@ namespace butl
     auto_handle h (CreateFile (p,
                                FILE_READ_EA,
                                0,
-                               NULL,
+                               nullptr,
                                OPEN_EXISTING,
                                FILE_FLAG_BACKUP_SEMANTICS |
                                FILE_FLAG_OPEN_REPARSE_POINT,
-                               NULL));
+                               nullptr));
 
     if (h == nullhandle)
     {
@@ -506,12 +506,12 @@ namespace butl
     if (!DeviceIoControl (
           h.get (),
           FSCTL_GET_REPARSE_POINT,
-          NULL,
+          nullptr,
           0,
           &rp,
           sizeof (rp) - sizeof (wchar_t), // Reserve for the NULL character.
           &n,                             // May not be NULL.
-          NULL))
+          nullptr))
     {
       if (ie)
         return make_pair (entry_type::unknown, path ());
@@ -566,7 +566,7 @@ namespace butl
       if (r == static_cast<size_t> (-1))
         return nullopt;
 
-      if (from != NULL) // Not enough space in the destination buffer.
+      if (from != nullptr) // Not enough space in the destination buffer.
         return nullopt;
 
       // The buffer contains an absolute path, distinguished by the special
@@ -809,12 +809,12 @@ namespace butl
     //
     if (hi.first == nullhandle ||
         directory (hi.second.dwFileAttributes) != dir)
-      return throw_generic_error (ENOENT);
+      throw_generic_error (ENOENT);
 
     auto tm = [] (timestamp t, FILETIME& ft) -> const FILETIME*
     {
       if (t == timestamp_nonexistent)
-        return NULL;
+        return nullptr;
 
       ft = to_filetime (t);
       return &ft;
@@ -823,7 +823,7 @@ namespace butl
     FILETIME at;
     FILETIME mt;
     if (!SetFileTime (hi.first.get (),
-                      NULL /* lpCreationTime */,
+                      nullptr /* lpCreationTime */,
                       tm (t.access, at),
                       tm (t.modification, mt)))
       throw_system_error (GetLastError ());
@@ -844,27 +844,29 @@ namespace butl
     //
     pair<bool, entry_stat> pe (path_entry (p, true /* follow_symlinks */));
 
-    // If the entry is of the wrong type, then let's pretend that it doesn't
-    // exist.
-    //
-    if (!pe.first || pe.second.type != entry_type::regular)
+    if (pe.first)
     {
-      if (!create)
-        throw_generic_error (ENOENT);
+      // If the entry is of the wrong type, then let's pretend that it doesn't
+      // exist.
+      //
+      if (pe.second.type == entry_type::regular)
+      {
+        if (utimes (p.string ().c_str (), nullptr) == -1)
+          throw_generic_error (errno);
+
+        return false;
+      }
     }
-    else
+    else if (create)
     {
-      if (utimes (p.string ().c_str (), nullptr) == -1)
-        throw_generic_error (errno);
-
-      return false;
+      // Assuming the file access and modification times are set to the
+      // current time automatically.
+      //
+      fdopen (p, fdopen_mode::out | fdopen_mode::create);
+      return true;
     }
 
-    // Assuming the file access and modification times are set to the
-    // current time automatically.
-    //
-    fdopen (p, fdopen_mode::out | fdopen_mode::create);
-    return true;
+    throw_generic_error (ENOENT);
   }
 
 #else
@@ -887,31 +889,33 @@ namespace butl
     pair<auto_handle, BY_HANDLE_FILE_INFORMATION> hi (
       entry_info_handle (p.string ().c_str (), true /* write */));
 
-    // If the entry is of the wrong type, then let's pretend that it doesn't
-    // exist.
-    //
-    if (hi.first == nullhandle || directory (hi.second.dwFileAttributes))
+    if (hi.first != nullhandle)
     {
-      if (!create)
-        throw_generic_error (ENOENT);
+      if (!directory (hi.second.dwFileAttributes))
+      {
+        FILETIME ft;
+        GetSystemTimeAsFileTime (&ft); // Does not fail.
+
+        if (!SetFileTime (hi.first.get (),
+                          nullptr /* lpCreationTime */,
+                          &ft,
+                          &ft))
+          throw_system_error (GetLastError ());
+
+        hi.first.close (); // Checks for error.
+        return false;
+      }
     }
-    else
+    else if (create)
     {
-      FILETIME ft;
-      GetSystemTimeAsFileTime (&ft); // Does not fail.
-
-      if (!SetFileTime (hi.first.get (), NULL /* lpCreationTime */, &ft, &ft))
-        throw_system_error (GetLastError ());
-
-      hi.first.close (); // Checks for error.
-      return false;
+      // Assuming the file access and modification times are set to the
+      // current time automatically.
+      //
+      fdopen (p, fdopen_mode::out | fdopen_mode::create);
+      return true;
     }
 
-    // Assuming the file access and modification times are set to the current
-    // time automatically.
-    //
-    fdopen (p, fdopen_mode::out | fdopen_mode::create);
-    return true;
+    throw_generic_error (ENOENT);
   }
 #endif
 
@@ -1279,11 +1283,11 @@ namespace butl
     auto_handle h (CreateFile (ld.string ().c_str (),
                                GENERIC_WRITE,
                                0,
-                               NULL,
+                               nullptr,
                                OPEN_EXISTING,
                                FILE_FLAG_BACKUP_SEMANTICS |
                                FILE_FLAG_OPEN_REPARSE_POINT,
-                               NULL));
+                               nullptr));
 
     if (h == nullhandle)
       throw_system_error (GetLastError ());
@@ -1325,7 +1329,7 @@ namespace butl
       if (n == static_cast<size_t> (-1))
         throw_generic_error (errno);
 
-      if (s != NULL) // Not enough space in the destination buffer.
+      if (s != nullptr) // Not enough space in the destination buffer.
         throw_generic_error (ENAMETOOLONG);
 
       return make_pair (n, static_cast<WORD> (n * sizeof (wchar_t)));
@@ -1372,10 +1376,10 @@ namespace butl
           &rp,
           sizeof (DWORD) + 2 * sizeof (WORD) + // Size of the header.
           rp.data_length,                      // Size of the mount point
-          NULL,                                // reparse buffer.
+          nullptr,                             // reparse buffer.
           0,
           &r,                                  // May not be NULL.
-          NULL))
+          nullptr))
       throw_system_error (GetLastError ());
 
     h.close (); // Checks for error.
