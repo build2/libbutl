@@ -548,6 +548,8 @@ LIBBUTL_MODEXPORT namespace butl
   // timestamp_nonexistent then it is left unchanged. All errors are reported
   // by throwing std::system_error.
   //
+  // Note: use touch_file() instead of file_mtime(system_clock::now()).
+  //
   LIBBUTL_SYMEXPORT void
   file_time (const char*, const entry_time&);
 

@@ -9,7 +9,6 @@
 
 #ifndef _WIN32
 #  include <stdio.h>     // rename()
-#  include <utime.h>     // utime()
 #  include <limits.h>    // PATH_MAX
 #  include <dirent.h>    // struct dirent, *dir()
 #  include <unistd.h>    // symlink(), link(), stat(), rmdir(), unlink()
@@ -24,7 +23,6 @@
 #  include <winioctl.h>  // FSCTL_SET_REPARSE_POINT
 #  include <sys/types.h> // _stat
 #  include <sys/stat.h>  // _stat(), S_I*
-#  include <sys/utime.h> // _utime()
 
 #  include <cwchar>  // mbsrtowcs(), wcsrtombs(), mbstate_t
 #  include <cstring> // strncmp()
@@ -247,6 +245,8 @@ namespace butl
   static void
   entry_tm (const char* p, const entry_time& t, bool dir)
   {
+    // @@ Perhaps fdopen/fstat/futimens would be more efficient (also below)?
+
     struct stat s;
     if (stat (p, &s) != 0)
       throw_generic_error (errno);
@@ -342,7 +342,7 @@ namespace butl
   // path refers to an existing entry and nullhandle otherwise. Follow reparse
   // points by default. Underlying OS errors are reported by throwing
   // std::system_error, unless ignore_error is true in which case nullhandle
-  // is returned. In the later case the error code can be obtained by calling
+  // is returned. In the latter case the error code can be obtained by calling
   // GetLastError().
   //
   static inline pair<win32::auto_handle, BY_HANDLE_FILE_INFORMATION>
@@ -799,11 +799,13 @@ namespace butl
   static void
   entry_tm (const char* p, const entry_time& t, bool dir)
   {
+    // See also touch_file() below.
+    //
     pair<auto_handle, BY_HANDLE_FILE_INFORMATION> hi (
       entry_info_handle (p, true /* write */));
 
     // If the entry is of the wrong type, then let's pretend that it doesn't
-    // exists.
+    // exist.
     //
     if (hi.first == nullhandle ||
         directory (hi.second.dwFileAttributes) != dir)
@@ -831,41 +833,87 @@ namespace butl
 
 #endif
 
+#ifndef _WIN32
   bool
   touch_file (const path& p, bool create)
   {
-    if (file_exists (p))
+    // utimes() (as well as utimensat()) have an unfortunate property of
+    // succeeding if the path is a directory.
+    //
+    // @@ Perhaps fdopen/fstat/futimens would be more efficient (also above)?
+    //
+    pair<bool, entry_stat> pe (path_entry (p, true /* follow_symlinks */));
+
+    // If the entry is of the wrong type, then let's pretend that it doesn't
+    // exist.
+    //
+    if (!pe.first || pe.second.type != entry_type::regular)
     {
-      // Note that on Windows there are two times: the precise time (which is
-      // what we get with system_clock::now()) and what we will call the
-      // "filesystem time", which can lag the precise time by as much as a
-      // couple of milliseconds. To get the filesystem time use
-      // GetSystemTimeAsFileTime(). This is just a heads-up in case we decide
-      // to change this code at some point.
-      //
-#ifndef _WIN32
-      if (utime (p.string ().c_str (), nullptr) == -1)
-#else
-        // Note: follows reparse points.
-        //
-        if (_utime (p.string ().c_str (), nullptr) == -1)
-#endif
+      if (!create)
+        throw_generic_error (ENOENT);
+    }
+    else
+    {
+      if (utimes (p.string ().c_str (), nullptr) == -1)
         throw_generic_error (errno);
 
       return false;
     }
 
-    if (create && !entry_exists (p))
+    // Assuming the file access and modification times are set to the
+    // current time automatically.
+    //
+    fdopen (p, fdopen_mode::out | fdopen_mode::create);
+    return true;
+  }
+
+#else
+
+  bool
+  touch_file (const path& p, bool create)
+  {
+    // We cannot use utime() on Windows since it has the seconds precision
+    // even if we don't specify the time explicitly. So we use SetFileTime()
+    // similar to entry_tm() above.
+    //
+    // Note also that on Windows there are two times: the precise time (which
+    // is what we get with system_clock::now()) and what we will call the
+    // "filesystem time", which can lag the precise time by as much as a
+    // couple of milliseconds. To get the filesystem time one uses
+    // GetSystemTimeAsFileTime(). We use this time here in order to keep
+    // timestamps consistent with other operations where they are updated
+    // implicitly.
+    //
+    pair<auto_handle, BY_HANDLE_FILE_INFORMATION> hi (
+      entry_info_handle (p.string ().c_str (), true /* write */));
+
+    // If the entry is of the wrong type, then let's pretend that it doesn't
+    // exist.
+    //
+    if (hi.first == nullhandle || directory (hi.second.dwFileAttributes))
     {
-      // Assuming the file access and modification times are set to the
-      // current time automatically.
-      //
-      fdopen (p, fdopen_mode::out | fdopen_mode::create);
-      return true;
+      if (!create)
+        throw_generic_error (ENOENT);
+    }
+    else
+    {
+      FILETIME ft;
+      GetSystemTimeAsFileTime (&ft); // Does not fail.
+
+      if (!SetFileTime (hi.first.get (), NULL /* lpCreationTime */, &ft, &ft))
+        throw_system_error (GetLastError ());
+
+      hi.first.close (); // Checks for error.
+      return false;
     }
 
-    throw_generic_error (ENOENT); // Does not exist or not a file.
+    // Assuming the file access and modification times are set to the current
+    // time automatically.
+    //
+    fdopen (p, fdopen_mode::out | fdopen_mode::create);
+    return true;
   }
+#endif
 
   mkdir_status
 #ifndef _WIN32

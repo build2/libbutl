@@ -36,7 +36,7 @@ using namespace butl;
 // entry.
 //
 // -p
-//    Print the filesystem entry time as as a number of milliseconds passed
+//    Print the filesystem entry time as a number of milliseconds passed
 //    since UNIX epoch.
 //
 // -s
