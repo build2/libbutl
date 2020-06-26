@@ -21,15 +21,15 @@ import butl.optional;
 
 using namespace std;
 
-struct redirect
+struct move_only
 {
-  redirect () = default;
+  move_only () = default;
 
-  redirect (redirect&&) = default;
-  redirect& operator= (redirect&&) = default;
+  move_only (move_only&&) = default;
+  move_only& operator= (move_only&&) = default;
 
-  redirect (const redirect&) = delete;
-  redirect& operator= (const redirect&) = delete;
+  move_only (const move_only&) = delete;
+  move_only& operator= (const move_only&) = delete;
 };
 
 int
@@ -37,7 +37,7 @@ main ()
 {
   using butl::optional;
 
-  optional<redirect> r;
-  vector<optional<redirect>> rs;
+  optional<move_only> r;
+  vector<optional<move_only>> rs;
   rs.emplace_back (move (r));
 }

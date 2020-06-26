@@ -60,7 +60,7 @@
 #else
 #  include <utility>     // move()
 #  include <functional>  // hash
-#  include <type_traits> // is_trivially_destructible
+#  include <type_traits> // is_*
 #endif
 #endif
 
@@ -91,9 +91,6 @@ LIBBUTL_MODEXPORT namespace butl
   // Simple optional class template while waiting for std::optional.
   //
   struct nullopt_t {constexpr explicit nullopt_t (int) {}};
-#if defined(__cpp_modules_ts) && defined(__clang__) //@@ MOD Clang duplicate sym.
-  inline
-#endif
   constexpr nullopt_t nullopt (1);
 
   namespace details
@@ -184,12 +181,86 @@ LIBBUTL_MODEXPORT namespace butl
       optional_data& operator= (const optional_data&);
       optional_data& operator= (optional_data&&);
     };
+
+    template <typename T,
+              bool = std::is_copy_constructible<T>::value,
+              bool = std::is_move_constructible<T>::value>
+    struct optional_ctors: optional_data<T>
+    {
+      using optional_data<T>::optional_data;
+    };
+
+    template <typename T>
+    struct optional_ctors<T, false, true>: optional_ctors<T, true, true>
+    {
+      using optional_ctors<T, true, true>::optional_ctors;
+
+#if !defined(_MSC_VER) || _MSC_VER > 1900
+      constexpr optional_ctors () = default;
+#else
+      optional_ctors () = default;
+#endif
+
+      optional_ctors (const optional_ctors&) = delete;
+
+#if (!defined(_MSC_VER) || _MSC_VER > 1900) &&                  \
+    (!defined(__GNUC__) || __GNUC__ > 4 || defined(__clang__))
+      constexpr optional_ctors (optional_ctors&&) = default;
+#else
+      optional_ctors (optional_ctors&&) = default;
+#endif
+
+      optional_ctors& operator= (const optional_ctors&) = default;
+      optional_ctors& operator= (optional_ctors&&) = default;
+    };
+
+    template <typename T>
+    struct optional_ctors<T, true, false>: optional_ctors<T, true, true>
+    {
+      using optional_ctors<T, true, true>::optional_ctors;
+
+#if !defined(_MSC_VER) || _MSC_VER > 1900
+      constexpr optional_ctors () = default;
+#else
+      optional_ctors () = default;
+#endif
+
+#if (!defined(_MSC_VER) || _MSC_VER > 1900) &&                  \
+    (!defined(__GNUC__) || __GNUC__ > 4 || defined(__clang__))
+      constexpr optional_ctors (const optional_ctors&) = default;
+#else
+      optional_ctors (const optional_ctors&) = default;
+#endif
+
+      optional_ctors (optional_ctors&&) = delete;
+
+      optional_ctors& operator= (const optional_ctors&) = default;
+      optional_ctors& operator= (optional_ctors&&) = default;
+    };
+
+    template <typename T>
+    struct optional_ctors<T, false, false>: optional_ctors<T, true, true>
+    {
+      using optional_ctors<T, true, true>::optional_ctors;
+
+#if !defined(_MSC_VER) || _MSC_VER > 1900
+      constexpr optional_ctors () = default;
+#else
+      optional_ctors () = default;
+#endif
+
+      optional_ctors (const optional_ctors&) = delete;
+      optional_ctors (optional_ctors&&) = delete;
+
+      optional_ctors& operator= (const optional_ctors&) = default;
+      optional_ctors& operator= (optional_ctors&&) = default;
+    };
   }
 
   template <typename T>
-  class optional: private details::optional_data<T>
+  class optional: private details::optional_ctors<T>
   {
-    using base = details::optional_data<T>;
+    using base = details::optional_ctors<T>;
 
   public:
     using value_type = T;
