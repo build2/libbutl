@@ -208,6 +208,15 @@ main ()
     assert (++i != p.end () && *i == "bar" && i.separator () == '\0');
     assert (++i == p.end ());
   }
+  /*
+  {
+    path p ("foo//bar");
+    path::iterator i (p.begin ());
+    assert (i != p.end () && *i == "foo" && i.separator () == '/');
+    assert (++i != p.end () && *i == "bar" && i.separator () == '\0');
+    assert (++i == p.end ());
+  }
+  */
   {
     path p ("foo/bar/");
     path::iterator i (p.begin ());
@@ -250,6 +259,15 @@ main ()
     path::reverse_iterator i (p.rbegin ());
     assert (i != p.rend () && *i == "");
     assert (++i == p.rend ());
+  }
+#else
+  {
+    path p ("C:\\foo\\bar");
+    path::iterator i (p.begin ());
+    assert (i != p.end () && *i == "C:");
+    assert (++i != p.end () && *i == "foo");
+    assert (++i != p.end () && *i == "bar");
+    assert (++i == p.end ());
   }
 #endif
 
@@ -318,6 +336,7 @@ main ()
   assert ((path ("foo/") / path ()).representation () == "foo/");
 #else
   assert ((path ("C:\\") / path ("tmp")).representation () == "C:\\tmp");
+  assert ((path ("C:") / path ("tmp")).representation () == "C:\\tmp");
   assert ((path ("foo\\") / path ("bar")).representation () == "foo\\bar");
   assert ((path ("foo\\") / path ("bar\\")).representation () == "foo\\bar\\");
   assert ((path ("foo\\") / path ("bar/")).representation () == "foo\\bar/");

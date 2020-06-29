@@ -544,9 +544,9 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
   template <typename C, typename K>
   inline void basic_path<C, K>::
-  combine (const C* r, size_type rn, difference_type rts)
+  combine_impl (const C* r, size_type rn, difference_type rts)
   {
-    //assert (rn != 0);
+    //assert (rn != 0); // Should be ensured by caller.
 
     string_type& l (this->path_);
     difference_type& ts (this->tsep_);
@@ -566,7 +566,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
   template <typename C, typename K>
   inline void basic_path<C, K>::
-  combine (const C* r, size_type rn)
+  combine_impl (const C* r, size_type rn)
   {
     // If we do (dir_path / path) then we will end up with path. What should
     // we end up if we do (dir_path / "foo") vs (dir_path / "foo/")? We cannot
@@ -575,12 +575,12 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     // dir_path gets the canonical trailing slash if one wasn't there.
     //
     // For now we won't allow the slash and will always add the canonical one
-    // for dir_path (via cast()).
+    // for dir_path (via cast()). But also see the public combine() functions.
     //
     if (traits_type::find_separator (r, rn) != nullptr)
-      throw invalid_basic_path<C> (r);
+      throw invalid_basic_path<C> (r, rn);
 
-    combine (r, rn, 0);
+    combine_impl (r, rn, 0);
     K::cast (*this);
   }
 
@@ -592,7 +592,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
       throw invalid_basic_path<C> (r.path_);
 
     if (!r.empty ())
-      combine (r.path_.c_str (), r.path_.size (), r.tsep_);
+      combine_impl (r.path_.c_str (), r.path_.size (), r.tsep_);
 
     return *this;
   }
@@ -602,7 +602,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   operator/= (string_type const& r)
   {
     if (size_type rn = r.size ())
-      combine (r.c_str (), rn);
+      combine_impl (r.c_str (), rn);
 
     return *this;
   }
@@ -612,9 +612,51 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   operator/= (const C* r)
   {
     if (size_type rn = string_type::traits_type::length (r))
-      combine (r, rn);
+      combine_impl (r, rn);
 
     return *this;
+  }
+
+  template <typename C, typename K>
+  inline void basic_path<C, K>::
+  combine (string_type const& r, C s)
+  {
+    combine (r.c_str (), r.size (), s);
+  }
+
+  template <typename C, typename K>
+  inline void basic_path<C, K>::
+  combine (const C* r, C s)
+  {
+    combine (r, string_type::traits_type::length (r), s);
+  }
+
+  template <typename C, typename K>
+  inline void basic_path<C, K>::
+  combine (const C* r, size_type rn, C s)
+  {
+    if (rn != 0 || s != '\0')
+    {
+      if (traits_type::find_separator (r, rn) != nullptr)
+        throw invalid_basic_path<C> (r, rn);
+
+#ifndef _WIN32
+      if (rn == 0 && empty ()) // POSIX root.
+      {
+        this->path_ += s;
+        this->tsep_ = -1;
+        return;
+      }
+#endif
+
+      if (rn != 0)
+        combine_impl (r, rn, 0);
+
+      if (s != '\0')
+        this->tsep_ = traits_type::separator_index (s);
+
+      K::cast (*this);
+    }
   }
 
   template <typename C, typename K>
