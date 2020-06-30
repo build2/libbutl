@@ -114,9 +114,9 @@ end
   {
     test.options += -s v=a
 
-    $* 'p @a b@'   2>"unmatched substitution character '@' in '@a'" != 0 : unterm-var
-    $* "p '@a b@'" 2>"whitespace in variable name 'a b'"            != 0 : ws-var
-    $* 'p @x@'     2>"unknown variable 'x'"                         != 0 : unknown-var
+    $* 'p @a b@'   2>"unmatched substitution character '@'" != 0      : unterm-var
+    $* "p '@a b@'" 2>"whitespace in substitution variable 'a b'" != 0 : ws-var
+    $* 'p @x@'     2>"unknown substitution variable 'x'"         != 0 : unknown-var
   }
 }
 

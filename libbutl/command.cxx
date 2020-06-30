@@ -48,6 +48,82 @@ using namespace std;
 
 namespace butl
 {
+  string
+  command_substitute (const string& s, size_t sp,
+                      const function<command_substitution_callback>& sc,
+                      char open, char close)
+  {
+    string r;
+    size_t p (0); // Current parsing position.
+
+    for (size_t n (s.size ()); sp != string::npos; sp = s.find (open, ++p))
+    {
+      // Append the source string fraction preceding this substitution.
+      //
+      r.append (s, p, sp - p);
+
+      // See if this is an escape of the opening substitution character
+      // (adjacent characters).
+      //
+      if (++sp != n && s[sp] == open)
+      {
+        p = sp;
+        r += open;
+        continue;
+      }
+
+      // In sp we now have the start of the variable name. Find its end.
+      //
+      p = s.find (close, sp);
+
+      // Verify that the variable name is properly terminated, not empty, and
+      // doesn't contain whitespaces.
+      //
+      if (p == string::npos)
+        throw invalid_argument (string ("unmatched substitution character '") +
+                                open + "'");
+
+      if (p == sp)
+        throw invalid_argument ("empty substitution variable");
+
+      string vn (s, sp, p - sp);
+
+      if (vn.find_first_of (" \t") != string::npos)
+        throw invalid_argument ("whitespace in substitution variable '" +
+                                vn + "'");
+
+      // Find the variable and append its value or fail if it's unknown.
+      //
+      if (!sc (vn, r))
+        throw invalid_argument ("unknown substitution variable '" + vn + "'");
+    }
+
+    // Append the source string tail following the last substitution.
+    //
+    r.append (s.begin () + p, s.end ());
+
+    return r;
+  }
+
+  string
+  command_substitute (const string& s, size_t sp,
+                      const command_substitution_map& sm,
+                      char o, char c)
+  {
+    return command_substitute (
+      s,
+      sp,
+      [&sm] (const string& vn, string& r)
+      {
+        auto i (sm.find (vn));
+        if (i == sm.end ())
+          return false;
+        r += i->second;
+        return true;
+      },
+      o, c);
+  }
+
   process_exit
   command_run (const string& cmd_str,
                const optional<process_env>& env,
@@ -63,72 +139,19 @@ namespace butl
     vector<string> cmd (
       string_parser::parse_quoted (cmd_str, true /* unquote */));
 
-    auto bad_arg = [] (const string& d) {throw invalid_argument (d);};
-
     if (cmd.empty ())
-      bad_arg ("no program path specified");
+      throw invalid_argument ("no program path specified");
 
     // Perform substitutions in a string. Throw invalid_argument for a
-    // malformed substitution or an unknown variable.
+    // malformed substitution or an unknown variable name.
     //
-    auto substitute = [&substitutions, subst, &bad_arg] (string&& s)
+    auto substitute = [&substitutions, subst] (string&& s)
     {
-      if (!substitutions)
-        return move (s);
+      size_t sp;
+      if (substitutions && (sp = s.find (subst)) != string::npos)
+        return command_substitute (s, sp, *substitutions, subst, subst);
 
-      string r;
-      size_t p (0); // Current parsing position.
-
-      for (size_t sp; (sp = s.find (subst, p)) != string::npos; ++p)
-      {
-        // Append the source string fraction preceding this substitution.
-        //
-        r.append (s, p, sp - p);
-
-        ++sp;                   // Start of the variable name.
-        p = s.find (subst, sp); // End of the variable name.
-
-        // Unescape the substitution character (adjacent substitution
-        // characters).
-        //
-        if (p == sp)
-        {
-          r += subst;
-          continue;
-        }
-
-        // Verify that the variable name is properly terminated and doesn't
-        // contain whitespaces.
-        //
-        if (p == string::npos)
-          bad_arg (string ("unmatched substitution character '") + subst +
-                   "' in '" + s + "'");
-
-        string vn (s, sp, p - sp);
-
-        assert (!vn.empty ()); // Otherwise it would be an escape sequence.
-
-        if (vn.find_first_of (" \t") != string::npos)
-          bad_arg ("whitespace in variable name '" + vn + "'");
-
-        // Find the variable and append its value or fail if it's unknown.
-        //
-        auto i (substitutions->find (vn));
-
-        if (i == substitutions->end ())
-          bad_arg ("unknown variable '" + vn + "'");
-
-        r += i->second;
-      }
-
-      // Append the source string tail, following the last substitution, and
-      // optimizing for the no-substitutions case.
-      //
-      if (p == 0)
-        return move (s);
-
-      r.append (s.begin () + p, s.end ());
-      return r;
+      return move (s);
     };
 
     // Perform substitutions in the program path.
@@ -163,7 +186,7 @@ namespace butl
         else // Take the space-separated file path from the next element.
         {
           if (++i == e)
-            bad_arg ("no stdout redirect file specified");
+            throw invalid_argument ("no stdout redirect file specified");
 
           a = move (*i);
         }
@@ -174,11 +197,12 @@ namespace butl
         }
         catch (const invalid_path& e)
         {
-          bad_arg ("invalid stdout redirect file path '" + e.path + "'");
+          throw invalid_argument ("invalid stdout redirect file path '" +
+                                  e.path + "'");
         }
 
         if (redir->empty ())
-          bad_arg ("empty stdout redirect file path");
+          throw invalid_argument ("empty stdout redirect file path");
 
         if (redir->relative () && !cwd.empty ())
           redir = cwd / *redir;

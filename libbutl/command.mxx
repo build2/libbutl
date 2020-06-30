@@ -85,4 +85,38 @@ LIBBUTL_MODEXPORT namespace butl
                const optional<command_substitution_map>& = nullopt,
                char subst = '@',
                const std::function<command_callback>& = {});
+
+  // Reusable substitution utility functions.
+  //
+  // Unlike command_run(), these support different opening and closing
+  // substitution characters (e.g., <name>). Note that unmatched closing
+  // characters are treated literally and there is no support for their
+  // escaping (which would only be necessary if we needed to support variable
+  // names containing the closing character).
+
+  // Perform substitutions in a string. The second argument should be the
+  // position of the openning substitution character in the passed string.
+  // Throw invalid_argument for a malformed substitution or an unknown
+  // variable name.
+  //
+  LIBBUTL_SYMEXPORT std::string
+  command_substitute (const std::string&, std::size_t,
+                      const command_substitution_map&,
+                      char open, char close);
+
+  // As above but using a callback instead of a map.
+  //
+  // Specifically, on success, the callback should substitute the specified
+  // variable in out by appending its value and returning true. On failure,
+  // the callback can either throw invalid_argument or return false, in which
+  // case the standard "unknown substitution variable ..." exception will be
+  // thrown.
+  //
+  using command_substitution_callback =
+    bool (const std::string& var, std::string& out);
+
+  LIBBUTL_SYMEXPORT std::string
+  command_substitute (const std::string&, std::size_t,
+                      const std::function<command_substitution_callback>&,
+                      char open, char close);
 }
