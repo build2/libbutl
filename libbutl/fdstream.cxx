@@ -1123,9 +1123,39 @@ namespace butl
     //
     of |= _O_NOINHERIT;
 
-    int fd (pass_perm
-            ? _sopen (f, of, _SH_DENYNO, pf)
-            : _sopen (f, of, _SH_DENYNO));
+    int fd;
+
+    // For reasons unknown an attempt to open an existing file for writing
+    // sometimes ends up with the EACCES POSIX error which is presumably a
+    // translation of the ERROR_SHARING_VIOLATION system error returned by the
+    // underlying CreateFile() function call (see mventry() for details). If
+    // that's the case, we will keep trying to open the file for a second.
+    //
+    for (size_t i (0); i < 11; ++i)
+    {
+      // Sleep 100 milliseconds before the open retry.
+      //
+      if (i != 0)
+        Sleep (100);
+
+      fd = pass_perm
+           ? _sopen (f, of, _SH_DENYNO, pf)
+           : _sopen (f, of, _SH_DENYNO);
+
+      // Note that MSVCRT's _sopen() calls CreateFile() underneath,
+      // translating the system error to POSIX on failure and bailing out
+      // afterwords. Thus, we can query the original error code on _sopen()
+      // failure.
+      //
+      // Note that MinGW's _sopen() is just a stub forwarding the call to the
+      // (publicly available) MSVCRT's implementation.
+      //
+      if (!(fd == -1        &&
+            out             &&
+            errno == EACCES &&
+            GetLastError () == ERROR_SHARING_VIOLATION))
+        break;
+    }
 
 #endif
 

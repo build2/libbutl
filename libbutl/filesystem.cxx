@@ -1724,7 +1724,10 @@ namespace butl
     // we will keep trying to move the file for a second.
     //
     // The thinking is that there can be some Windows process analyzing newly
-    // created files and so preventing their move or removal.
+    // created files and so preventing their move, removal, or change.
+    //
+    // Note that we address this issue in a similar way in try_rmfile() and
+    // fdopen().
     //
     DWORD ec;
     for (size_t i (0); i < 11; ++i)
