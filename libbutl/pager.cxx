@@ -124,6 +124,18 @@ namespace butl
 
     args.push_back (nullptr);
 
+    // On Windows if we are using default less, then set the TERM environment
+    // variable to cygwin. Failed that, some environments like git-bash may
+    // set it to some strange values (like xterm-256color) which confuses
+    // less.
+    //
+    const char* env[] = {nullptr, nullptr};
+
+#ifdef _WIN32
+    if (pager == nullptr)
+      env[0] = "TERM=cygwin";
+#endif
+
     if (verbose)
     {
       for (const char* const* p (args.data ()); *p != nullptr; ++p)
@@ -151,7 +163,9 @@ namespace butl
     //
     try
     {
-      p_ = process (args.data (), -1); // Redirect child's STDIN to a pipe.
+      // Redirect child's STDIN to a pipe.
+      //
+      p_ = process (args.data (), -1, 1, 2, nullptr /* cwd */, env);
 
       // Wait a bit and see if the pager has exited before reading anything
       // (e.g., because exec() couldn't find the program). If you know a
