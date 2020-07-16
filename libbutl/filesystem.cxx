@@ -1085,9 +1085,9 @@ namespace butl
     //
     // And also there are some unknown reasons for the 'permission denied'
     // failure (see mventry() for details). If that's the case, we will keep
-    // trying to move the file for a second.
+    // trying to move the file for two seconds.
     //
-    for (size_t i (0); i < 11; ++i)
+    for (size_t i (0); i < 21; ++i)
     {
       // Sleep 100 milliseconds before the removal retry.
       //
@@ -1721,7 +1721,7 @@ namespace butl
 
     // For reasons unknown an attempt to move a file sometimes ends up with
     // the 'file is being used by another process' error. If that's the case,
-    // we will keep trying to move the file for a second.
+    // we will keep trying to move the file for two second.
     //
     // The thinking is that there can be some Windows process analyzing newly
     // created files and so preventing their move, removal, or change.
@@ -1730,7 +1730,7 @@ namespace butl
     // fdopen().
     //
     DWORD ec;
-    for (size_t i (0); i < 11; ++i)
+    for (size_t i (0); i < 21; ++i)
     {
       // Sleep 100 milliseconds before the move retry.
       //

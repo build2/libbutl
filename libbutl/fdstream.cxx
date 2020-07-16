@@ -1129,9 +1129,9 @@ namespace butl
     // sometimes ends up with the EACCES POSIX error which is presumably a
     // translation of the ERROR_SHARING_VIOLATION system error returned by the
     // underlying CreateFile() function call (see mventry() for details). If
-    // that's the case, we will keep trying to open the file for a second.
+    // that's the case, we will keep trying to open the file for two seconds.
     //
-    for (size_t i (0); i < 11; ++i)
+    for (size_t i (0); i < 21; ++i)
     {
       // Sleep 100 milliseconds before the open retry.
       //
