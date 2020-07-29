@@ -422,17 +422,32 @@ LIBBUTL_MODEXPORT namespace butl
 #else
   __thread
 #endif
-  bool exception_unwinding_dtor_;
+  // Work around glibc bug #14898.
+  //
+#if defined(__GLIBC__)       && \
+    defined(__GLIBC_MINOR__) && \
+    (__GLIBC__  < 2 || __GLIBC__ == 2 && __GLIBC_MINOR__ < 17)
+  int
+#else
+  bool
+#endif
+  exception_unwinding_dtor_;
 
   // On Windows one cannot export a thread-local variable so we have to
-  // use a wrapper functions.
+  // use wrapper functions.
   //
 #ifdef _WIN32
-  LIBBUTL_SYMEXPORT bool&
+  LIBBUTL_SYMEXPORT bool
   exception_unwinding_dtor ();
+
+  LIBBUTL_SYMEXPORT void
+  exception_unwinding_dtor (bool);
 #else
-  inline bool&
+  inline bool
   exception_unwinding_dtor () {return exception_unwinding_dtor_;}
+
+  inline void
+  exception_unwinding_dtor (bool v) {exception_unwinding_dtor_ = v;}
 #endif
 
   template <typename F>
@@ -443,9 +458,9 @@ LIBBUTL_MODEXPORT namespace butl
     {
       if (std::uncaught_exception ())
       {
-        exception_unwinding_dtor () = true;
+        exception_unwinding_dtor (true);
         f_ ();
-        exception_unwinding_dtor () = false;
+        exception_unwinding_dtor (false);
       }
     }
 

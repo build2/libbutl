@@ -51,11 +51,21 @@ namespace butl
 #else
   __thread
 #endif
-  bool exception_unwinding_dtor_ = false;
+#if defined(__GLIBC__)       && \
+    defined(__GLIBC_MINOR__) && \
+    (__GLIBC__  < 2 || __GLIBC__ == 2 && __GLIBC_MINOR__ < 17)
+  int
+#else
+  bool
+#endif
+  exception_unwinding_dtor_ = false;
 
 #ifdef _WIN32
-  bool&
+  bool
   exception_unwinding_dtor () {return exception_unwinding_dtor_;}
+
+  void
+  exception_unwinding_dtor (bool v) {exception_unwinding_dtor_ = v;}
 #endif
 
 #endif
