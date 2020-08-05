@@ -1087,7 +1087,7 @@ namespace butl
     // failure (see mventry() for details). If that's the case, we will keep
     // trying to move the file for two seconds.
     //
-    for (size_t i (0); i < 21; ++i)
+    for (size_t i (0); i < 601; ++i)
     {
       // Sleep 100 milliseconds before the removal retry.
       //
@@ -1095,6 +1095,8 @@ namespace butl
         Sleep (100);
 
       ur = _unlink (f);
+
+      //@@ Should we check for SHARING_VIOLATION?
 
       if (ur != 0 && errno == EACCES)
       {
@@ -1730,7 +1732,7 @@ namespace butl
     // fdopen().
     //
     DWORD ec;
-    for (size_t i (0); i < 21; ++i)
+    for (size_t i (0); i < 601; ++i)
     {
       // Sleep 100 milliseconds before the move retry.
       //
