@@ -565,6 +565,8 @@ LIBBUTL_MODEXPORT namespace butl
              (vars != nullptr && *vars != nullptr);
     }
 
+    process_env (): path (nullptr) {}
+
     process_env (const process_path& p,
                  const dir_path& c = dir_path (),
                  const char* const* v = nullptr)
