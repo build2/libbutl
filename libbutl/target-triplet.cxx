@@ -71,11 +71,6 @@ namespace butl
 
         if (l != p)
           bad ("too many components");
-
-        // Handle the none-* case here.
-        //
-        if (s.compare (l + 1, 5, "none-") == 0)
-          l += 5;
       }
       else
       {
@@ -155,6 +150,30 @@ namespace butl
     {
       if (!r.empty ()) r += '-';
       r += vendor;
+    }
+
+    if (!system.empty ())
+    {
+      if (!r.empty ()) r += '-';
+      r += system;
+    }
+
+    if (!version.empty ())
+    {
+      r += version;
+    }
+
+    return r;
+  }
+
+  std::string target_triplet::
+  representation () const
+  {
+    std::string r (cpu);
+
+    {
+      if (!r.empty ()) r += '-';
+      r += vendor.empty () ? "unknown" : vendor.c_str ();
     }
 
     if (!system.empty ())

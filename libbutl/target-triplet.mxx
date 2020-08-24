@@ -61,8 +61,10 @@ LIBBUTL_MODEXPORT namespace butl
   // trailing version, again, to make SYSTEM easier to compare to. For example,
   // *-darwin14.5.0 becomes 'darwin' and '14.5.0'.
   //
-  // Again, to make things more regular, if the first component in SYSTEM is
-  // none, then it is removed (so *-none-eabi becomes just 'eabi').
+  // Note also that sometimes the first component in SYSTEM can be 'none' (to
+  // indicate the absence of an operating system) which is ambigous with the
+  // vendor (for example, arm-none-eabi). We currently don't try to deal with
+  // that (that is, you will need to specify arm-unknown-none-eabi).
   //
   // Values for two-component systems (e.g., linux-gnu) that don't specify
   // VENDOR explicitly are inherently ambiguous: is 'linux' VENDOR or part of
@@ -121,11 +123,19 @@ LIBBUTL_MODEXPORT namespace butl
     std::string version;
     std::string class_;
 
-    // Assemble and returning the canonical (i.e., the one we round-trip)
+    // Assemble and returning the canonical (i.e., without unknown vendor)
     // target triplet string.
+    //
+    // Note: not necessarily round-tripp'able, see representation().
     //
     std::string
     string () const;
+
+    // Return a round-tripp'able target triplet string that always contains
+    // the vendor.
+    //
+    std::string
+    representation () const;
 
     bool
     empty () const {return cpu.empty ();}

@@ -61,6 +61,14 @@ main ()
                 "arm-eabi",
                 "arm", "", "eabi", ""));
 
+  assert (test ("arm-unknown-none-eabi",
+                "arm-none-eabi",
+                "arm", "", "none-eabi", ""));
+
+  assert (test ("arm-none",
+                "arm-none",
+                "arm", "", "none", ""));
+
   assert (test ("arm-none-linux-gnueabi",
                 "arm-linux-gnueabi",
                 "arm", "", "linux-gnueabi", "", "linux"));
@@ -93,15 +101,7 @@ main ()
                 "x86_64-netbsd",
                 "x86_64", "", "netbsd", "", "bsd"));
 
-  // Removal of none-.
-  //
-  assert (test ("arm-none",
-                "arm-none",
-                "arm", "", "none", ""));
-
-  assert (test ("arm-unknown-none-eabi",
-                "arm-eabi",
-                "arm", "", "eabi", ""));
+  
 
   // Version extraction.
   //
