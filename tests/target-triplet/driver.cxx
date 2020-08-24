@@ -101,7 +101,13 @@ main ()
                 "x86_64-netbsd",
                 "x86_64", "", "netbsd", "", "bsd"));
 
-  
+  assert (test ("aarch64-unknown-nto-qnx7.0.0",
+                "aarch64-nto-qnx7.0.0",
+                "aarch64", "", "nto-qnx", "7.0.0", "other"));
+
+  assert (test ("aarch64-nto-qnx7.0.0",
+                "aarch64-nto-qnx7.0.0",
+                "aarch64", "", "nto-qnx", "7.0.0", "other"));
 
   // Version extraction.
   //

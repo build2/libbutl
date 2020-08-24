@@ -76,9 +76,10 @@ namespace butl
       {
         // See if this is one of the well-known non-vendors.
         //
-        if (s.compare (f, n, "linux") == 0   ||
-            s.compare (f, n, "windows") == 0 ||
-            s.compare (f, n, "kfreebsd") == 0)
+        if (s.compare (f, n, "linux") == 0    ||
+            s.compare (f, n, "windows") == 0  ||
+            s.compare (f, n, "kfreebsd") == 0 ||
+            s.compare (f, n, "nto") == 0)
         {
           l = f - 1;
           n = 0; // No VENDOR.
@@ -109,15 +110,16 @@ namespace butl
     // Extract VERSION for some recognized systems.
     //
     string::size_type v (0);
-    if (system.compare (0, (v = 6),  "darwin") == 0      ||
-        system.compare (0, (v = 7),  "freebsd") == 0     ||
-        system.compare (0, (v = 7),  "openbsd") == 0     ||
-        system.compare (0, (v = 6),  "netbsd") == 0      ||
-        system.compare (0, (v = 7),  "solaris") == 0     ||
-        system.compare (0, (v = 3),  "aix") == 0         ||
-        system.compare (0, (v = 4),  "hpux") == 0        ||
-        system.compare (0, (v = 10), "win32-msvc") == 0  ||
-        system.compare (0, (v = 12), "windows-msvc") == 0)
+    if (system.compare (0, (v = 6),  "darwin") == 0       ||
+        system.compare (0, (v = 7),  "freebsd") == 0      ||
+        system.compare (0, (v = 7),  "openbsd") == 0      ||
+        system.compare (0, (v = 6),  "netbsd") == 0       ||
+        system.compare (0, (v = 7),  "solaris") == 0      ||
+        system.compare (0, (v = 3),  "aix") == 0          ||
+        system.compare (0, (v = 4),  "hpux") == 0         ||
+        system.compare (0, (v = 10), "win32-msvc") == 0   ||
+        system.compare (0, (v = 12), "windows-msvc") == 0 ||
+        system.compare (0, (v = 7),  "nto-qnx") == 0)
     {
       version.assign (system, v, string::npos);
       system.resize (system.size () - version.size ());
