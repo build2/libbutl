@@ -12,6 +12,7 @@
 #include <ostream>
 #include <cstddef>    // ptrdiff_t
 #include <cstdint>    // uint16_t
+#include <cstring>    // str*()
 #include <utility>    // move(), swap()
 #include <iterator>
 #include <stdexcept>  // invalid_argument
@@ -427,21 +428,27 @@ LIBBUTL_MODEXPORT namespace butl
     }
 
     static void
-    canonicalize (string_type& s)
+    canonicalize (string_type& s, char ds = '\0')
     {
       //canonicalize (s.data (), s.size ()); // C++17
 
+      if (ds == '\0')
+        ds = directory_separator;
+
       for (size_t i (0), n (s.size ()); i != n; ++i)
-        if (is_separator (s[i]) && s[i] != directory_separator)
-          s[i] = directory_separator;
+        if (is_separator (s[i]) && s[i] != ds)
+          s[i] = ds;
     }
 
     static void
-    canonicalize (C* s, size_type n)
+    canonicalize (C* s, size_type n, char ds = '\0')
     {
+      if (ds == '\0')
+        ds = directory_separator;
+
       for (const C* e (s + n); s != e; ++s)
-        if (is_separator (*s) && *s != directory_separator)
-          *s = directory_separator;
+        if (is_separator (*s) && *s != ds)
+          *s = ds;
     }
 
     // Get/set current working directory. Throw std::system_error to report
@@ -1091,11 +1098,15 @@ LIBBUTL_MODEXPORT namespace butl
 
   public:
     // Canonicalize the path and return *this. Canonicalization involves
-    // converting all directory separators to the canonical form. Note that
-    // multiple directory separators are not collapsed.
+    // converting all directory separators to the canonical form (or to the
+    // alternative separator if specified). Note that multiple directory
+    // separators are not collapsed.
+    //
+    // Note that the alternative separator must be listed in path_trait::
+    // directory_separators.
     //
     basic_path&
-    canonicalize ();
+    canonicalize (char dir_sep = '\0');
 
     // Normalize the path and return *this. Normalization involves collapsing
     // the '.' and '..'  directories if possible, collapsing multiple

@@ -396,12 +396,20 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
   template <typename C, typename K>
   inline basic_path<C, K>& basic_path<C, K>::
-  canonicalize ()
+  canonicalize (char ds)
   {
-    traits_type::canonicalize (this->path_);
+    traits_type::canonicalize (this->path_, ds);
 
-    if (this->tsep_ > 1) // Non-canonical trailing separator.
-      this->tsep_ = 1;
+    // Canonicalize the trailing separator if any.
+    //
+    if (this->tsep_ > 0)
+    {
+      auto dss (traits_type::directory_separators);
+      difference_type i (ds == '\0' ? 1 : strchr (dss, ds) - dss + 1);
+
+      if (this->tsep_ != i)
+        this->tsep_ = i;
+    }
 
     return *this;
   }
