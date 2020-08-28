@@ -1567,11 +1567,19 @@ namespace butl
     }
     catch (const system_error& e)
     {
-      // Make sure that the error denotes errno portable code.
+      // Re-throw system_error as ios::failure, preserving the error category
+      // and description.
       //
-      assert (e.code ().category () == generic_category ());
+      int v (e.code ().value ());
+      const error_category& c (e.code ().category ());
 
-      throw_generic_ios_failure (e.code ().value ());
+      if (c == generic_category ())
+        throw_generic_ios_failure (v);
+      else
+      {
+        assert (c == system_category ());
+        throw_system_ios_failure (v, e.what ());
+      }
     }
   }
 

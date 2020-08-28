@@ -2573,11 +2573,14 @@ namespace butl
         //
         // Make sure that the error denotes errno portable code.
         //
-        assert (e.code ().category () == generic_category ());
+        if (e.code ().category () == generic_category ())
+        {
+          int ec (e.code ().value ());
+          if (ec == ENOENT || ec == ENOTDIR)
+            return;
+        }
 
-        int ec (e.code ().value ());
-        if (ec != ENOENT && ec != ENOTDIR)
-          throw;
+        throw;
       }
     }
 

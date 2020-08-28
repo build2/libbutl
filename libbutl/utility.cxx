@@ -388,7 +388,7 @@ namespace std
     // Invalid data.\r\n
     //
     size_t n (string::traits_type::length (s));
-    for (; n > 0; --n)
+    for (; n != 0; --n)
     {
       switch (s[n-1])
       {
@@ -411,7 +411,7 @@ namespace std
     // Check if the string ends with the specified suffix and return its
     // length if that's the case. So can be used as bool.
     //
-    auto suffix = [s, n] (const char* v) -> size_t
+    auto suffix = [s, &n] (const char* v) -> size_t
     {
       size_t nv (string::traits_type::length (v));
       return (n >= nv && string::traits_type::compare (s + n - nv, v, nv) == 0
@@ -419,17 +419,27 @@ namespace std
               : 0);
     };
 
+    // Note that in some cases we need to re-throw exception using a different
+    // type, for example system_error as ios::failure. In such cases these
+    // suffixed may accumulate, for example:
+    //
+    // Access denied. : Success.: Success.
+    //
+    // Thus, we will strip them in a loop.
+    //
     size_t ns;
-    if ((ns = suffix (". : Success"))  ||
-        (ns = suffix (". : No error")) ||
-        (ns = suffix (". : The operation completed successfully")))
-      n -= ns;
+    while ((ns = suffix (": Success"))  ||
+           (ns = suffix (": No error")) ||
+           (ns = suffix (": The operation completed successfully")))
+    {
+      for (n -= ns; n != 0 && (s[n-1] == '.' || s[n-1] == ' '); --n) ;
+    }
 
     // Lower-case the first letter if the beginning looks like a word (the
     // second character is the lower-case letter or space).
     //
     char c;
-    bool lc (n > 0 && alpha (c = s[0]) && c == ucase (c) &&
+    bool lc (n != 0 && alpha (c = s[0]) && c == ucase (c) &&
              (n == 1 || (alpha (c = s[1]) && c == lcase (c)) || c == ' '));
 
     // Print the description as is if no adjustment is required.
