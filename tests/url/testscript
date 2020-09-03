@@ -21,11 +21,11 @@ $*
   : empty-url
   :
   $* '' >>EOO
-  [null]
-  [null]
-  [null]
-  [null]
-  [null]
+  <null>
+  <null>
+  <null>
+  <null>
+  <null>
   EOO
 
   : no-id
@@ -43,19 +43,19 @@ $*
     $* 'http://build2.org' >>EOO
     http
     @build2.org:0 name
-    [null]
-    [null]
-    [null]
+    <null>
+    <null>
+    <null>
     EOO
 
     : deduced
     :
     $* 'c:/a' >>EOO
     file
-    [null]
+    <null>
     c:/a
-    [null]
-    [null]
+    <null>
+    <null>
     EOO
 
     $* ':/a'           2>'no scheme'      != 0 : none
@@ -70,10 +70,10 @@ $*
     :
     $* 'file:/tmp/a' >>EOO
     file
-    [null]
+    <null>
     tmp/a
-    [null]
-    [null]
+    <null>
+    <null>
     EOO
 
     : empty
@@ -82,8 +82,8 @@ $*
     file
     @:0 name
     tmp/a
-    [null]
-    [null]
+    <null>
+    <null>
     EOO
 
     : query
@@ -91,9 +91,9 @@ $*
     $* 'http://localhost?q' >>EOO
     http
     @localhost:0 name
-    [null]
+    <null>
     q
-    [null]
+    <null>
     EOO
 
     : fragment
@@ -101,8 +101,8 @@ $*
     $* 'http://localhost#master' >>EOO
     http
     @localhost:0 name
-    [null]
-    [null]
+    <null>
+    <null>
     master
     EOO
 
@@ -111,9 +111,9 @@ $*
     $* 'http://localhost' >>EOO
     http
     @localhost:0 name
-    [null]
-    [null]
-    [null]
+    <null>
+    <null>
+    <null>
     EOO
 
     : user
@@ -124,9 +124,9 @@ $*
       $* 'http://admin@localhost' >>EOO
       http
       admin@localhost:0 name
-      [null]
-      [null]
-      [null]
+      <null>
+      <null>
+      <null>
       EOO
 
       : empty
@@ -134,9 +134,9 @@ $*
       $* 'http://@localhost' >>EOO
       http
       @localhost:0 name
-      [null]
-      [null]
-      [null]
+      <null>
+      <null>
+      <null>
       EOO
     }
 
@@ -148,26 +148,97 @@ $*
       {
         : port
         :
-        $* 'http://[1:23]:443' >>EOO
+        $* 'http://[1:2:3:4:5:6:7:8]:443' >>EOO
         http
-        @1:23:443 ipv6
-        [null]
-        [null]
-        [null]
+        @1:2:3:4:5:6:7:8:443 ipv6
+        <null>
+        <null>
+        <null>
         EOO
 
         : no-port
         :
-        $* 'http://[1:23]' >>EOO
+        $* 'http://[1:2:3:4:5:6:7:abcd]' >>EOO
         http
-        @1:23:0 ipv6
-        [null]
-        [null]
-        [null]
+        @1:2:3:4:5:6:7:abcd:0 ipv6
+        <null>
+        <null>
+        <null>
+        EOO
+
+        : squashed2-begin
+        :
+        $* 'http://[::3:4:5:6:7:8]' >>EOO
+        http
+        @::3:4:5:6:7:8:0 ipv6
+        <null>
+        <null>
+        <null>
+        EOO
+
+        : squashed3-end
+        :
+        $* 'http://[1:2:3:4:5::]' >>EOO
+        http
+        @1:2:3:4:5:::0 ipv6
+        <null>
+        <null>
+        <null>
+        EOO
+
+        : squashed4-middle
+        :
+        $* 'http://[1:2::7:8]' >>EOO
+        http
+        @1:2::7:8:0 ipv6
+        <null>
+        <null>
+        <null>
+        EOO
+
+        : squashed-all
+        :
+        $* 'http://[::]' >>EOO
+        http
+        @:::0 ipv6
+        <null>
+        <null>
+        <null>
         EOO
 
         $* 'http://[123'      2>'invalid IPv6 address' != 0 : missed-bracket
         $* 'http://[123] :80' 2>'invalid IPv6 address' != 0 : extra-char
+
+        $* 'http://[]'                      2>'invalid IPv6 address' != 0 : empty
+        $* 'http://[1:2]'                   2>'invalid IPv6 address' != 0 : too-short
+        $* 'http://[1:2:3:4:5:6:7:8:9]'     2>'invalid IPv6 address' != 0 : too-long1
+        $* 'http://[::2:3:4:5:6:7:8:9]'     2>'invalid IPv6 address' != 0 : too-long2
+        $* 'http://[::3:4::7:8:9]'          2>'invalid IPv6 address' != 0 : several-squashes
+        $* 'http://[1:2:3:4::6:7:8:9]'      2>'invalid IPv6 address' != 0 : squash-one-hextet
+        $* 'http://[12345:2:3:4:5:6:7:8:9]' 2>'invalid IPv6 address' != 0 : long-hextet
+        $* 'http://[123z:2:3:4:5:6:7:8:9]'  2>'invalid IPv6 address' != 0 : not-hex
+
+        : normalize
+        :
+        {
+          test.options += -n -s
+
+          $* 'http://[::01:0:002:00:0003]' >'http://[::1:0:2:0:3]' : strip-zeros
+          $* 'http://[::ABC]'              >'http://[::abc]'       : lower-case
+
+          $* 'http://[::]'   >'http://[::]'   : squash-all
+          $* 'http://[::1]'  >'http://[::1]'  : squash-left
+          $* 'http://[1::]'  >'http://[1::]'  : squash-right
+          $* 'http://[1::2]' >'http://[1::2]' : squash-middle
+
+          $* 'http://[1::0:2:0:0:3]'  >'http://[1::2:0:0:3]'    : squash-longest1
+          $* 'http://[::0:2:0:0:3]'   >'http://[::2:0:0:3]'     : squash-longest2
+          $* 'http://[::0:2:0:0:0:0]' >'http://[0:0:0:2::]'     : squash-longest3
+          $* 'http://[0:0:1::2:3:4]'  >'http://[::1:0:0:2:3:4]' : squash-first
+          $* 'http://[0:0:2:0:0:0::]' >'http://[0:0:2::]'       : squash-trailing
+
+          $* 'http://[::1:2:3:4:5:6:7]' >'http://[0:1:2:3:4:5:6:7]' : expand-zero
+        }
       }
 
       : ipv4
@@ -178,9 +249,9 @@ $*
         $* 'http://0.10.200.255' >>EOO
         http
         @0.10.200.255:0 ipv4
-        [null]
-        [null]
-        [null]
+        <null>
+        <null>
+        <null>
         EOO
 
         : long
@@ -188,9 +259,9 @@ $*
         $* 'http://0.10.200.255.30' >>EOO
         http
         @0.10.200.255.30:0 name
-        [null]
-        [null]
-        [null]
+        <null>
+        <null>
+        <null>
         EOO
 
         : short
@@ -198,9 +269,9 @@ $*
         $* 'http://0.10.200' >>EOO
         http
         @0.10.200:0 name
-        [null]
-        [null]
-        [null]
+        <null>
+        <null>
+        <null>
         EOO
 
         : missed
@@ -208,9 +279,9 @@ $*
         $* 'http://0.10..200' >>EOO
         http
         @0.10..200:0 name
-        [null]
-        [null]
-        [null]
+        <null>
+        <null>
+        <null>
         EOO
 
         : out-of-range
@@ -218,10 +289,18 @@ $*
         $* 'http://0.10.200.256' >>EOO
         http
         @0.10.200.256:0 name
-        [null]
-        [null]
-        [null]
+        <null>
+        <null>
+        <null>
         EOO
+
+        : normalize
+        :
+        {
+          test.options += -n -s
+
+          $* 'http://0.010.000.00' >'http://0.10.0.0' : strip-zeros
+        }
       }
 
       : name
@@ -232,9 +311,9 @@ $*
         $* 'https://www.b2.org' >>EOO
         https
         @www.b2.org:0 name
-        [null]
-        [null]
-        [null]
+        <null>
+        <null>
+        <null>
         EOO
 
         : encoded
@@ -245,9 +324,9 @@ $*
           $* 'https://www.%62%32.org' >>EOO
           https
           @www.b2.org:0 name
-          [null]
-          [null]
-          [null]
+          <null>
+          <null>
+          <null>
           EOO
 
           $* 'https://www.%62%3.org'  2>'invalid URL-encoding' != 0 : short
@@ -256,6 +335,15 @@ $*
         }
 
         $* 'https://www.b|2.org' 2>'invalid host name' != 0 : invalid-char
+
+        : normalize
+        :
+        {
+          test.options += -n
+
+          $* -s 'http://Build2.org' >'http://build2.org' : lower-case-char
+          $* -w 'http://Build2.org' >'http://build2.org' : lower-case-wchar
+        }
       }
 
       $* 'http://admin@:80?q=' 2>'no host' != 0: no-host
@@ -269,9 +357,9 @@ $*
       $* 'http://build2.org:443' >>EOO
       http
       @build2.org:443 name
-      [null]
-      [null]
-      [null]
+      <null>
+      <null>
+      <null>
       EOO
 
       $* 'http://build2.org:-433'  2>'invalid port' != 0 : invalid-char
@@ -288,9 +376,9 @@ $*
     $* 'http://b2.org' >>EOO
     http
     @b2.org:0 name
-    [null]
-    [null]
-    [null]
+    <null>
+    <null>
+    <null>
     EOO
 
     : empty
@@ -299,8 +387,8 @@ $*
     http
     @b2.org:0 name
 
-    [null]
-    [null]
+    <null>
+    <null>
     EOO
 
     : non-empty
@@ -309,8 +397,8 @@ $*
     http
     @b2.org:0 name
     s/q
-    [null]
-    [null]
+    <null>
+    <null>
     EOO
 
     : encoded
@@ -319,8 +407,8 @@ $*
     http
     @b2.org:0 name
     o/s
-    [null]
-    [null]
+    <null>
+    <null>
     EOO
 
     $* 'http:a/b/c'  2>'rootless path'    != 0 : rootless-path
@@ -335,10 +423,10 @@ $*
     :
     $* 'pkcs11:token=sign;object=SIGN%20key' >>EOO
     pkcs11
-    [null]
+    <null>
     token=sign;object=SIGN key
-    [null]
-    [null]
+    <null>
+    <null>
     EOO
   }
 
@@ -352,7 +440,7 @@ $*
     @b2.org:0 name
     a
     x=foo&y=bar
-    [null]
+    <null>
     EOO
 
     : fragment
@@ -372,8 +460,8 @@ $*
     $* 'http://b2.org#foo' >>EOO
     http
     @b2.org:0 name
-    [null]
-    [null]
+    <null>
+    <null>
     foo
     EOO
   }
@@ -389,10 +477,10 @@ $*
     : host
     :
     {
-      $* 'file:///a'       >'file:///a'       : empty
-      $* 'http://1.1.1.1'  >'http://1.1.1.1'  : ipv4
-      $* 'https://[1:2:3]' >'https://[1:2:3]' : ipv6
-      $* 'file://a%d1%84'  >'file://a%D1%84'  : name
+      $* 'file:///a'                 >'file:///a'                 : empty
+      $* 'https://[1:2:3:4:5:6:7:8]' >'https://[1:2:3:4:5:6:7:8]' : ipv6
+      $* 'http://1.1.1.1'            >'http://1.1.1.1'            : ipv4
+      $* 'file://a%d1%84'            >'file://a%D1%84'            : name
     }
 
     $* 'http://admin@localhost' >'http://admin@localhost' : user

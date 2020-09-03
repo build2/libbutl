@@ -18,6 +18,7 @@
 
 #include <cstddef>   // size_t
 #include <stdexcept> // invalid_argument
+#include <algorithm> // find(), find_if()
 #endif
 
 // Other includes.
@@ -31,10 +32,14 @@ import std.io;
 import butl.path;
 import butl.utility;
 import butl.optional;
+
+import butl.small_vector;
 #else
 #include <libbutl/path.mxx>
 #include <libbutl/utility.mxx>
 #include <libbutl/optional.mxx>
+
+#include <libbutl/small-vector.mxx>
 #endif
 
 #include <libbutl/export.hxx>
@@ -123,7 +128,8 @@ LIBBUTL_MODEXPORT namespace butl
     // a URL, throwing std::invalid_argument if invalid. Remove the enclosing
     // square brackets for IPv6 addresses, and URL-decode host names.
     //
-    // Note that currently we don't validate IPv6 addresses.
+    // Note that the 'x:x:x:x:x:x:d.d.d.d' IPv6 address mixed notation is not
+    // supported.
     //
     explicit
     basic_url_host (string_type);
@@ -142,6 +148,22 @@ LIBBUTL_MODEXPORT namespace butl
     //
     string_type
     string () const;
+
+    // Normalize the host value in accordance with its type:
+    //
+    // Name - convert to the lower case. Note: only ASCII names are currently
+    //        supported.
+    //
+    // IPv4 - strip the leading zeros in its octets.
+    //
+    // IPv6 - strip the leading zeros in its groups (hextets), squash the
+    //        longest zero-only hextet sequence, and convert to the lower case
+    //        (as per RFC5952).
+    //
+    // Assume that the host value is valid.
+    //
+    void
+    normalize ();
   };
 
   template <typename S>
@@ -339,6 +361,11 @@ LIBBUTL_MODEXPORT namespace butl
     //
     string_type
     string () const;
+
+    // Normalize the URL host, if present.
+    //
+    void
+    normalize ();
 
     // The following predicates can be used to classify URL characters while
     // parsing, validating or encoding scheme-specific components. For the

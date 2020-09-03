@@ -151,7 +151,7 @@ namespace butl
 // Usages:
 //
 // argv[0]
-// argv[0] [-c|-s|-w] <url>
+// argv[0] [-c|-s|-w] [-n] <url>
 //
 // Perform some basic tests if no URL is provided. Otherwise round-trip the URL
 // to STDOUT. URL must contain only ASCII characters. Exit with zero code on
@@ -159,7 +159,7 @@ namespace butl
 // to STDERR.
 //
 // -c
-//    Print the URL components one per line. Print the special '[null]' string
+//    Print the URL components one per line. Print the special '<null>' string
 //    for an absent components. This is the default option if URL is provided.
 //
 // -s
@@ -168,6 +168,9 @@ namespace butl
 // -w
 //    Same as above, but use the custom wstring-based url_traits
 //    implementation for the basic_url template.
+//
+// -n
+//    Normalize the URL.
 //
 int
 main (int argc, const char* argv[])
@@ -186,6 +189,8 @@ try
     comp
   } mode (print_mode::comp);
 
+  bool norm (false);
+
   int i (1);
   for (; i != argc; ++i)
   {
@@ -196,6 +201,8 @@ try
       mode = print_mode::wstr;
     else if (o == "-c")
       mode = print_mode::comp;
+    else if (o == "-n")
+      norm = true;
     else
       break; // End of options.
   }
@@ -209,16 +216,18 @@ try
       assert (u0.empty ());
 
       wurl u1 (scheme::http,
-               wurl_authority {wstring (), wurl_host (L"[123]"), 0},
+               wurl_authority {wstring (), wurl_host (L"[::123]"), 0},
                wstring (L"login"),
                wstring (L"q="),
                wstring (L"f"));
+
+      u1.normalize ();
 
       assert (!u1.empty ());
       assert (u1 != u0);
 
       wurl u2 (scheme::http,
-               wurl_host (L"123", url_host_kind::ipv6),
+               wurl_host (L"::123", url_host_kind::ipv6),
                wstring (L"login"),
                wstring (L"q="),
                wstring (L"f"));
@@ -226,16 +235,18 @@ try
       assert (u2 == u1);
 
       wurl u3 (scheme::http,
-               wurl_host (L"123", url_host_kind::ipv6),
+               wurl_host (L"::123", url_host_kind::ipv6),
                0,
                wstring (L"login"),
                wstring (L"q="),
                wstring (L"f"));
 
+      u3.normalize ();
+
       assert (u3 == u2);
 
       wurl u4 (scheme::http,
-               L"[123]",
+               L"[::123]",
                wstring (L"login"),
                wstring (L"q="),
                wstring (L"f"));
@@ -243,7 +254,7 @@ try
       assert (u4 == u3);
 
       wurl u5 (scheme::http,
-               L"[123]",
+               L"[::123]",
                0,
                wstring (L"login"),
                wstring (L"q="),
@@ -323,16 +334,31 @@ try
     {
     case print_mode::str:
       {
-        cout << (*ua != '\0' ? url (ua) : url ()) << endl;
+        url u;
+        if (*ua != '\0')
+          u = url (ua);
+
+        if (norm)
+          u.normalize ();
+
+        cout << u << endl;
         break;
       }
     case print_mode::wstr:
       {
+        wurl u;
+
         // Convert ASCII string to wstring.
         //
         wstring s (ua, ua + strlen (ua));
 
-        wcout << (!s.empty () ? wurl (s) : wurl ()) << endl;
+        if (!s.empty ())
+          u = wurl (s);
+
+        if (norm)
+          u.normalize ();
+
+        wcout << u << endl;
         break;
       }
     case print_mode::comp:
@@ -344,6 +370,9 @@ try
         wurl u;
         if (!s.empty ())
           u = wurl (s);
+
+        if (norm)
+          u.normalize ();
 
         if (!u.empty ())
         {
@@ -357,7 +386,7 @@ try
                                                         false) << endl;
         }
         else
-          wcout << L"[null]" << endl;
+          wcout << L"<null>" << endl;
 
         if (u.authority)
         {
@@ -368,11 +397,11 @@ try
                 << " " << kinds[static_cast<size_t> (a.host.kind)] << endl;
         }
         else
-          wcout << L"[null]" << endl;
+          wcout << L"<null>" << endl;
 
-        wcout << (u.path     ? *u.path     : L"[null]") << endl
-              << (u.query    ? *u.query    : L"[null]") << endl
-              << (u.fragment ? *u.fragment : L"[null]") << endl;
+        wcout << (u.path     ? *u.path     : L"<null>") << endl
+              << (u.query    ? *u.query    : L"<null>") << endl
+              << (u.fragment ? *u.fragment : L"<null>") << endl;
         break;
       }
     }

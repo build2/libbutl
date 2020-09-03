@@ -11,28 +11,99 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   basic_url_host<S>::
   basic_url_host (string_type v)
   {
-    using std::invalid_argument;
+    using namespace std;
 
     using url       = basic_url<string_type>;
     using char_type = typename string_type::value_type;
 
     kind = v[0] == '[' ? kind_type::ipv6 : kind_type::name;
 
+    // Note that an IPv6 address is represented as eight colon-separated
+    // groups (hextets) of four or less hexadecimal digits. One or more
+    // consecutive zero hextets can be represented by double-colon (squashed),
+    // but only once, for example: 1::2:0:0:3.
+    //
     if (kind == url_host_kind::ipv6)
     {
-      if (v.back () != ']')
-        throw invalid_argument ("invalid IPv6 address");
+      auto bad_ip = [] () {throw invalid_argument ("invalid IPv6 address");};
 
-      value.assign (v, 1, v.size () - 2);
+      if (v.back () != ']')
+        bad_ip ();
+
+      // Validate the IPv6 address.
+      //
+      // If the address doesn't contain the double-colon, then we will verify
+      // that it is composed of eight valid hextets. Otherwise, we will split
+      // the address by the double-colon into two hextet sequences, validate
+      // their hextets, and verify that their cumulative length is less than
+      // eight.
+      //
+      using iter = typename string_type::const_iterator;
+
+      // Validate a hextet sequence and return its length.
+      //
+      auto len = [&bad_ip] (iter b, iter e)
+      {
+        size_t r (0);
+
+        if (b == e)
+          return r;
+
+        size_t n (0); // Current hextet length.
+
+        // Fail if the current hextet is of an invalid length and increment
+        // the sequence length counter otherwise.
+        //
+        auto validate = [&r, &n, &bad_ip] ()
+        {
+          if (n == 0 || n > 4)
+            bad_ip ();
+
+          ++r;
+          n = 0;
+        };
+
+        for (iter i (b); i != e; ++i)
+        {
+          char_type c (*i);
+
+          if (xdigit (c))
+            ++n;
+          else if (c == ':')
+            validate ();
+          else
+            bad_ip ();
+        }
+
+        validate (); // Validate the trailing hextet.
+        return r;
+      };
+
+      size_t p (v.find (string_type (2, ':'), 1));
+
+      size_t n1 (p != string_type::npos
+                 ? len (v.begin () + 1, v.begin () + p)
+                 : len (v.begin () + 1, v.end () - 1));
+
+      size_t n2 (p != string_type::npos
+                 ? len (v.begin () + p + 2, v.end () - 1)
+                 : 0);
+
+      if (p != string_type::npos ? (n1 + n2 < 8) : (n1 == 8))
+        value.assign (v, 1, v.size () - 2);
+      else
+        bad_ip ();
     }
-    else
+    else // IPV4 or name.
     {
       // Detect the IPv4 address host type.
       //
       {
-        size_t n (0);
-        string_type oct;
+        size_t n (0);    // Number of octets.
+        string_type oct; // Current octet.
 
+        // Return true if the current octet is valid.
+        //
         auto ipv4_oct = [&oct, &n] () -> bool
         {
           if (n == 4 || oct.empty () || oct.size () > 3 || stoul (oct) > 255)
@@ -124,6 +195,192 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
     assert (false); // Can't be here.
     return string_type ();
+  }
+
+  template <typename S>
+  void basic_url_host<S>::
+  normalize ()
+  {
+    using namespace std;
+
+    using char_type = typename string_type::value_type;
+
+    switch (kind)
+    {
+    case url_host_kind::name:
+      {
+        for (char_type& c: value)
+          c = lcase (static_cast<char> (c));
+
+        break;
+      }
+    case url_host_kind::ipv4:
+      {
+        // Strip the leading zeros in the octets.
+        //
+        string_type v; // Normalized address.
+        size_t n (0);  // End of the last octet (including dot).
+
+        for (char_type c: value)
+        {
+          if (c == '.')
+          {
+            // If no digits were added since the last octet was processed,
+            // then the current octet is zero and so we add it.
+            //
+            if (n == v.size ())
+              v += '0';
+
+            v += '.';
+            n = v.size ();
+          }
+          else if (c != '0' || n != v.size ()) // Not a leading zero?
+            v += c;
+        }
+
+        // Handle the trailing zero octet.
+        //
+        if (n == v.size ())
+          v += '0';
+
+        value = move (v);
+        break;
+      }
+    case url_host_kind::ipv6:
+      {
+        // The overall plan is to (1) normalize the address hextets by
+        // converting them into lower case and stripping the leading zeros,
+        // (2) expand the potentially present double-colon into the zero
+        // hextet sequence, and (3) then squash the longest zero hextet
+        // sequence into double-colon. For example:
+        //
+        // 0ABC::1:0:0:0:0 -> abc:0:0:1::
+
+        // Parse the address into an array of normalized hextets.
+        //
+        // Note that if we meet the double-colon, we cannot expand it into the
+        // zero hextet sequence right away, since its length is unknown at
+        // this stage. Instead, we will save its index and expand it later.
+        //
+        small_vector<string_type, 8> v; // Normalized address.
+        string_type hex;                // Current hextet.
+        optional<size_t> dci;           // Double-colon index, if present.
+        const string_type z (1, '0');   // Zero hextet.
+
+        // True if any leading zeros are stripped for the current hextet.
+        //
+        bool stripped (false);
+
+        auto add_hex = [&v, &hex, &stripped, &dci, &z] ()
+        {
+          if (!hex.empty ())
+          {
+            v.emplace_back (move (hex));
+            hex.clear ();
+          }
+          else
+          {
+            if (!stripped)     // Double-colon?
+              dci = v.size (); // Note: can be set twice to 0 (think of ::1).
+            else
+              v.push_back (z);
+          }
+
+          stripped = false;
+        };
+
+        for (char_type c: value)
+        {
+          if (c == ':')
+            add_hex ();
+          else if (c == '0' && hex.empty ()) // Leading zero?
+            stripped = true;
+          else
+            hex += lcase (static_cast<char> (c));
+        }
+
+        // Handle the trailing hextet.
+        //
+        if (!hex.empty ())
+          v.emplace_back (move (hex));
+        else if (stripped)
+          v.push_back (z);
+        //
+        // Else this is the trailing (already handled) double-colon.
+
+        // Expand double-colon, if present.
+        //
+        if (dci)
+        {
+          if (v.size () < 8)
+            v.insert (v.begin () + *dci, 8 - v.size (), z);
+          else
+            assert (false); // Too long address.
+        }
+
+        // Find the longest zero hextet sequence.
+        //
+        // Note that the first sequence of zeros is chosen between the two of
+        // the same length.
+        //
+        // Also note that we don't squash the single zero.
+        //
+        using iter = typename small_vector<string_type, 8>::const_iterator;
+
+        iter   e (v.end ());
+        iter   mxi (e);      // Longest sequence start.
+        iter   mxe;          // Longest sequence end.
+        size_t mxn (1);      // Longest sequence length (must be > 1).
+
+        for (iter i (v.begin ()); i != e; )
+        {
+          i = find (i, e, z);
+
+          if (i != e)
+          {
+            iter ze (find_if (i + 1, e,
+                              [&z] (const string_type& h) {return h != z;}));
+
+            size_t n (ze - i);
+
+            if (mxn < n)
+            {
+              mxn = n;
+              mxi = i;
+              mxe = ze;
+            }
+
+            i = ze;
+          }
+        }
+
+        // Compose the IPv6 string, squashing the longest zero hextet
+        // sequence, if present.
+        //
+        value.clear ();
+
+        for (iter i (v.begin ()); i != e; )
+        {
+          if (i != mxi)
+          {
+            // Add ':', unless the hextet is the first or follows double-
+            // colon.
+            //
+            if (!value.empty () && value.back () != ':')
+              value += ':';
+
+            value += *i++;
+          }
+          else
+          {
+            value.append (2, ':');
+            i = mxe;
+          }
+        }
+
+        break;
+      }
+    }
   }
 
   // basic_url_authority

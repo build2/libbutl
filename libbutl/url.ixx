@@ -116,4 +116,12 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
         rootless (true)
   {
   }
+
+  template <typename S, typename T>
+  inline void basic_url<S, T>::
+  normalize ()
+  {
+    if (authority)
+      authority->host.normalize ();
+  }
 }
