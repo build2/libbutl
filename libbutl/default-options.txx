@@ -31,6 +31,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   template <typename O, typename S, typename U, typename F>
   bool
   load_default_options_files (const dir_path& d,
+                              bool args,
                               bool remote,
                               const small_vector<path, 2>& fs,
                               F&& fn,
@@ -42,7 +43,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
     bool r (true);
 
-    auto load = [&fs, &fn, &def_ops, &r] (const dir_path& d, bool remote)
+    auto load = [args, &fs, &fn, &def_ops, &r] (const dir_path& d, bool rem)
     {
       using namespace std;
 
@@ -54,7 +55,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
         {
           if (file_exists (p)) // Follows symlinks.
           {
-            fn (p, remote, false /* overwrite */);
+            fn (p, rem, false /* overwrite */);
 
             S s (p.string ());
 
@@ -65,14 +66,26 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
             //    this in CLI.
             //
             O o;
-            o.parse (s, U::fail, U::fail);
+            small_vector<std::string, 1> as;
+
+            if (args)
+            {
+              while (s.more ())
+              {
+                if (!o.parse (s, U::fail, U::stop))
+                  as.push_back (s.next ());
+              }
+            }
+            else
+              o.parse (s, U::fail, U::fail);
 
             if (o.no_default_options ())
               r = false;
 
             def_ops.push_back (default_options_entry<O> {move (p),
                                                          move (o),
-                                                         remote});
+                                                         move (as),
+                                                         rem});
           }
         }
         catch (std::system_error& e)
@@ -102,7 +115,8 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
                         const optional<dir_path>& home_dir,
                         const optional<dir_path>& extra_dir,
                         const default_options_files& ofs,
-                        F&& fn)
+                        F&& fn,
+                        bool args)
   {
     if (sys_dir)
       assert (sys_dir->absolute () && sys_dir->normalized ());
@@ -192,6 +206,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
           if (load_extra && extra_dir->sub (d))
           {
             load = load_default_options_files<O, S, U> (*extra_dir,
+                                                        args,
                                                         false /* remote */,
                                                         ofs.files,
                                                         std::forward<F> (fn),
@@ -204,6 +219,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
           if (load && options_dir_exists (od))
             load = load_default_options_files<O, S, U> (od,
+                                                        args,
                                                         remote,
                                                         ofs.files,
                                                         std::forward<F> (fn),
@@ -219,6 +235,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
     if (load && load_extra)
       load = load_default_options_files<O, S, U> (*extra_dir,
+                                                  args,
                                                   false /* remote */,
                                                   ofs.files,
                                                   std::forward<F> (fn),
@@ -230,6 +247,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
       if (options_dir_exists (d))
         load = load_default_options_files<O, S, U> (d,
+                                                    args,
                                                     false /* remote */,
                                                     ofs.files,
                                                     std::forward<F> (fn),
@@ -238,6 +256,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
     if (load && sys_dir && options_dir_exists (*sys_dir))
       load_default_options_files<O, S, U> (*sys_dir,
+                                           args,
                                            false /* remote */,
                                            ofs.files,
                                            std::forward<F> (fn),
@@ -267,6 +286,28 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     }
 
     r.merge (cmd_ops);
+    return r;
+  }
+
+  template <typename O, typename  AS, typename F>
+  AS
+  merge_default_arguments (const default_options<O>& def_ops,
+                           const AS& cmd_args,
+                           F&& fn)
+  {
+    AS r;
+    for (const default_options_entry<O>& e: def_ops)
+    {
+      fn (e, cmd_args);
+      r.insert (r.end (), e.arguments.begin (), e.arguments.end ());
+    }
+
+    // Optimize for the common case.
+    //
+    if (r.empty ())
+      return cmd_args;
+
+    r.insert (r.end (), cmd_args.begin (), cmd_args.end ());
     return r;
   }
 }

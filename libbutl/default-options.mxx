@@ -6,6 +6,7 @@
 #endif
 
 #ifndef __cpp_lib_modules_ts
+#include <string>
 #include <vector>
 
 #include <utility>      // move(), forward(), make_pair()
@@ -50,17 +51,21 @@ LIBBUTL_MODEXPORT namespace butl
   template <typename O>
   struct default_options_entry
   {
-    path file;
-    O    options;
-    bool remote;
+    path                         file;
+    O                            options;
+    small_vector<std::string, 1> arguments;
+    bool                         remote;
   };
 
   template <typename O>
   using default_options = small_vector<default_options_entry<O>, 4>;
 
-  // Search for and load (using scanner S and parsing in the U::fail mode for
-  // both options and arguments) the specified list of options files in the
-  // specified directories returning a vector of option class instances (O).
+  // Search for and load the specified list of options files in the specified
+  // directories returning a vector of option class instances (O). If args is
+  // false, only options are allowed and are parsed using scanner S in the
+  // U::fail mode. If args is true, then both options and arguments are
+  // allowed in any order with options parsed in the U::stop mode.
+  //
   // Pass each default options file path to the specified function prior to
   // load (can be used for tracing, etc). The function signature is:
   //
@@ -106,32 +111,43 @@ LIBBUTL_MODEXPORT namespace butl
                         const optional<dir_path>& home_dir,
                         const optional<dir_path>& extra_dir,
                         const default_options_files&,
-                        F&&);
+                        F&&,
+                        bool args = false);
 
-  // Merge the default options and the command line options.
+  // Merge the default options/arguments and the command line
+  // options/arguments.
   //
-  // Note that this is the default implementation and in some cases you may
+  // Note that these are the default implementations and in some cases you may
   // want to provide an options class-specific version that verifies/sanitizes
-  // the default options (e.g., you may not want to allow certain options to
-  // be specified in the default options files) or warns/prompts about
-  // potentially dangerous options if they came from the remote options files.
+  // the default options/arguments (e.g., you may not want to allow certain
+  // options to be specified in the default options files) or warns/prompts
+  // about potentially dangerous options if they came from the remote options
+  // files.
   //
   template <typename O>
   O
   merge_default_options (const default_options<O>&, const O& cmd_ops);
 
-  // As above but pass each default option to the specified function prior to
-  // merging. The function signature is:
+  template <typename O, typename AS>
+  AS
+  merge_default_arguments (const default_options<O>&, const AS& cmd_args);
+
+  // As above but pass each default option/argument entry to the specified
+  // function prior to merging. The function signature is:
   //
   // void (const default_options_entry<O>&, const O& cmd_ops)
   //
-  // This version can be used to verify the default options. For example, you
-  // may want to disallow certain options from being specified in the default
-  // options files.
+  // This version can be used to verify the default options/arguments. For
+  // example, you may want to disallow certain options/arguments from being
+  // specified in the default options files.
   //
   template <typename O, typename F>
   O
   merge_default_options (const default_options<O>&, const O&, F&&);
+
+  template <typename O, typename AS, typename F>
+  AS
+  merge_default_arguments (const default_options<O>&, const AS&, F&&);
 
   // Find a common start (parent) directory stopping at home or root
   // (excluding).

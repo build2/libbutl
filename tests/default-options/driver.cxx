@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <stdexcept> // invalid_argument
 #endif
 
 // Other includes.
@@ -57,6 +58,9 @@ using namespace butl;
 // -x
 //    Extra directory.
 //
+// -a
+//    Default arguments are allowed in the options files.
+//
 // -e
 //    Print the default options entries (rather than the merged options) to
 //    STDOUT one per line in the following format:
@@ -76,19 +80,59 @@ main (int argc, const char* argv[])
   public:
     scanner (const string& f): ifs_ (f, fdopen_mode::in, ifdstream::badbit) {}
 
-    optional<string>
+    bool
+    more ()
+    {
+      if (peeked_)
+        return true;
+
+      if (!eof_)
+        eof_ = ifs_.peek () == ifdstream::traits_type::eof ();
+
+      return !eof_;
+    }
+
+    string
+    peek ()
+    {
+      assert (more ());
+
+      if (peeked_)
+        return *peeked_;
+
+      string s;
+      getline (ifs_, s);
+
+      peeked_ = move (s);
+      return *peeked_;
+    }
+
+    string
     next ()
     {
+      assert (more ());
+
       string s;
-      return !eof (getline (ifs_, s)) ? optional<string> (move (s)) : nullopt;
+      if (peeked_)
+      {
+        s = move (*peeked_);
+        peeked_ = nullopt;
+      }
+      else
+        getline (ifs_, s);
+
+      return s;
     }
 
   private:
     ifdstream ifs_;
+    bool eof_ = false;
+    optional<string> peeked_;
   };
 
   enum class unknow_mode
   {
+    stop,
     fail
   };
 
@@ -96,15 +140,28 @@ main (int argc, const char* argv[])
   {
   public:
     bool
-    parse (scanner& s, unknow_mode, unknow_mode)
+    parse (scanner& s, unknow_mode, unknow_mode m)
     {
       bool r (false);
-      while (optional<string> o = s.next ())
+      while (s.more ())
       {
-        if (*o == "--no-default-options")
+        string a (s.peek ());
+
+        if (a.compare (0, 2, "--") != 0)
+        {
+          switch (m)
+          {
+          case unknow_mode::stop: return r;
+          case unknow_mode::fail: throw invalid_argument (a);
+          }
+        }
+
+        s.next ();
+
+        if (a == "--no-default-options")
           no_default_options_ = true;
 
-        push_back (move (*o));
+        push_back (move (a));
         r = true;
       }
       return r;
@@ -132,50 +189,58 @@ main (int argc, const char* argv[])
   optional<dir_path> sys_dir;
   optional<dir_path> home_dir;
   optional<dir_path> extra_dir;
+  bool args (false);
   vector<dir_path> dirs;
   options cmd_ops;
+  vector<string> cmd_args;
   bool print_entries (false);
   bool trace (false);
 
   for (int i (1); i != argc; ++i)
   {
-    string op (argv[i]);
+    string a (argv[i]);
 
-    if (op == "-f")
+    if (a == "-f")
     {
       assert (++i != argc);
       fs.files.push_back (path (argv[i]));
     }
-    else if (op == "-d")
+    else if (a == "-d")
     {
       assert (++i != argc);
       dirs.emplace_back (argv[i]);
     }
-    else if (op == "-s")
+    else if (a == "-s")
     {
       assert (++i != argc);
       sys_dir = dir_path (argv[i]);
     }
-    else if (op == "-h")
+    else if (a == "-h")
     {
       assert (++i != argc);
       home_dir = dir_path (argv[i]);
     }
-    else if (op == "-x")
+    else if (a == "-x")
     {
       assert (++i != argc);
       extra_dir = dir_path (argv[i]);
     }
-    else if (op == "-e")
+    else if (a == "-a")
+    {
+      args = true;
+    }
+    else if (a == "-e")
     {
       print_entries = true;
     }
-    else if (op == "-t")
+    else if (a == "-t")
     {
       trace = true;
     }
+    else if (a.compare (0, 2, "--") == 0)
+      cmd_ops.push_back (move (a));
     else
-      cmd_ops.push_back (argv[i]);
+      cmd_args.push_back (move (a));
   }
 
   // Deduce a common start directory.
@@ -184,8 +249,11 @@ main (int argc, const char* argv[])
 
   // Load and print the default options.
   //
-  default_options<options> def_ops (
-    load_default_options<options, scanner, unknow_mode> (
+  default_options<options> def_ops;
+
+  try
+  {
+    def_ops = load_default_options<options, scanner, unknow_mode> (
       sys_dir,
       home_dir,
       extra_dir,
@@ -195,7 +263,14 @@ main (int argc, const char* argv[])
         if (trace)
           cerr << (overwrite ? "overwriting " : "loading ")
                << (remote ? "remote " : "local ") << f << endl;
-      }));
+      },
+      args);
+  }
+  catch (const invalid_argument& e)
+  {
+    cerr << "error: unexpected argument '" << e.what () << "'" << endl;
+    return 1;
+  }
 
   if (print_entries)
   {
@@ -211,18 +286,40 @@ main (int argc, const char* argv[])
         cout << o;
       }
 
+      if (args)
+      {
+        cout << "|";
+
+        for (const string& a: e.arguments)
+        {
+          if (&a != &e.arguments[0])
+            cout << ' ';
+
+          cout << a;
+        }
+
+      }
+
       cout << (e.remote ? ",true" : ",false") << endl;
     }
   }
 
   // Merge the options and print the result.
   //
-  options ops (merge_default_options (def_ops, cmd_ops));
-
   if (!print_entries)
   {
+    options ops (merge_default_options (def_ops, cmd_ops));
+
     for (const string& o: ops)
       cout << o << endl;
+
+    if (args)
+    {
+      vector<string> as (merge_default_arguments (def_ops, cmd_args));
+
+      for (const string& a: as)
+        cout << a << endl;
+    }
   }
 
   return 0;
