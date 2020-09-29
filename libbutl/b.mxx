@@ -67,6 +67,11 @@ LIBBUTL_MODEXPORT namespace butl
   // Run `b info: <project-dir>` command and parse and return the build2
   // project information it prints to stdout. Throw b_error on error.
   //
+  // Unless you need information that may come from external modules
+  // (operations, meta-operations, etc), pass false as the ext_mods argument,
+  // which results in passing --no-external-modules to the build2 program and
+  // speeds up its execution.
+  //
   // You can also specify the build2 verbosity level, command line callback
   // (see process_run_callback() for details), build program search details
   // and additional options.
@@ -101,6 +106,7 @@ LIBBUTL_MODEXPORT namespace butl
 
   LIBBUTL_SYMEXPORT b_project_info
   b_info (const dir_path& project,
+          bool ext_mods,
           std::uint16_t verb = 1,
           const std::function<b_callback>& cmd_callback = {},
           const path& program = path ("b"),

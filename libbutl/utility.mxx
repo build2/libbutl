@@ -271,7 +271,7 @@ LIBBUTL_MODEXPORT namespace butl
 
   // Throw system_error on failure.
   //
-  // Note that on Windows setting an empty value usets the variable.
+  // Note that on Windows setting an empty value unsets the variable.
   //
   LIBBUTL_SYMEXPORT void
   setenv (const std::string& name, const std::string& value);

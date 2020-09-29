@@ -73,6 +73,7 @@ namespace butl
 
   b_project_info
   b_info (const dir_path& project,
+          bool ext_mods,
           uint16_t verb,
           const function<b_callback>& cmd_callback,
           const path& program,
@@ -111,6 +112,7 @@ namespace butl
           2 /* stderr */,
           pp,
           vops,
+          ext_mods ? nullptr : "--no-external-modules",
           "-s",
           ops,
           "info:", "'" + project.representation () + "'");
