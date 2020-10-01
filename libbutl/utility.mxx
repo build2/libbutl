@@ -86,16 +86,23 @@ LIBBUTL_MODEXPORT namespace butl
   // http://pubs.opengroup.org/onlinepubs/009695399/basedefs/xbd_chap07.html#tag_07_02)
   //
   char ucase (char);
-  std::string ucase (const char*, std::size_t = std::string::npos);
-
-  std::string ucase (const std::string&);
-  std::string& ucase (std::string&);
+  std::string ucase (const char*, std::size_t n = std::string::npos);
+  std::string ucase (const std::string&,
+                     std::size_t p = 0,
+                     std::size_t n = std::string::npos);
+  std::string& ucase (std::string&,
+                      std::size_t p = 0,
+                      std::size_t n = std::string::npos);
   void ucase (char*, std::size_t);
 
   char lcase (char);
-  std::string lcase (const char*, std::size_t = std::string::npos);
-  std::string lcase (const std::string&);
-  std::string& lcase (std::string&);
+  std::string lcase (const char*, std::size_t n = std::string::npos);
+  std::string lcase (const std::string&,
+                     std::size_t p = 0,
+                     std::size_t n = std::string::npos);
+  std::string& lcase (std::string&,
+                      std::size_t p = 0,
+                      std::size_t n = std::string::npos);
   void lcase (char*, std::size_t);
 
   // Compare ASCII characters/strings ignoring case. Behave as if characters

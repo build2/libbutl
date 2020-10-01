@@ -25,12 +25,15 @@ namespace butl
   }
 
   inline std::string&
-  ucase (std::string& s)
+  ucase (std::string& s, std::size_t p, std::size_t n)
   {
-    if (size_t n = s.size ())
+    if (n == std::string::npos)
+      n = s.size () - p;
+
+    if (n != 0)
     {
       s.front () = s.front (); // Force copy in CoW.
-      ucase (const_cast<char*> (s.data ()), n);
+      ucase (const_cast<char*> (s.data ()) + p, n);
     }
     return s;
   }
@@ -43,9 +46,9 @@ namespace butl
   }
 
   inline std::string
-  ucase (const std::string& s)
+  ucase (const std::string& s, std::size_t p, std::size_t n)
   {
-    return ucase (s.c_str (), s.size ());
+    return ucase (s.c_str () + p, n != std::string::npos ? n : s.size () - p);
   }
 
   inline char
@@ -62,12 +65,15 @@ namespace butl
   }
 
   inline std::string&
-  lcase (std::string& s)
+  lcase (std::string& s, std::size_t p, std::size_t n)
   {
-    if (size_t n = s.size ())
+    if (n == std::string::npos)
+      n = s.size () - p;
+
+    if (n != 0)
     {
       s.front () = s.front (); // Force copy in CoW.
-      lcase (const_cast<char*> (s.data ()), n);
+      lcase (const_cast<char*> (s.data ()) + p, n);
     }
     return s;
   }
@@ -80,9 +86,9 @@ namespace butl
   }
 
   inline std::string
-  lcase (const std::string& s)
+  lcase (const std::string& s, std::size_t p, std::size_t n)
   {
-    return lcase (s.c_str (), s.size ());
+    return lcase (s.c_str () + p, n != std::string::npos ? n : s.size () - p);
   }
 
   inline int
