@@ -805,13 +805,15 @@ namespace butl
   void process::
   kill ()
   {
-    if (handle != 0)
-    {
-      if (::kill (handle, SIGKILL) == -1)
-        throw process_error (errno);
+    if (handle != 0 && ::kill (handle, SIGKILL) == -1)
+      throw process_error (errno);
+  }
 
-      wait ();
-    }
+  void process::
+  term ()
+  {
+    if (handle != 0 && ::kill (handle, SIGTERM) == -1)
+      throw process_error (errno);
   }
 
   process::id_type process::
@@ -1958,9 +1960,16 @@ namespace butl
   optional<bool> process::
   try_wait ()
   {
+    return timed_wait (chrono::milliseconds (0));
+  }
+
+  template <>
+  optional<bool> process::
+  timed_wait (const chrono::milliseconds& t)
+  {
     if (handle != 0)
     {
-      DWORD r (WaitForSingleObject (handle, 0));
+      DWORD r (WaitForSingleObject (handle, static_cast<DWORD> (t.count ())));
       if (r == WAIT_TIMEOUT)
         return nullopt;
 
@@ -1982,17 +1991,33 @@ namespace butl
     return exit ? static_cast<bool> (*exit) : optional<bool> ();
   }
 
-  template <>
-  optional<bool> process::
-  timed_wait (const chrono::milliseconds&)
-  {
-    throw process_error (ENOTSUP);
-  }
-
   void process::
   kill ()
   {
-    throw process_error (ENOTSUP);
+    // Note that TerminateProcess() requires an exit code the process will be
+    // terminated with. We could probably craft a custom exit code that will
+    // be treated by the normal() function as an abnormal termination.
+    // However, let's keep it simple and reuse the existing (semantically
+    // close) error code.
+    //
+    if (handle != 0 && !TerminateProcess (handle, DBG_TERMINATE_PROCESS))
+    {
+      DWORD e (GetLastError ());
+      if (e != ERROR_ACCESS_DENIED)
+        throw process_error (error_msg (e));
+
+      // Handle the case when the process has already terminated or is still
+      // exiting (potentially after being killed).
+      //
+      if (!try_wait ())
+        throw process_error (error_msg (e), EPERM);
+    }
+  }
+
+  void process::
+  term ()
+  {
+    kill ();
   }
 
   process::id_type process::
@@ -2023,7 +2048,7 @@ namespace butl
       // [ 0, 16) - program exit code or exception code
       // [16, 29) - facility
       // [29, 30) - flag indicating if the status value is customer-defined
-      // [30, 31) - severity (00 -success, 01 - informational, 10 - warning,
+      // [30, 31] - severity (00 -success, 01 - informational, 10 - warning,
       //            11 - error)
       //
       : status (c)
@@ -2093,6 +2118,10 @@ namespace butl
     //
     case STATUS_STACK_BUFFER_OVERRUN: return "aborted";
     case STATUS_STACK_OVERFLOW:       return "stack overflow";
+
+    // Presumably the kill() function was called for the process.
+    //
+    case DBG_TERMINATE_PROCESS: return "killed";
 
     default:
       {

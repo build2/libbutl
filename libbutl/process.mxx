@@ -360,27 +360,37 @@ LIBBUTL_MODEXPORT namespace butl
     // duration. Return the same result as wait() if the process has
     // terminated in this timeframe and nullopt otherwise.
     //
-    // Note: not yet implemented on Windows.
-    //
     template <typename R, typename P>
     optional<bool>
     timed_wait (const std::chrono::duration<R, P>&);
-
-    // Terminate the process.
-    //
-    // On POSIX send SIGKILL to the process and wait until it terminates. The
-    // process exit information is available after the call returns. Noop for
-    // an already terminated process.
-    //
-    // Note: not yet implemented on Windows.
-    //
-    void
-    kill ();
 
     // Note that the destructor will wait for the process but will ignore
     // any errors and the exit status.
     //
     ~process () {if (handle != 0) wait (true);}
+
+    // Process termination.
+    //
+
+    // Send SIGKILL to the process on POSIX and call TerminateProcess() with
+    // DBG_TERMINATE_PROCESS exit code on Windows. Noop for an already
+    // terminated process.
+    //
+    // Note that if the process is killed, it terminates as if it has called
+    // abort() (functions registered with atexit() are not called, etc).
+    //
+    // Also note that on Windows calling this function for a terminating
+    // process results in the EPERM process_error exception.
+    //
+    void
+    kill ();
+
+    // Send SIGTERM to the process on POSIX and call kill() on Windows (where
+    // there is no general way to terminate a console process gracefully).
+    // Noop for an already terminated process.
+    //
+    void
+    term ();
 
     // Moveable-only type.
     //
