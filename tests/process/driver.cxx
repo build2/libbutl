@@ -7,6 +7,7 @@
 #include <ios>
 #include <string>
 #include <vector>
+#include <chrono>
 #include <sstream>
 #include <iterator>  // istreambuf_iterator, ostream_iterator
 #include <algorithm> // copy()
@@ -25,6 +26,7 @@ import butl.utility;  // setenv(), getenv()
 import butl.process;
 import butl.optional;
 import butl.fdstream;
+import butl.timestamp;
 #else
 #include <libbutl/path.mxx>
 #include <libbutl/utility.mxx>
@@ -32,6 +34,7 @@ import butl.fdstream;
 #include <libbutl/process-io.mxx>
 #include <libbutl/optional.mxx>
 #include <libbutl/fdstream.mxx>
+#include <libbutl/timestamp.mxx>
 #endif
 
 using namespace std;
@@ -164,8 +167,11 @@ exec (const path& p,
             ifdstream is (bin_mode (move (pr3.in_ofd)));
             o = is.read_binary ();
 
-            r = pr2.wait () && r;
-            r = pr3.wait () && r;
+            // While at it, make sure that the process::timed_wait() template
+            // function overloads can be properly instantiated/linked.
+            //
+            r = pr2.timed_wait (duration::max ()) && r;
+            r = pr3.timed_wait (chrono::milliseconds::max ()) && r;
           }
           else
           {

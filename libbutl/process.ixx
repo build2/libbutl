@@ -251,7 +251,7 @@ namespace butl
   // specialization.
   //
   template <>
-  optional<bool> process::
+  LIBBUTL_SYMEXPORT optional<bool> process::
   timed_wait (const std::chrono::milliseconds&);
 
   template <typename R, typename P>
