@@ -1,14 +1,23 @@
 // file      : tests/builtin/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
+#ifdef _WIN32
+#  include <libbutl/win32-utility.hxx>
+#endif
+
 #include <cassert>
 
 #ifndef __cpp_lib_modules_ts
 #include <string>
 #include <vector>
+#include <chrono>
 #include <utility>  // move()
+#include <cstdint>  // uint8_t
 #include <ostream>
 #include <iostream>
+#ifndef _WIN32
+#  include <thread> // this_thread::sleep_for()
+#endif
 #endif
 
 // Other includes.
@@ -40,14 +49,20 @@ operator<< (ostream& os, const path& p)
   return os << p.representation ();
 }
 
-// Usage: argv[0] [-d <dir>] [-o <opt>] [-c] [-i] <builtin> <builtin-args>
+// Usage: argv[0] [-d <dir>] [-o <opt>] [-c] [-i] [-t <msec>] [-s <sec>]
+//        <builtin> <builtin-args>
 //
 // Execute the builtin and exit with its exit status.
 //
-// -d <dir>  use as a current working directory
-// -c        use callbacks that, in particular, trace calls to stdout
-// -o <opt>  additional builtin option recognized by the callback
-// -i        read lines from stdin and append them to the builtin arguments
+// -d <dir>   use as a current working directory
+// -c         use callbacks that, in particular, trace calls to stdout
+// -o <opt>   additional builtin option recognized by the callback
+// -i         read lines from stdin and append them to the builtin arguments
+// -t <msec>  print diag if the builtin didn't complete in <msec> milliseconds
+// -s <sec>   sleep <sec> seconds prior to running the builtin
+//
+// Note that the 'roundtrip' builtin name is also recognized and results in
+// running the pseudo-builtin that just roundtrips stdin to stdout.
 //
 int
 main (int argc, char* argv[])
@@ -62,11 +77,23 @@ main (int argc, char* argv[])
   dir_path cwd;
   string option;
   builtin_callbacks callbacks;
+  optional<duration> timeout;
+  optional<chrono::seconds> sec;
 
   string name;
   vector<string> args;
 
   auto flag = [] (bool v) {return v ? "true" : "false";};
+
+  auto num = [] (const string& s)
+  {
+    assert (!s.empty ());
+
+    char* e (nullptr);
+    uint64_t r (strtoull (s.c_str (), &e, 10)); // Can't throw.
+    assert (errno != ERANGE && e == s.c_str () + s.size ());
+    return r;
+  };
 
   // Parse the driver options and arguments.
   //
@@ -120,7 +147,23 @@ main (int argc, char* argv[])
       );
     }
     else if (a == "-i")
+    {
       in = true;
+    }
+    else if (a == "-t")
+    {
+      ++i;
+
+      assert (i != argc);
+      timeout = chrono::milliseconds (num (argv[i]));
+    }
+    else if (a == "-s")
+    {
+      ++i;
+
+      assert (i != argc);
+      sec = chrono::seconds (num (argv[i]));
+    }
     else
       break;
   }
@@ -142,23 +185,95 @@ main (int argc, char* argv[])
       args.push_back (move (s));
   }
 
+  auto sleep = [&sec] ()
+  {
+    if (sec)
+    {
+      // MINGW GCC 4.9 doesn't implement this_thread so use Win32 Sleep().
+      //
+#ifndef _WIN32
+      this_thread::sleep_for (*sec);
+#else
+      Sleep (static_cast<DWORD> (sec->count () * 1000));
+#endif
+    }
+  };
+
+  auto wait = [&timeout] (builtin& b)
+  {
+    optional<uint8_t> r;
+
+    if (timeout)
+    {
+      r = b.timed_wait (*timeout);
+
+      if (!r)
+      {
+        cerr << "timeout expired" << endl;
+
+        b.wait ();
+        r = 1;
+      }
+    }
+    else
+      r = b.wait ();
+
+    assert (b.try_wait ()); // While at it, test try_wait().
+
+    return *r;
+  };
+
   // Execute the builtin.
   //
-  const builtin_info* bi (builtins.find (name));
-
-  if (bi == nullptr)
+  if (name != "roundtrip")
   {
-    cerr << "unknown builtin '" << name << "'" << endl;
-    return 1;
-  }
+    const builtin_info* bi (builtins.find (name));
 
-  if (bi->function == nullptr)
+    if (bi == nullptr)
+    {
+      cerr << "unknown builtin '" << name << "'" << endl;
+      return 1;
+    }
+
+    if (bi->function == nullptr)
+    {
+      cerr << "external builtin '" << name << "'" << endl;
+      return 1;
+    }
+
+    sleep ();
+
+    uint8_t r; // Storage.
+    builtin b (bi->function (r, args, nullfd, nullfd, nullfd, cwd, callbacks));
+    return wait (b);
+  }
+  else
   {
-    cerr << "external builtin '" << name << "'" << endl;
-    return 1;
-  }
+    uint8_t r; // Storage.
 
-  uint8_t r; // Storage.
-  builtin b (bi->function (r, args, nullfd, nullfd, nullfd, cwd, callbacks));
-  return b.wait ();
+    auto run = [&r, &sleep] ()
+    {
+      // While at it, test that a non-copyable lambda can be used as a
+      // builtin.
+      //
+      auto_fd fd;
+
+      return pseudo_builtin (
+        r,
+        [&sleep, fd = move (fd)] () mutable noexcept
+        {
+          fd.reset ();
+
+          sleep ();
+
+          if (cin.peek () != istream::traits_type::eof ())
+            cout << cin.rdbuf ();
+
+          return 0;
+        });
+    };
+
+    builtin b (run ());
+    return wait (b);
+  }
 }

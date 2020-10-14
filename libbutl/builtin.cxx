@@ -2164,17 +2164,22 @@ namespace butl
               const dir_path& cwd,
               const builtin_callbacks& cbs)
   {
-    return builtin (
-      r,
-      thread ([fn, &r, &args,
-               in  = move (in),
-               out = move (out),
-               err = move (err),
-               &cwd,
-               &cbs] () mutable noexcept
-              {
-                r = fn (args, move (in), move (out), move (err), cwd, cbs);
-              }));
+    unique_ptr<builtin::async_state> s (
+      new builtin::async_state (
+        [fn,
+         &r,
+         &args,
+         in = move (in), out = move (out), err = move (err),
+         &cwd,
+         &cbs] () mutable noexcept
+        {
+          r = fn (args,
+                  move (in), move (out), move (err),
+                  cwd,
+                  cbs);
+        }));
+
+    return builtin (r, move (s));
   }
 
   template <builtin_impl fn>
@@ -2200,7 +2205,7 @@ namespace butl
              const builtin_callbacks& cbs)
   {
     r = fn (args, move (in), move (out), move (err), cwd, cbs);
-    return builtin (r, thread ());
+    return builtin (r);
   }
 
   const builtin_map builtins
@@ -2222,4 +2227,36 @@ namespace butl
     {"touch", {&sync_impl<&touch>, 2}},
     {"true",  {&true_,             0}}
   };
+
+  // builtin
+  //
+  uint8_t builtin::
+  wait ()
+  {
+    if (state_ != nullptr)
+    {
+      unique_lock<mutex> l (state_->mutex);
+
+      if (!state_->finished)
+        state_->condv.wait (l, [this] {return state_->finished;});
+    }
+
+    return result_;
+  }
+
+  template <>
+  optional<uint8_t> builtin::
+  timed_wait (const chrono::milliseconds& tm)
+  {
+    if (state_ != nullptr)
+    {
+      unique_lock<mutex> l (state_->mutex);
+
+      if (!state_->finished &&
+          !state_->condv.wait_for (l, tm, [this] {return state_->finished;}))
+        return nullopt;
+    }
+
+    return result_;
+  }
 }

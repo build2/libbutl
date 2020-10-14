@@ -1,0 +1,30 @@
+# file      : tests/builtin/timeout.testscript
+# license   : MIT; see accompanying LICENSE file
+
+: async-builtin
+:
+{
+  : expired
+  :
+  $* -s 3 'cat' <'test' | $* -t 1 'cat' >=f 2>'timeout expired' != 0
+
+  : not-expired
+  :
+  echo 'test' | $* -t 10000 'cat' >!
+}
+
+: pseudo-builtin
+:
+{
+  : expired
+  :
+  $* -s 3 'cat' <'test' | $* -t 1 'roundtrip' >=f 2>'timeout expired' != 0
+
+  : not-expired
+  :
+  echo 'test' | $* -t 10000 'roundtrip' >!
+}
+
+: sync-builtin
+:
+$* -t 1 'mkdir' d &d/

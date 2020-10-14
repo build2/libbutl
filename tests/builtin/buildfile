@@ -6,3 +6,6 @@ import libs = libbutl%lib{butl}
 ./: exe{driver} file{cp-dir/cp-file}
 
 exe{driver}: {hxx cxx}{*} $libs testscript{*}
+
+if ($cxx.target.class != 'windows')
+  cxx.libs += -lpthread

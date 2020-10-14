@@ -9,13 +9,17 @@
 
 #ifndef __cpp_lib_modules_ts
 #include <map>
+#include <mutex>
 #include <string>
 #include <vector>
 #include <thread>
-#include <cstddef>    // size_t
-#include <utility>    // move()
-#include <cstdint>    // uint8_t
+#include <chrono>
+#include <memory>             // unique_ptr
+#include <cstddef>            // size_t
+#include <utility>            // move()
+#include <cstdint>            // uint8_t
 #include <functional>
+#include <condition_variable>
 #endif
 
 // Other includes.
@@ -41,26 +45,61 @@ LIBBUTL_MODEXPORT namespace butl
 {
   // A process/thread-like object representing a running builtin.
   //
-  // For now, instead of allocating the result storage dynamically, we
-  // expect it to be provided by the caller.
+  // For now, instead of allocating the result storage dynamically, we expect
+  // it to be provided by the caller (allocating it dynamically would be
+  // wasteful for synchronous builtins).
   //
-  class builtin
+  class LIBBUTL_SYMEXPORT builtin
   {
   public:
+    // Wait for the builtin to complete and return its exit code. This
+    // function can be called multiple times.
+    //
     std::uint8_t
-    wait () {if (t_.joinable ()) t_.join (); return r_;}
+    wait ();
 
-    ~builtin () {wait ();}
+    // Return the same result as wait() if the builtin has already completed
+    // and nullopt otherwise.
+    //
+    optional<std::uint8_t>
+    try_wait ();
+
+    // Wait for the builtin to complete for up to the specified time duration.
+    // Return the same result as wait() if the builtin has completed in this
+    // timeframe and nullopt otherwise.
+    //
+    template <typename R, typename P>
+    optional<std::uint8_t>
+    timed_wait (const std::chrono::duration<R, P>&);
+
+    ~builtin () {if (state_ != nullptr) state_->thread.join ();}
 
   public:
-    builtin (std::uint8_t& r, std::thread&& t = std::thread ())
-        : r_ (r), t_ (move (t)) {}
+    struct async_state
+    {
+      bool finished = false;
+      std::mutex mutex;
+      std::condition_variable condv;
+      std::thread thread;
+
+      // Note that we can't use std::function as an argument type to get rid
+      // of the template since std::function can only be instantiated with a
+      // copy-constructible function and that's too restrictive for us (won't
+      // be able to capture auto_fd by value in a lambda, etc).
+      //
+      template <typename F>
+      explicit
+      async_state (F);
+    };
+
+    builtin (std::uint8_t& r, std::unique_ptr<async_state>&& s = nullptr)
+        : result_ (r), state_ (move (s)) {}
 
     builtin (builtin&&) = default;
 
   private:
-    std::uint8_t& r_;
-    std::thread t_;
+    std::uint8_t& result_;
+    std::unique_ptr<async_state> state_;
   };
 
   // Builtin execution callbacks that can be used for checking/handling the
@@ -181,12 +220,20 @@ LIBBUTL_MODEXPORT namespace butl
     // Return NULL if not a builtin.
     //
     const builtin_info*
-    find (const std::string& n) const
-    {
-      auto i (base::find (n));
-      return i != end () ? &i->second : nullptr;
-    }
+    find (const std::string&) const;
   };
+
+  // Asynchronously run a function as if it was a builtin. The function must
+  // have the std::uint8_t() signature and not throw exceptions.
+  //
+  // Note that using std::function as an argument type would be too
+  // restrictive (see above).
+  //
+  template <typename F>
+  builtin
+  pseudo_builtin (std::uint8_t&, F);
 
   LIBBUTL_SYMEXPORT extern const builtin_map builtins;
 }
+
+#include <libbutl/builtin.ixx>
