@@ -848,6 +848,13 @@ namespace butl
   }
 
   void ifdstream::
+  open (auto_fd&& fd, fdstream_mode m, std::uint64_t pos)
+  {
+    open (mode (std::move (fd), m), pos);
+    skip_ = (m & fdstream_mode::skip) == fdstream_mode::skip;
+  }
+
+  void ifdstream::
   close ()
   {
     if (skip_ && is_open () && good ())

@@ -521,11 +521,7 @@ LIBBUTL_MODEXPORT namespace butl
     }
 
     void
-    open (auto_fd&& fd, fdstream_mode m, std::uint64_t pos = 0)
-    {
-      open (std::move (fd), pos);
-      skip_ = (m & fdstream_mode::skip) == fdstream_mode::skip;
-    }
+    open (auto_fd&& fd, fdstream_mode m, std::uint64_t pos = 0);
 
     void close ();
     auto_fd release (); // Note: no skipping.
