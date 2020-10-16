@@ -470,12 +470,12 @@ main (int argc, const char* argv[])
   //
   {
     string s;
-    for (size_t i (0); i < 100; ++i)
+    for (size_t i (0); i < 300; ++i)
       s += "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n";
 
     const char* args[] = {argv[0], "-c", nullptr};
 
-    auto test_read = [&args, &s] ()
+    auto test_read = [&args, &s] (bool timeout)
     {
       try
       {
@@ -491,11 +491,29 @@ main (int argc, const char* argv[])
 
         string r;
         char buf[300];
+        bool timedout (false);
         while (!is.eof ())
         {
-          pair<size_t, size_t> nd (fdselect (rds, wds));
+          if (timeout)
+          {
+            pair<size_t, size_t> nd (
+              fdselect (rds, wds, chrono::milliseconds (3)));
 
-          assert (nd.first == 1 && nd.second == 0 && rds[0].ready);
+            assert (((nd.first == 0 && !rds[0].ready) ||
+                     (nd.first == 1 && rds[0].ready)) &&
+                    nd.second == 0);
+
+            if (nd.first == 0)
+            {
+              timedout = true;
+              continue;
+            }
+          }
+          else
+          {
+            pair<size_t, size_t> nd (fdselect (rds, wds));
+            assert (nd.first == 1 && nd.second == 0 && rds[0].ready);
+          }
 
           for (streamsize n; (n = is.readsome (buf, sizeof (buf))) != 0; )
             r.append (buf, static_cast<size_t> (n));
@@ -504,6 +522,10 @@ main (int argc, const char* argv[])
         is.close ();
 
         assert (r == s);
+
+        // If timeout is used, then it most likely timedout, at least once.
+        //
+        assert (timedout == timeout);
       }
       catch (const ios::failure&)
       {
@@ -517,7 +539,10 @@ main (int argc, const char* argv[])
 
     vector<thread> threads;
     for (size_t i (0); i < 10; ++i)
-      threads.emplace_back (test_read);
+    {
+      threads.emplace_back ([&test_read] {test_read (true  /* timeout */);});
+      threads.emplace_back ([&test_read] {test_read (false /* timeout */);});
+    }
 
     // While the threads are busy, let's test the skip/non_blocking modes
     // combination.

@@ -1447,7 +1447,7 @@ namespace butl
     path r (p);
     bool exists;
 
-    for (size_t i (0); true; ++i)
+    for (size_t i (0);; ++i)
     {
       pair<bool, entry_stat> pe (path_entry (r));
 

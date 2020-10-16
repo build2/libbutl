@@ -37,6 +37,7 @@
 #ifndef __cpp_lib_modules_ts
 #include <vector>
 #include <string>
+#include <chrono>
 #include <istream>
 #include <ostream>
 #include <utility>
@@ -72,8 +73,10 @@ import butl.small_vector;
 #endif
 
 import butl.utility; // throw_*_ios_failure(), function_cast()
+import butl.timestamp;
 #else
 #include <libbutl/utility.mxx>
+#include <libbutl/timestamp.mxx>
 #endif
 
 using namespace std;
@@ -1389,9 +1392,13 @@ namespace butl
     throw_generic_ios_failure (errno);
   }
 
-  pair<size_t, size_t>
-  fdselect (fdselect_set& read, fdselect_set& write)
+  static pair<size_t, size_t>
+  fdselect (fdselect_set& read,
+            fdselect_set& write,
+            const chrono::milliseconds* timeout)
   {
+    using namespace chrono;
+
     // Copy fdselect_set into the native fd_set, updating max_fd. Also clear
     // the ready flag in the source set.
     //
@@ -1427,29 +1434,64 @@ namespace butl
 
     ++max_fd;
 
+    // Note that if the timeout is not NULL, then the select timeout needs to
+    // be recalculated for each select() call (of which we can potentially
+    // have multiple due to EINTR). So the timeout can be used as bool.
+    //
+    timestamp now;
+    timestamp deadline;
+
+    if (timeout)
+    {
+      now = system_clock::now ();
+      deadline = now + *timeout;
+    }
+
     // Repeat the select() call while getting the EINTR error and throw on
     // any other error.
     //
     // Note that select() doesn't modify the sets on failure (according to
     // POSIX standard as well as to the Linux, FreeBSD and MacOS man pages).
     //
-    for (;;)
+    for (timeval tv;;)
     {
+      if (timeout)
+      {
+        if (now < deadline)
+        {
+          microseconds t (duration_cast<microseconds> (deadline - now));
+          tv.tv_sec  = t.count () / 1000000;
+          tv.tv_usec = t.count () % 1000000;
+        }
+        else
+        {
+          tv.tv_sec  = 0;
+          tv.tv_usec = 0;
+        }
+      }
+
       int r (select (max_fd,
                      &rds,
                      &wds,
                      nullptr /* exceptfds */,
-                     nullptr /* timeout */));
+                     timeout ? &tv : nullptr));
 
       if (r == -1)
       {
         if (errno == EINTR)
+        {
+          if (timeout)
+            now = system_clock::now ();
+
           continue;
+        }
 
         throw_system_ios_failure (errno);
       }
 
-      assert (r != 0); // We don't expect the timeout to occur.
+      if (!timeout)
+        assert (r != 0); // We don't expect the timeout to occur.
+
       break;
     }
 
@@ -1825,9 +1867,13 @@ namespace butl
     return false;
   }
 
-  pair<size_t, size_t>
-  fdselect (fdselect_set& read, fdselect_set& write)
+  static pair<size_t, size_t>
+  fdselect (fdselect_set& read,
+            fdselect_set& write,
+            const chrono::milliseconds* timeout)
   {
+    using namespace chrono;
+
     if (!write.empty ())
       throw invalid_argument ("write file descriptor set is not supported");
 
@@ -1849,6 +1895,15 @@ namespace butl
 
     if (n == 0)
       throw invalid_argument ("empty file descriptor set");
+
+    // Note that if the timeout is not NULL, then the deadline needs to be
+    // checked prior to re-probing the pipe for data presence. So the timeout
+    // can be used as bool.
+    //
+    timestamp deadline;
+
+    if (timeout)
+      deadline = system_clock::now () + *timeout;
 
     // Keep iterating through the set until at least one byte can be read from
     // any of the pipes or any of them get closed (so can read eof).
@@ -1922,13 +1977,30 @@ namespace butl
         throw_system_ios_failure (e);
       }
 
-      // Bail out if some descriptors are ready for reading and sleep a bit
-      // and repeat otherwise.
+      // Bail out if some descriptors are ready for reading or the deadline
+      // has been reached, if specified, and sleep a bit and repeat otherwise.
       //
       if (r != 0)
         break;
 
-      Sleep (50);
+      DWORD t (50);
+
+      if (timeout)
+      {
+        timestamp now (system_clock::now ());
+
+        if (now < deadline)
+        {
+          milliseconds tm (duration_cast<milliseconds> (deadline - now));
+
+          if (t > tm.count ())
+            t = static_cast<DWORD> (tm.count ());
+        }
+        else
+          break;
+      }
+
+      Sleep (t);
     }
 
     return make_pair (r, 0);
@@ -1972,4 +2044,19 @@ namespace butl
   }
 
 #endif
+
+  pair<size_t, size_t>
+  fdselect (fdselect_set& read, fdselect_set& write)
+  {
+    return fdselect (read, write, nullptr /* timeout */);
+  }
+
+  template <>
+  pair<size_t, size_t>
+  fdselect (fdselect_set& read,
+            fdselect_set& write,
+            const chrono::milliseconds& timeout)
+  {
+    return fdselect (read, write, &timeout);
+  }
 }

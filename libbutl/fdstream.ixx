@@ -353,4 +353,23 @@ namespace butl
   {
     return fdmode (stderr_fd (), m);
   }
+
+  // fdselect
+  //
+  // Implement fdselect() function templates in terms of their milliseconds
+  // specialization.
+  //
+  template <>
+  LIBBUTL_SYMEXPORT std::pair<std::size_t, std::size_t>
+  fdselect (fdselect_set&, fdselect_set&, const std::chrono::milliseconds&);
+
+  template <typename R, typename P>
+  inline std::pair<std::size_t, std::size_t>
+  fdselect (fdselect_set& ifds,
+            fdselect_set& ofds,
+            const std::chrono::duration<R, P>& timeout)
+  {
+    using namespace std::chrono;
+    return fdselect (ifds, ofds, duration_cast<milliseconds> (timeout));
+  }
 }

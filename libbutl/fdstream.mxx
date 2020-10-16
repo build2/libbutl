@@ -11,6 +11,7 @@
 #include <ios>     // streamsize
 #include <vector>
 #include <string>
+#include <chrono>
 #include <istream>
 #include <ostream>
 #include <utility> // move(), pair
@@ -911,10 +912,25 @@ LIBBUTL_MODEXPORT namespace butl
   // As above but wait up to the specified timeout returning a pair of zeroes
   // if none of the descriptors became ready.
   //
-  // @@ Maybe merge it with the above via a default/optional value?
-  //
-  // LIBBUTL_SYMEXPORT std::pair<std::size_t, std::size_t>
-  // fdselect (fdselect_set&, fdselect_set&, const duration& timeout);
+  template <typename R, typename P>
+  std::pair<std::size_t, std::size_t>
+  fdselect (fdselect_set&, fdselect_set&, const std::chrono::duration<R, P>&);
+
+  template <typename R, typename P>
+  inline std::size_t
+  ifdselect (fdselect_set& ifds, const std::chrono::duration<R, P>& timeout)
+  {
+    fdselect_set ofds;
+    return fdselect (ifds, ofds, timeout).first;
+  }
+
+  template <typename R, typename P>
+  inline std::size_t
+  ofdselect (fdselect_set& ofds, const std::chrono::duration<R, P>& timeout)
+  {
+    fdselect_set ifds;
+    return fdselect (ifds, ofds, timeout).second;
+  }
 
   // POSIX read() function wrapper. In particular, it supports the semantics
   // of non-blocking read for pipes on Windows.
