@@ -109,6 +109,10 @@ main ()
                 "aarch64-nto-qnx7.0.0",
                 "aarch64", "", "nto-qnx", "7.0.0", "other"));
 
+  assert (test ("wasm32-emscripten",
+                "wasm32-emscripten",
+                "wasm32", "", "emscripten", "", "other"));
+
   // Version extraction.
   //
   assert (test ("x86_64-apple-darwin14.5.0",

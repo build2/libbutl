@@ -96,6 +96,7 @@ LIBBUTL_MODEXPORT namespace butl
   // x86_64-microsoft-win32-msvc14.0   x86_64  microsoft  win32-msvc     14.0
   // x86_64-pc-windows-msvc            x86_64             windows-msvc
   // x86_64-pc-windows-msvc19.11.25547 x86_64             windows-msvc   19.11.25547
+  // wasm32-unknown-emscripten         wasm32             emscripten
   //
   // Similar to version splitting, for certain commonly-used targets we also
   // derive the "target class" which can be used as a shorthand, more
