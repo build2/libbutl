@@ -89,16 +89,10 @@ test.options += -c
       sed: empty script
       EOE
 
-    : multiple
-    :
-    $* -e 's/a//' -e 's/a//' 2>>EOE != 0
-      sed: multiple scripts
-      EOE
-
     : invalid
     :
     $* -e 'z' 2>>EOE != 0
-      sed: only 's' command supported
+      sed: unknown command in 'z': only 's' command supported
       EOE
   }
 
@@ -156,13 +150,13 @@ test.options += -c
         : none
         :
         $* -e 's' 2>>EOE != 0
-          sed: no delimiter for 's' command
+          sed: no delimiter for 's' command in 's'
           EOE
 
         : invalid
         :
         $* -e 's\\' 2>>EOE != 0
-          sed: invalid delimiter for 's' command
+          sed: invalid delimiter for 's' command in 's\\'
           EOE
       }
 
@@ -171,14 +165,14 @@ test.options += -c
       {
         : unterminated
         :
-        $* -e 's/foo' 2>>/EOE != 0
-          sed: unterminated 's' command regex
+        $* -e 's/foo' 2>>EOE != 0
+          sed: unterminated 's' command regex in 's/foo'
           EOE
 
         : empty
         :
         $* -e 's///' 2>>EOE != 0
-          sed: empty regex in 's' command
+          sed: empty regex in 's' command in 's///'
           EOE
 
         : invalid
@@ -187,20 +181,20 @@ test.options += -c
         : regex errors. For example '*' is parsed successfully.
         :
         $* -e 's/foo[/bar/' 2>>~%EOE% != 0
-          %sed: invalid regex.*%
+          %sed: invalid regex 'foo\[' in 's/foo\[/bar/'.*%
           EOE
       }
 
       : unterminated-replacement
       :
-      $* -e 's/foo/bar' 2>>/EOE != 0
-        sed: unterminated 's' command replacement
+      $* -e 's/foo/bar' 2>>EOE != 0
+        sed: unterminated 's' command replacement in 's/foo/bar'
         EOE
 
       : invalid-flags
       :
       $* -e 's/foo/bar/a' 2>>EOE != 0
-        sed: invalid 's' command flag 'a'
+        sed: invalid 's' command flag 'a' in 's/foo/bar/a'
         EOE
     }
 
@@ -313,6 +307,35 @@ test.options += -c
         $* -e 's/a//' f
       }
     }
+  }
+
+  : multiple
+  :
+  {
+    $* -e 's/b/x/' -e 's/x/y/' -e 's/c/z/' <'abc' >'ayz' : replace-replacement
+
+    : new-cycle
+    :
+    $* -e 's/b/x/p' -e 's/x/y/p' <<EOI >>EOO
+      abc
+      klm
+      dxe
+      EOI
+      axc
+      klm
+      dye
+      EOO
+
+    : quiet
+    :
+    $* -n -e 's/b/x/p' -e 's/x/y/p' <<EOI >>EOO
+      abc
+      klm
+      dxe
+      EOI
+      axc
+      dye
+      EOO
   }
 }
 

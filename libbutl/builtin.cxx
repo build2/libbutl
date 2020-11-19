@@ -1569,7 +1569,7 @@ namespace butl
     return 1;
   }
 
-  // sed [-n|--quiet] [-i|--in-place] -e|--expression <script> [<file>]
+  // sed [-n|--quiet] [-i|--in-place] (-e|--expression <script>)... [<file>]
   //
   // Note: must be executed asynchronously.
   //
@@ -1615,70 +1615,94 @@ namespace butl
       if (ops.expression ().empty ())
         fail () << "missing script";
 
-      // Only a single script is supported.
-      //
-      if (ops.expression ().size () != 1)
-        fail () << "multiple scripts";
-
-      struct
+      struct subst
       {
-        string regex;
+        std::regex regex;
         string replacement;
-        bool icase  = false;
-        bool global = false;
-        bool print  = false;
-      } subst;
+        bool global;
+        bool print;
 
+        subst (const string& re, bool ic, string rp, bool gl, bool pr)
+            //
+            // Note that ECMAScript is implied if no grammar flag is specified.
+            //
+            : regex (re, ic ? regex::icase : regex::ECMAScript),
+              replacement (move (rp)),
+              global (gl),
+              print (pr) {}
+      };
+
+      small_vector<subst, 1> substs;
+
+      for (const string& v: ops.expression ())
       {
-        const string& v (ops.expression ()[0]);
         if (v.empty ())
           fail () << "empty script";
 
         if (v[0] != 's')
-          fail () << "only 's' command supported";
+          fail () << "unknown command in '" << v << "': only 's' command "
+                  << "supported";
 
         // Parse the substitute command.
         //
         if (v.size () < 2)
-          fail () << "no delimiter for 's' command";
+          fail () << "no delimiter for 's' command in '" << v << "'";
 
         char delim (v[1]);
         if (delim == '\\' || delim == '\n')
-          fail () << "invalid delimiter for 's' command";
+          fail () << "invalid delimiter for 's' command in '" << v << "'";
 
         size_t p (v.find (delim, 2));
         if (p == string::npos)
-          fail () << "unterminated 's' command regex";
+          fail () << "unterminated 's' command regex in '" << v << "'";
 
-        subst.regex.assign (v, 2, p - 2);
+        string regex (v, 2, p - 2);
 
         // Empty regex matches nothing, so not of much use.
         //
-        if (subst.regex.empty ())
-          fail () << "empty regex in 's' command";
+        if (regex.empty ())
+          fail () << "empty regex in 's' command in '" << v << "'";
 
         size_t b (p + 1);
         p = v.find (delim, b);
         if (p == string::npos)
-          fail () << "unterminated 's' command replacement";
+          fail () << "unterminated 's' command replacement in '" << v << "'";
 
-        subst.replacement.assign (v, b, p - b);
+        string replacement (v, b, p - b);
 
         // Parse the substitute command flags.
         //
+        bool icase  (false);
+        bool global (false);
+        bool print  (false);
+
         char c;
         for (++p; (c = v[p]) != '\0'; ++p)
         {
           switch (c)
           {
-          case 'i': subst.icase  = true; break;
-          case 'g': subst.global = true; break;
-          case 'p': subst.print  = true; break;
+          case 'i': icase  = true; break;
+          case 'g': global = true; break;
+          case 'p': print  = true; break;
           default:
             {
-              fail () << "invalid 's' command flag '" << c << "'";
+              fail () << "invalid 's' command flag '" << c << "' in '" << v
+                      << "'";
             }
           }
+        }
+
+        try
+        {
+          substs.emplace_back (regex, icase,
+                               move (replacement),
+                               global, print);
+        }
+        catch (const regex_error& e)
+        {
+          // Print regex_error description if meaningful (no space).
+          //
+          fail () << "invalid regex '" << regex << "' in '" << v << "'" << e;
         }
       }
 
@@ -1738,10 +1762,6 @@ namespace butl
         rm = auto_rmfile (tp);
       }
 
-      // Note that ECMAScript is implied if no grammar flag is specified.
-      //
-      regex re (subst.regex, subst.icase ? regex::icase : regex::ECMAScript);
-
       // Edit a file or STDIN.
       //
       try
@@ -1756,22 +1776,42 @@ namespace butl
 
         // Read until failbit is set (throw on badbit).
         //
-        string s;
-        while (getline (cin, s))
+        string ps;
+        while (getline (cin, ps))
         {
-          auto r (regex_replace_search (
-                    s,
-                    re,
-                    subst.replacement,
-                    subst.global
-                    ? regex_constants::format_default
-                    : regex_constants::format_first_only));
+          bool prn (!ops.quiet ());
+
+          for (const subst& s: substs)
+          {
+            auto r (regex_replace_search (
+                      ps,
+                      s.regex,
+                      s.replacement,
+                      s.global
+                      ? regex_constants::format_default
+                      : regex_constants::format_first_only));
+
+            // If the regex matches, then override the pattern space with the
+            // replacement result and print it and proceed to the next line,
+            // if requested.
+            //
+            if (r.second)
+            {
+              ps = move (r.first);
+
+              if (s.print)
+              {
+                prn = true;
+                break;
+              }
+            }
+          }
 
           // Add newline regardless whether the source line is newline-
           // terminated or not (in accordance with POSIX).
           //
-          if (!ops.quiet () || (r.second && subst.print))
-            cout << r.first << '\n';
+          if (prn)
+            cout << ps << '\n';
         }
 
         cin.close ();
@@ -1800,12 +1840,6 @@ namespace butl
 
         d << ": " << e;
       }
-    }
-    catch (const regex_error& e)
-    {
-      // Print regex_error description if meaningful (no space).
-      //
-      error () << "invalid regex" << e;
     }
     // Can be thrown while creating cin, cout or writing to cerr.
     //
