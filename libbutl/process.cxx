@@ -2102,6 +2102,7 @@ namespace butl
     {
     case STATUS_ACCESS_VIOLATION:       return "access violation";
     case STATUS_DLL_INIT_FAILED:        return "DLL initialization failed";
+    case STATUS_DLL_NOT_FOUND:          return "unable to find DLL";
     case STATUS_INTEGER_DIVIDE_BY_ZERO: return "integer divided by zero";
 
     // If a VC-compiled program exits with the STATUS_STACK_BUFFER_OVERRUN
