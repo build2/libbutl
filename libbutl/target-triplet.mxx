@@ -38,6 +38,7 @@ LIBBUTL_MODEXPORT namespace butl
   // This one is reasonably straightforward. Note that we always expect at
   // least two components with the first being the CPU. In other words, we
   // don't try to guess what just 'mingw32' might mean like config.sub does.
+  // Note that we canonicalize arm64 to aarch64 similar to config.sub.
   //
   // VENDOR
   //
@@ -97,6 +98,7 @@ LIBBUTL_MODEXPORT namespace butl
   // x86_64-pc-windows-msvc            x86_64             windows-msvc
   // x86_64-pc-windows-msvc19.11.25547 x86_64             windows-msvc   19.11.25547
   // wasm32-unknown-emscripten         wasm32             emscripten
+  // arm64-apple-darwin20.1.0          aarch64 apple      darwin         20.1.0
   //
   // Similar to version splitting, for certain commonly-used targets we also
   // derive the "target class" which can be used as a shorthand, more

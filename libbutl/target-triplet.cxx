@@ -48,7 +48,12 @@ namespace butl
     if (f == 0 || f == string::npos)
       bad ("missing cpu");
 
-    cpu.assign (s, 0, f);
+    // Canonicalize CPU.
+    //
+    if (s.compare (0, f, "arm64") == 0)
+      cpu = "aarch64";
+    else
+      cpu.assign (s, 0, f);
 
     // If we have something in between, then the first component after CPU is
     // VENDOR. Unless it is a first component of two-component system, as in

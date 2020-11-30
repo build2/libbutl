@@ -113,6 +113,11 @@ main ()
                 "wasm32-emscripten",
                 "wasm32", "", "emscripten", "", "other"));
 
+  assert (test ("arm64-apple-darwin20.1.0",
+                "aarch64-apple-darwin20.1.0",
+                "aarch64", "apple", "darwin", "20.1.0", "macos"));
+
+
   // Version extraction.
   //
   assert (test ("x86_64-apple-darwin14.5.0",
