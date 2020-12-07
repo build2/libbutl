@@ -345,3 +345,36 @@
       EOO
   }
 }
+
+: options-file
+:
+{
+  d = work/.build2;
+  mkdir -p work/.build2;
+
+  cat <<EOI >=$d/foo;
+    --foo
+    --options-file
+    bar
+    --fox
+    EOI
+
+  cat <<EOI >=$d/bar;
+    --bar
+    --options-file
+    baz
+    --box
+    EOI
+
+  cat <<EOI >=$d/baz;
+    --baz
+    EOI
+
+  $* -d $~/work -f foo >>EOO
+    --foo
+    --bar
+    --baz
+    --box
+    --fox
+    EOO
+}

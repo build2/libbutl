@@ -35,7 +35,7 @@ using namespace std;
 using namespace butl;
 
 // Usage: argv[0] [-f <file>] [-d <start-dir>] [-s <sys-dir>] [-h <home-dir>]
-//                [-x <extra-dir>] [-e] [-t] <cmd-options>
+//                [-x <extra-dir>] [-a] [-e] [-t] <cmd-options>
 //
 // Parse default options files, merge them with the command line options, and
 // print the resulting options to STDOUT one per line. Note that the options
@@ -78,56 +78,61 @@ main (int argc, const char* argv[])
   class scanner
   {
   public:
-    scanner (const string& f): ifs_ (f, fdopen_mode::in, ifdstream::badbit) {}
+    scanner (const string& f, const string& option)
+        : option_ (option) {load (path (f));}
 
     bool
     more ()
     {
-      if (peeked_)
-        return true;
-
-      if (!eof_)
-        eof_ = ifs_.peek () == ifdstream::traits_type::eof ();
-
-      return !eof_;
+      return i_ < args_.size ();
     }
 
     string
     peek ()
     {
       assert (more ());
-
-      if (peeked_)
-        return *peeked_;
-
-      string s;
-      getline (ifs_, s);
-
-      peeked_ = move (s);
-      return *peeked_;
+      return args_[i_];
     }
 
     string
     next ()
     {
       assert (more ());
-
-      string s;
-      if (peeked_)
-      {
-        s = move (*peeked_);
-        peeked_ = nullopt;
-      }
-      else
-        getline (ifs_, s);
-
-      return s;
+      return args_[i_++];
     }
 
   private:
-    ifdstream ifs_;
-    bool eof_ = false;
-    optional<string> peeked_;
+    void
+    load (const path& f)
+    {
+      ifdstream is (f, fdopen_mode::in, ifdstream::badbit);
+
+      for (string l; !eof (getline (is, l)); )
+      {
+        if (option_ && *option_ == l)
+        {
+          assert (!eof (getline (is, l)));
+
+          // If the path of the file being parsed is not simple and the path
+          // of the file that needs to be loaded is relative, then complete
+          // the latter using the former as a base.
+          //
+          path p (l);
+
+          if (!f.simple () && p.relative ())
+            p = f.directory () / p;
+
+          load (p);
+        }
+        else
+          args_.push_back (move (l));
+      }
+    }
+
+  private:
+    optional<string> option_;
+    vector<string> args_;
+    size_t i_ = 0;
   };
 
   enum class unknow_mode
@@ -264,6 +269,7 @@ main (int argc, const char* argv[])
           cerr << (overwrite ? "overwriting " : "loading ")
                << (remote ? "remote " : "local ") << f << endl;
       },
+      "--options-file",
       args);
   }
   catch (const invalid_argument& e)

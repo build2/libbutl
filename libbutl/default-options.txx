@@ -31,6 +31,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
   template <typename O, typename S, typename U, typename F>
   bool
   load_default_options_files (const dir_path& d,
+                              const std::string& opt,
                               bool args,
                               bool remote,
                               const small_vector<path, 2>& fs,
@@ -43,7 +44,8 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
     bool r (true);
 
-    auto load = [args, &fs, &fn, &def_ops, &r] (const dir_path& d, bool rem)
+    auto load = [&opt, args, &fs, &fn, &def_ops, &r]
+                (const dir_path& d, bool rem)
     {
       using namespace std;
 
@@ -57,7 +59,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
           {
             fn (p, rem, false /* overwrite */);
 
-            S s (p.string ());
+            S s (p.string (), opt);
 
             // @@ Note that the potentially thrown exceptions (unknown option,
             //    unexpected argument, etc) will not contain any location
@@ -66,7 +68,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
             //    this in CLI.
             //
             O o;
-            small_vector<std::string, 1> as;
+            small_vector<string, 1> as;
 
             if (args)
             {
@@ -88,9 +90,9 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
                                                          rem});
           }
         }
-        catch (std::system_error& e)
+        catch (system_error& e)
         {
-          throw std::make_pair (move (p), std::move (e));
+          throw make_pair (move (p), move (e));
         }
       }
     };
@@ -116,6 +118,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
                         const optional<dir_path>& extra_dir,
                         const default_options_files& ofs,
                         F&& fn,
+                        const std::string& opt,
                         bool args)
   {
     if (sys_dir)
@@ -206,6 +209,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
           if (load_extra && extra_dir->sub (d))
           {
             load = load_default_options_files<O, S, U> (*extra_dir,
+                                                        opt,
                                                         args,
                                                         false /* remote */,
                                                         ofs.files,
@@ -219,6 +223,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
           if (load && options_dir_exists (od))
             load = load_default_options_files<O, S, U> (od,
+                                                        opt,
                                                         args,
                                                         remote,
                                                         ofs.files,
@@ -235,6 +240,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
     if (load && load_extra)
       load = load_default_options_files<O, S, U> (*extra_dir,
+                                                  opt,
                                                   args,
                                                   false /* remote */,
                                                   ofs.files,
@@ -247,6 +253,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
       if (options_dir_exists (d))
         load = load_default_options_files<O, S, U> (d,
+                                                    opt,
                                                     args,
                                                     false /* remote */,
                                                     ofs.files,
@@ -256,6 +263,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
     if (load && sys_dir && options_dir_exists (*sys_dir))
       load_default_options_files<O, S, U> (*sys_dir,
+                                           opt,
                                            args,
                                            false /* remote */,
                                            ofs.files,

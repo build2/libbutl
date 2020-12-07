@@ -61,10 +61,12 @@ LIBBUTL_MODEXPORT namespace butl
   using default_options = small_vector<default_options_entry<O>, 4>;
 
   // Search for and load the specified list of options files in the specified
-  // directories returning a vector of option class instances (O). If args is
-  // false, only options are allowed and are parsed using scanner S in the
-  // U::fail mode. If args is true, then both options and arguments are
-  // allowed in any order with options parsed in the U::stop mode.
+  // directories returning a vector of option class instances (O). Read
+  // additional options from files referenced by the specified option
+  // (normally --options-file). If args is false, only options are allowed and
+  // are parsed using scanner S in the U::fail mode. If args is true, then
+  // both options and arguments are allowed in any order with options parsed
+  // in the U::stop mode.
   //
   // Pass each default options file path to the specified function prior to
   // load (can be used for tracing, etc). The function signature is:
@@ -112,6 +114,7 @@ LIBBUTL_MODEXPORT namespace butl
                         const optional<dir_path>& extra_dir,
                         const default_options_files&,
                         F&&,
+                        const std::string& option,
                         bool args = false);
 
   // Merge the default options/arguments and the command line
