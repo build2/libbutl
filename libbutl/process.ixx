@@ -95,8 +95,13 @@ namespace butl
   {
     if (!effect.empty ())
     {
+      bool init (initial != recall.string ().c_str ());
+
       recall = std::move (effect);
       effect.clear ();
+
+      if (!init)
+        initial = recall.string ().c_str ();
     }
   }
 
