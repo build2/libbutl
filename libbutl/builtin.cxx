@@ -1597,13 +1597,24 @@ namespace butl
       //
       auto_rmfile rm;
 
+      if (in == nullfd)
+        in = fddup (stdin_fd ());
+
+      if (out == nullfd)
+        out = fddup (stdout_fd ());
+
+      // Turn the streams into the binary mode to preserve the original line
+      // endings.
+      //
+      fdmode (in.get (),  fdstream_mode::binary);
+      fdmode (out.get (), fdstream_mode::binary);
+
       // Do not throw when failbit is set (getline() failed to extract any
       // character).
       //
-      ifdstream cin (in != nullfd ? move (in) : fddup (stdin_fd ()),
-                     ifdstream::badbit);
+      ifdstream cin (move (in), ifdstream::badbit);
 
-      ofdstream cout (out != nullfd ? move (out) : fddup (stdout_fd ()));
+      ofdstream cout (move (out));
 
       // Parse arguments.
       //
@@ -1747,7 +1758,8 @@ namespace butl
           cout.open (fdopen (tp,
                              fdopen_mode::out      |
                              fdopen_mode::truncate |
-                             fdopen_mode::create,
+                             fdopen_mode::create   |
+                             fdopen_mode::binary,
                              path_permissions (p)));
         }
         catch (const io_error& e)
@@ -1771,7 +1783,7 @@ namespace butl
         if (!p.empty ())
         {
           cin.close (); // Flush and close.
-          cin.open (p);
+          cin.open (p, fdopen_mode::binary);
         }
 
         // Read until failbit is set (throw on badbit).
@@ -1779,6 +1791,13 @@ namespace butl
         string ps;
         while (getline (cin, ps))
         {
+          // Remember the line ending type and, if it is CRLF, strip the
+          // trailing '\r'.
+          //
+          bool crlf (!ps.empty () && ps.back() == '\r');
+          if (crlf)
+            ps.pop_back();
+
           bool prn (!ops.quiet ());
 
           for (const subst& s: substs)
@@ -1808,10 +1827,11 @@ namespace butl
           }
 
           // Add newline regardless whether the source line is newline-
-          // terminated or not (in accordance with POSIX).
+          // terminated or not (in accordance with POSIX), preserving the
+          // original line ending.
           //
           if (prn)
-            cout << ps << '\n';
+            cout << ps << (crlf ? "\r\n" : "\n");
         }
 
         cin.close ();
