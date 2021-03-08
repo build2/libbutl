@@ -117,6 +117,25 @@ main ()
                 "aarch64-apple-darwin20.1.0",
                 "aarch64", "apple", "darwin", "20.1.0", "macos"));
 
+  assert (test ("arm64-apple-ios14.4",
+                "aarch64-apple-ios14.4",
+                "aarch64", "apple", "ios", "14.4", "ios"));
+
+  assert (test ("arm64-apple-ios",
+                "aarch64-apple-ios",
+                "aarch64", "apple", "ios", "", "ios"));
+
+  assert (test ("arm64-apple-ios14.4-simulator",
+                "aarch64-apple-ios14.4-simulator",
+                "aarch64", "apple", "ios-simulator", "14.4", "ios"));
+
+  assert (test ("arm64-apple-ios-simulator",
+                "aarch64-apple-ios-simulator",
+                "aarch64", "apple", "ios-simulator", "", "ios"));
+
+  assert (test ("x86_64-apple-ios14.4-macabi",
+                "x86_64-apple-ios14.4-macabi",
+                "x86_64", "apple", "ios-macabi", "14.4", "ios"));
 
   // Version extraction.
   //

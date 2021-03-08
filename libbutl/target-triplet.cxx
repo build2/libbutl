@@ -129,6 +129,14 @@ namespace butl
       version.assign (system, v, string::npos);
       system.resize (system.size () - version.size ());
     }
+    else if (vendor == "apple" && system.compare (0, 3, "ios") == 0)
+    {
+      // Handle iosNN[-...].
+      //
+      string::size_type p (system.find ('-'));
+      version.assign (system, 3, p == string::npos ? p : p - 3);
+      system.erase (3, version.size ());
+    }
 
     // Determine class for some recognized systems.
     //
@@ -136,6 +144,8 @@ namespace butl
       class_ = "linux";
     else if (vendor == "apple" && system == "darwin")
       class_ = "macos";
+    else if (vendor == "apple" && system.compare (0, 3, "ios") == 0)
+      class_ = "ios";
     else if (system == "freebsd" ||
              system == "openbsd" ||
              system == "netbsd")
@@ -167,7 +177,10 @@ namespace butl
 
     if (!version.empty ())
     {
-      r += version;
+      if (vendor == "apple" && system.compare (0, 3, "ios") == 0)
+        r.insert (r.size () - system.size () + 3, version);
+      else
+        r += version;
     }
 
     return r;
@@ -191,7 +204,10 @@ namespace butl
 
     if (!version.empty ())
     {
-      r += version;
+      if (vendor == "apple" && system.compare (0, 3, "ios") == 0)
+        r.insert (r.size () - system.size () + 3, version);
+      else
+        r += version;
     }
 
     return r;
