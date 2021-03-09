@@ -1,0 +1,78 @@
+# file      : tests/lz4/testscript
+# license   : MIT; see accompanying LICENSE file
+
++touch zero
++echo 'The quick brown fox jumps over the lazy dog.' >=small
++cat <<EOI >=1kb
+The quick brown fox jumps over the lazy dog. The quick brown fox jumps over
+the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox
+jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The
+quick brown fox jumps over the lazy dog. The quick brown fox jumps over the
+lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox
+jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The
+quick brown fox jumps over the lazy dog. The quick brown fox jumps over the
+lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox
+jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The
+quick brown fox jumps over the lazy dog. The quick brown fox jumps over the
+lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox
+jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The
+quick brown fox jumps over the lazy dog. The quick brown fox jumps over the
+lazy dog. The quick brown fox jumps over th
+EOI
++cat  1kb  1kb  1kb  1kb  1kb  1kb  1kb  1kb >=8kb
++cat  8kb  8kb  8kb  8kb  8kb  8kb  8kb  8kb >=64kb
++cat 64kb 64kb 64kb 64kb 64kb 64kb 64kb 64kb >=512kb
+
+: rt-zero
+:
+$* -c ../zero zero.lz4 &zero.lz4;
+$* -d zero.lz4 zero &zero;
+diff ../zero zero
+
+: rt-small
+:
+$* -c ../small small.lz4 &small.lz4;
+$* -d small.lz4 small &small;
+diff ../small small
+
+: rt-1kb
+:
+$* -c ../1kb 1kb.lz4 &1kb.lz4;
+$* -d 1kb.lz4 1kb &1kb;
+diff ../1kb 1kb
+
+: rt-8kb
+:
+$* -c ../8kb 8kb.lz4 &8kb.lz4;
+$* -d 8kb.lz4 8kb &8kb;
+diff ../8kb 8kb
+
+: rt-64kb
+:
+$* -c ../64kb 64kb.lz4 &64kb.lz4;
+$* -d 64kb.lz4 64kb &64kb;
+diff ../64kb 64kb
+
+: rt-512kb
+:
+$* -c ../512kb 512kb.lz4 &512kb.lz4;
+$* -d 512kb.lz4 512kb &512kb;
+diff ../512kb 512kb
+
+: truncated-header6
+:
+$* -d $src_base/truncated-header6.lz4 out &out 2>>EOE !=0
+incomplete frame header
+EOE
+
+: truncated-header12
+:
+$* -d $src_base/truncated-header12.lz4 out &out 2>>EOE !=0
+incomplete frame header
+EOE
+
+: truncated-content
+:
+$* -d $src_base/truncated-content.lz4 out &out 2>>EOE !=0
+incomplete compressed content
+EOE

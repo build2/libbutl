@@ -27,9 +27,8 @@ windows = ($tclass == 'windows')
 #
 lib{butl}: {hxx ixx cxx}{win32-utility}: include = $windows
 
-# Our C-files are included into sha256.cxx (sha256c.c) and timestamp.cxx
-# (strptime.c timelocal.h timelocal.c), so treat them as files exclude from
-# the compilation.
+# Our C-files are always included into C++-files that wrap the corresponding
+# API so treat them as files exclude from the compilation.
 #
 lib{butl}: file{*.c *.h}
 
