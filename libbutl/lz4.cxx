@@ -396,9 +396,12 @@ namespace butl
 #define XXH_PRIVATE_API // Makes API static and includes xxhash.c.
 #include "xxhash.h"
 
-// Clang 8 targeting MSVC does not have _tzcnt_u64().
+// Clang targeting MSVC prior to version 10 has difficulty with _tzcnt_u64()
+// (see Clang bug 47099 for a potentially related issue). Including relevant
+// headers (<immintrin.h>, <intrin.h>) does not appear to help. So for now we
+// just disable the use of _tzcnt_u64().
 //
-#if defined(_MSC_VER) && defined(__clang__) && __clang_major__ <= 8
+#if defined(_MSC_VER) && defined(__clang__) && __clang_major__ < 10
 #  define LZ4_FORCE_SW_BITCOUNT
 #endif
 
