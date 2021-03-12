@@ -3,6 +3,12 @@
 
 #include <libbutl/lz4.hxx>
 
+// Clang 8 targeting MSVC does not have _tzcnt_u64().
+//
+#if defined(_MSC_VER) && defined(__clang__) && __clang_major__ <= 8
+#  define LZ4_FORCE_SW_BITCOUNT
+#endif
+
 // This careful macro dance makes sure that all the LZ4 C API functions are
 // made static while making sure we include the headers in the same way as the
 // implementation files that we include below.
@@ -386,8 +392,7 @@ namespace butl
 // Include the implementation into our translation unit. Let's keep it last
 // since the implementation defines a bunch of macros.
 //
-#if defined(__clang__) || defined (__GNUC__)
-#  pragma GCC diagnostic push
+#if defined(__clang__) || defined(__GNUC__)
 #  pragma GCC diagnostic ignored "-Wunused-function"
 #endif
 
@@ -405,7 +410,3 @@ extern "C"
 #include "lz4hc.c"
 #include "lz4frame.c"
 }
-
-#if defined(__clang__) || defined (__GNUC__)
-#  pragma GCC diagnostic pop
-#endif
