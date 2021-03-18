@@ -42,12 +42,14 @@ import std.core;
 #endif
 
 import butl.path;
+import butl.optional;
 import butl.timestamp;
 import butl.path_pattern; // path_match_flags
 
 import butl.utility; // operator<<(ostream,exception), throw_generic_error()
 #else
 #include <libbutl/path.mxx>
+#include <libbutl/optional.mxx>
 #include <libbutl/timestamp.mxx>
 #include <libbutl/path-pattern.mxx>
 
@@ -60,7 +62,8 @@ LIBBUTL_MODEXPORT namespace butl
 {
   // Return true if the path is to an existing regular file. Note that by
   // default this function follows symlinks. Underlying OS errors are reported
-  // by throwing std::system_error, unless ignore_error is true.
+  // by throwing std::system_error, unless ignore_error is true (in which case
+  // erroneous entries are treated as non-existent).
   //
   LIBBUTL_SYMEXPORT bool
   file_exists (const char*,
@@ -73,7 +76,8 @@ LIBBUTL_MODEXPORT namespace butl
 
   // Return true if the path is to an existing directory. Note that this
   // function follows symlinks. Underlying OS errors are reported by throwing
-  // std::system_error, unless ignore_error is true.
+  // std::system_error, unless ignore_error is true (in which case erroneous
+  // entries are treated as non-existent).
   //
   LIBBUTL_SYMEXPORT bool
   dir_exists (const char*, bool ignore_error = false);
@@ -84,7 +88,8 @@ LIBBUTL_MODEXPORT namespace butl
 
   // Return true if the path is to an existing file system entry. Note that by
   // default this function doesn't follow symlinks. Underlying OS errors are
-  // reported by throwing std::system_error, unless ignore_error is true.
+  // reported by throwing std::system_error, unless ignore_error is true (in
+  // which case erroneous entries are treated as non-existent).
   //
   LIBBUTL_SYMEXPORT bool
   entry_exists (const char*,
@@ -117,7 +122,8 @@ LIBBUTL_MODEXPORT namespace butl
   // Return a flag indicating if the path is to an existing filesystem entry
   // and its info if so. Note that by default this function doesn't follow
   // symlinks. Underlying OS errors are reported by throwing
-  // std::system_error, unless ignore_error is true.
+  // std::system_error, unless ignore_error is true (in which case erroneous
+  // entries are treated as non-existent).
   //
   LIBBUTL_SYMEXPORT std::pair<bool, entry_stat>
   path_entry (const char*,
@@ -206,8 +212,11 @@ LIBBUTL_MODEXPORT namespace butl
   // is not atomic. It is also not atomic for the directory-type reparse point
   // removal.
   //
-  LIBBUTL_SYMEXPORT rmfile_status
+  rmfile_status
   try_rmfile (const path&, bool ignore_error = false);
+
+  optional<rmfile_status>
+  try_rmfile_ignore_error (const path&);
 
   // Automatically try to remove a non-empty path on destruction unless
   // cancelled. Since the non-cancelled destruction will normally happen as a

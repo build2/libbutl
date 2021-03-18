@@ -38,6 +38,23 @@ namespace butl
     return e ? rmdir_status::success : rmdir_status::not_exist;
   }
 
+  LIBBUTL_SYMEXPORT optional<rmfile_status>
+  try_rmfile_maybe_ignore_error (const path&, bool ignore_error);
+
+  inline rmfile_status
+  try_rmfile (const path& p, bool ignore_error)
+  {
+    auto r (try_rmfile_maybe_ignore_error (p, ignore_error));
+    return r ? *r : rmfile_status::success;
+  }
+
+  inline optional<rmfile_status>
+  try_rmfile_ignore_error (const path& p)
+  {
+    return try_rmfile_maybe_ignore_error (p, true);
+  }
+
+
   inline path
   followsymlink (const path& p)
   {

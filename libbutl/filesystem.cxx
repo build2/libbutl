@@ -1063,8 +1063,8 @@ namespace butl
     }
   }
 
-  rmfile_status
-  try_rmfile (const path& p, bool ignore_error)
+  optional<rmfile_status>
+  try_rmfile_maybe_ignore_error (const path& p, bool ignore_error)
   {
     rmfile_status r (rmfile_status::success);
     const char* f (p.string ().c_str ());
@@ -1143,6 +1143,8 @@ namespace butl
         r = rmfile_status::not_exist;
       else if (!ignore_error)
         throw_generic_error (errno);
+      else
+        return nullopt;
     }
 
     return r;
