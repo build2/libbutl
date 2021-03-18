@@ -24,14 +24,10 @@ try
 
   if (argv[1][1] == 'c')
   {
-    // @@ TODO: would be nice to get it from fd.
-    //
-    entry_stat st (path_entry (argv[2], true /* follow_symlinks */).second);
-
     lz4::compress (ofs, ifs,
                    1 /* compression_level */,
                    4 /* block_size_id (64KB) */,
-                   st.size);
+                   fdstat (ifs.fd ()).size);
   }
   else
   {

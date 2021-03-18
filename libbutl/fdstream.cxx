@@ -12,20 +12,27 @@
 #  include <unistd.h>     // close(), read(), write(), lseek(), dup(), pipe(),
                           // ftruncate(), isatty(), ssize_t, STD*_FILENO
 #  include <sys/uio.h>    // writev(), iovec
-#  include <sys/stat.h>   // stat(), S_I*
+#  include <sys/stat.h>   // stat(), fstat(), S_I*
 #  include <sys/time.h>   // timeval
 #  include <sys/types.h>  // stat, off_t
 #  include <sys/select.h>
 #else
 #  include <libbutl/win32-utility.hxx>
 
-#  include <io.h>       // _close(), _read(), _write(), _setmode(), _sopen(),
-                        // _lseek(), _dup(), _pipe(), _chsize_s,
-                        // _get_osfhandle()
-#  include <share.h>    // _SH_DENYNO
-#  include <stdio.h>    // _fileno(), stdin, stdout, stderr, SEEK_*
-#  include <fcntl.h>    // _O_*
-#  include <sys/stat.h> // S_I*
+#  include <io.h>        // _close(), _read(), _write(), _setmode(), _sopen(),
+                         // _lseek(), _dup(), _pipe(), _chsize_s,
+                         // _get_osfhandle()
+#  include <share.h>     // _SH_DENYNO
+#  include <stdio.h>     // _fileno(), stdin, stdout, stderr, SEEK_*
+#  include <fcntl.h>     // _O_*
+#  include <sys/types.h> // _stat
+#  include <sys/stat.h>  // fstat(), S_I*
+
+#  ifdef _MSC_VER // Unlikely to be fixed in newer versions.
+#    define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#    define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#    define S_ISCHR(m) (((m) & S_IFMT) == S_IFCHR)
+#  endif
 
 #  include <wchar.h> // wcsncmp(), wcsstr()
 
@@ -1372,6 +1379,28 @@ namespace butl
       throw_generic_ios_failure (errno);
   }
 
+  entry_stat
+  fdstat (int fd)
+  {
+    struct stat s;
+    if (fstat (fd, &s) != 0)
+      throw_generic_error (errno);
+
+    auto m (s.st_mode);
+    entry_type t (entry_type::unknown);
+
+    // Note: cannot be a symlink.
+    //
+    if (S_ISREG (m))
+      t = entry_type::regular;
+    else if (S_ISDIR (m))
+      t = entry_type::directory;
+    else if (S_ISBLK (m) || S_ISCHR (m) || S_ISFIFO (m) || S_ISSOCK (m))
+      t = entry_type::other;
+
+    return entry_stat {t, static_cast<uint64_t> (s.st_size)};
+  }
+
   bool
   fdterm (int fd)
   {
@@ -1777,6 +1806,28 @@ namespace butl
   {
     if (errno_t e = _chsize_s (fd, static_cast<__int64> (n)))
       throw_generic_ios_failure (e);
+  }
+
+  entry_stat
+  fdstat (int fd)
+  {
+    // Since symlinks have been taken care of, we can just _fstat().
+    //
+    struct __stat64 s;
+    if (_fstat64 (fd, &s) != 0)
+      throw_generic_error (errno);
+
+    auto m (s.st_mode);
+    entry_type t (entry_type::unknown);
+
+    if (S_ISREG (m))
+      t = entry_type::regular;
+    else if (S_ISDIR (m))
+      t = entry_type::directory;
+    else if (S_ISCHR (m))
+      t = entry_type::other;
+
+    return entry_stat {t, static_cast<uint64_t> (s.st_size)};
   }
 
   bool

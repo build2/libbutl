@@ -30,7 +30,7 @@ import std.core;
 import std.io;
 #endif
 import butl.path;
-import butl.filesystem; // permissions
+import butl.filesystem; // permissions, entry_stat
 import butl.small_vector;
 #else
 #include <libbutl/path.mxx>
@@ -862,8 +862,16 @@ LIBBUTL_MODEXPORT namespace butl
   LIBBUTL_SYMEXPORT void
   fdtruncate (int, std::uint64_t);
 
-  // Test whether a file descriptor refers to a terminal. Throw ios::failure on
+  // Return filesystem entry stat from file descriptor. Throw ios::failure on
   // the underlying OS error.
+  //
+  // See also path_entry() in filesystem.
+  //
+  LIBBUTL_SYMEXPORT entry_stat
+  fdstat (int);
+
+  // Test whether a file descriptor refers to a terminal. Throw ios::failure
+  // on the underlying OS error.
   //
   LIBBUTL_SYMEXPORT bool
   fdterm (int);

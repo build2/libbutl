@@ -24,13 +24,14 @@
 #  include <sys/types.h> // _stat
 #  include <sys/stat.h>  // _stat(), S_I*
 
-#  include <cwchar>  // mbsrtowcs(), wcsrtombs(), mbstate_t
-#  include <cstring> // strncmp()
-
 #  ifdef _MSC_VER // Unlikely to be fixed in newer versions.
 #    define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
 #    define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#    define S_ISCHR(m) (((m) & S_IFMT) == S_IFCHR)
 #  endif
+
+#  include <cwchar>  // mbsrtowcs(), wcsrtombs(), mbstate_t
+#  include <cstring> // strncmp()
 #endif
 
 #include <cassert>

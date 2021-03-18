@@ -125,6 +125,8 @@ LIBBUTL_MODEXPORT namespace butl
   // std::system_error, unless ignore_error is true (in which case erroneous
   // entries are treated as non-existent).
   //
+  // See also fdstat() in fdstream.
+  //
   LIBBUTL_SYMEXPORT std::pair<bool, entry_stat>
   path_entry (const char*,
               bool follow_symlinks = false,
