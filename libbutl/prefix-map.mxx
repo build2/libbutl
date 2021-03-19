@@ -149,6 +149,18 @@ LIBBUTL_MODEXPORT namespace butl
 
     const_iterator
     find_sup (const key_type&) const;
+
+
+    // As above but additionally evaluate a predicate on each matching entry
+    // returning the one for which it returns true.
+    //
+    template <typename P>
+    iterator
+    find_sup_if (const key_type&, P);
+
+    template <typename P>
+    const_iterator
+    find_sup_if (const key_type&, P) const;
   };
 
   template <typename M, typename prefix_map_common<M>::delimiter_type D>

@@ -127,4 +127,74 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     return i;
 #endif
   }
+
+  template <typename M>
+  template <typename P>
+  auto prefix_map_common<M>::
+  find_sup_if (const key_type& k, P pred) -> iterator
+  {
+#if 0
+    const auto& c (this->key_comp ());
+
+    for (auto i (this->upper_bound (k)), b (this->begin ()); i != b; )
+    {
+      --i;
+      if (c.prefix (i->first, k) && pred (*i))
+        return i;
+    }
+
+    return this->end ();
+#else
+    auto i (this->find (k)), e (this->end ());
+
+    if (i == e || !pred (*i))
+    {
+      const auto& c (this->key_comp ());
+
+      for (key_type p (k); c.prefix (p); )
+      {
+        i = this->find (p);
+        if (i != e && pred (*i))
+          break;
+      }
+    }
+
+    return i;
+#endif
+  }
+
+  template <typename M>
+  template <typename P>
+  auto prefix_map_common<M>::
+  find_sup_if (const key_type& k, P pred) const -> const_iterator
+  {
+#if 0
+    const auto& c (this->key_comp ());
+
+    for (auto i (this->upper_bound (k)), b (this->begin ()); i != b; )
+    {
+      --i;
+      if (c.prefix (i->first, k) && pred (*i))
+        return i;
+    }
+
+    return this->end ();
+#else
+    auto i (this->find (k)), e (this->end ());
+
+    if (i == e || !pred (*i))
+    {
+      const auto& c (this->key_comp ());
+
+      for (key_type p (k); c.prefix (p); )
+      {
+        i = this->find (p);
+        if (i != e && pred (*i))
+          break;
+      }
+    }
+
+    return i;
+#endif
+  }
 }
