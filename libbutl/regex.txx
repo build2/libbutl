@@ -278,4 +278,71 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
     return match;
   }
+
+  template <typename C>
+  std::pair<std::basic_regex<C>, std::basic_string<C>>
+  regex_replace_parse (const C* s, size_t n,
+                       std::regex_constants::syntax_option_type f)
+  {
+    using namespace std;
+
+    using string_type = basic_string<C>;
+
+    size_t e;
+    pair<string_type, string_type> r (regex_replace_parse (s, n, e));
+
+    if (e != n)
+      throw invalid_argument ("junk after trailing delimiter");
+
+    return make_pair (basic_regex<C> (r.first, f), move (r.second));
+  }
+
+  template <typename C>
+  std::pair<std::basic_string<C>, std::basic_string<C>>
+  regex_replace_parse (const C* s, size_t n, size_t& e)
+  {
+    using namespace std;
+
+    using string_type = basic_string<C>;
+
+    if (n == 0)
+      throw invalid_argument ("no leading delimiter");
+
+    const C* b (s); // Save the beginning of the string.
+
+    char delim (s[0]);
+
+    // Position to the regex first character and find the regex-terminating
+    // delimiter.
+    //
+    --n;
+    ++s;
+
+    const C* p (string_type::traits_type::find (s, n, delim));
+
+    if (p == nullptr)
+      throw invalid_argument ("no delimiter after regex");
+
+    // Empty regex matches nothing, so not of much use.
+    //
+    if (p == s)
+      throw invalid_argument ("empty regex");
+
+    // Save the regex.
+    //
+    string_type re (s, p - s);
+
+    // Position to the format first character and find the trailing delimiter.
+    //
+    n -= p - s + 1;
+    s  = p + 1;
+
+    p = string_type::traits_type::find (s, n, delim);
+
+    if (p == nullptr)
+      throw invalid_argument ("no delimiter after replacement");
+
+    e = p - b + 1;
+    return make_pair (move (re), string_type (s, p - s));
+  }
 }

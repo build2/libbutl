@@ -14,8 +14,9 @@
 #include <utility> // pair
 
 #include <locale>
-#include <cstddef> // size_t
-#include <utility> // move(), make_pair()
+#include <cstddef>   // size_t
+#include <utility>   // move(), make_pair()
+#include <stdexcept> // invalid_argument
 #endif
 
 #if defined(__clang__)
@@ -93,6 +94,37 @@ LIBBUTL_MODEXPORT namespace butl
   regex_replace_match (const std::basic_string<C>&,
                        const std::basic_regex<C>&,
                        const std::basic_string<C>& fmt);
+
+  // Parse the '/<regex>/<format>/' replacement string into the regex/format
+  // pair. Other character can be used as a delimiter instead of '/'. Throw
+  // std::invalid_argument or std::regex_error on parsing error.
+  //
+  // Note: escaping of the delimiter character is not (yet) supported.
+  //
+  template <typename C>
+  std::pair<std::basic_regex<C>, std::basic_string<C>>
+  regex_replace_parse (const std::basic_string<C>&,
+                       std::regex_constants::syntax_option_type =
+                         std::regex_constants::ECMAScript);
+
+  template <typename C>
+  std::pair<std::basic_regex<C>, std::basic_string<C>>
+  regex_replace_parse (const C*,
+                       std::regex_constants::syntax_option_type =
+                         std::regex_constants::ECMAScript);
+
+  template <typename C>
+  std::pair<std::basic_regex<C>, std::basic_string<C>>
+  regex_replace_parse (const C*, size_t,
+                       std::regex_constants::syntax_option_type =
+                         std::regex_constants::ECMAScript);
+
+  // As above but return string instead of regex and do not fail if there is
+  // text after the last delimiter instead returning its position.
+  //
+  template <typename C>
+  std::pair<std::basic_string<C>, std::basic_string<C>>
+  regex_replace_parse (const C*, size_t, size_t& end);
 }
 
 LIBBUTL_MODEXPORT namespace std

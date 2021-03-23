@@ -1632,15 +1632,6 @@ namespace butl
         string replacement;
         bool global;
         bool print;
-
-        subst (const string& re, bool ic, string rp, bool gl, bool pr)
-            //
-            // Note that ECMAScript is implied if no grammar flag is specified.
-            //
-            : regex (re, ic ? regex::icase : regex::ECMAScript),
-              replacement (move (rp)),
-              global (gl),
-              print (pr) {}
       };
 
       small_vector<subst, 1> substs;
@@ -1663,57 +1654,59 @@ namespace butl
         if (delim == '\\' || delim == '\n')
           fail () << "invalid delimiter for 's' command in '" << v << "'";
 
-        size_t p (v.find (delim, 2));
-        if (p == string::npos)
-          fail () << "unterminated 's' command regex in '" << v << "'";
-
-        string regex (v, 2, p - 2);
-
-        // Empty regex matches nothing, so not of much use.
+        // Parse the substitute command regex (as string), replacement, and
+        // flags.
         //
-        if (regex.empty ())
-          fail () << "empty regex in 's' command in '" << v << "'";
-
-        size_t b (p + 1);
-        p = v.find (delim, b);
-        if (p == string::npos)
-          fail () << "unterminated 's' command replacement in '" << v << "'";
-
-        string replacement (v, b, p - b);
-
-        // Parse the substitute command flags.
-        //
+        pair<string, string> rf;
         bool icase  (false);
         bool global (false);
         bool print  (false);
 
-        char c;
-        for (++p; (c = v[p]) != '\0'; ++p)
+        try
         {
-          switch (c)
+          size_t e;
+          rf = regex_replace_parse (v.c_str () + 1, v.size () - 1, e);
+
+          char c;
+          for (size_t i (e + 1); (c = v[i]) != '\0'; ++i)
           {
-          case 'i': icase  = true; break;
-          case 'g': global = true; break;
-          case 'p': print  = true; break;
-          default:
+            switch (c)
             {
-              fail () << "invalid 's' command flag '" << c << "' in '" << v
-                      << "'";
+            case 'i': icase  = true; break;
+            case 'g': global = true; break;
+            case 'p': print  = true; break;
+            default:
+              {
+                fail () << "invalid 's' command flag '" << c << "' in '" << v
+                        << "'";
+              }
             }
           }
         }
+        catch (const invalid_argument& e)
+        {
+          fail () << "invalid 's' command '" << v << "': " << e;
+        }
 
+        // Parse the regex and add the substitution to the list.
+        //
         try
         {
-          substs.emplace_back (regex, icase,
-                               move (replacement),
-                               global, print);
+          // Note that ECMAScript is implied if no grammar flag is specified.
+          //
+          regex re (rf.first, icase ? regex::icase : regex::ECMAScript);
+
+          substs.push_back ({move (re),
+                             move (rf.second),
+                             global,
+                             print});
         }
         catch (const regex_error& e)
         {
           // Print regex_error description if meaningful (no space).
           //
-          fail () << "invalid regex '" << regex << "' in '" << v << "'" << e;
+          fail () << "invalid regex '" << rf.first << "' in '" << v << "'"
+                  << e;
         }
       }
 

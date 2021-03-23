@@ -4,8 +4,11 @@
 #include <cassert>
 
 #ifndef __cpp_lib_modules_ts
+#include <regex>
 #include <string>
+#include <utility>   // pair
 #include <iostream>
+#include <stdexcept> // invalid_argument
 #include <exception>
 #endif
 
@@ -27,7 +30,7 @@ import butl.utility; // operator<<(ostream, exception)
 using namespace std;
 using namespace butl;
 
-// Usage: argv[0] [-ffo] [-fnc] [-m] <string> <regex> <format>
+// Usage: argv[0] [-ffo] [-fnc] [-m] <string> "/<regex>/<format>/"
 //
 // Perform substitution of matched substrings with formatted replacement
 // strings using regex_replace_*() functions. If the string matches the regex
@@ -66,11 +69,13 @@ try
       break;
   }
 
-  assert (i + 3 == argc);
+  assert (i + 2 == argc);
 
-  string s   (argv[i++]);
-  regex  re  (argv[i++]);
-  string fmt (argv[i]);
+  string s (argv[i++]);
+  pair<regex, string> rf (regex_replace_parse (argv[i]));
+
+  const regex&  re  (rf.first);
+  const string& fmt (rf.second);
 
   auto r (match
           ? regex_replace_match (s, re, fmt)
@@ -86,8 +91,13 @@ catch (const regex_error& e)
   cerr << "invalid regex" << e << endl; // Print sanitized.
   return 2;
 }
-catch (const exception& e)
+catch (const invalid_argument& e)
 {
   cerr << e << endl;
+  return 2;
+}
+catch (const exception&)
+{
+  assert (false);
   return 2;
 }

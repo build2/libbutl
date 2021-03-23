@@ -21,4 +21,21 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
     return make_pair (move (r), match);
   }
+
+  template <typename C>
+  inline std::pair<std::basic_regex<C>, std::basic_string<C>>
+  regex_replace_parse (const std::basic_string<C>& s,
+                       std::regex_constants::syntax_option_type f)
+  {
+    return regex_replace_parse (s.c_str (), s.size (), f);
+  }
+
+  template <typename C>
+  inline std::pair<std::basic_regex<C>, std::basic_string<C>>
+  regex_replace_parse (const C* s,
+                       std::regex_constants::syntax_option_type f)
+  {
+    return regex_replace_parse (
+      s, std::basic_string<C>::traits_type::length (s), f);
+  }
 }

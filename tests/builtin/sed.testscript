@@ -166,13 +166,13 @@ test.options += -c
         : unterminated
         :
         $* -e 's/foo' 2>>EOE != 0
-          sed: unterminated 's' command regex in 's/foo'
+          sed: invalid 's' command 's/foo': no delimiter after regex
           EOE
 
         : empty
         :
         $* -e 's///' 2>>EOE != 0
-          sed: empty regex in 's' command in 's///'
+          sed: invalid 's' command 's///': empty regex
           EOE
 
         : invalid
@@ -188,7 +188,7 @@ test.options += -c
       : unterminated-replacement
       :
       $* -e 's/foo/bar' 2>>EOE != 0
-        sed: unterminated 's' command replacement in 's/foo/bar'
+        sed: invalid 's' command 's/foo/bar': no delimiter after replacement
         EOE
 
       : invalid-flags
