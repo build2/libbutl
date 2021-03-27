@@ -6,7 +6,7 @@
 {
   : expired
   :
-  $* -s 3 'cat' <'test' | $* -t 1 'cat' >=f 2>'timeout expired' != 0
+  $* -s 5 'cat' <'test' | $* -t 1 'cat' >=f 2>'timeout expired' != 0
 
   : not-expired
   :
@@ -18,7 +18,7 @@
 {
   : expired
   :
-  $* -s 3 'cat' <'test' | $* -t 1 'roundtrip' >=f 2>'timeout expired' != 0
+  $* -s 5 'cat' <'test' | $* -t 1 'roundtrip' >=f 2>'timeout expired' != 0
 
   : not-expired
   :
