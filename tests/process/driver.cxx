@@ -40,8 +40,6 @@ import butl.timestamp;
 using namespace std;
 using namespace butl;
 
-static const char* envvars[] = {"ABC=1", "DEF", nullptr};
-
 using cstrings = vector<const char*>;
 
 bool
@@ -94,17 +92,15 @@ exec (const path& p,
   if (bin)
     args.push_back ("-b");
 
-  if (env)
-  {
-    args.push_back ("-e");
+  const char* evars[] = {
+    "PAR1", "PAR2=2P", "PAR6=66", "PAR7", // Override the process variables.
+    "THR1", "THR2=2T",                    // Override the thread variables.
+    "CHD1",                               // Unset a non-existing variable.
+    "CHD2=C2",                            // Add the new variable.
+    nullptr};
 
-    // Here we set the environment variables for the current process to make
-    // sure that the child process will not see the variable that is requested
-    // to be unset, and will see the other one unaffected.
-    //
-    setenv ("DEF", "2");
-    setenv ("XYZ", "3");
-  }
+  if (env)
+    args.push_back ("-e");
 
   if (cwd != nullptr)
     args.push_back (cwd);
@@ -123,7 +119,7 @@ exec (const path& p,
                 out ? -1 : -2,
                 err ? (out ? 1 : -1) : -2,
                 cwd,
-                env ? envvars : nullptr);
+                env ? evars : nullptr);
 
     try
     {
@@ -157,12 +153,12 @@ exec (const path& p,
             process pr3 (args.data (),
                          -1, -1, -2,
                          cwd,
-                         env ? envvars : nullptr);
+                         env ? evars : nullptr);
 
             process pr2 (args.data (),
                          pr, bin_mode (move (pr3.out_fd)).get (), -2,
                          cwd,
-                         env ? envvars : nullptr);
+                         env ? evars : nullptr);
 
             ifdstream is (bin_mode (move (pr3.in_ofd)));
             o = is.read_binary ();
@@ -329,12 +325,23 @@ main (int argc, const char* argv[])
 
     if (env)
     {
-      // Check that the ABC variable is set, the DEF is unset and the XYZ is
-      // left unchanged.
+      // Check that the variables are (un)set as expected.
       //
-      if (getenv ("ABC") != optional<string> ("1") ||
-          getenv ("DEF") ||
-          getenv ("XYZ") != optional<string> ("3"))
+      if (getenv ("PAR1")                            ||
+          getenv ("PAR2") != optional<string> ("2P") ||
+          getenv ("PAR3") != optional<string> ("P3") ||
+          getenv ("PAR4")                            ||
+          getenv ("PAR5") != optional<string> ("5P") ||
+          getenv ("PAR6") != optional<string> ("66") ||
+          getenv ("PAR7")                            ||
+
+          getenv ("THR1")                            ||
+          getenv ("THR2") != optional<string> ("2T") ||
+          getenv ("THR3") != optional<string> ("T3") ||
+          getenv ("THR4")                            ||
+
+          getenv ("CHD1")                            ||
+          getenv ("CHD2") != optional<string> ("C2"))
         return 1;
     }
 
@@ -363,6 +370,26 @@ main (int argc, const char* argv[])
 
     return 0;
   }
+
+  // Here we set the process and thread environment variables to make sure
+  // that the child process will not see the variables that are requested to
+  // be unset, will see change for the variables that are requested to be set,
+  // and will see the other ones unaffected.
+  //
+  setenv ("PAR1", "P1");
+  setenv ("PAR2", "P2");
+  setenv ("PAR3", "P3");
+  setenv ("PAR4", "P4");
+  setenv ("PAR5", "P5");
+  setenv ("PAR6", "P6");
+  setenv ("PAR7", "P7");
+
+  const char* tevars[] = {
+    "THR1=T1", "THR2=T2", "THR3=T3", "THR4",
+    "PAR4", "PAR5=5P", "PAR6", "PAR7=7P",    // Override the process variables.
+    nullptr};
+
+  auto_thread_env ate (tevars);
 
   dir_path owd (dir_path::current_directory ());
 

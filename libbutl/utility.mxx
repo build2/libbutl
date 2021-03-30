@@ -266,17 +266,74 @@ LIBBUTL_MODEXPORT namespace butl
 
   // Environment variables.
   //
-  optional<std::string>
+  // Our getenv() wrapper (as well as the relevant process startup functions)
+  // have a notion of a "thread environment", that is, thread-specific
+  // environment variables. However, unlike the process environment (in the
+  // form of the environ array), the thread environment is specified as a set
+  // of overrides over the process environment (sets and unsets), the same as
+  // for the process startup.
+  //
+  extern
+#ifdef __cpp_thread_local
+  thread_local
+#else
+  __thread
+#endif
+  const char* const* thread_env_;
+
+  // On Windows one cannot export a thread-local variable so we have to
+  // use wrapper functions.
+  //
+#ifdef _WIN32
+  LIBBUTL_SYMEXPORT const char* const*
+  thread_env ();
+
+  LIBBUTL_SYMEXPORT void
+  thread_env (const char* const*);
+#else
+  inline const char* const*
+  thread_env () {return thread_env_;}
+
+  inline void
+  thread_env (const char* const* v) {thread_env_ = v;}
+#endif
+
+  struct auto_thread_env
+  {
+    optional<const char* const*> prev_env;
+
+    auto_thread_env () = default;
+
+    explicit
+    auto_thread_env (const char* const*);
+
+    // Move-to-empty-only type.
+    //
+    auto_thread_env (auto_thread_env&&);
+    auto_thread_env& operator= (auto_thread_env&&);
+
+    auto_thread_env (const auto_thread_env&) = delete;
+    auto_thread_env& operator= (const auto_thread_env&) = delete;
+
+    ~auto_thread_env ();
+  };
+
+  // Get the environment variables taking into account the current thread's
+  // overrides (thread_env).
+  //
+  LIBBUTL_SYMEXPORT optional<std::string>
   getenv (const std::string&);
 
-  // Throw system_error on failure.
+  // Set the process environment variable. Best done before starting any
+  // threads (see thread_env). Throw system_error on failure.
   //
   // Note that on Windows setting an empty value unsets the variable.
   //
   LIBBUTL_SYMEXPORT void
   setenv (const std::string& name, const std::string& value);
 
-  // Throw system_error on failure.
+  // Unset the process environment variable. Best done before starting any
+  // threads (see thread_env). Throw system_error on failure.
   //
   LIBBUTL_SYMEXPORT void
   unsetenv (const std::string&);

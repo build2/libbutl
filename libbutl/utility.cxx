@@ -9,13 +9,14 @@
 #include <libbutl/win32-utility.hxx>
 #endif
 
-#include <stdlib.h> // setenv(), unsetenv(), _putenv()
+#include <stdlib.h> // getenv(), setenv(), unsetenv(), _putenv()
 
 #ifndef __cpp_lib_modules_ts
 #include <string>
 #include <cstddef>
 #include <utility>
 
+#include <cstring>      // strncmp()
 #include <ostream>
 #include <type_traits>  // enable_if, is_base_of
 #include <system_error>
@@ -330,6 +331,55 @@ namespace butl
     //
     if (d != e)
       s.resize (d - s.begin ());
+  }
+
+#ifdef __cpp_thread_local
+  thread_local
+#else
+  __thread
+#endif
+  const char* const* thread_env_ = nullptr;
+
+#ifdef _WIN32
+  const char* const*
+  thread_env () {return thread_env_;}
+
+  void
+  thread_env (const char* const* v) {thread_env_ = v;}
+#endif
+
+  optional<std::string>
+  getenv (const std::string& name)
+  {
+    if (const char* const* vs = thread_env_)
+    {
+      size_t n (name.size ());
+
+      for (; *vs != nullptr; ++vs)
+      {
+        const char* v (*vs);
+
+        // Note that on Windows variable names are case-insensitive.
+        //
+#ifdef _WIN32
+        if (icasecmp (name.c_str (), v, n) == 0)
+#else
+        if (strncmp (name.c_str (), v, n) == 0)
+#endif
+        {
+          switch (v[n])
+          {
+          case '=':  return string (v + n + 1);
+          case '\0': return nullopt;
+          }
+        }
+      }
+    }
+
+    if (const char* r = ::getenv (name.c_str ()))
+      return std::string (r);
+
+    return nullopt;
   }
 
   void

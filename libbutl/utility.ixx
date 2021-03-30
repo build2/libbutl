@@ -4,7 +4,6 @@
 #ifndef __cpp_lib_modules_ts
 #include <cctype>    // toupper(), tolower(), is*()
 #include <cwctype>   // isw*()
-#include <cstdlib>   // getenv()
 #include <algorithm> // for_each()
 #include <stdexcept> // invalid_argument
 #endif
@@ -333,13 +332,47 @@ namespace butl
     return utf8_length_impl (s, nullptr, ts, wl).has_value ();
   }
 
-  inline optional<std::string>
-  getenv (const std::string& name)
+  // auto_thread_env
+  //
+  inline auto_thread_env::
+  auto_thread_env (const char* const* new_env)
   {
-    if (const char* r = std::getenv (name.c_str ()))
-      return std::string (r);
+    // Note that this backwards logic (first initializing prev_env and then
+    // resetting it) is here to work around bogus "maybe used uninitialized"
+    // warning in GCC.
+    //
+    prev_env = thread_env ();
 
-    return nullopt;
+    if (*prev_env != new_env)
+      thread_env (new_env);
+    else
+      prev_env = nullopt;
+  }
+
+  inline auto_thread_env::
+  auto_thread_env (auto_thread_env&& x)
+      : prev_env (std::move (x.prev_env))
+  {
+    x.prev_env = nullopt;
+  }
+
+  inline auto_thread_env& auto_thread_env::
+  operator= (auto_thread_env&& x)
+  {
+    if (this != &x)
+    {
+      prev_env = std::move (x.prev_env);
+      x.prev_env = nullopt;
+    }
+
+    return *this;
+  }
+
+  inline auto_thread_env::
+  ~auto_thread_env ()
+  {
+    if (prev_env)
+      thread_env (*prev_env);
   }
 
   template <typename F, typename P>

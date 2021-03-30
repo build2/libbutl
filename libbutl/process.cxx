@@ -253,6 +253,35 @@ namespace butl
     } while (*p != nullptr);
   }
 
+#if defined(LIBBUTL_POSIX_SPAWN) || defined(_WIN32)
+  // Return true if the NULL-terminated variable list contains an (un)set of
+  // the specified variable. The NULL list argument denotes an empty list.
+  //
+  // Note that on Windows variable names are case-insensitive.
+  //
+  static inline bool
+  contains_envvar (const char* const* vs, const char* v, size_t n)
+  {
+    if (vs != nullptr)
+    {
+      // Note that we don't expect the number of variables to (un)set to be
+      // large, so the linear search is OK.
+      //
+      while (const char* v1 = *vs++)
+      {
+#ifdef _WIN32
+        if (icasecmp (v1, v, n) == 0 && (v1[n] == '=' || v1[n] == '\0'))
+#else
+        if (strncmp  (v1, v, n) == 0 && (v1[n] == '=' || v1[n] == '\0'))
+#endif
+          return true;
+      }
+    }
+
+    return false;
+  }
+#endif
+
 #ifndef _WIN32
 
   static process_path
@@ -384,7 +413,7 @@ namespace butl
   process (const process_path& pp, const char* args[],
            pipe pin, pipe pout, pipe perr,
            const char* cwd,
-           const char* const* envvars)
+           const char* const* evars)
   {
     int in  (pin.in);
     int out (pout.out);
@@ -451,6 +480,8 @@ namespace butl
       in_efd = open_pipe ();
     else if (err == -2)
       in_efd.out = open_null ();
+
+    const char* const* tevars (thread_env ());
 
     // The posix_spawn()-based implementation.
     //
@@ -540,47 +571,45 @@ namespace butl
         fail (r);
 #endif
 
-      // Set/unset environment variables if requested.
+      // Set/unset the child process environment variables if requested.
       //
-      small_vector<const char*, 8> new_env;
+      vector<const char*> new_env;
 
-      if (envvars != nullptr)
+      if (tevars != nullptr || evars != nullptr)
       {
-        for (const char* const* env (environ); *env != nullptr; ++env)
-        {
-          // Lookup the existing variable among those that are requested to be
-          // (un)set. If not present, than add it to the child process
-          // environment.
-          //
-          // Note that on POSIX variable names are case-sensitive.
-          //
-          // Alse note that we don't expect the number of variables to (un)set
-          // to be large, so the linear search is OK.
-          //
-          const char* cv (*env);
-          const char* eq (strchr (cv, '='));
-          size_t n (eq != nullptr ? eq - cv : strlen (cv));
-
-          const char* const* ev (envvars);
-          for (; *ev != nullptr; ++ev)
-          {
-            const char* v (*ev);
-            if (strncmp (cv, v, n) == 0 && (v[n] == '=' || v[n] == '\0'))
-              break;
-          }
-
-          if (*ev == nullptr)
-            new_env.push_back (cv);
-        }
-
-        // Copy the environment variables that are requested to be set.
+        // Copy the non-overridden process environment variables into the
+        // child's environment.
         //
-        for (const char* const* ev (envvars); *ev != nullptr; ++ev)
+        for (const char* const* ev (environ); *ev != nullptr; ++ev)
         {
           const char* v (*ev);
-          if (strchr (v, '=') != nullptr)
+          const char* e (strchr (v, '='));
+          size_t n (e != nullptr ? e - v : strlen (v));
+
+          if (!contains_envvar (tevars, v, n) &&
+              !contains_envvar (evars, v, n))
             new_env.push_back (v);
         }
+
+        // Copy non-overridden variable assignments into the child's
+        // environment.
+        //
+        auto set_vars = [&new_env] (const char* const* vs,
+                                    const char* const* ovs = nullptr)
+        {
+          if (vs != nullptr)
+          {
+            while (const char* v = *vs++)
+            {
+              const char* e (strchr (v, '='));
+              if (e != nullptr && !contains_envvar (ovs, v, e - v))
+                new_env.push_back (v);
+            }
+          }
+        };
+
+        set_vars (tevars, evars);
+        set_vars (evars);
 
         new_env.push_back (nullptr);
       }
@@ -598,9 +627,9 @@ namespace butl
                        &fa,
                        nullptr /* attrp */,
                        const_cast<char* const*> (&args[0]),
-                       envvars != nullptr
-                       ? const_cast<char* const*> (new_env.data ())
-                       : environ);
+                       new_env.empty ()
+                       ? environ
+                       : const_cast<char* const*> (new_env.data ()));
         if (r != 0)
           fail (r);
     } // Release the lock in parent.
@@ -688,27 +717,33 @@ namespace butl
         if (cwd != nullptr && *cwd != '\0' && chdir (cwd) != 0)
           fail (true /* child */);
 
-        // Set/unset environment variables if requested.
+        // Set/unset environment variables.
         //
-        if (envvars != nullptr)
+        auto set_vars = [] (const char* const* vs)
         {
-          while (const char* ev = *envvars++)
+          if (vs != nullptr)
           {
-            const char* v (strchr (ev, '='));
+            while (const char* v = *vs++)
+            {
+              const char* e (strchr (v, '='));
 
-            try
-            {
-              if (v != nullptr)
-                setenv (string (ev, v - ev), v + 1);
-              else
-                unsetenv (ev);
-            }
-            catch (const system_error& e)
-            {
-              throw process_child_error (e.code ().value ());
+              try
+              {
+                if (e != nullptr)
+                  setenv (string (v, e - v), e + 1);
+                else
+                  unsetenv (v);
+              }
+              catch (const system_error& e)
+              {
+                throw process_child_error (e.code ().value ());
+              }
             }
           }
-        }
+        };
+
+        set_vars (tevars);
+        set_vars (evars);
 
         // Try to re-exec after the "text file busy" failure for 450ms.
         //
@@ -1334,7 +1369,7 @@ namespace butl
   process (const process_path& pp, const char* args[],
            pipe pin, pipe pout, pipe perr,
            const char* cwd,
-           const char* const* envvars)
+           const char* const* evars)
   {
     int in  (pin.in);
     int out (pout.out);
@@ -1356,7 +1391,9 @@ namespace butl
     //
     vector<char> new_env;
 
-    if (envvars != nullptr)
+    const char* const* tevars (thread_env ());
+
+    if (tevars != nullptr || evars != nullptr)
     {
       // The environment block contains the variables in the following format:
       //
@@ -1365,7 +1402,7 @@ namespace butl
       // Note the trailing NULL character that follows the last variable
       // (null-terminated) string.
       //
-      unique_ptr<char, void (*)(char*)> cvars (
+      unique_ptr<char, void (*)(char*)> pevars (
         GetEnvironmentStringsA (),
         [] (char* p)
         {
@@ -1376,50 +1413,45 @@ namespace butl
             assert (false);
         });
 
-      if (cvars.get () == nullptr)
+      if (pevars.get () == nullptr)
         fail ();
 
-      const char* cv (cvars.get ());
-
-      // Copy the current environment variables.
+      // Copy the non-overridden process environment variables into the
+      // child's environment.
       //
-      while (*cv != '\0')
+      for (const char* v (pevars.get ()); *v != '\0'; )
       {
-        // Lookup the existing variable among those that are requested to be
-        // (un)set. If not present, than copy it to the new block.
-        //
-        // Note that on Windows variable names are case-insensitive.
-        //
-        // Alse note that we don't expect the number of variables to (un)set
-        // to be large, so the linear search is OK.
-        //
-        size_t n (strlen (cv) + 1); // Includes NULL character.
+        size_t n (strlen (v) + 1); // Includes NULL character.
 
-        const char* eq (strchr (cv, '='));
-        size_t nn (eq != nullptr ? eq - cv : n - 1);
-        const char* const* ev (envvars);
+        const char* e (strchr (v, '='));
+        size_t nn (e != nullptr ? e - v : n - 1);
 
-        for (; *ev != nullptr; ++ev)
+        if (!contains_envvar (tevars, v, nn) &&
+            !contains_envvar (evars, v, nn))
+          new_env.insert (new_env.end (), v, v + n);
+
+        v += n;
+      }
+
+      // Copy non-overridden variable assignments into the child's
+      // environment.
+      //
+      auto set_vars = [&new_env] (const char* const* vs,
+                                  const char* const* ovs = nullptr)
+      {
+        if (vs != nullptr)
         {
-          const char* v (*ev);
-          if (icasecmp (cv, v, nn) == 0 && (v[nn] == '=' || v[nn] == '\0'))
-            break;
+          while (const char* v = *vs++)
+          {
+            const char* e (strchr (v, '='));
+            if (e != nullptr && !contains_envvar (ovs, v, e - v))
+              new_env.insert (new_env.end (), v, v + strlen (v) + 1);
+          }
         }
+      };
 
-        if (*ev == nullptr)
-          new_env.insert (new_env.end (), cv, cv + n);
-
-        cv += n;
-      }
-
-      // Copy the environment variables that are requested to be set.
-      //
-      for (const char* const* ev (envvars); *ev != nullptr; ++ev)
-      {
-        const char* v (*ev);
-        if (strchr (v, '=') != nullptr)
-          new_env.insert (new_env.end (), v, v + strlen (v) + 1);
-      }
+      set_vars (tevars, evars);
+      set_vars (evars);
 
       new_env.push_back ('\0'); // Terminate the new environment block.
     }
@@ -1776,7 +1808,7 @@ namespace butl
               0,    // Primary thread security attributes.
               true, // Inherit handles.
               0,    // Creation flags.
-              envvars != nullptr ? new_env.data () : nullptr,
+              new_env.empty () ? nullptr : new_env.data (),
               cwd != nullptr && *cwd != '\0' ? cwd : nullptr,
               &si,
               &pi))
