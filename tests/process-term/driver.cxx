@@ -224,9 +224,9 @@ main (int argc, const char* argv[])
   //
   {
     fdpipe pipe (fdopen_pipe ());
-    process p (process_start (0, pipe, 2, argv[0], "-s", 10, "-e"));
+    process p (process_start (0, pipe, 2, argv[0], "-s", 60, "-e"));
 
-    sleep (2); // Give the child some time to initialize.
+    sleep (3); // Give the child some time to initialize.
     p.term ();
 
     assert (test_out (move (pipe), ""));
@@ -243,9 +243,9 @@ main (int argc, const char* argv[])
   {
     fdpipe pipe (fdopen_pipe ());
     process p (process_start (0, pipe, 2,
-                              argv[0], "-s", 10, "-t", "exit", "-e", "-c", 5));
+                              argv[0], "-s", 60, "-t", "exit", "-e", "-c", 5));
 
-    sleep (2); // Give the child some time to initialize.
+    sleep (3); // Give the child some time to initialize.
     p.term ();
 
     assert (test_out (move (pipe), "exiting"));
@@ -262,9 +262,9 @@ main (int argc, const char* argv[])
     fdpipe pipe (fdopen_pipe ());
     process p (
       process_start (0, pipe, 2,
-                     argv[0], "-s", 10, "-t", "default", "-e", "-c", 5));
+                     argv[0], "-s", 60, "-t", "default", "-e", "-c", 5));
 
-    sleep (2); // Give the child some time to initialize.
+    sleep (3); // Give the child some time to initialize.
     p.term ();
 
     assert (test_out (move (pipe), ""));
@@ -280,9 +280,9 @@ main (int argc, const char* argv[])
   {
     fdpipe pipe (fdopen_pipe ());
     process p (process_start (0, pipe, 2,
-                              argv[0], "-s", 10, "-t", "ignore", "-e"));
+                              argv[0], "-s", 60, "-t", "ignore", "-e"));
 
-    sleep (2); // Give the child some time to initialize.
+    sleep (3); // Give the child some time to initialize.
     p.term ();
 
     assert (!p.timed_wait (chrono::seconds (1)));
@@ -303,7 +303,7 @@ main (int argc, const char* argv[])
     fdpipe pipe (fdopen_pipe ());
     process p (process_start (0, pipe, 2, argv[0], "-s", 0, "-c", 5));
 
-    sleep (4);
+    sleep (4); // Give the child some time to terminate.
     p.term ();
 
     assert (test_out (move (pipe), ""));
@@ -318,7 +318,7 @@ main (int argc, const char* argv[])
   //
   {
     fdpipe pipe (fdopen_pipe ());
-    process p (process_start (0, pipe, 2, argv[0], "-s", 10));
+    process p (process_start (0, pipe, 2, argv[0], "-s", 60));
 
     p.term ();
     p.term ();
@@ -334,7 +334,7 @@ main (int argc, const char* argv[])
   //
   {
     fdpipe pipe (fdopen_pipe ());
-    process p (process_start (0, pipe, 2, argv[0], "-s", 10));
+    process p (process_start (0, pipe, 2, argv[0], "-s", 60));
 
     p.term ();
     p.kill ();
@@ -351,7 +351,7 @@ main (int argc, const char* argv[])
   //
   {
     fdpipe pipe (fdopen_pipe ());
-    process p (process_start (0, pipe, 2, argv[0], "-s", 10));
+    process p (process_start (0, pipe, 2, argv[0], "-s", 60));
 
     p.kill ();
     p.kill ();
@@ -368,8 +368,9 @@ main (int argc, const char* argv[])
   //
   {
     fdpipe pipe (fdopen_pipe ());
-    process p (process_start (0, pipe, 2, argv[0], "-s", 10, "-e"));
+    process p (process_start (0, pipe, 2, argv[0], "-s", 60, "-e"));
 
+    sleep (3); // Give the child some time to initialize.
     p.term ();
 
     assert (test_out (move (pipe), ""));
@@ -383,8 +384,9 @@ main (int argc, const char* argv[])
   //
   {
     fdpipe pipe (fdopen_pipe ());
-    process p (process_start (0, pipe, 2, argv[0], "-s", 10, "-e"));
+    process p (process_start (0, pipe, 2, argv[0], "-s", 60, "-e"));
 
+    sleep (3); // Give the child some time to initialize.
     p.kill ();
 
     assert (test_out (move (pipe), ""));
@@ -400,7 +402,7 @@ main (int argc, const char* argv[])
     fdpipe pipe (fdopen_pipe ());
     process p (process_start (0, pipe, 2, argv[0], "-s", 0, "-c", 5));
 
-    sleep (4);
+    sleep (4); // Give the child some time to terminate.
     p.kill ();
 
     assert (test_out (move (pipe), ""));
