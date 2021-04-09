@@ -98,7 +98,7 @@
 #include <system_error>
 
 #include <ios>      // ios_base::failure
-#include <cstring>  // strlen(), strchr(), strncmp()
+#include <cstring>  // strlen(), strchr(), strpbrk(), strncmp()
 #include <utility>  // move()
 #include <ostream>
 
@@ -1309,13 +1309,25 @@ namespace butl
   };
 
   const char* process::
-  quote_argument (const char* a, string& s)
+  quote_argument (const char* a, string& s, bool bat)
   {
-    // On Windows we need to protect values with spaces using quotes.
-    // Since there could be actual quotes in the value, we need to
-    // escape them.
+    // On Windows we need to protect values with spaces using quotes. Since
+    // there could be actual quotes in the value, we need to escape them.
     //
-    bool q (*a == '\0' || strchr (a, ' ') != nullptr);
+    // For batch files we also protect equal (`=`), comma (`,`) and semicolon
+    // (`;`) since otherwise an argument containing any of these will be split
+    // into several as if they were spaces (that is, the parts will appear in
+    // %1 %2, etc., instead of all in %1). This of course could break some
+    // batch files that rely on this semantics (for example, to automatically
+    // handle --foo=bar as --foo bar) but overall seeing a single argument
+    // (albeit quoted) is closer to the behavior of real executables. So we do
+    // this by default and if it becomes a problem we can invent a flag
+    // (probably in process_env) to disable this quoting (and while at it we
+    // may add a flag to disable all quoting since the user may need to quote
+    // some arguments but not others).
+    //
+    bool q (*a == '\0' ||
+            (bat ? strpbrk (a, " =,;") : strchr (a, ' ')) != nullptr);
 
     if (!q && strchr (a, '"') == nullptr)
       return a;
@@ -1548,12 +1560,12 @@ namespace butl
     //
     string cmd_line;
     {
-      auto append = [&cmd_line, buf = string ()] (const char* a) mutable
+      auto append = [&batch, &cmd_line, buf = string ()] (const char* a) mutable
       {
         if (!cmd_line.empty ())
           cmd_line += ' ';
 
-        cmd_line += quote_argument (a, buf);
+        cmd_line += quote_argument (a, buf, batch.has_value ());
       };
 
       if (batch)

@@ -503,13 +503,15 @@ LIBBUTL_MODEXPORT namespace butl
     static void
     print (std::ostream&, const char* const args[], size_t n = 0);
 
-    // Quote and escape the specified command line argument. Return the
-    // original string if neither is necessary and a pointer to the provided
-    // buffer string containing the escaped version otherwise.
+    // Quote and escape the specified command line argument. If batch is true
+    // then also quote the equal (`=`), comma (`,`) and semicolon (`;`)
+    // characters which are treated as argument separators in batch file.
+    // Return the original string if neither is necessary and a pointer to the
+    // provided buffer string containing the escaped version otherwise.
     //
 #ifdef _WIN32
     static const char*
-    quote_argument (const char*, std::string& buffer);
+    quote_argument (const char*, std::string& buffer, bool batch);
 #endif
 
   public:
