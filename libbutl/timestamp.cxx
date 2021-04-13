@@ -36,11 +36,11 @@ extern "C"
 #include <string>
 #include <chrono>
 
-#include <ctime>        // tm, time_t, mktime(), strftime()[__GLIBCXX__]
+#include <ctime>        // tm, time_t, mktime(), strftime()[libstdc++]
 #include <cstdlib>      // strtoull()
-#include <sstream>
+#include <sstream>      // ostringstream, stringstream[VC]
 #include <iomanip>      // put_time(), setw(), dec, right
-#include <cstring>      // strlen(), memcpy()
+#include <cstring>      // strlen(), memcpy(), strchr()[VC]
 #include <ostream>
 #include <utility>      // pair, make_pair()
 #include <stdexcept>    // runtime_error
@@ -49,6 +49,7 @@ extern "C"
 //
 #ifdef _WIN32
 #ifndef __GLIBCXX__
+#include <ios>
 #include <locale>
 #include <clocale>
 #include <iomanip>
@@ -180,24 +181,83 @@ strptime (const char* input, const char* format, tm* time)
 {
   // VC std::get_time()-based implementation.
   //
-  istringstream is (input);
+  // Note that the major difference in semantics of strptime() and
+  // std::get_time() is that the former always fails if the format string is
+  // not fully processed, while the latter can succeed in such a case,
+  // specifically if the end of the stream is reached after a conversion
+  // specifier was successfully applied. See this post for some background:
+  //
+  // https://stackoverflow.com/questions/67060956/what-is-the-correct-behavior-of-stdget-time-for-short-input
+  //
+  // The consequence of this fact is that there is no easy way to detect if
+  // the format was fully processed when the end of input is reached. It seems
+  // that the only way to resolve this ambiguity is to append some end marker
+  // to both the input and format and re-parse. We can dedicate some character
+  // that is unlikely to be used in the time format/input (for example '\x1')
+  // to serve as an end marker.
+  //
+  // Alternatively, we can abandon the use of std::get_time() altogether and,
+  // for example, use a FreeBSD-based strptime() implementation. This feels a
+  // bit too radical at the moment, though.
+  //
+  const char em ('\x1');
+
+  if (strchr (input, em) != nullptr || strchr (format, em) != nullptr)
+    return nullptr;
+
+  stringstream ss (input); // Input/output stream.
 
   // The original strptime() function behaves according to the process' C
   // locale (set with std::setlocale()), which can differ from the process C++
   // locale (set with std::locale::global()).
   //
-  is.imbue (locale (setlocale (LC_ALL, nullptr)));
+  ss.imbue (locale (setlocale (LC_ALL, nullptr)));
 
-  if (!(is >> get_time (time, format)))
+  // Bail out on the parsing error.
+  //
+  if (!(ss >> get_time (time, format)))
     return nullptr;
-  else
-    // tellg() behaves as UnformattedInputFunction, so returns failure status
-    // if eofbit is set.
-    //
-    return const_cast<char*> (
-      input + (is.eof ()
-               ? strlen (input)
-               : static_cast<size_t> (is.tellg ())));
+
+  // If the end of input is not reached then the format string is fully
+  // processed.
+  //
+  if (!ss.eof ())
+    return const_cast<char*> (input + static_cast<size_t> (ss.tellg ()));
+
+  // Since eof is reached, we cannot say if the format string was fully
+  // processed or not. For example:
+  //
+  // %b %Y     - format
+  // Feb 2016  - eofbit is set with a format fully processed
+  // Feb       - eofbit is set with a format partially processed
+  //
+  // So append the end marker character to both input and format and re-parse.
+  //
+  ss.clear ();                 // Clear eof.
+  ss.seekp (0, ios_base::end); // Position to the end for writing.
+  ss.put (em);                 // Append the end marker.
+  ss.seekg (0);                // Rewind for reading.
+
+  string fm (format);
+  fm += em;                    // Append the end marker.
+
+  // Fail if the input is "shorter" than the format. For example:
+  //
+  // %b %Y\x1  - format
+  // Feb\x1    - stream
+  //
+  // Note that we can reuse the time object for re-parsing, since on success
+  // its fields will be overwritten with the same values.
+  //
+  if (!(ss >> get_time (time, fm.c_str ())))
+    return nullptr;
+
+  assert (ss.eof ()); // We would fail earlier otherwise.
+
+  // tellg() behaves as UnformattedInputFunction, so returns failure status if
+  // eofbit is set.
+  //
+  return const_cast<char*> (input + strlen (input));
 }
 #endif
 
