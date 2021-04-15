@@ -291,11 +291,11 @@ LIBBUTL_MODEXPORT namespace butl
   LIBBUTL_SYMEXPORT void
   thread_env (const char* const*);
 #else
-  inline const char* const*
-  thread_env () {return thread_env_;}
+  const char* const*
+  thread_env ();
 
-  inline void
-  thread_env (const char* const* v) {thread_env_ = v;}
+  void
+  thread_env (const char* const*);
 #endif
 
   struct auto_thread_env

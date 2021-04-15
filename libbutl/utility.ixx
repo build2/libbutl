@@ -332,21 +332,44 @@ namespace butl
     return utf8_length_impl (s, nullptr, ts, wl).has_value ();
   }
 
+#ifndef _WIN32
+  inline const char* const*
+  thread_env ()
+  {
+    return thread_env_;
+  }
+
+  inline void
+  thread_env (const char* const* v)
+  {
+    // Disable bogus GCC maybe used uninitialized warning (triggered via the
+    // use of auto_thread_env).
+    //
+#if defined(__GNUC__) && !defined(__clang__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
+    thread_env_ = v;
+
+#if defined(__GNUC__) && !defined(__clang__)
+#  pragma GCC diagnostic pop
+#endif
+  }
+#endif
+
   // auto_thread_env
   //
   inline auto_thread_env::
   auto_thread_env (const char* const* new_env)
   {
-    // Note that this backwards logic (first initializing prev_env and then
-    // resetting it) is here to work around bogus "maybe used uninitialized"
-    // warning in GCC.
-    //
-    prev_env = thread_env ();
+    const char* const* cur_env (thread_env ());
 
-    if (*prev_env != new_env)
+    if (cur_env != new_env)
+    {
+      prev_env = cur_env;
       thread_env (new_env);
-    else
-      prev_env = nullopt;
+    }
   }
 
   inline auto_thread_env::
