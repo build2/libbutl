@@ -322,7 +322,13 @@ LIBBUTL_MODEXPORT namespace butl
   // overrides (thread_env).
   //
   LIBBUTL_SYMEXPORT optional<std::string>
-  getenv (const std::string&);
+  getenv (const char*);
+
+  inline optional<std::string>
+  getenv (const std::string& n)
+  {
+    return getenv (n.c_str ());
+  }
 
   // Set the process environment variable. Best done before starting any
   // threads (see thread_env). Throw system_error on failure.

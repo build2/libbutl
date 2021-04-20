@@ -16,7 +16,7 @@
 #include <cstddef>
 #include <utility>
 
-#include <cstring>      // strncmp()
+#include <cstring>      // strncmp(), strlen()
 #include <ostream>
 #include <type_traits>  // enable_if, is_base_of
 #include <system_error>
@@ -349,11 +349,11 @@ namespace butl
 #endif
 
   optional<std::string>
-  getenv (const std::string& name)
+  getenv (const char* name)
   {
     if (const char* const* vs = thread_env_)
     {
-      size_t n (name.size ());
+      size_t n (strlen (name));
 
       for (; *vs != nullptr; ++vs)
       {
@@ -362,9 +362,9 @@ namespace butl
         // Note that on Windows variable names are case-insensitive.
         //
 #ifdef _WIN32
-        if (icasecmp (name.c_str (), v, n) == 0)
+        if (icasecmp (name, v, n) == 0)
 #else
-        if (strncmp (name.c_str (), v, n) == 0)
+        if (strncmp (name, v, n) == 0)
 #endif
         {
           switch (v[n])
@@ -376,7 +376,7 @@ namespace butl
       }
     }
 
-    if (const char* r = ::getenv (name.c_str ()))
+    if (const char* r = ::getenv (name))
       return std::string (r);
 
     return nullopt;
