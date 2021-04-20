@@ -342,19 +342,7 @@ namespace butl
   inline void
   thread_env (const char* const* v)
   {
-    // Disable bogus GCC maybe used uninitialized warning (triggered via the
-    // use of auto_thread_env).
-    //
-#if defined(__GNUC__) && !defined(__clang__)
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#endif
-
     thread_env_ = v;
-
-#if defined(__GNUC__) && !defined(__clang__)
-#  pragma GCC diagnostic pop
-#endif
   }
 #endif
 

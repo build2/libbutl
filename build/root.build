@@ -15,6 +15,13 @@ if ($cxx.target.system == 'win32-msvc')
 
 if ($cxx.class == 'msvc')
   cxx.coptions += /wd4251 /wd4275 /wd4800
+elif ($cxx.id == 'gcc')
+{
+  # See GCC bugs 100115 and 98753 (attachment 50081/comment 15). Note that
+  # these must also be disabled in projects that use libbutl.
+  #
+  cxx.coptions += -Wno-maybe-uninitialized -Wno-free-nonheap-object
+}
 
 # Load the cli module but only if it's available. This way a distribution
 # that includes pre-generated files can be built without installing cli.
