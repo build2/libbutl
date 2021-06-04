@@ -3,13 +3,11 @@
 
 LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 {
-  // Replace the regex match results using the format string.
-  //
   template <typename C>
   std::basic_string<C>
   regex_replace_match_results (
     const std::match_results<typename std::basic_string<C>::const_iterator>& m,
-    const std::basic_string<C>& fmt)
+    const C* fmt, std::size_t n)
   {
     using namespace std;
 
@@ -60,7 +58,6 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
       }
     };
 
-    size_t n (fmt.size ());
     for (size_t i (0); i < n; ++i)
     {
       C c (fmt[i]);

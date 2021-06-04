@@ -95,6 +95,20 @@ LIBBUTL_MODEXPORT namespace butl
                        const std::basic_regex<C>&,
                        const std::basic_string<C>& fmt);
 
+  // As above but using match_results.
+  //
+  template <typename C>
+  std::basic_string<C>
+  regex_replace_match_results (
+    const std::match_results<typename std::basic_string<C>::const_iterator>&,
+    const std::basic_string<C>& fmt);
+
+  template <typename C>
+  std::basic_string<C>
+  regex_replace_match_results (
+    const std::match_results<typename std::basic_string<C>::const_iterator>&,
+    const C* fmt, std::size_t fmt_n);
+
   // Parse the '/<regex>/<format>/' replacement string into the regex/format
   // pair. Other character can be used as a delimiter instead of '/'. Throw
   // std::invalid_argument or std::regex_error on parsing error.

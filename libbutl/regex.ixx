@@ -38,4 +38,13 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     return regex_replace_parse (
       s, std::basic_string<C>::traits_type::length (s), f);
   }
+
+  template <typename C>
+  inline std::basic_string<C>
+  regex_replace_match_results (
+    const std::match_results<typename std::basic_string<C>::const_iterator>& m,
+    const std::basic_string<C>& fmt)
+  {
+    return regex_replace_match_results (m, fmt.c_str (), fmt.size ());
+  }
 }
