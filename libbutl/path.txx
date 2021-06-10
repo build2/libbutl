@@ -103,8 +103,8 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 #endif
 
   template <typename C, typename K>
-  basic_path<C, K> basic_path<C, K>::
-  relative (basic_path<C, K> d) const
+  optional<basic_path<C, K>> basic_path<C, K>::
+  try_relative (basic_path<C, K> d) const
   {
     dir_type r;
 
@@ -118,10 +118,20 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
       // Roots of the paths do not match.
       //
       if (d.root ())
-        throw invalid_basic_path<C> (this->path_);
+        return nullopt;
     }
 
     return r / leaf (d);
+  }
+
+  template <typename C, typename K>
+  basic_path<C, K> basic_path<C, K>::
+  relative (basic_path<C, K> d) const
+  {
+    if (optional<basic_path<C, K>> r = try_relative (std::move (d)))
+      return std::move (*r);
+
+    throw invalid_basic_path<C> (this->path_);
   }
 
 #ifdef _WIN32

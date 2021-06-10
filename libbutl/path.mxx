@@ -952,6 +952,12 @@ LIBBUTL_MODEXPORT namespace butl
     basic_path
     relative (basic_path) const;
 
+    // As above but return nullopt rather than throw if a relative path cannot
+    // be derived.
+    //
+    optional<basic_path>
+    try_relative (basic_path) const;
+
     // Iteration over path components.
     //
     // Note that for an absolute POSIX path the first component is empty,
