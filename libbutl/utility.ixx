@@ -175,7 +175,7 @@ namespace butl
     return next_word (s, s.size (), b, e, d1, d2);
   }
 
-  inline size_t
+  inline std::size_t
   next_word (const std::string& s,
              std::size_t n, std::size_t& b, std::size_t& e,
              char d1, char d2)
@@ -227,7 +227,7 @@ namespace butl
   inline void
   sanitize_strlit (const std::string& s, std::string& o)
   {
-    for (size_t i (0), j;; i = j + 1)
+    for (std::size_t i (0), j;; i = j + 1)
     {
       j = s.find_first_of ("\\\"\n", i);
       o.append (s.c_str () + i, (j == std::string::npos ? s.size () : j) - i);
