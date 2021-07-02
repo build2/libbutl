@@ -191,6 +191,26 @@ LIBBUTL_MODEXPORT namespace butl
     bool
     normal () const;
 
+    // C/C++ don't apply constraints on program exit code other than it being
+    // of type int.
+    //
+    // POSIX specifies that only the least significant 8 bits shall be
+    // available from wait() and waitpid(); the full value shall be available
+    // from waitid() (read more at _Exit, _exit Open Group spec).
+    //
+    // While the Linux man page for waitid() doesn't mention any deviations
+    // from the standard, the FreeBSD implementation (as of version 11.0) only
+    // returns 8 bits like the other wait*() calls.
+    //
+    // Windows supports 32-bit exit codes.
+    //
+    // Note that in shells some exit values can have special meaning so using
+    // them can be a source of confusion. For bash values in the [126, 255]
+    // range are such a special ones (see Appendix E, "Exit Codes With Special
+    // Meanings" in the Advanced Bash-Scripting Guide).
+    //
+    // So [0, 125] appears to be the usable exit code range.
+    //
     code_type
     code () const;
 
