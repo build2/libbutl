@@ -168,14 +168,17 @@ namespace butl
     passwd* rpw;
 
     int r (getpwuid_r (getuid (), &pw, buf, sizeof (buf), &rpw));
-    if (r == -1)
-      throw_generic_error (errno);
-
-    if (r == 0 && rpw == nullptr)
-      // According to POSIX errno should be left unchanged if an entry is not
-      // found.
-      //
-      throw_generic_error (ENOENT);
+    if (rpw == nullptr)
+    {
+      if (r == 0)
+        // According to POSIX errno should be left unchanged if an entry is not
+        // found.
+        throw_generic_error (ENOENT);
+      else {
+        errno = r;
+        throw_generic_error (errno);
+      }
+    }
 
     return pw.pw_dir;
   }
