@@ -60,6 +60,7 @@ namespace butl
 
     const char* b (s.c_str () + p);
     char* e (nullptr);
+    errno = 0; // We must clear it according to POSIX.
     uint64_t v (strtoull (b, &e, 10)); // Can't throw.
 
     if (errno == ERANGE || b == e || v < min || v > max)

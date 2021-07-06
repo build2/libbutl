@@ -14,7 +14,6 @@
 #include <ostream>
 
 #include <cstring>   // strchr()
-#include <cstdlib>   // strtoull()
 #include <utility>   // move()
 #include <stdexcept> // invalid_argument
 #endif

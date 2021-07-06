@@ -1929,6 +1929,7 @@ namespace butl
         if (!a.empty () && a[0] != '-' && a[0] != '+')
         {
           char* e (nullptr);
+          errno = 0; // We must clear it according to POSIX.
           n = strtoull (a.c_str (), &e, 10); // Can't throw.
 
           if (errno != ERANGE && e == a.c_str () + a.size ())

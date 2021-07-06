@@ -90,6 +90,7 @@ main (int argc, char* argv[])
     assert (!s.empty ());
 
     char* e (nullptr);
+    errno = 0; // We must clear it according to POSIX.
     uint64_t r (strtoull (s.c_str (), &e, 10)); // Can't throw.
     assert (errno != ERANGE && e == s.c_str () + s.size ());
     return r;
