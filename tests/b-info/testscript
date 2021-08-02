@@ -61,6 +61,7 @@ test.options += -b $recall($build.path)
     subprojects: @subprj/
     operations: update clean
     meta-operations: perform configure disfigure dist info
+    modules: version config dist
     EOO
 
   $* prj/subprj >>/~"%EOO%"
@@ -74,6 +75,7 @@ test.options += -b $recall($build.path)
     subprojects:$sp
     operations: update clean
     meta-operations: perform configure disfigure dist info
+    modules: config dist
     EOO
 }
 

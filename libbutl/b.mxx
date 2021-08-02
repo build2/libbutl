@@ -73,8 +73,11 @@ LIBBUTL_MODEXPORT namespace butl
   // speeds up its execution.
   //
   // You can also specify the build2 verbosity level, command line callback
-  // (see process_run_callback() for details), build program search details
+  // (see process_run_callback() for details), build program search details,
   // and additional options.
+  //
+  // Note that version_string is only parsed to standard_version if the
+  // project uses the version module. Otherwise, standard_version is empty.
   //
   struct b_project_info
   {
@@ -87,6 +90,7 @@ LIBBUTL_MODEXPORT namespace butl
     };
 
     project_name     project;
+    std::string      version_string;
     standard_version version;
     std::string      summary;
     url_type         url;
@@ -100,6 +104,8 @@ LIBBUTL_MODEXPORT namespace butl
 
     std::vector<std::string> operations;
     std::vector<std::string> meta_operations;
+
+    std::vector<std::string> modules;
   };
 
   using b_callback = void (const char* const args[], std::size_t n);

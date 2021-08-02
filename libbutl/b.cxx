@@ -20,6 +20,7 @@
 #include <ios>     // ios::failure
 #include <utility> // move()
 #include <sstream>
+#include <algorithm>
 #endif
 
 // Other includes.
@@ -156,16 +157,7 @@ namespace butl
           }
           else if (l.compare (0, 9, "version: ") == 0)
           {
-            string v (l, 9);
-            if (!v.empty ())
-            try
-            {
-              r.version = standard_version (v, standard_version::allow_stub);
-            }
-            catch (const invalid_argument& e)
-            {
-              bad_value ("version '" + v + "': " + e.what ());
-            }
+            r.version_string = string (l, 9);
           }
           else if (l.compare (0, 9, "summary: ") == 0)
           {
@@ -232,12 +224,37 @@ namespace butl
             for (size_t b (0), e (0); next_word (v, b, e); )
               r.meta_operations.push_back (string (v, b, e - b));
           }
+          else if (l.compare (0, 9, "modules: ") == 0)
+          {
+            string v (l, 9);
+            for (size_t b (0), e (0); next_word (v, b, e); )
+              r.modules.push_back (string (v, b, e - b));
+          }
         }
 
         is.close (); // Detect errors.
 
         if (pr.wait ())
+        {
+          // Parse version string to standard version if the project loaded
+          // the version module.
+          //
+          const auto& ms (r.modules);
+          if (find (ms.begin (), ms.end (), "version") != ms.end ())
+          {
+            try
+            {
+              r.version = standard_version (r.version_string,
+                                            standard_version::allow_stub);
+            }
+            catch (const invalid_argument& e)
+            {
+              bad_value ("version '" + r.version_string + "': " + e.what ());
+            }
+          }
+
           return r;
+        }
       }
       // Note that ios::failure inherits from std::runtime_error, so this
       // catch-clause must go last.

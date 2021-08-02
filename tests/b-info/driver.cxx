@@ -110,6 +110,18 @@ try
 
     cout << *i;
   }
+  cout << endl
+       << "modules: ";
+
+  for (auto b (pi.modules.begin ()), i (b);
+       i != pi.modules.end ();
+       ++i)
+  {
+    if (i != b)
+      cout << ' ';
+
+    cout << *i;
+  }
   cout << endl;
 
   return 0;
