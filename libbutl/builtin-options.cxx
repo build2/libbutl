@@ -15,6 +15,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <utility>
 #include <ostream>
 #include <sstream>
 
@@ -158,6 +159,7 @@ namespace butl
         else
           ++i_;
 
+        ++start_position_;
         return r;
       }
       else
@@ -168,9 +170,18 @@ namespace butl
     skip ()
     {
       if (i_ < argc_)
+      {
         ++i_;
+        ++start_position_;
+      }
       else
         throw eos_reached ();
+    }
+
+    std::size_t argv_scanner::
+    position ()
+    {
+      return start_position_;
     }
 
     // vector_scanner
@@ -206,6 +217,12 @@ namespace butl
         ++i_;
       else
         throw eos_reached ();
+    }
+
+    std::size_t vector_scanner::
+    position ()
+    {
+      return start_position_ + i_;
     }
 
     template <typename X>
@@ -260,6 +277,17 @@ namespace butl
     };
 
     template <typename X>
+    struct parser<std::pair<X, std::size_t> >
+    {
+      static void
+      parse (std::pair<X, std::size_t>& x, bool& xs, scanner& s)
+      {
+        x.second = s.position ();
+        parser<X>::parse (x.first, xs, s);
+      }
+    };
+
+    template <typename X>
     struct parser<std::vector<X> >
     {
       static void
@@ -297,6 +325,7 @@ namespace butl
 
         if (s.more ())
         {
+          std::size_t pos (s.position ());
           std::string ov (s.next ());
           std::string::size_type p = ov.find ('=');
 
@@ -316,14 +345,14 @@ namespace butl
           if (!kstr.empty ())
           {
             av[1] = const_cast<char*> (kstr.c_str ());
-            argv_scanner s (0, ac, av);
+            argv_scanner s (0, ac, av, false, pos);
             parser<K>::parse (k, dummy, s);
           }
 
           if (!vstr.empty ())
           {
             av[1] = const_cast<char*> (vstr.c_str ());
-            argv_scanner s (0, ac, av);
+            argv_scanner s (0, ac, av, false, pos);
             parser<V>::parse (v, dummy, s);
           }
 
