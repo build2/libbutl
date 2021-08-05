@@ -250,7 +250,7 @@ main (int argc, const char* argv[])
 
   // Deduce a common start directory.
   //
-  fs.start = default_options_start (home_dir, dirs);
+  fs.start = default_options_start (home_dir, dirs.begin (), dirs.end ());
 
   // Load and print the default options.
   //

@@ -318,4 +318,43 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     r.insert (r.end (), cmd_args.begin (), cmd_args.end ());
     return r;
   }
+
+  template <typename I, typename F>
+  optional<dir_path>
+  default_options_start (const optional<dir_path>& home, I b, I e, F&& f)
+  {
+    if (home)
+      assert (home->absolute () && home->normalized ());
+
+    if (b == e)
+      return nullopt;
+
+    // Use the first directory as a start.
+    //
+    I i (b);
+    dir_path d (f (i));
+
+    // Try to find a common prefix for each subsequent directory.
+    //
+    for (++i; i != e; ++i)
+    {
+      bool p (false);
+
+      for (;
+           !(d.root () || (home && d == *home));
+           d = d.directory ())
+      {
+        if (f (i).sub (d))
+        {
+          p = true;
+          break;
+        }
+      }
+
+      if (!p)
+        return nullopt;
+    }
+
+    return d;
+  }
 }

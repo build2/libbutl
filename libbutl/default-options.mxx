@@ -152,12 +152,25 @@ LIBBUTL_MODEXPORT namespace butl
   AS
   merge_default_arguments (const default_options<O>&, const AS&, F&&);
 
-  // Find a common start (parent) directory stopping at home or root
-  // (excluding).
+  // Find a common start (parent) directory for directories specified as an
+  // iterator range, stopping at home or root (excluding). Optionally pass a
+  // function resolving an iterator into a directory in a way other than just
+  // dereferencing it. The function signature is:
   //
-  LIBBUTL_SYMEXPORT optional<dir_path>
-  default_options_start (const optional<dir_path>& home_dir,
-                         const std::vector<dir_path>&);
+  // const dir_path& (I)
+  //
+  template <typename I, typename F>
+  optional<dir_path>
+  default_options_start (const optional<dir_path>& home, I, I, F&&);
+
+  template <typename I>
+  inline optional<dir_path>
+  default_options_start (const optional<dir_path>& home, I b, I e)
+  {
+    return default_options_start (home,
+                                  b, e,
+                                  [] (I i) -> const dir_path& {return *i;});
+  }
 }
 
 #include <libbutl/default-options.ixx>
