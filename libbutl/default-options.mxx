@@ -11,6 +11,7 @@
 
 #include <utility>      // move(), forward(), make_pair()
 #include <algorithm>    // reverse()
+#include <stdexcept>    // invalid_argument
 #include <system_error>
 #endif
 
@@ -107,6 +108,15 @@ LIBBUTL_MODEXPORT namespace butl
   //
   // Note that the extra directory options files are never considered remote.
   //
+  // For the convenience of implementation, the function parses the option
+  // files in the reverse order. Thus, to make sure that positions in the
+  // options list monotonically increase, it needs the maximum number of
+  // arguments, globally and per file, to be specified. This way the starting
+  // options position for each file will be less than for the previously
+  // parsed file by arg_max_file and equal to arg_max - arg_max_file for the
+  // first file. If the actual number of arguments exceeds the specified, then
+  // invalid_argument is thrown.
+  //
   template <typename O, typename S, typename U, typename F>
   default_options<O>
   load_default_options (const optional<dir_path>& sys_dir,
@@ -115,6 +125,8 @@ LIBBUTL_MODEXPORT namespace butl
                         const default_options_files&,
                         F&&,
                         const std::string& option,
+                        std::size_t arg_max,
+                        std::size_t arg_max_file,
                         bool args = false);
 
   // Merge the default options/arguments and the command line

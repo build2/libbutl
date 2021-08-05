@@ -4,9 +4,11 @@
 #include <cassert>
 
 #ifndef __cpp_lib_modules_ts
+#include <limits>
 #include <string>
 #include <vector>
 #include <iostream>
+#include <exception>
 #include <stdexcept> // invalid_argument
 #endif
 
@@ -41,21 +43,21 @@ using namespace butl;
 // print the resulting options to STDOUT one per line. Note that the options
 // instance is a vector of arbitrary strings.
 //
-// -f
+// -f <file>
 //    Default options file name. Can be specified multiple times.
 //
-// -d
+// -d <start-dir>
 //    Directory to start the default options files search from. Can be
 //    specified multiple times, in which case a common start (parent)
 //    directory is deduced.
 //
-// -s
+// -s <sys-dir>
 //    System directory.
 //
-// -h
+// -h <home-dir>
 //    Home directory.
 //
-// -x
+// -x <extra-dir>
 //    Extra directory.
 //
 // -a
@@ -70,6 +72,12 @@ using namespace butl;
 // -t
 //    Trace the default options files search to STDERR.
 //
+// -m <num>
+//    Maximum number of arguments globally (SIZE_MAX/2 by default).
+//
+// -l <num>
+//    Maximum number of arguments in the options file (1024 by default).
+//
 int
 main (int argc, const char* argv[])
 {
@@ -78,8 +86,8 @@ main (int argc, const char* argv[])
   class scanner
   {
   public:
-    scanner (const string& f, const string& option)
-        : option_ (option) {load (path (f));}
+    scanner (const string& f, const string& option, size_t pos)
+        : option_ (option), start_pos_ (pos) {load (path (f));}
 
     bool
     more ()
@@ -99,6 +107,12 @@ main (int argc, const char* argv[])
     {
       assert (more ());
       return args_[i_++];
+    }
+
+    size_t
+    position ()
+    {
+      return start_pos_ + i_;
     }
 
   private:
@@ -133,12 +147,22 @@ main (int argc, const char* argv[])
     optional<string> option_;
     vector<string> args_;
     size_t i_ = 0;
+    size_t start_pos_;
   };
 
   enum class unknow_mode
   {
     stop,
     fail
+  };
+
+  class unknown_argument: public std::exception
+  {
+  public:
+    string argument;
+
+    explicit
+    unknown_argument (string a): argument (move (a)) {}
   };
 
   class options: public vector<string>
@@ -157,7 +181,7 @@ main (int argc, const char* argv[])
           switch (m)
           {
           case unknow_mode::stop: return r;
-          case unknow_mode::fail: throw invalid_argument (a);
+          case unknow_mode::fail: throw unknown_argument (move (a));
           }
         }
 
@@ -200,6 +224,23 @@ main (int argc, const char* argv[])
   vector<string> cmd_args;
   bool print_entries (false);
   bool trace (false);
+  size_t arg_max (numeric_limits<size_t>::max () / 2);
+  size_t arg_max_file (1024);
+
+  auto num = [] (const string& s) -> size_t
+  {
+    assert (!s.empty ());
+
+    char* e (nullptr);
+    errno = 0; // We must clear it according to POSIX.
+    uint64_t r (strtoull (s.c_str (), &e, 10)); // Can't throw.
+
+    assert (errno != ERANGE             &&
+            e == s.c_str () + s.size () &&
+            r <= numeric_limits<size_t>::max ());
+
+    return static_cast<size_t> (r);
+  };
 
   for (int i (1); i != argc; ++i)
   {
@@ -242,6 +283,16 @@ main (int argc, const char* argv[])
     {
       trace = true;
     }
+    else if (a == "-m")
+    {
+      assert (++i != argc);
+      arg_max = num (argv[i]);
+    }
+    else if (a == "-l")
+    {
+      assert (++i != argc);
+      arg_max_file = num (argv[i]);
+    }
     else if (a.compare (0, 2, "--") == 0)
       cmd_ops.push_back (move (a));
     else
@@ -270,11 +321,19 @@ main (int argc, const char* argv[])
                << (remote ? "remote " : "local ") << f << endl;
       },
       "--options-file",
+      arg_max,
+      arg_max_file,
       args);
+  }
+  catch (const unknown_argument& e)
+  {
+    cerr << "error: unexpected argument '" << e.argument << "'" << endl;
+    return 1;
   }
   catch (const invalid_argument& e)
   {
-    cerr << "error: unexpected argument '" << e.what () << "'" << endl;
+    cerr << "error: unable to load default options files: " << e.what ()
+         << endl;
     return 1;
   }
 

@@ -51,6 +51,7 @@
   +mkdir -p $d/local/
 
   +echo '--package-foo'       >=$d/foo
+  +echo '--package-fox'       >+$d/foo
   +echo '--package-bar'       >=$d/bar
   +echo '--package-local-foo' >=$d/local/foo
   +echo '--package-local-bar' >=$d/local/bar
@@ -78,7 +79,7 @@
     %\.+/home/work/project/.build2/bar,--project-bar,true%
     %\.+/home/work/project/.build2/local/foo,--project-local-foo,true%
     %\.+/home/work/project/.build2/local/bar,--project-local-bar,true%
-    %\.+/home/work/project/package/.build2/foo,--package-foo,true%
+    %\.+/home/work/project/package/.build2/foo,--package-foo --package-fox,true%
     %\.+/home/work/project/package/.build2/bar,--package-bar,true%
     %\.+/home/work/project/package/.build2/local/foo,--package-local-foo,true%
     %\.+/home/work/project/package/.build2/local/bar,--package-local-bar,true%
@@ -129,6 +130,7 @@
     --project-local-foo
     --project-local-bar
     --package-foo
+    --package-fox
     --package-bar
     --package-local-foo
     --package-local-bar
@@ -150,6 +152,26 @@
     %overwriting remote \.+/home/work/project/package/.build2/local/baz%
     %overwriting remote \.+/home/work/project/package/.build2/local/foo%
     EOE
+
+  : positions
+  :
+  {
+    : success
+    :
+    $* -f foo -f bar -d $start_dir -m 36 -l 2 >!
+
+    : fail-file
+    :
+    $* -f foo -f bar -d $start_dir -m 36 -l 1 2>>/~%EOE% != 0
+      %error: unable to load default options files: too many options in file .+/package/\.build2/foo%
+      EOE
+
+    : fail-globally
+    :
+    $* -f foo -f bar -d $start_dir -m 100 -l 10 2>>EOE != 0
+      error: unable to load default options files: too many options files
+      EOE
+  }
 }
 
 : args

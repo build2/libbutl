@@ -14,10 +14,11 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
     throw std::make_pair (path_cast<path> (d), std::move (e));
   }
 
-  // Search for and parse the options files in the specified directory and
-  // its local/ subdirectory, if exists, in the reverse order and append the
-  // options to the resulting list. Return false if --no-default-options is
-  // encountered.
+  // Search for and parse the options files in the specified directory and its
+  // local/ subdirectory, if exists, in the reverse order and append the
+  // options to the resulting list. Verify that the number of arguments
+  // doesn't exceed the limits and decrement arg_max by arg_max_file after
+  // parsing each file. Return false if --no-default-options is encountered.
   //
   // Note that by default we check for the local/ subdirectory even if we
   // don't think it belongs to the remote directory; the user may move things
@@ -36,6 +37,8 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
                               bool remote,
                               const small_vector<path, 2>& fs,
                               F&& fn,
+                              std::size_t& arg_max,
+                              std::size_t  arg_max_file,
                               default_options<O>& def_ops,
                               bool load_sub = true,
                               bool load_dir = true)
@@ -44,7 +47,7 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
 
     bool r (true);
 
-    auto load = [&opt, args, &fs, &fn, &def_ops, &r]
+    auto load = [&opt, args, &fs, &fn, &def_ops, &arg_max, arg_max_file, &r]
                 (const dir_path& d, bool rem)
     {
       using namespace std;
@@ -57,9 +60,14 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
         {
           if (file_exists (p)) // Follows symlinks.
           {
+            if (arg_max < arg_max_file)
+              throw invalid_argument ("too many options files");
+
+            size_t start_pos (arg_max - arg_max_file);
+
             fn (p, rem, false /* overwrite */);
 
-            S s (p.string (), opt);
+            S s (p.string (), opt, start_pos);
 
             // @@ Note that the potentially thrown exceptions (unknown option,
             //    unexpected argument, etc) will not contain any location
@@ -80,6 +88,15 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
             }
             else
               o.parse (s, U::fail, U::fail);
+
+            if (s.position () > arg_max)
+              throw invalid_argument ("too many options in file " +
+                                      p.string ());
+
+            // Don't decrement arg_max for the empty option files.
+            //
+            if (s.position () != start_pos)
+              arg_max = start_pos;
 
             if (o.no_default_options ())
               r = false;
@@ -119,6 +136,8 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
                         const default_options_files& ofs,
                         F&& fn,
                         const std::string& opt,
+                        std::size_t arg_max,
+                        std::size_t arg_max_file,
                         bool args)
   {
     if (sys_dir)
@@ -214,6 +233,8 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
                                                         false /* remote */,
                                                         ofs.files,
                                                         std::forward<F> (fn),
+                                                        arg_max,
+                                                        arg_max_file,
                                                         r);
 
             load_extra        = false;
@@ -228,6 +249,8 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
                                                         remote,
                                                         ofs.files,
                                                         std::forward<F> (fn),
+                                                        arg_max,
+                                                        arg_max_file,
                                                         r,
                                                         load_build2_local,
                                                         load_build2);
@@ -245,6 +268,8 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
                                                   false /* remote */,
                                                   ofs.files,
                                                   std::forward<F> (fn),
+                                                  arg_max,
+                                                  arg_max_file,
                                                   r);
 
     if (load && home_dir)
@@ -258,6 +283,8 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
                                                     false /* remote */,
                                                     ofs.files,
                                                     std::forward<F> (fn),
+                                                    arg_max,
+                                                    arg_max_file,
                                                     r);
     }
 
@@ -268,6 +295,8 @@ LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
                                            false /* remote */,
                                            ofs.files,
                                            std::forward<F> (fn),
+                                           arg_max,
+                                           arg_max_file,
                                            r);
 
     std::reverse (r.begin (), r.end ());
