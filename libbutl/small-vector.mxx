@@ -125,6 +125,11 @@ LIBBUTL_MODEXPORT namespace butl
         reserve ();
 
       *this = std::move (v); // Delegate to operator=(&&).
+
+      // Note that in contrast to the move assignment operator, the
+      // constructor must clear the other vector.
+      //
+      v.clear ();
     }
 
     small_vector&

@@ -111,6 +111,7 @@ main ()
       s1.emplace_back ("abc");
       vector s2 (move (s1));
       assert (s2[0] == "abc" && s2.capacity () == 2 && small (s2));
+      assert (s1.empty ()); // The source vector must be empty now.
     }
 
     {
