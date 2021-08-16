@@ -10,6 +10,7 @@
 #ifndef __cpp_lib_modules_ts
 #include <string>
 #include <vector>
+#include <utility>    // move()
 #include <cstddef>    // size_tu
 #include <cstdint>    // uint16_t
 #include <stdexcept>  // runtime_error
@@ -64,8 +65,12 @@ LIBBUTL_MODEXPORT namespace butl
     b_error (const std::string& description, optional<process_exit> = nullopt);
   };
 
-  // Run `b info: <project-dir>` command and parse and return the build2
-  // project information it prints to stdout. Throw b_error on error.
+  // Run `b info: <project-dir>...` command and parse and return (via argument
+  // to allow appending and for error position; see below) the build2 projects
+  // information it prints to stdout. Return the empty list if the specified
+  // project list is empty. Throw b_error on error. Note that the size of the
+  // result vector can be used to determine which project information caused
+  // the error.
   //
   // Unless you need information that may come from external modules
   // (operations, meta-operations, etc), pass false as the ext_mods argument,
@@ -76,8 +81,8 @@ LIBBUTL_MODEXPORT namespace butl
   // (see process_run_callback() for details), build program search details,
   // and additional options.
   //
-  // Note that version_string is only parsed to standard_version if the
-  // project uses the version module. Otherwise, standard_version is empty.
+  // Note that version_string is only parsed to standard_version if a project
+  // uses the version module. Otherwise, standard_version is empty.
   //
   struct b_project_info
   {
@@ -110,12 +115,37 @@ LIBBUTL_MODEXPORT namespace butl
 
   using b_callback = void (const char* const args[], std::size_t n);
 
-  LIBBUTL_SYMEXPORT b_project_info
-  b_info (const dir_path& project,
+  LIBBUTL_SYMEXPORT void
+  b_info (std::vector<b_project_info>& result,
+          const std::vector<dir_path>& projects,
           bool ext_mods,
           std::uint16_t verb = 1,
           const std::function<b_callback>& cmd_callback = {},
           const path& program = path ("b"),
           const dir_path& search_fallback = {},
           const std::vector<std::string>& options = {});
+
+  // As above but retrieve information for a single project.
+  //
+  inline b_project_info
+  b_info (const dir_path& project,
+          bool ext_mods,
+          std::uint16_t verb = 1,
+          const std::function<b_callback>& cmd_callback = {},
+          const path& program = path ("b"),
+          const dir_path& search_fallback = {},
+          const std::vector<std::string>& options = {})
+  {
+    std::vector<b_project_info> r;
+    b_info (r,
+            std::vector<dir_path> ({project}),
+            ext_mods,
+            verb,
+            cmd_callback,
+            program,
+            search_fallback,
+            options);
+
+    return std::move (r[0]);
+  }
 }

@@ -72,8 +72,9 @@ namespace butl
     throw runtime_error ("invalid " + d);
   }
 
-  b_project_info
-  b_info (const dir_path& project,
+  void
+  b_info (std::vector<b_project_info>& r,
+          const vector<dir_path>& projects,
           bool ext_mods,
           uint16_t verb,
           const function<b_callback>& cmd_callback,
@@ -81,6 +82,20 @@ namespace butl
           const dir_path& search_fallback,
           const vector<string>& ops)
   {
+    // Bail out if the project list is empty.
+    //
+    if (projects.empty ())
+      return;
+
+    // Reserve enough space in the result and save its original size.
+    //
+    size_t rn (r.size ());
+    {
+      size_t n (rn + projects.size ());
+      if (r.capacity () < n)
+        r.reserve (n);
+    }
+
     try
     {
       process_path pp (
@@ -106,6 +121,14 @@ namespace butl
         else
           vops.push_back ("-q");
 
+        vector<string> ps;
+        ps.reserve (projects.size ());
+
+        // Note that quoting is essential here.
+        //
+        for (const dir_path& p: projects)
+          ps.push_back ("'" + p.representation () + "'");
+
         pr = process_start_callback (
           cmd_callback ? cmd_callback : [] (const char* const*, size_t) {},
           0 /* stdin */,
@@ -116,7 +139,7 @@ namespace butl
           ext_mods ? nullptr : "--no-external-modules",
           "-s",
           ops,
-          "info:", "'" + project.representation () + "'");
+          "info:", ps);
 
         pipe.out.close ();
         ifdstream is (move (pipe.in), fdstream_mode::skip, ifdstream::badbit);
@@ -146,22 +169,52 @@ namespace butl
           }
         };
 
-        b_project_info r;
+        b_project_info pi;
+        auto add_project = [&r, &pi] ()
+        {
+          // Parse version string to standard version if the project loaded
+          // the version module.
+          //
+          const auto& ms (pi.modules);
+          if (find (ms.begin (), ms.end (), "version") != ms.end ())
+          {
+            try
+            {
+              pi.version = standard_version (pi.version_string,
+                                             standard_version::allow_stub);
+            }
+            catch (const invalid_argument& e)
+            {
+              bad_value ("version '" + pi.version_string + "': " + e.what ());
+            }
+          }
+
+          // Add the project info and prepare for the next project info
+          // parsing.
+          //
+          r.push_back (move (pi));
+          pi = b_project_info ();
+        };
+
         for (string l; !eof (getline (is, l)); )
         {
-          if (l.compare (0, 9, "project: ") == 0)
+          if (l.empty ())
+          {
+            add_project ();
+          }
+          else if (l.compare (0, 9, "project: ") == 0)
           {
             string v (l, 9);
             if (!v.empty ())
-              r.project = parse_name (move (v), "project");
+              pi.project = parse_name (move (v), "project");
           }
           else if (l.compare (0, 9, "version: ") == 0)
           {
-            r.version_string = string (l, 9);
+            pi.version_string = string (l, 9);
           }
           else if (l.compare (0, 9, "summary: ") == 0)
           {
-            r.summary = string (l, 9);
+            pi.summary = string (l, 9);
           }
           else if (l.compare (0, 5, "url: ") == 0)
           {
@@ -169,7 +222,7 @@ namespace butl
             if (!v.empty ())
             try
             {
-              r.url = url (v);
+              pi.url = url (v);
             }
             catch (const invalid_argument& e)
             {
@@ -178,17 +231,17 @@ namespace butl
           }
           else if (l.compare (0, 10, "src_root: ") == 0)
           {
-            r.src_root = parse_dir (string (l, 10), "src_root");
+            pi.src_root = parse_dir (string (l, 10), "src_root");
           }
           else if (l.compare (0, 10, "out_root: ") == 0)
           {
-            r.out_root = parse_dir (string (l, 10), "out_root");
+            pi.out_root = parse_dir (string (l, 10), "out_root");
           }
           else if (l.compare (0, 14, "amalgamation: ") == 0)
           {
             string v (l, 14);
             if (!v.empty ())
-              r.amalgamation = parse_dir (move (v), "amalgamation");
+              pi.amalgamation = parse_dir (move (v), "amalgamation");
           }
           else if (l.compare (0, 13, "subprojects: ") == 0)
           {
@@ -206,7 +259,7 @@ namespace butl
               if (p != 0)
                 sn = parse_name (string (s, 0, p), "subproject");
 
-              r.subprojects.push_back (
+              pi.subprojects.push_back (
                 b_project_info::subproject {move (sn),
                                             parse_dir (string (s, p + 1),
                                                        "subproject")});
@@ -216,19 +269,19 @@ namespace butl
           {
             string v (l, 12);
             for (size_t b (0), e (0); next_word (v, b, e); )
-              r.operations.push_back (string (v, b, e - b));
+              pi.operations.push_back (string (v, b, e - b));
           }
           else if (l.compare (0, 17, "meta-operations: ") == 0)
           {
             string v (l, 17);
             for (size_t b (0), e (0); next_word (v, b, e); )
-              r.meta_operations.push_back (string (v, b, e - b));
+              pi.meta_operations.push_back (string (v, b, e - b));
           }
           else if (l.compare (0, 9, "modules: ") == 0)
           {
             string v (l, 9);
             for (size_t b (0), e (0); next_word (v, b, e); )
-              r.modules.push_back (string (v, b, e - b));
+              pi.modules.push_back (string (v, b, e - b));
           }
         }
 
@@ -236,24 +289,15 @@ namespace butl
 
         if (pr.wait ())
         {
-          // Parse version string to standard version if the project loaded
-          // the version module.
-          //
-          const auto& ms (r.modules);
-          if (find (ms.begin (), ms.end (), "version") != ms.end ())
-          {
-            try
-            {
-              r.version = standard_version (r.version_string,
-                                            standard_version::allow_stub);
-            }
-            catch (const invalid_argument& e)
-            {
-              bad_value ("version '" + r.version_string + "': " + e.what ());
-            }
-          }
+          add_project (); // Add the remaining project info.
 
-          return r;
+          if (r.size () - rn == projects.size ())
+            return;
+
+          ostringstream os;
+          os << "invalid " << pp << " output: expected information for "
+             << projects.size () << " projects instead of " << r.size () - rn;
+          throw b_error (os.str (), move (pr.exit));
         }
       }
       // Note that ios::failure inherits from std::runtime_error, so this
