@@ -252,7 +252,9 @@ strptime (const char* input, const char* format, tm* time)
   if (!(ss >> get_time (time, fm.c_str ())))
     return nullptr;
 
-  assert (ss.eof ()); // We would fail earlier otherwise.
+  // We would fail earlier otherwise.
+  //
+  assert (ss.eof () || ss.get () == stringstream::traits_type::eof ());
 
   // tellg() behaves as UnformattedInputFunction, so returns failure status if
   // eofbit is set.
