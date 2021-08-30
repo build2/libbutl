@@ -1326,8 +1326,13 @@ namespace butl
     // may add a flag to disable all quoting since the user may need to quote
     // some arguments but not others).
     //
-    bool q (*a == '\0' ||
-            (bat ? strpbrk (a, " =,;") : strchr (a, ' ')) != nullptr);
+    // While `()` and `[]` are not special characters, some "subsystems"
+    // (e.g., Cygwin/MSYS2) try to interpret them in certain contexts (e.g.,
+    // relative paths). So we quote them as well (over-quoting seems to be
+    // harmless according to the "Parsing C Command-Line Arguments" MSDN
+    // article).
+    //
+    bool q (*a == '\0' || strpbrk (a, bat ? " =,;" : " ()[]") != nullptr);
 
     if (!q && strchr (a, '"') == nullptr)
       return a;
@@ -1338,8 +1343,8 @@ namespace butl
       s += '"';
 
     // Note that backslashes don't need escaping, unless they immediately
-    // precede the double quote (see `Parsing C Command-Line Arguments` MSDN
-    // article for more details). For example:
+    // precede the double quote (see "Parsing C Command-Line Arguments" MSDN
+    // article for details). For example:
     //
     // -DPATH="C:\\foo\\"  ->  -DPATH=\"C:\\foo\\\\\"
     // -DPATH=C:\foo bar\  ->  "-DPATH=C:\foo bar\\"
