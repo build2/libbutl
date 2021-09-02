@@ -57,7 +57,7 @@ test.options += -b $recall($build.path)
     url:$sp
     %src_root: .+/prj/%
     %out_root: .+/prj/%
-    amalgamation: ../../../../
+    %amalgamation: .*%
     subprojects: @subprj/
     operations: update clean
     meta-operations: perform configure disfigure dist info
