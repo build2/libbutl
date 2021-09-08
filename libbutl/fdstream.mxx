@@ -36,6 +36,7 @@ import butl.small_vector;
 #include <libbutl/path.mxx>
 #include <libbutl/filesystem.mxx>
 #include <libbutl/small-vector.mxx>
+#include <libbutl/bufstreambuf.hxx>
 #endif
 
 #include <libbutl/export.hxx>
@@ -142,9 +143,9 @@ LIBBUTL_MODEXPORT namespace butl
   // - input or output but not both (can use a union of two streams for that)
   // - no support for put back
   // - use of tell[gp]() and seek[gp]() is discouraged on Windows for
-  //   fdstreams opened in the text mode (see fdbuf::seekoff() implementation
-  //   for reasoning and consider using non-standard tellg() and seekg() in
-  //   fdbuf, instead)
+  //   fdstreams opened in the text mode (see fdstreambuf::seekoff()
+  //   implementation for reasoning and consider using non-standard tellg()
+  //   and seekg() in fdstreambuf, instead)
   // - non-blocking file descriptor is supported only by showmanyc() function
   //   and only for pipes on Windows, in contrast to POSIX systems
   // - throws ios::failure in case of open(), read(), write(), close(),
@@ -157,20 +158,21 @@ LIBBUTL_MODEXPORT namespace butl
   // - passing to constructor auto_fd with a negative file descriptor is valid
   //   and results in the creation of an unopened object
   //
-  class LIBBUTL_SYMEXPORT fdbuf: public std::basic_streambuf<char>
+  class LIBBUTL_SYMEXPORT fdstreambuf: public bufstreambuf
   {
   public:
-    fdbuf () = default;
+    fdstreambuf () = default;
 
     // Unless specified, the current read/write position is assumed to
     // be 0 (note: not queried).
     //
-    fdbuf (auto_fd&&, std::uint64_t pos = 0);
+    fdstreambuf (auto_fd&&, std::uint64_t pos = 0);
 
-    // Before we invented auto_fd into fdstreams we keept fdbuf opened on
-    // faulty close attempt. Now fdbuf is always closed by close() function.
-    // This semantics change seems to be the right one as there is no reason to
-    // expect fdclose() to succeed after it has already failed once.
+    // Before we invented auto_fd into fdstreams we keept fdstreambuf opened
+    // on faulty close attempt. Now fdstreambuf is always closed by close()
+    // function.  This semantics change seems to be the right one as there is
+    // no reason to expect fdclose() to succeed after it has already failed
+    // once.
     //
     void
     close () {fd_.close ();}
@@ -197,13 +199,7 @@ LIBBUTL_MODEXPORT namespace butl
     blocking (bool);
 
   public:
-    using base = std::basic_streambuf<char>;
-
-    using int_type = base::int_type;
-    using traits_type = base::traits_type;
-
-    using pos_type = base::pos_type; // std::streampos
-    using off_type = base::off_type; // std::streamoff
+    using base = bufstreambuf;
 
     // basic_streambuf input interface.
     //
@@ -222,13 +218,7 @@ LIBBUTL_MODEXPORT namespace butl
 
     // Return the (logical) position of the next byte to be read.
     //
-    // Note that on Windows when reading in the text mode the logical position
-    // may differ from the physical file descriptor position due to the CRLF
-    // character sequence translation. See the seekoff() implementation for
-    // more background on this issue.
-    //
-    std::uint64_t
-    tellg () const {return off_ - (egptr () - gptr ());}
+    using base::tellg;
 
     // Seek to the (logical) position as if by reading the specified number of
     // bytes from the beginning of the stream. Throw ios::failure on the
@@ -255,8 +245,7 @@ LIBBUTL_MODEXPORT namespace butl
 
     // Return the (logical) position of the next byte to be written.
     //
-    std::uint64_t
-    tellp () const {return off_ + (pptr () - buf_);}
+    using base::tellp;
 
     // basic_streambuf positioning interface (both input/output).
     //
@@ -273,7 +262,6 @@ LIBBUTL_MODEXPORT namespace butl
 
   private:
     auto_fd fd_;
-    std::uint64_t off_;
     char buf_[8192];
     bool non_blocking_ = false;
   };
@@ -348,7 +336,7 @@ LIBBUTL_MODEXPORT namespace butl
     fd () const {return buf_.fd ();}
 
   protected:
-    fdbuf buf_;
+    fdstreambuf buf_;
   };
 
   // iofdstream constructors and open() functions that take openmode as an

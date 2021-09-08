@@ -24,9 +24,8 @@ export module butl.char_scanner;
 import std.core;
 import std.io;
 #endif
-import butl.fdstream;
 #else
-#include <libbutl/fdstream.mxx>
+#include <libbutl/bufstreambuf.hxx>
 #endif
 
 #include <libbutl/export.hxx>
@@ -59,9 +58,9 @@ LIBBUTL_MODEXPORT namespace butl
     // 0x0D is treated "as if" it was followed by 0x0A and multiple 0x0D
     // are treated as one.
     //
-    // Note also that if the stream happens to be ifdstream, then it includes
-    // a number of optimizations that assume nobody else is messing with the
-    // stream.
+    // Note also that if the stream happens to be bufstreambuf-based, then it
+    // includes a number of optimizations that assume nobody else is messing
+    // with the stream.
     //
     // The line and position arguments can be used to override the start line
     // and position in the stream (useful when re-scanning data saved with the
@@ -106,8 +105,9 @@ LIBBUTL_MODEXPORT namespace butl
       std::uint64_t line;
       std::uint64_t column;
 
-      // Logical character position (see ifdstream for details on the logical
-      // part) if the scanned stream is ifdstream and always zero otherwise.
+      // Logical character position (see bufstreambuf for details on the
+      // logical part) if the scanned stream is bufstreambuf-based and always
+      // zero otherwise.
       //
       std::uint64_t position;
 
@@ -240,7 +240,7 @@ LIBBUTL_MODEXPORT namespace butl
     // the hairy details; realistically, you would probably only direct-scan
     // ASCII fragments).
     //
-    fdbuf* buf_; // NULL if not ifdstream.
+    bufstreambuf* buf_; // NULL if not bufstreambuf-based.
     const char_type* gptr_;
     const char_type* egptr_;
 

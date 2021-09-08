@@ -19,7 +19,7 @@ namespace butl
         position (p),
         is_ (is),
         val_ (std::move (v)),
-        buf_ (dynamic_cast<fdbuf*> (is.rdbuf ())),
+        buf_ (dynamic_cast<bufstreambuf*> (is.rdbuf ())),
         gptr_ (nullptr),
         egptr_ (nullptr),
         crlf_ (crlf)

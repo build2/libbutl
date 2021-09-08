@@ -8,10 +8,11 @@
 // C includes.
 
 #ifndef __cpp_lib_modules_ts
+#include <iosfwd>   // istream
 #include <string>
-#include <cstddef>     // size_t
+#include <cstddef>  // size_t
 #include <cstdint>
-#include <cstring>     // strlen()
+#include <cstring>  // strlen()
 #endif
 
 // Other includes.
@@ -27,8 +28,6 @@ import std.core;
 
 LIBBUTL_MODEXPORT namespace butl
 {
-  class ifdstream;
-
   // SHA1 checksum calculator.
   //
   // For a single chunk of data a sum can be obtained in one line, for
@@ -67,11 +66,14 @@ LIBBUTL_MODEXPORT namespace butl
 
     // Append stream.
     //
+    // Note that currently the stream is expected to be bufstreambuf-based
+    // (e.g., ifdstream).
+    //
     void
-    append (ifdstream&);
+    append (std::istream&);
 
     explicit
-    sha1 (ifdstream& i): sha1 () {append (i);}
+    sha1 (std::istream& i): sha1 () {append (i);}
 
     // Check if any data has been hashed.
     //

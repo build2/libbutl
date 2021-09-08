@@ -64,7 +64,7 @@ namespace butl
       // Temporary move the descriptor into the stream.
       //
       ifdstream is (move (fd));
-      fdbuf& buf (static_cast<fdbuf&> (*is.rdbuf ()));
+      fdstreambuf& buf (static_cast<fdstreambuf&> (*is.rdbuf ()));
 
       // Read suffix.
       //

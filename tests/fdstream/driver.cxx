@@ -575,7 +575,8 @@ main (int argc, const char* argv[])
       t.join ();
   }
 
-  // Test setting and getting position via the non-standard fdbuf interface.
+  // Test setting and getting position via the non-standard fdstreambuf
+  // interface.
   //
   // Seek for read.
   //
@@ -584,7 +585,7 @@ main (int argc, const char* argv[])
 
     ifdstream is (f);
 
-    fdbuf* buf (dynamic_cast<fdbuf*> (is.rdbuf ()));
+    fdstreambuf* buf (dynamic_cast<fdstreambuf*> (is.rdbuf ()));
     assert (buf != nullptr);
 
     char c;
@@ -627,7 +628,7 @@ main (int argc, const char* argv[])
     {
       ifdstream is (f, fdopen_mode::in | fdopen_mode::out);
 
-      fdbuf* buf (dynamic_cast<fdbuf*> (is.rdbuf ()));
+      fdstreambuf* buf (dynamic_cast<fdstreambuf*> (is.rdbuf ()));
       assert (buf != nullptr);
 
       // Read till the end of the fragment.
@@ -685,7 +686,7 @@ main (int argc, const char* argv[])
 
     assert (static_cast<streamoff> (is.tellg ()) == 8);
 
-    const fdbuf* buf (dynamic_cast<const fdbuf*> (is.rdbuf ()));
+    const fdstreambuf* buf (dynamic_cast<const fdstreambuf*> (is.rdbuf ()));
     assert (buf != nullptr && buf->tellg () == 8);
 
     assert (from_stream (is) == "89");
@@ -704,7 +705,7 @@ main (int argc, const char* argv[])
 
     assert (static_cast<streamoff> (os.tellp ()) == 2);
 
-    const fdbuf* buf (dynamic_cast<const fdbuf*> (os.rdbuf ()));
+    const fdstreambuf* buf (dynamic_cast<const fdstreambuf*> (os.rdbuf ()));
     assert (buf != nullptr && buf->tellp () == 2);
 
     os.close ();
@@ -757,7 +758,7 @@ main (int argc, const char* argv[])
 
     assert (static_cast<streamoff> (is.tellg ()) == 8);
 
-    const fdbuf* buf (dynamic_cast<const fdbuf*> (is.rdbuf ()));
+    const fdstreambuf* buf (dynamic_cast<const fdstreambuf*> (is.rdbuf ()));
     assert (buf != nullptr && buf->tellp () == 8);
 
     assert (from_stream (is) == "6789");

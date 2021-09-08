@@ -27,16 +27,16 @@ namespace butl
     reset ();
   }
 
-  // fdbuf
+  // fdstreambuf
   //
-  inline fdbuf::
-  fdbuf (auto_fd&& fd, std::uint64_t pos)
+  inline fdstreambuf::
+  fdstreambuf (auto_fd&& fd, std::uint64_t pos)
   {
     if (fd.get () >= 0)
       open (std::move (fd), pos);
   }
 
-  inline auto_fd fdbuf::
+  inline auto_fd fdstreambuf::
   release ()
   {
     return std::move (fd_);

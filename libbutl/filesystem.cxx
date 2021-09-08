@@ -1599,7 +1599,7 @@ namespace butl
 
     rm = auto_rmfile (to);
 
-    // Throws ios::failure on fdbuf read/write failures.
+    // Throws ios::failure on fdstreambuf read/write failures.
     //
     // Note that the eof check is important: if the stream is at eof (empty
     // file) then this write will fail.

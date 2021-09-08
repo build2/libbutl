@@ -34,6 +34,7 @@ extern "C"
 #include <cstdint>
 
 #include <cctype>    // isxdigit()
+#include <istream>
 #include <stdexcept> // invalid_argument
 #endif
 
@@ -54,10 +55,9 @@ import std.core;
 #endif
 
 import butl.utility; // *case()
-import butl.fdstream;
 #else
 #include <libbutl/utility.mxx>
-#include <libbutl/fdstream.mxx>
+#include <libbutl/bufstreambuf.hxx>
 #endif
 
 using namespace std;
@@ -85,12 +85,12 @@ namespace butl
   }
 
   void sha256::
-  append (ifdstream& is)
+  append (istream& is)
   {
-    fdbuf* buf (dynamic_cast<fdbuf*> (is.rdbuf ()));
+    bufstreambuf* buf (dynamic_cast<bufstreambuf*> (is.rdbuf ()));
     assert (buf != nullptr);
 
-    while (is.peek () != ifdstream::traits_type::eof () && is.good ())
+    while (is.peek () != istream::traits_type::eof () && is.good ())
     {
       size_t n (buf->egptr () - buf->gptr ());
       append (buf->gptr (), n);

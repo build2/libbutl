@@ -174,7 +174,7 @@ namespace butl
   }
 #endif
 
-  // fdbuf
+  // fdstreambuf
   //
   // Return true if the file descriptor is in the non-blocking mode. Throw
   // ios::failure on the underlying OS error.
@@ -195,7 +195,7 @@ namespace butl
 #endif
   }
 
-  void fdbuf::
+  void fdstreambuf::
   open (auto_fd&& fd, uint64_t pos)
   {
     close ();
@@ -208,7 +208,7 @@ namespace butl
     fd_ = move (fd);
   }
 
-  bool fdbuf::
+  bool fdstreambuf::
   blocking (bool m)
   {
     // Verify that the file descriptor is open.
@@ -232,7 +232,7 @@ namespace butl
     return !m;
   }
 
-  streamsize fdbuf::
+  streamsize fdstreambuf::
   showmanyc ()
   {
     if (!is_open ())
@@ -267,7 +267,7 @@ namespace butl
     return 0;
   }
 
-  fdbuf::int_type fdbuf::
+  fdstreambuf::int_type fdstreambuf::
   underflow ()
   {
     int_type r (traits_type::eof ());
@@ -289,7 +289,7 @@ namespace butl
     return r;
   }
 
-  bool fdbuf::
+  bool fdstreambuf::
   load ()
   {
     // Doesn't handle blocking mode and so should not be called.
@@ -306,7 +306,7 @@ namespace butl
     return n != 0;
   }
 
-  void fdbuf::
+  void fdstreambuf::
   seekg (uint64_t off)
   {
     // In the future we may implement the blocking behavior for a non-blocking
@@ -341,7 +341,7 @@ namespace butl
     setg (buf_, buf_, buf_);
   }
 
-  fdbuf::int_type fdbuf::
+  fdstreambuf::int_type fdstreambuf::
   overflow (int_type c)
   {
     int_type r (traits_type::eof ());
@@ -369,7 +369,7 @@ namespace butl
     return r;
   }
 
-  int fdbuf::
+  int fdstreambuf::
   sync ()
   {
     if (!is_open ())
@@ -394,7 +394,7 @@ namespace butl
   }
 #endif
 
-  bool fdbuf::
+  bool fdstreambuf::
   save ()
   {
     size_t n (pptr () - pbase ());
@@ -421,7 +421,7 @@ namespace butl
     return true;
   }
 
-  streamsize fdbuf::
+  streamsize fdstreambuf::
   xsputn (const char_type* s, streamsize sn)
   {
     // The xsputn() function interface doesn't support the non-blocking
@@ -578,13 +578,13 @@ namespace butl
   //
   // - basic_ostream::seekp(pos)                    ->
   //     basic_streambuf::pubseekpos(pos, ios::out) ->
-  //       fdbuf::seekpos(pos, ios::out)
+  //       fdstreambuf::seekpos(pos, ios::out)
   //
   // - basic_istream::seekg(pos)                   ->
   //     basic_streambuf::pubseekpos(pos, ios::in) ->
-  //       fdbuf::seekpos(pos, ios::in)
+  //       fdstreambuf::seekpos(pos, ios::in)
   //
-  fdbuf::pos_type fdbuf::
+  fdstreambuf::pos_type fdstreambuf::
   seekpos (pos_type pos, ios_base::openmode which)
   {
     // Note that the position type provides an explicit conversion to the
@@ -599,21 +599,21 @@ namespace butl
   //
   // - basic_ostream::seekp(off, dir)                    ->
   //     basic_streambuf::pubseekoff(off, dir, ios::out) ->
-  //       fdbuf::seekoff(off, dir, ios::out)
+  //       fdstreambuf::seekoff(off, dir, ios::out)
   //
   // - basic_ostream::tellp()                               ->
   //     basic_streambuf::pubseekoff(0, ios::cur, ios::out) ->
-  //       fdbuf::seekoff(0, ios::cur, ios::out)
+  //       fdstreambuf::seekoff(0, ios::cur, ios::out)
   //
   // - basic_istream::seekg(off, dir)                   ->
   //     basic_streambuf::pubseekoff(off, dir, ios::in) ->
-  //       fdbuf::seekoff(off, dir, ios::in)
+  //       fdstreambuf::seekoff(off, dir, ios::in)
   //
   // - basic_istream::tellg()                              ->
   //     basic_streambuf::pubseekoff(0, ios::cur, ios::in) ->
-  //       fdbuf::seekoff(0, ios::cur, ios::in)
+  //       fdstreambuf::seekoff(0, ios::cur, ios::in)
   //
-  fdbuf::pos_type fdbuf::
+  fdstreambuf::pos_type fdstreambuf::
   seekoff (off_type off, ios_base::seekdir dir, ios_base::openmode which)
   {
     // The seekoff() function interface doesn't support the non-blocking
@@ -837,9 +837,8 @@ namespace butl
       catch (const ios_base::failure&) {}
     }
 
-    // Underlying file descriptor is closed by fdbuf dtor with errors (if any)
-    // being ignored.
-    //
+    // Underlying file descriptor is closed by fdstreambuf dtor with errors
+    // (if any) being ignored.
   }
 
   void ifdstream::
@@ -888,11 +887,11 @@ namespace butl
     // Amend the exception mask to prevent exceptions being thrown by the C++
     // IO runtime to avoid incompatibility issues due to ios_base::failure ABI
     // fiasco (#66145). We will not restore the mask when ios_base::failure is
-    // thrown by fdbuf since there is no way to "silently" restore it if the
-    // corresponding bits are in the error state without the exceptions() call
-    // throwing ios_base::failure. Not restoring exception mask on throwing
-    // because of badbit should probably be ok since the stream is no longer
-    // usable.
+    // thrown by fdstreambuf since there is no way to "silently" restore it if
+    // the corresponding bits are in the error state without the exceptions()
+    // call throwing ios_base::failure. Not restoring exception mask on
+    // throwing because of badbit should probably be ok since the stream is no
+    // longer usable.
     //
     if (eb != ifdstream::badbit)
       is.exceptions (ifdstream::badbit);
