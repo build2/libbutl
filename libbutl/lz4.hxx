@@ -120,8 +120,8 @@ namespace butl
     // This function may throw std::bad_alloc as well as exceptions thrown by
     // fdstream read/write functions. It may also throw std::invalid_argument
     // if the compressed content is invalid with what() returning the error
-    // description. The input stream is expected to throw on badbit (but not
-    // failbit). The output stream is expected to throw on badbit or failbit.
+    // description. The input stream is expected to throw on badbit but not
+    // failbit. The output stream is expected to throw on badbit or failbit.
     //
     // The input and most likely the output streams must be in the binary
     // mode.
