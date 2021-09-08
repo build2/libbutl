@@ -28,6 +28,10 @@
 
 #include <libbutl/utility.mxx> // eos()
 
+#if 0
+#include <libbutl/lz4-stream.hxx>
+#endif
+
 using namespace std;
 
 namespace butl
@@ -212,12 +216,12 @@ namespace butl
           if (LZ4F_isError (on))
             throw_exception (on);
 
+          in = 0; // All consumed.
           return;
         }
         else
         {
-          if (LZ4F_isError (
-                LZ4F_createCompressionContext (&ctx, LZ4F_VERSION)))
+          if (LZ4F_isError (LZ4F_createCompressionContext (&ctx, LZ4F_VERSION)))
             throw bad_alloc ();
 
           ctx_ = ctx;
@@ -239,11 +243,15 @@ namespace butl
 
       size_t n;
 
-      n = LZ4F_compressUpdate (ctx, ob + on, oc - on, ib, in, nullptr);
-      if (LZ4F_isError (n))
-        throw_exception (n);
+      if (in != 0)
+      {
+        n = LZ4F_compressUpdate (ctx, ob + on, oc - on, ib, in, nullptr);
+        if (LZ4F_isError (n))
+          throw_exception (n);
 
-      on += n;
+        in = 0; // All consumed.
+        on += n;
+      }
 
       // Write the end marker.
       //
@@ -266,6 +274,21 @@ namespace butl
               int block_id,
               optional<uint64_t> content_size)
     {
+#if 0
+      char buf[1024 * 3 + 7];
+      ostream cos (os, level, block_id, content_size);
+
+      for (bool e (false); !e; )
+      {
+        e = eof (is.read (buf, sizeof (buf)));
+        cos.write (buf, is.gcount ());
+        //for (streamsize i (0), n (is.gcount ()); i != n; ++i)
+        //  cos.put (buf[i]);
+      }
+
+      cos.close ();
+      return content_size ? *content_size : 0;
+#else
       compressor c;
 
       // Input/output buffer guards.
@@ -314,6 +337,7 @@ namespace butl
       }
 
       return ot;
+#endif
     }
 
     // decompression
@@ -323,8 +347,17 @@ namespace butl
                    "LZ4 header size mismatch");
 
     decompressor::
-    decompressor ()
-        : hn (0), in (0), on (0)
+    ~decompressor ()
+    {
+      if (LZ4F_dctx* ctx = static_cast<LZ4F_dctx*> (ctx_))
+      {
+        LZ4F_errorCode_t e (LZ4F_freeDecompressionContext (ctx));
+        assert (!LZ4F_isError (e));
+      }
+    }
+
+    size_t decompressor::
+    begin (optional<uint64_t>* content_size)
     {
       LZ4F_dctx* ctx;
 
@@ -332,20 +365,6 @@ namespace butl
         throw bad_alloc ();
 
       ctx_ = ctx;
-    }
-
-    decompressor::
-    ~decompressor ()
-    {
-      LZ4F_errorCode_t e (
-        LZ4F_freeDecompressionContext (static_cast<LZ4F_dctx*> (ctx_)));
-      assert (!LZ4F_isError (e));
-    }
-
-    size_t decompressor::
-    begin ()
-    {
-      LZ4F_dctx* ctx (static_cast<LZ4F_dctx*> (ctx_));
 
       LZ4F_frameInfo_t info = LZ4F_INIT_FRAMEINFO;
 
@@ -356,6 +375,14 @@ namespace butl
       h = LZ4F_getFrameInfo (ctx, &info, hb, &(e = hn));
       if (LZ4F_isError (h))
         throw_exception (h);
+
+      if (content_size != nullptr)
+      {
+        if (info.contentSize != 0)
+          *content_size = static_cast<uint64_t> (info.contentSize);
+        else
+          *content_size = nullopt;
+      }
 
       // Use the block size for the output buffer capacity and compressed
       // bound plus the header size for the input. The expectation is that
@@ -391,6 +418,7 @@ namespace butl
       // We expect LZ4F_decompress() to consume what it asked for.
       //
       assert (e == in && h <= ic);
+      in = 0; // All consumed.
 
       return h;
     }
@@ -398,13 +426,26 @@ namespace butl
     uint64_t
     decompress (ofdstream& os, ifdstream& is)
     {
-      decompressor d;
-
-      // Input/output buffer guards.
+      // Write the specified number of bytes from the output buffer updating
+      // the total written.
       //
-      unique_ptr<char[]> ibg;
-      unique_ptr<char[]> obg;
+      uint64_t ot (0);
+      auto write = [&os, &ot] (char* b, size_t n)
+      {
+        os.write (b, static_cast<streamsize> (n));
+        ot += n;
+      };
 
+#if 0
+      char buf[1024 * 3 + 7];
+      istream dis (is, true, istream::badbit);
+
+      for (bool e (false); !e; )
+      {
+        e = eof (dis.read (buf, sizeof (buf)));
+        write (buf, static_cast<size_t> (dis.gcount ()));
+      }
+#else
       // Read into the specified buffer returning the number of bytes read and
       // updating the eof flag.
       //
@@ -422,19 +463,26 @@ namespace butl
         return n;
       };
 
-      // Write the specified number of bytes from the output buffer updating
-      // the total written.
+      decompressor d;
+
+      // Input/output buffer guards.
       //
-      uint64_t ot (0);
-      auto write = [&os, &ot] (char* b, size_t n)
-      {
-        os.write (b, static_cast<streamsize> (n));
-        ot += n;
-      };
+      unique_ptr<char[]> ibg;
+      unique_ptr<char[]> obg;
 
       size_t h; // Input hint.
 
       // First read in the header and allocate the buffers.
+      //
+      // What if we hit EOF here? And could begin() return 0? Turns out the
+      // answer to both questions is yes: 0-byte content compresses to 15
+      // bytes (with or without content size; 1-byte -- to 20/28 bytes). We
+      // can ignore EOF here since an attempt to read more will result in
+      // another EOF. And code below is prepared to handle 0 initial hint.
+      //
+      // @@ We could end up leaving some of the input content from the
+      //    header in the input buffer which the caller will have to way
+      //    of using/detecting.
       //
       d.hn = read (d.hb, sizeof (d.hb));
       h = d.begin ();
@@ -453,20 +501,22 @@ namespace butl
       // Keep decompressing, writing, and reading chunks of compressed
       // content.
       //
-      for (;;)
+      while (h != 0)
       {
         h = d.next ();
 
-        write (d.ob, d.on);
+        if (d.on != 0) // next() may just buffer the data.
+          write (d.ob, d.on);
 
-        if (h == 0)
-          break;
+        if (h != 0)
+        {
+          if (eof)
+            throw invalid_argument ("incomplete compressed content");
 
-        if (eof)
-          throw invalid_argument ("incomplete compressed content");
-
-        d.in = read (d.ib, h);
+          d.in = read (d.ib, h);
+        }
       }
+#endif
 
       return ot;
     }

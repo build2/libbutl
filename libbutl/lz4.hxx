@@ -30,8 +30,9 @@ namespace butl
     // The output and most likely the input streams must be in the binary
     // mode.
     //
-    // Valid values for the compressions level are between 1 (fastest) and
-    // 12 (best compression level).
+    // Valid values for the compression level are between 1 (fastest) and 12
+    // (best compression level) though, practically, after 9 returns are
+    // diminished.
     //
     // Valid block sizes and their IDs:
     //
@@ -39,6 +40,10 @@ namespace butl
     // 5:  256KB
     // 6:    1MB
     // 7:    4MB
+    //
+    // Note that due to the underlying API limitations, 0 content size is
+    // treated as absent and it's therefore impossible to compress 0-byte
+    // content with content size.
     //
     // This function produces compressed content identical to:
     //
@@ -120,8 +125,8 @@ namespace butl
     // This function may throw std::bad_alloc as well as exceptions thrown by
     // fdstream read/write functions. It may also throw std::invalid_argument
     // if the compressed content is invalid with what() returning the error
-    // description. The input stream is expected to throw on badbit (but not
-    // failbit). The output stream is expected to throw on badbit or failbit.
+    // description. The input stream is expected to throw on badbit but not
+    // failbit. The output stream is expected to throw on badbit or failbit.
     //
     // The input and most likely the output streams must be in the binary
     // mode.
@@ -162,6 +167,8 @@ namespace butl
       // function sets the required input and output buffer capacities (ic,
       // oc) and the number of bytes left in the header buffer (hn) and
       // returns the number of bytes expected by the following call to next().
+      // If content_size is not NULL, then it is set to the decompressed
+      // content size, if available.
       //
       // The caller normally allocates the input and output buffers, copies
       // remaining header buffer data over to the input buffer, and then fills
@@ -169,7 +176,7 @@ namespace butl
       // call to next().
       //
       std::size_t
-      begin ();
+      begin (optional<std::uint64_t>* content_size = nullptr);
 
       // Then call next() to decompress the next chunk of input. This function
       // returns the number of bytes expected by the following call to next()
@@ -188,7 +195,7 @@ namespace butl
 
       // Implementation details.
       //
-      decompressor ();
+      decompressor (): hn (0), in (0), on (0), ctx_ (nullptr) {}
       ~decompressor ();
 
     public:

@@ -2,7 +2,8 @@
 # license   : MIT; see accompanying LICENSE file
 
 +touch zero
-+echo 'The quick brown fox jumps over the lazy dog.' >=small
++cat <:'1' >=one
++cat <'The quick brown fox jumps over the lazy dog.' >=small
 +cat <<EOI >=1kb
 The quick brown fox jumps over the lazy dog. The quick brown fox jumps over
 the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox
@@ -28,6 +29,12 @@ EOI
 $* -c ../zero zero.lz4 &zero.lz4;
 $* -d zero.lz4 zero &zero;
 diff ../zero zero
+
+: rt-one
+:
+$* -c ../one one.lz4 &one.lz4;
+$* -d one.lz4 one &one;
+diff ../one one
 
 : rt-small
 :
