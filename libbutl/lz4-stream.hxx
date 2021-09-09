@@ -75,7 +75,7 @@ namespace butl
     //
     //   try
     //   {
-    //     ifdstream ifs (..., ifdstream::badbit);
+    //     ifdstream ifs (..., fdopen_mode::binary, ifdstream::badbit);
     //     lz4::istream izs (ifs, true /* end */);
     //     ... // Read from izs.
     //   }
@@ -206,7 +206,7 @@ namespace butl
     //
     //   try
     //   {
-    //     ofdstream ofs (...);
+    //     ofdstream ofs (..., fdopen_mode::binary);
     //     lz4::ostream ozs (ofs, 9, 4 /* 64KB */, nullopt /* content_size */);
     //
     //     ... // Write to ozs.
