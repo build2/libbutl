@@ -207,7 +207,7 @@ namespace butl
     //   try
     //   {
     //     ofdstream ofs (...);
-    //     lz4::ostream ozs (ofs, 4 /* 64KB */, 9, nullopt /* content_size */);
+    //     lz4::ostream ozs (ofs, 9, 4 /* 64KB */, nullopt /* content_size */);
     //
     //     ... // Write to ozs.
     //
