@@ -54,22 +54,22 @@ namespace butl
 
       switch (c)
       {
-      case LZ4F_ERROR_GENERIC:                     throw i ("generic error");
-      case LZ4F_ERROR_maxBlockSize_invalid:        throw i ("invalid block size");
-      case LZ4F_ERROR_blockMode_invalid:           throw i ("invalid block mode");
-      case LZ4F_ERROR_contentChecksumFlag_invalid: throw i ("invalid content checksum flag");
-      case LZ4F_ERROR_compressionLevel_invalid:    throw i ("invalid compression level");
-      case LZ4F_ERROR_headerVersion_wrong:         throw i ("wrong header version");
-      case LZ4F_ERROR_blockChecksum_invalid:       throw i ("invalid block checksum");
-      case LZ4F_ERROR_reservedFlag_set:            throw i ("reserved flag set");
-      case LZ4F_ERROR_srcSize_tooLarge:            throw i ("input too large");
-      case LZ4F_ERROR_dstMaxSize_tooSmall:         throw i ("output too small");
-      case LZ4F_ERROR_frameHeader_incomplete:      throw i ("incomplete frame header");
-      case LZ4F_ERROR_frameType_unknown:           throw i ("unknown frame type");
-      case LZ4F_ERROR_frameSize_wrong:             throw i ("wrong frame size");
-      case LZ4F_ERROR_decompressionFailed:         throw i ("invalid compressed content");
-      case LZ4F_ERROR_headerChecksum_invalid:      throw i ("invalid header checksum");
-      case LZ4F_ERROR_contentChecksum_invalid:     throw i ("invalid content checksum");
+      case LZ4F_ERROR_GENERIC:                     throw i ("generic LZ4 error");
+      case LZ4F_ERROR_maxBlockSize_invalid:        throw i ("invalid LZ4 block size");
+      case LZ4F_ERROR_blockMode_invalid:           throw i ("invalid LZ4 block mode");
+      case LZ4F_ERROR_contentChecksumFlag_invalid: throw i ("invalid LZ4 content checksum flag");
+      case LZ4F_ERROR_compressionLevel_invalid:    throw i ("invalid LZ4 compression level");
+      case LZ4F_ERROR_headerVersion_wrong:         throw i ("wrong LZ4 header version");
+      case LZ4F_ERROR_blockChecksum_invalid:       throw i ("invalid LZ4 block checksum");
+      case LZ4F_ERROR_reservedFlag_set:            throw i ("reserved LZ4 flag set");
+      case LZ4F_ERROR_srcSize_tooLarge:            throw i ("LZ4 input too large");
+      case LZ4F_ERROR_dstMaxSize_tooSmall:         throw i ("LZ4 output too small");
+      case LZ4F_ERROR_frameHeader_incomplete:      throw i ("incomplete LZ4 frame header");
+      case LZ4F_ERROR_frameType_unknown:           throw i ("unknown LZ4 frame type");
+      case LZ4F_ERROR_frameSize_wrong:             throw i ("wrong LZ4 frame size");
+      case LZ4F_ERROR_decompressionFailed:         throw i ("invalid LZ4 compressed content");
+      case LZ4F_ERROR_headerChecksum_invalid:      throw i ("invalid LZ4 header checksum");
+      case LZ4F_ERROR_contentChecksum_invalid:     throw i ("invalid LZ4 content checksum");
 
       case LZ4F_ERROR_allocation_failed:           throw bad_alloc ();
 
@@ -511,7 +511,7 @@ namespace butl
         if (h != 0)
         {
           if (eof)
-            throw invalid_argument ("incomplete compressed content");
+            throw invalid_argument ("incomplete LZ4 compressed content");
 
           d.in = read (d.ib, h);
         }

@@ -126,7 +126,7 @@ namespace butl
             d_.in += p.first;
 
             if (p.second && d_.in != h_)
-              throw invalid_argument ("incomplete compressed content");
+              throw invalid_argument ("incomplete LZ4 compressed content");
           }
 
           h_ = d_.next (); // Clears d_.in.
@@ -149,7 +149,7 @@ namespace butl
             (!is_->eof () &&
              is_->good () &&
              is_->peek () != istream::traits_type::eof ()))
-          throw invalid_argument ("junk after compressed content");
+          throw invalid_argument ("junk after LZ4 compressed content");
       }
 
       return r;

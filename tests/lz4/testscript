@@ -69,17 +69,17 @@ diff ../512kb 512kb
 : truncated-header6
 :
 $* -d $src_base/truncated-header6.lz4 out &out 2>>EOE !=0
-incomplete frame header
+incomplete LZ4 frame header
 EOE
 
 : truncated-header12
 :
 $* -d $src_base/truncated-header12.lz4 out &out 2>>EOE !=0
-incomplete frame header
+incomplete LZ4 frame header
 EOE
 
 : truncated-content
 :
 $* -d $src_base/truncated-content.lz4 out &out 2>>EOE !=0
-incomplete compressed content
+incomplete LZ4 compressed content
 EOE
