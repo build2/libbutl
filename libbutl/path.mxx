@@ -106,7 +106,7 @@ LIBBUTL_MODEXPORT namespace butl
     using char_traits_type = typename string_type::traits_type;
     using size_type = typename string_type::size_type;
 
-    // Canonical directory and path seperators.
+    // Canonical directory and path separators.
     //
 #ifdef _WIN32
     static constexpr const C directory_separator = '\\';
@@ -126,7 +126,7 @@ LIBBUTL_MODEXPORT namespace butl
 #endif
 
     // Directory separator tests. On some platforms there could be multiple
-    // seperators. For example, on Windows we check for both '/' and '\'.
+    // separators. For example, on Windows we check for both '/' and '\'.
     //
     static bool
     is_separator (C c)
@@ -666,7 +666,7 @@ LIBBUTL_MODEXPORT namespace butl
     // necessary. Otherwise, return the empty object and leave the passed
     // string untouched.
     //
-    // If extact is false, throw invalid_path if the string is not a valid
+    // If exact is false, throw invalid_path if the string is not a valid
     // path (e.g., uses an unsupported path notation on Windows).
     //
     using data_type = path_data<C>;
