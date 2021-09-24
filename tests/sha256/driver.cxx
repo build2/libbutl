@@ -1,8 +1,6 @@
 // file      : tests/sha256/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <string>
 #include <cstddef> // size_t
@@ -24,6 +22,9 @@ import butl.filesystem;
 #include <libbutl/fdstream.mxx>
 #include <libbutl/filesystem.mxx> // auto_rmfile
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

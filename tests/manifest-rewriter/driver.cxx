@@ -1,8 +1,6 @@
 // file      : tests/manifest-rewriter/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <vector>
 #include <string>
@@ -31,6 +29,9 @@ import butl.manifest_rewriter;
 #include <libbutl/manifest-parser.mxx>
 #include <libbutl/manifest-rewriter.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 

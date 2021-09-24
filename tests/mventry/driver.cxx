@@ -1,8 +1,6 @@
 // file      : tests/mventry/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <iostream>
 #include <system_error>
@@ -23,6 +21,9 @@ import butl.filesystem;
 #include <libbutl/utility.mxx>
 #include <libbutl/filesystem.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

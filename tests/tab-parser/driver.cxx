@@ -1,8 +1,6 @@
 // file      : tests/tab-parser/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <string>
 #include <iostream>
@@ -21,6 +19,9 @@ import butl.tab_parser;
 #include <libbutl/utility.mxx>
 #include <libbutl/tab-parser.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

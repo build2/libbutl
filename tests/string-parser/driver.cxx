@@ -1,8 +1,6 @@
 // file      : tests/string-parser/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <string>
 #include <vector>
@@ -22,6 +20,9 @@ import butl.string_parser;
 #include <libbutl/utility.mxx>
 #include <libbutl/string-parser.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl::string_parser;

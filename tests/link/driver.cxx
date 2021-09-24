@@ -1,8 +1,6 @@
 // file      : tests/link/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <set>
 #include <utility>      // pair
@@ -29,6 +27,9 @@ import butl.filesystem;
 #include <libbutl/fdstream.mxx>
 #include <libbutl/filesystem.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

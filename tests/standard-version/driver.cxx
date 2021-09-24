@@ -1,8 +1,6 @@
 // file      : tests/standard-version/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <ios>       // ios::failbit, ios::badbit
 #include <string>
@@ -26,6 +24,9 @@ import butl.standard_version;
 #include <libbutl/optional.mxx>
 #include <libbutl/standard-version.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

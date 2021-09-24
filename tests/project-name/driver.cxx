@@ -1,8 +1,6 @@
 // file      : tests/project-name/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <ios>       // ios::*bit
 #include <string>
@@ -23,6 +21,9 @@ import butl.project_name;
 #include <libbutl/utility.mxx>
 #include <libbutl/project-name.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

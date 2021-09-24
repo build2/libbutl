@@ -1,8 +1,6 @@
 // file      : tests/entry-time/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <string>
 #include <chrono>
@@ -26,6 +24,9 @@ import butl.optional;     // @@ MOD Clang should not be necessary.
 #include <libbutl/timestamp.mxx>
 #include <libbutl/filesystem.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

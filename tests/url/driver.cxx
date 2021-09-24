@@ -1,8 +1,6 @@
 // file      : tests/url/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <string>
 #include <utility>   // move()
@@ -24,6 +22,9 @@ import butl.utility; // operator<<(ostream, exception)
 #include <libbutl/url.mxx>
 #include <libbutl/utility.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

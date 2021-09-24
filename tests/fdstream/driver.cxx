@@ -5,8 +5,6 @@
 #  include <libbutl/win32-utility.hxx>
 #endif
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #ifndef _WIN32
 #  include <chrono>
@@ -46,6 +44,9 @@ import butl.filesystem;
 #include <libbutl/timestamp.mxx>
 #include <libbutl/filesystem.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

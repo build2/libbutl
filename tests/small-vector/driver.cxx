@@ -1,8 +1,6 @@
 // file      : tests/small-vector/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <string>
 #include <iostream>
@@ -19,6 +17,9 @@ import butl.small_vector;
 #else
 #include <libbutl/small-vector.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

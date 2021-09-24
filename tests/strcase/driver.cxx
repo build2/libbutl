@@ -1,8 +1,6 @@
 // file      : tests/strcase/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <string>
 #endif
@@ -17,6 +15,9 @@ import butl.utility;
 #else
 #include <libbutl/utility.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

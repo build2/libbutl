@@ -1,8 +1,6 @@
 // file      : tests/sendmail/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <iostream>
 #include <system_error>
@@ -29,6 +27,9 @@ import butl.small_vector; // @@ MOD Clang should not be necessary.
 #include <libbutl/utility.mxx>
 #include <libbutl/sendmail.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

@@ -1,8 +1,6 @@
 // file      : tests/semantic-version/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <iostream>
 #endif
@@ -18,6 +16,9 @@ import butl.semantic_version;
 #else
 #include <libbutl/semantic-version.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

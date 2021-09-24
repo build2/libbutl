@@ -1,8 +1,6 @@
 // file      : tests/process/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <ios>
 #include <string>
@@ -36,6 +34,9 @@ import butl.timestamp;
 #include <libbutl/fdstream.mxx>
 #include <libbutl/timestamp.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

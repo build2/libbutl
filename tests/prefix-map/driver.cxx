@@ -1,8 +1,6 @@
 // file      : tests/prefix-map/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <string>
 #include <iostream>
@@ -19,6 +17,9 @@ import butl.prefix_map;
 #else
 #include <libbutl/prefix-map.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

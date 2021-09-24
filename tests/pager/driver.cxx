@@ -1,8 +1,6 @@
 // file      : tests/pager/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <ios>      // ios_base::failure
 #include <vector>
@@ -23,6 +21,9 @@ import butl.pager;
 #else
 #include <libbutl/pager.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

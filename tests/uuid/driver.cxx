@@ -5,12 +5,14 @@
 #  include <rpc.h> // GUID
 #endif
 
-#include <cassert>
 #include <sstream>
 #include <iostream>
 
 #include <libbutl/uuid.hxx>
 #include <libbutl/uuid-io.hxx>
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

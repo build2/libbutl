@@ -1,8 +1,6 @@
 // file      : tests/optional/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <vector>
 #include <utility>    // move()
@@ -18,6 +16,9 @@ import butl.optional;
 #else
 #include <libbutl/optional.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 

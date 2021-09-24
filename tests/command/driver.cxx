@@ -1,8 +1,6 @@
 // file      : tests/command/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <ios>
 #include <string>
@@ -33,6 +31,9 @@ import butl.optional;
 #include <libbutl/utility.mxx>
 #include <libbutl/optional.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

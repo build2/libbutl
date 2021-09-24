@@ -8,8 +8,6 @@
 #  include <io.h> //_write()
 #endif
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <string>
 #include <cstddef>  // size_t
@@ -40,6 +38,9 @@ import butl.small_vector; // @@ MOD Clang should not be necessary.
 #include <libbutl/fdstream.mxx>    // fdopen_null(), stderr_fd()
 #include <libbutl/diagnostics.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

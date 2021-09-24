@@ -1,8 +1,6 @@
 // file      : tests/default-options/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <limits>
 #include <string>
@@ -32,6 +30,9 @@ import butl.default_options;
 #include <libbutl/fdstream.mxx>
 #include <libbutl/default-options.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

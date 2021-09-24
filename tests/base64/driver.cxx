@@ -1,8 +1,6 @@
 // file      : tests/base64/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <string>
 #include <vector>
@@ -20,6 +18,9 @@ import butl.base64;
 #else
 #include <libbutl/base64.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

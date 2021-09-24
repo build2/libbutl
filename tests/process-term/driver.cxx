@@ -10,8 +10,6 @@
 #  include <libbutl/win32-utility.hxx>
 #endif
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <string>
 #include <cerrno>   // ERANGE
@@ -40,6 +38,9 @@ import butl.fdstream;
 #include <libbutl/optional.mxx>
 #include <libbutl/fdstream.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

@@ -5,8 +5,6 @@
 #  include <sys/resource.h> // setrlimit()
 #endif
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <string>
 #include <iostream>
@@ -30,6 +28,9 @@ import butl.backtrace;
 #include <libbutl/fdstream.mxx>
 #include <libbutl/backtrace.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

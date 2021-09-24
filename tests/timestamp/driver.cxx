@@ -3,8 +3,6 @@
 
 #include <time.h> // tzset() (POSIX), _tzset() (Windows)
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <chrono>
 #include <locale>
@@ -25,6 +23,9 @@ import butl.timestamp;
 #else
 #include <libbutl/timestamp.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

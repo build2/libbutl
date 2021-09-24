@@ -1,8 +1,6 @@
 // file      : tests/manifest-parser/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <vector>
 #include <string>
@@ -24,6 +22,9 @@ import butl.manifest_parser;
 #include <libbutl/optional.mxx>
 #include <libbutl/manifest-parser.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 

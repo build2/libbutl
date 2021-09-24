@@ -8,6 +8,9 @@
 #include <libbutl/fdstream.mxx>
 #include <libbutl/filesystem.mxx> // entry_stat, path_entry()
 
+#undef NDEBUG
+#include <cassert>
+
 using namespace std;
 using namespace butl;
 

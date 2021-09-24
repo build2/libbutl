@@ -1,8 +1,6 @@
 // file      : tests/openssl/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <vector>
 #include <iostream>
@@ -31,6 +29,9 @@ import butl.small_vector; // @@ MOD Clang should not be necessary.
 #include <libbutl/openssl.mxx>
 #include <libbutl/fdstream.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

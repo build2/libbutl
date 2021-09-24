@@ -1,8 +1,6 @@
 // file      : tests/wildcard/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <map>
 #include <string>
@@ -31,6 +29,9 @@ import butl.path_pattern;
 #include <libbutl/filesystem.mxx>
 #include <libbutl/path-pattern.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

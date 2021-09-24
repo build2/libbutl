@@ -1,8 +1,6 @@
 // file      : tests/utf8/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <string>
 #endif
@@ -19,6 +17,9 @@ import butl.utility;
 #include <libbutl/utf8.mxx>
 #include <libbutl/utility.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;

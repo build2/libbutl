@@ -5,8 +5,6 @@
 #  include <libbutl/win32-utility.hxx>
 #endif
 
-#include <cassert>
-
 #ifndef __cpp_lib_modules_ts
 #include <string>
 #include <vector>
@@ -39,6 +37,9 @@ import butl.timestamp; // to_stream(duration)
 #include <libbutl/optional.mxx>
 #include <libbutl/timestamp.mxx>
 #endif
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace std;
 using namespace butl;
