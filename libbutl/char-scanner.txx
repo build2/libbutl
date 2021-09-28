@@ -1,9 +1,7 @@
 // file      : libbutl/char-scanner.txx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <utility> // move
-#endif
 
 namespace butl
 {

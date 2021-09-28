@@ -1,24 +1,11 @@
 // file      : tests/tab-parser/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <string>
 #include <iostream>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.utility;    // operator<<(ostream,exception)
-import butl.tab_parser;
-#else
-#include <libbutl/utility.mxx>
-#include <libbutl/tab-parser.mxx>
-#endif
+#include <libbutl/utility.hxx>    // operator<<(ostream,exception)
+#include <libbutl/tab-parser.hxx>
 
 #undef NDEBUG
 #include <cassert>

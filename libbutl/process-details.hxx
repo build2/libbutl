@@ -5,14 +5,9 @@
 
 #include <libbutl/ft/shared_mutex.hxx>
 
-#ifdef __cpp_lib_modules_ts
-import std.core; //@@ MOD TMP (dummy std.threading).
-import std.threading;
-#else
 #include <mutex>
 #if defined(__cpp_lib_shared_mutex) || defined(__cpp_lib_shared_timed_mutex)
 #  include <shared_mutex>
-#endif
 #endif
 
 namespace butl

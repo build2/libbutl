@@ -1,41 +1,14 @@
 // file      : libbutl/standard-version.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/standard-version.mxx>
-#endif
+#include <libbutl/standard-version.hxx>
 
 #include <cassert>
-
-#ifndef __cpp_lib_modules_ts
-#include <string>
-#include <cstdint>
-#include <cstddef>
-#include <ostream>
-
 #include <cstdlib>   // strtoull()
 #include <utility>   // move()
 #include <stdexcept> // invalid_argument
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.standard_version;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.optional;
-#endif
-
-import butl.utility;
-#else
-#include <libbutl/utility.mxx> // alnum()
-#endif
+#include <libbutl/utility.hxx> // alnum()
 
 using namespace std;
 

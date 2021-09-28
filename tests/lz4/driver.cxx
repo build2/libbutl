@@ -5,8 +5,8 @@
 #include <exception>
 
 #include <libbutl/lz4.hxx>
-#include <libbutl/fdstream.mxx>
-#include <libbutl/filesystem.mxx> // entry_stat, path_entry()
+#include <libbutl/fdstream.hxx>
+#include <libbutl/filesystem.hxx> // entry_stat, path_entry()
 
 #undef NDEBUG
 #include <cassert>

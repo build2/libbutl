@@ -1,41 +1,12 @@
 // file      : libbutl/manifest-serializer.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/manifest-serializer.mxx>
-#endif
-
-#include <cassert>
-
-#ifndef __cpp_lib_modules_ts
-#include <string>
-#include <vector>
-#include <cstddef>
-#include <stdexcept>
+#include <libbutl/manifest-serializer.hxx>
 
 #include <ostream>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.manifest_serializer;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.manifest_types;
-#endif
-
-import butl.utf8;
-import butl.utility;
-#else
-#include <libbutl/utf8.mxx>
-#include <libbutl/utility.mxx>
-#endif
+#include <libbutl/utf8.hxx>
+#include <libbutl/utility.hxx>
 
 using namespace std;
 

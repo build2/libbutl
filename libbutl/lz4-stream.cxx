@@ -6,7 +6,7 @@
 #include <cstring>   // memcpy()
 #include <stdexcept> // invalid_argument
 
-#include <libbutl/utility.mxx> // eof()
+#include <libbutl/utility.hxx> // eof()
 
 using namespace std;
 

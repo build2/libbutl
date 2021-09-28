@@ -3,26 +3,14 @@
 
 #include <time.h> // tzset() (POSIX), _tzset() (Windows)
 
-#ifndef __cpp_lib_modules_ts
 #include <chrono>
 #include <locale>
 #include <clocale>
 #include <sstream>
 #include <iomanip>
 #include <system_error>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.timestamp;
-#else
-#include <libbutl/timestamp.mxx>
-#endif
+#include <libbutl/timestamp.hxx>
 
 #undef NDEBUG
 #include <cassert>

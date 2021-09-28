@@ -1,9 +1,7 @@
 // file      : libbutl/diagnostics.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/diagnostics.mxx>
-#endif
+#include <libbutl/diagnostics.hxx>
 
 #ifndef _WIN32
 #  include <unistd.h> // write()
@@ -12,41 +10,16 @@
 #  include <io.h> //_write()
 #endif
 
-#include <cassert>
-
-#ifndef __cpp_lib_modules_ts
-#include <utility>
-#include <exception>
-
 #include <ios>      // ios::failure
 #include <mutex>
 #include <string>
+#include <cassert>
 #include <cstddef>  // size_t
 #include <iostream> // cerr
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.diagnostics;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-#endif
-
-import std.threading;
-import butl.utility;
-import butl.optional;
-import butl.fdstream; // stderr_fd(), fdterm()
-#else
-#include <libbutl/utility.mxx>
-#include <libbutl/optional.mxx>
-#include <libbutl/fdstream.mxx>
-#endif
+#include <libbutl/utility.hxx>
+#include <libbutl/optional.hxx>
+#include <libbutl/fdstream.hxx>
 
 using namespace std;
 

@@ -1,7 +1,10 @@
 // file      : libbutl/regex.txx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
+#include <locale>
+#include <stdexcept> // invalid_argument
+
+namespace butl
 {
   template <typename C>
   std::basic_string<C>

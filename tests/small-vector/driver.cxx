@@ -1,22 +1,10 @@
 // file      : tests/small-vector/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <string>
 #include <iostream>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.small_vector;
-#else
-#include <libbutl/small-vector.mxx>
-#endif
+#include <libbutl/small-vector.hxx>
 
 #undef NDEBUG
 #include <cassert>

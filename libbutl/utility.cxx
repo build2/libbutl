@@ -1,9 +1,7 @@
 // file      : libbutl/utility.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/utility.mxx>
-#endif
+#include <libbutl/utility.hxx>
 
 #ifdef _WIN32
 #include <libbutl/win32-utility.hxx>
@@ -11,35 +9,15 @@
 
 #include <stdlib.h> // getenv(), setenv(), unsetenv(), _putenv()
 
-#ifndef __cpp_lib_modules_ts
-#include <string>
-#include <cstddef>
-#include <utility>
-
 #include <cstring>      // strncmp(), strlen()
 #include <ostream>
 #include <type_traits>  // enable_if, is_base_of
 #include <system_error>
-#endif
 
 #include <libbutl/ft/lang.hxx>
 #include <libbutl/ft/exception.hxx>
 
-#ifdef __cpp_modules_ts
-module butl.utility;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-#endif
-
-import butl.utf8;
-#else
-#include <libbutl/utf8.mxx>
-#endif
+#include <libbutl/utf8.hxx>
 
 namespace butl
 {

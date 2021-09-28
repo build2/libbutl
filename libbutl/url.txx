@@ -1,7 +1,12 @@
 // file      : libbutl/url.txx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
+#include <stdexcept> // invalid_argument
+#include <algorithm> // find(), find_if()
+
+#include <libbutl/small-vector.hxx>
+
+namespace butl
 {
   // Convenience functions.
   //

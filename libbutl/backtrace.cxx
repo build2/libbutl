@@ -1,9 +1,7 @@
 // file      : libbutl/backtrace.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/backtrace.mxx>
-#endif
+#include <libbutl/backtrace.hxx>
 
 // We only enable backtrace during bootstrap if we can do it without any
 // complications of the build scripts/makefiles.
@@ -35,30 +33,12 @@
 
 #include <cassert>
 
-#ifndef __cpp_lib_modules_ts
-#include <string>
-
 #ifdef LIBBUTL_BACKTRACE
 #  include <memory>  // unique_ptr
 #  include <cstddef> // size_t
 #endif
 
 #include <exception>
-#endif
-
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.backtrace;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-#endif
-#endif
-
-#endif
 
 using namespace std;
 

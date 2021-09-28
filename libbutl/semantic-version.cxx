@@ -1,38 +1,11 @@
 // file      : libbutl/semantic-version.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/semantic-version.mxx>
-#endif
-
-#include <cassert>
-
-#ifndef __cpp_lib_modules_ts
-#include <string>
-#include <cstddef>
-#include <cstdint>
-#include <ostream>
+#include <libbutl/semantic-version.hxx>
 
 #include <cstring>   // strchr()
 #include <utility>   // move()
 #include <stdexcept> // invalid_argument
-#endif
-
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.semantic_version;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.optional;
-#endif
-#else
-#endif
 
 using namespace std;
 

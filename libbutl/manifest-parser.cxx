@@ -1,39 +1,10 @@
 // file      : libbutl/manifest-parser.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/manifest-parser.mxx>
-#endif
+#include <libbutl/manifest-parser.hxx>
 
 #include <cassert>
-
-#ifndef __cpp_lib_modules_ts
-#include <string>
-#include <vector>
-#include <cstdint>
-#include <utility>
-#include <stdexcept>
-
 #include <sstream>
-#endif
-
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.manifest_parser;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.optional;
-import butl.char_scanner;
-import butl.manifest_types;
-#endif
-
-#endif
 
 using namespace std;
 

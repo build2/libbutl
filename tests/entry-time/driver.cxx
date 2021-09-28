@@ -1,29 +1,14 @@
 // file      : tests/entry-time/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <string>
 #include <chrono>
 #include <iostream>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.path;
-import butl.filesystem;
-
-import butl.optional;     // @@ MOD Clang should not be necessary.
-#else
-#include <libbutl/path.mxx>
-#include <libbutl/optional.mxx>
-#include <libbutl/timestamp.mxx>
-#include <libbutl/filesystem.mxx>
-#endif
+#include <libbutl/path.hxx>
+#include <libbutl/optional.hxx>
+#include <libbutl/timestamp.hxx>
+#include <libbutl/filesystem.hxx>
 
 #undef NDEBUG
 #include <cassert>

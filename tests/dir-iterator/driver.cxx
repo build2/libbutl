@@ -1,28 +1,13 @@
 // file      : tests/dir-iterator/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <cstddef> // size_t
 #include <iostream>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.path;
-import butl.path_io;
-import butl.utility;
-import butl.filesystem;
-#else
-#include <libbutl/path.mxx>
-#include <libbutl/path-io.mxx>
-#include <libbutl/utility.mxx>    // operator<<(ostream, exception)
-#include <libbutl/filesystem.mxx>
-#endif
+#include <libbutl/path.hxx>
+#include <libbutl/path-io.hxx>
+#include <libbutl/utility.hxx>    // operator<<(ostream, exception)
+#include <libbutl/filesystem.hxx>
 
 #undef NDEBUG
 #include <cassert>

@@ -1,9 +1,7 @@
 // file      : libbutl/filesystem.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/filesystem.mxx>
-#endif
+#include <libbutl/filesystem.hxx>
 
 #include <errno.h> // errno, E*
 
@@ -34,46 +32,17 @@
 #  include <cstring> // strncmp()
 #endif
 
-#include <cassert>
-
-#ifndef __cpp_lib_modules_ts
-#include <string>
-#include <cstddef>
-#include <cstdint>
-#include <utility>
-#include <iterator>
-#include <functional>
-
+#include <chrono>
 #include <vector>
 #include <memory>       // unique_ptr
+#include <cassert>
 #include <algorithm>    // find(), copy()
 #include <system_error>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.filesystem;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-#endif
-import butl.path;
-import butl.timestamp;
-import butl.path_pattern;
-#endif
-
-import butl.utility;      // throw_generic_error()
-import butl.fdstream;
-import butl.small_vector;
-#else
-#include <libbutl/path.mxx>
-#include <libbutl/utility.mxx>
-#include <libbutl/fdstream.mxx>
-#include <libbutl/small-vector.mxx>
-#endif
+#include <libbutl/path.hxx>
+#include <libbutl/utility.hxx>      // throw_generic_error()
+#include <libbutl/fdstream.hxx>
+#include <libbutl/small-vector.hxx>
 
 #ifndef _WIN32
 #  ifndef PATH_MAX

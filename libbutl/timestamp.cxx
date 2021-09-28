@@ -1,9 +1,7 @@
 // file      : libbutl/timestamp.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/timestamp.mxx>
-#endif
+#include <libbutl/timestamp.hxx>
 
 #include <time.h>  // localtime_{r,s}(), gmtime_{r,s}(), strptime(), timegm()
 #include <errno.h> // EINVAL
@@ -25,16 +23,12 @@
 #ifdef __GLIBCXX__
 extern "C"
 {
-#include "strptime.c"
+#  include "strptime.c"
 }
 #else
-#include <locale.h> // LC_ALL
+#  include <locale.h> // LC_ALL
 #endif
 #endif
-
-#ifndef __cpp_lib_modules_ts
-#include <string>
-#include <chrono>
 
 #include <ctime>        // tm, time_t, mktime(), strftime()[libstdc++]
 #include <cstdlib>      // strtoull()
@@ -49,31 +43,14 @@ extern "C"
 //
 #ifdef _WIN32
 #ifndef __GLIBCXX__
-#include <ios>
-#include <locale>
-#include <clocale>
-#include <iomanip>
-#endif
-#endif
-#endif
-
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.timestamp;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
+#  include <ios>
+#  include <locale>
+#  include <clocale>
+#  include <iomanip>
 #endif
 #endif
 
-import butl.utility;
-#else
-#include <libbutl/utility.mxx> // throw_generic_error()
-#endif
+#include <libbutl/utility.hxx> // throw_generic_error()
 
 using namespace std;
 

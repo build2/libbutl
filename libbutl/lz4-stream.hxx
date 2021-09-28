@@ -12,7 +12,7 @@
 #include <cassert>
 
 #include <libbutl/lz4.hxx>
-#include <libbutl/optional.mxx>
+#include <libbutl/optional.hxx>
 #include <libbutl/bufstreambuf.hxx>
 
 #include <libbutl/export.hxx>

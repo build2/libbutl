@@ -1,9 +1,7 @@
 // file      : libbutl/sha1.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/sha1.mxx>
-#endif
+#include <libbutl/sha1.hxx>
 
 // C interface for sha1c.
 //
@@ -42,29 +40,9 @@ extern "C"
 #define SHA1_Final(x, y)     sha1_result((y), (char(&)[20])(x))
 
 #include <cassert>
-
-#ifndef __cpp_lib_modules_ts
-#include <string>
-#include <cstddef>
-#include <cstdint>
-
 #include <istream>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.sha1;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-#endif
-#endif
-#else
 #include <libbutl/bufstreambuf.hxx>
-#endif
 
 using namespace std;
 

@@ -1,6 +1,9 @@
 // file      : libbutl/string-table.txx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
+#include <limits>  // numeric_limits
+#include <cstddef> // size_t
+
 namespace butl
 {
   template <typename I, typename D>

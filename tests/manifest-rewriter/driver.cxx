@@ -1,34 +1,18 @@
 // file      : tests/manifest-rewriter/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <vector>
 #include <string>
 #include <cstdint>   // uint64_t
 #include <utility>   // move()
 #include <iostream>
 #include <exception>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.path;
-import butl.optional;
-import butl.fdstream;
-import butl.manifest_parser;
-import butl.manifest_rewriter;
-#else
-#include <libbutl/path.mxx>
-#include <libbutl/optional.mxx>
-#include <libbutl/fdstream.mxx>
-#include <libbutl/manifest-parser.mxx>
-#include <libbutl/manifest-rewriter.mxx>
-#endif
+#include <libbutl/path.hxx>
+#include <libbutl/optional.hxx>
+#include <libbutl/fdstream.hxx>
+#include <libbutl/manifest-parser.hxx>
+#include <libbutl/manifest-rewriter.hxx>
 
 #undef NDEBUG
 #include <cassert>

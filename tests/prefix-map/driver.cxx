@@ -1,22 +1,10 @@
 // file      : tests/prefix-map/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <string>
 #include <iostream>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.prefix_map;
-#else
-#include <libbutl/prefix-map.mxx>
-#endif
+#include <libbutl/prefix-map.hxx>
 
 #undef NDEBUG
 #include <cassert>

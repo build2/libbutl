@@ -5,7 +5,6 @@
 #  include <libbutl/win32-utility.hxx>
 #endif
 
-#ifndef __cpp_lib_modules_ts
 #ifndef _WIN32
 #  include <chrono>
 #endif
@@ -20,30 +19,12 @@
 #include <utility>   // move()
 #include <iostream>
 #include <exception>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#ifndef _WIN32
-import std.threading;
-#endif
-#endif
-import butl.path;
-import butl.process;
-import butl.fdstream;
-import butl.timestamp;
-import butl.filesystem;
-#else
-#include <libbutl/path.mxx>
-#include <libbutl/process.mxx>
-#include <libbutl/fdstream.mxx>
-#include <libbutl/timestamp.mxx>
-#include <libbutl/filesystem.mxx>
-#endif
+#include <libbutl/path.hxx>
+#include <libbutl/process.hxx>
+#include <libbutl/fdstream.hxx>
+#include <libbutl/timestamp.hxx>
+#include <libbutl/filesystem.hxx>
 
 #undef NDEBUG
 #include <cassert>

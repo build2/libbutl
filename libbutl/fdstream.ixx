@@ -1,6 +1,8 @@
 // file      : libbutl/fdstream.ixx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
+#include <cassert>
+
 namespace butl
 {
   // auto_fd

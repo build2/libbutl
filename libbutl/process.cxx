@@ -1,9 +1,7 @@
 // file      : libbutl/process.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/process.mxx>
-#endif
+#include <libbutl/process.hxx>
 
 #include <errno.h>
 
@@ -87,29 +85,19 @@
 #  endif // _MSC_VER
 #endif
 
-#include <cassert>
-
-#ifndef __cpp_lib_modules_ts
-#include <string>
-#include <vector>
-#include <chrono>
-#include <cstdint>
-#include <cstddef>
-#include <system_error>
-
 #include <ios>      // ios_base::failure
 #include <cstring>  // strlen(), strchr(), strpbrk(), strncmp()
 #include <utility>  // move()
 #include <ostream>
+#include <cassert>
 
 #ifndef _WIN32
-#include <thread> // this_thread::sleep_for()
+#  include <thread> // this_thread::sleep_for()
 #else
-#include <map>
-#include <ratio>     // milli
-#include <cstdlib>   // __argv[]
-#include <algorithm> // find()
-#endif
+#  include <map>
+#  include <ratio>     // milli
+#  include <cstdlib>   // __argv[]
+#  include <algorithm> // find()
 #endif
 
 #include <libbutl/process-details.hxx>
@@ -119,32 +107,8 @@ namespace butl
   shared_mutex process_spawn_mutex; // Out of module purview.
 }
 
-#ifdef __cpp_modules_ts
-module butl.process;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-import std.threading; // Clang wants it in purview (see process-details.hxx).
-#endif
-import butl.path;
-import butl.fdstream;
-import butl.vector_view;
-import butl.small_vector;
-#endif
-
-#ifndef _WIN32
-import std.threading;
-#endif
-
-import butl.utility;  // icasecmp()
-import butl.fdstream; // fdopen_null()
-#else
-#include <libbutl/utility.mxx>
-#include <libbutl/fdstream.mxx>
-#endif
+#include <libbutl/utility.hxx>  // icasecmp()
+#include <libbutl/fdstream.hxx> // fdopen_null()
 
 using namespace std;
 
@@ -1898,7 +1862,7 @@ namespace butl
             return PeekNamedPipe (h, &c, 1, &n, nullptr, nullptr) && n == 1;
           };
 
-          // Hidden by butl::duration that is introduced via fdstream.mxx.
+          // Hidden by butl::duration that is introduced via fdstream.hxx.
           //
           using milli_duration = chrono::duration<DWORD, milli>;
 

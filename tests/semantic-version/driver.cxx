@@ -1,21 +1,9 @@
 // file      : tests/semantic-version/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <iostream>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.semantic_version;
-#else
-#include <libbutl/semantic-version.mxx>
-#endif
+#include <libbutl/semantic-version.hxx>
 
 #undef NDEBUG
 #include <cassert>

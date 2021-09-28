@@ -1,33 +1,9 @@
 // file      : libbutl/target-triplet.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/target-triplet.mxx>
-#endif
-
-// C includes.
-
-#ifndef __cpp_lib_modules_ts
-#include <string>
-#include <ostream>
+#include <libbutl/target-triplet.hxx>
 
 #include <stdexcept> // invalid_argument
-#endif
-
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.target_triplet;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-#endif
-
-#endif
 
 using namespace std;
 

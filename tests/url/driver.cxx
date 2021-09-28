@@ -1,27 +1,14 @@
 // file      : tests/url/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <string>
 #include <utility>   // move()
 #include <iostream>
 #include <iterator>  // back_inserter
 #include <stdexcept> // invalid_argument
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.url;
-import butl.utility; // operator<<(ostream, exception)
-#else
-#include <libbutl/url.mxx>
-#include <libbutl/utility.mxx>
-#endif
+#include <libbutl/url.hxx>
+#include <libbutl/utility.hxx> // operator<<(ostream, exception)
 
 #undef NDEBUG
 #include <cassert>

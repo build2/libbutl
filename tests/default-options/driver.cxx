@@ -1,35 +1,19 @@
 // file      : tests/default-options/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <limits>
 #include <string>
 #include <vector>
 #include <iostream>
 #include <exception>
 #include <stdexcept> // invalid_argument
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.path;
-import butl.path_io;
-import butl.optional;
-import butl.fdstream;
-import butl.default_options;
-#else
-#include <libbutl/path.mxx>
-#include <libbutl/path-io.mxx>
-#include <libbutl/utility.mxx>         // eof()
-#include <libbutl/optional.mxx>
-#include <libbutl/fdstream.mxx>
-#include <libbutl/default-options.mxx>
-#endif
+#include <libbutl/path.hxx>
+#include <libbutl/path-io.hxx>
+#include <libbutl/utility.hxx>         // eof()
+#include <libbutl/optional.hxx>
+#include <libbutl/fdstream.hxx>
+#include <libbutl/default-options.hxx>
 
 #undef NDEBUG
 #include <cassert>

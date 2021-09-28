@@ -1,22 +1,13 @@
 # file      : libbutl/buildfile
 # license   : MIT; see accompanying LICENSE file
 
-# This library was modularized using the Modules TS semantics (with support
-# for dual, module/header consumption) which was subsequently partially
-# dismantled. We, however, kept some of the changes in anticipation that they
-# would be useful when attempting to modularize using the merged modules
-# semantics. Specifically, there are currently headers with both .mxx and .hxx
-# extensions and the code is littered with the `#if __cpp_[lib_]modules_ts`
-# blocks. Note that it's important for the auto-generated header support
-# that the default extension for hxx{} is .hxx.
-#
 # @@ If/when going back to using mxx{}, make sure to cleanup explicit .mxx.
 #
-lib{butl}: {hxx ixx txx cxx}{** -uuid-* +uuid-io            \
-                                -win32-utility              \
-                                -version                    \
-                                -builtin-options}           \
-  hxx{**.mxx} {hxx}{version} {hxx ixx cxx}{builtin-options}
+lib{butl}: {hxx ixx txx cxx}{** -uuid-* +uuid-io         \
+                                -win32-utility           \
+                                -version                 \
+                                -builtin-options}        \
+           {hxx}{version} {hxx ixx cxx}{builtin-options}
 
 tclass = $cxx.target.class
 tsys   = $cxx.target.system

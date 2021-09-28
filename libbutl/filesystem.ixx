@@ -1,6 +1,9 @@
 // file      : libbutl/filesystem.ixx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
+#include <libbutl/utility.hxx> // operator<<(ostream,exception),
+                               // throw_generic_error()
+
 namespace butl
 {
   inline bool

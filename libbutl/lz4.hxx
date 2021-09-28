@@ -6,8 +6,8 @@
 #include <cstdint>
 #include <cstddef>
 
-#include <libbutl/optional.mxx>
-#include <libbutl/fdstream.mxx>
+#include <libbutl/optional.hxx>
+#include <libbutl/fdstream.hxx>
 
 #include <libbutl/export.hxx>
 

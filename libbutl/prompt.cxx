@@ -1,33 +1,11 @@
 // file      : libbutl/prompt.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/prompt.mxx>
-#endif
-
-#ifndef __cpp_lib_modules_ts
-#include <string>
+#include <libbutl/prompt.hxx>
 
 #include <iostream>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.prompt;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-#endif
-
-import butl.diagnostics;
-#else
-#include <libbutl/diagnostics.mxx> // diag_stream
-#endif
+#include <libbutl/diagnostics.hxx> // diag_stream
 
 using namespace std;
 

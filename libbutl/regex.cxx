@@ -1,42 +1,17 @@
 // file      : libbutl/regex.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/regex.mxx>
-#endif
-
-// C includes.
-
-#ifndef __cpp_lib_modules_ts
-#include <regex>
-#include <string>
+#include <libbutl/regex.hxx>
 
 #include <ostream>
 #include <sstream>
 #include <stdexcept> // runtime_error
+
 #if defined(_MSC_VER) && _MSC_VER < 2000
 #  include <cstring> // strstr()
 #endif
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.regex;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-import std.regex;
-#endif
-#endif
-
-import butl.utility; // operator<<(ostream, exception)
-#else
-#include <libbutl/utility.mxx>
-#endif
+#include <libbutl/utility.hxx> // operator<<(ostream, exception)
 
 namespace std
 {

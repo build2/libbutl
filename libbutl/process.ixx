@@ -1,6 +1,9 @@
 // file      : libbutl/process.ixx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
+#include <cassert>
+#include <utility> // move()
+
 namespace butl
 {
   // process_path

@@ -3,14 +3,6 @@
 
 #pragma once
 
-// If modules are available, setup the module export.
-//
-#ifdef __cpp_modules_ts
-#  define LIBBUTL_MODEXPORT export
-#else
-#  define LIBBUTL_MODEXPORT
-#endif
-
 // Normally we don't export class templates (but do complete specializations),
 // inline functions, and classes with only inline member functions. Exporting
 // classes that inherit from non-exported/imported bases (e.g., std::string)

@@ -1,43 +1,11 @@
 // file      : libbutl/git.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/git.mxx>
-#endif
+#include <libbutl/git.hxx>
 
-// C includes.
-
-#include <cassert>
-
-#ifndef __cpp_lib_modules_ts
-#include <string>
-
-#include <cstddef> // size_t
-#endif
-
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.git;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-#endif
-import butl.path;
-import butl.optional;
-import butl.semantic_version
-#endif
-
-import butl.utility;    // digit()
-import butl.filesystem; // entry_exists()
-#else
-#include <libbutl/utility.mxx>
-#include <libbutl/optional.mxx>
-#include <libbutl/filesystem.mxx>
-#include <libbutl/semantic-version.mxx>
-#endif
+#include <libbutl/optional.hxx>
+#include <libbutl/filesystem.hxx>       // entry_exists()
+#include <libbutl/semantic-version.hxx>
 
 using namespace std;
 

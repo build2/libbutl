@@ -1,59 +1,19 @@
 // file      : libbutl/b.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/b.mxx>
-#endif
+#include <libbutl/b.hxx>
 
-// C includes.
-
+#include <ios>       // ios::failure
 #include <cassert>
-
-#ifndef __cpp_lib_modules_ts
-#include <string>
-#include <vector>
-#include <cstddef>
-#include <cstdint>
-#include <stdexcept>
-#include <functional>
-
-#include <ios>     // ios::failure
-#include <utility> // move()
+#include <utility>   // move()
 #include <sstream>
 #include <algorithm>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.b;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.url;
-import butl.path;
-import butl.process;
-import butl.optional;
-import butl.project_name;
-import butl.standard_version;
-#endif
-
-import butl.utility;      // next_word(), eof(), etc
-import butl.path_io;
-import butl.fdstream;
-import butl.process_io;   // operator<<(ostream, process_path)
-import butl.small_vector;
-#else
-#include <libbutl/utility.mxx>
-#include <libbutl/path-io.mxx>
-#include <libbutl/fdstream.mxx>
-#include <libbutl/process-io.mxx>
-#include <libbutl/small-vector.mxx>
-#endif
+#include <libbutl/utility.hxx>      // next_word(), eof(), etc
+#include <libbutl/path-io.hxx>
+#include <libbutl/fdstream.hxx>
+#include <libbutl/process-io.hxx>   // operator<<(ostream, process_path)
+#include <libbutl/small-vector.hxx>
 
 using namespace std;
 

@@ -1,22 +1,10 @@
 // file      : tests/utf8/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <string>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-#endif
-import butl.utf8;
-import butl.utility;
-#else
-#include <libbutl/utf8.mxx>
-#include <libbutl/utility.mxx>
-#endif
+#include <libbutl/utf8.hxx>
+#include <libbutl/utility.hxx>
 
 #undef NDEBUG
 #include <cassert>

@@ -1,7 +1,6 @@
 // file      : tests/process/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <ios>
 #include <string>
 #include <vector>
@@ -10,30 +9,14 @@
 #include <iterator>  // istreambuf_iterator, ostream_iterator
 #include <algorithm> // copy()
 #include <iostream>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.path;
-import butl.utility;  // setenv(), getenv()
-import butl.process;
-import butl.optional;
-import butl.fdstream;
-import butl.timestamp;
-#else
-#include <libbutl/path.mxx>
-#include <libbutl/utility.mxx>
-#include <libbutl/process.mxx>
-#include <libbutl/process-io.mxx>
-#include <libbutl/optional.mxx>
-#include <libbutl/fdstream.mxx>
-#include <libbutl/timestamp.mxx>
-#endif
+#include <libbutl/path.hxx>
+#include <libbutl/utility.hxx>    // setenv(), getenv()
+#include <libbutl/process.hxx>
+#include <libbutl/process-io.hxx>
+#include <libbutl/optional.hxx>
+#include <libbutl/fdstream.hxx>
+#include <libbutl/timestamp.hxx>
 
 #undef NDEBUG
 #include <cassert>

@@ -8,16 +8,9 @@
 //
 #ifdef _WIN32
 
-#ifndef __cpp_lib_modules_ts
-#include <string>
 #include <memory> // unique_ptr
 
-#include <libbutl/utility.mxx> // throw_system_error()
-#else
-import std.core;
-
-import butl.utility;
-#endif
+#include <libbutl/utility.hxx> // throw_system_error()
 
 using namespace std;
 

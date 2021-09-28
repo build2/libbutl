@@ -1,7 +1,10 @@
 // file      : libbutl/openssl.ixx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
+#include <cstddef> // size_t
+#include <utility> // forward()
+
+namespace butl
 {
   template <typename I,
             typename O,

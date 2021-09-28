@@ -1,28 +1,16 @@
 // file      : libbutl/builtin.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/builtin.mxx>
-#endif
+#include <libbutl/builtin.hxx>
 
 #ifdef _WIN32
 #  include <libbutl/win32-utility.hxx>
 #endif
 
-#include <cassert>
-
-#ifndef __cpp_lib_modules_ts
-#include <map>
-#include <string>
-#include <vector>
-#include <thread>
-#include <utility>    // move(), forward()
-#include <cstdint>    // uint*_t
-#include <functional>
-
 #include <ios>
 #include <chrono>
 #include <cerrno>
+#include <cassert>
 #include <ostream>
 #include <sstream>
 #include <cstdlib>      // strtoull()
@@ -30,40 +18,15 @@
 #include <exception>
 #include <system_error>
 
-#endif
+#include <libbutl/regex.hxx>
+#include <libbutl/path-io.hxx>
+#include <libbutl/utility.hxx>      // operator<<(ostream,exception),
+                                    // throw_generic_error()
+#include <libbutl/optional.hxx>
+#include <libbutl/filesystem.hxx>
+#include <libbutl/small-vector.hxx>
 
 #include <libbutl/builtin-options.hxx>
-
-#ifdef __cpp_modules_ts
-module butl.builtin;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-import std.threading;
-#endif
-import butl.path;
-import butl.fdstream;
-import butl.timestamp;
-#endif
-
-import butl.regex;
-import butl.path_io;
-import butl.utility;      // operator<<(ostream,exception),
-                          // throw_generic_error()
-import butl.optional;
-import butl.filesystem;
-import butl.small_vector;
-#else
-#include <libbutl/regex.mxx>
-#include <libbutl/path-io.mxx>
-#include <libbutl/utility.mxx>
-#include <libbutl/optional.mxx>
-#include <libbutl/filesystem.mxx>
-#include <libbutl/small-vector.mxx>
-#endif
 
 // Strictly speaking a builtin which reads/writes from/to standard streams
 // must be asynchronous so that the caller can communicate with it through

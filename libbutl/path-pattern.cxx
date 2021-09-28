@@ -1,41 +1,14 @@
 // file      : libbutl/path-pattern.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/path-pattern.mxx>
-#endif
+#include <libbutl/path-pattern.hxx>
 
 #include <cassert>
-
-#ifndef __cpp_lib_modules_ts
-#include <string>
-#include <cstdint>
-#include <cstddef>
 #include <iterator> // reverse_iterator
-
 #include <algorithm> // find()
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.path_pattern;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-#endif
-import butl.path;
-import butl.optional;
-#endif
-
-import butl.utility;    // lcase()[_WIN32]
-import butl.filesystem; // path_search()
-#else
-#include <libbutl/utility.mxx>
-#include <libbutl/filesystem.mxx>
-#endif
+#include <libbutl/utility.hxx>    // lcase()[_WIN32]
+#include <libbutl/filesystem.hxx> // path_search()
 
 using namespace std;
 

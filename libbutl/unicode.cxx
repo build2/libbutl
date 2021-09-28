@@ -1,32 +1,11 @@
 // file      : libbutl/unicode.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/unicode.mxx>
-#endif
-
-#ifndef __cpp_lib_modules_ts
-#include <string>
-#include <ostream>
-#include <cstdint>
+#include <libbutl/unicode.hxx>
 
 #include <cstddef>   // size_t
 #include <utility>   // pair
 #include <algorithm> // lower_bound()
-#endif
-
-#ifdef __cpp_modules_ts
-module butl.unicode;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-#endif
-
-#endif
 
 using namespace std;
 

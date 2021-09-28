@@ -1,37 +1,13 @@
 // file      : libbutl/base64.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/base64.mxx>
-#endif
-
-// C includes.
-
-#ifndef __cpp_lib_modules_ts
-#include <string>
-#include <vector>
+#include <libbutl/base64.hxx>
 
 #include <cstddef>   // size_t
 #include <istream>
 #include <ostream>
 #include <iterator>  // {istreambuf, ostreambuf, back_insert}_iterator
 #include <stdexcept> // invalid_argument
-#endif
-
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.base64;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-#endif
-
-#endif
 
 using namespace std;
 

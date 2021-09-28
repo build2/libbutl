@@ -1,26 +1,12 @@
 // file      : tests/b-info/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <string>
 #include <iostream>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.b;
-import butl.path;
-import butl.utility;    // operator<<(ostream,exception)
-#else
-#include <libbutl/b.mxx>
-#include <libbutl/path.mxx>
-#include <libbutl/utility.mxx>
-#endif
+#include <libbutl/b.hxx>
+#include <libbutl/path.hxx>
+#include <libbutl/utility.hxx> // operator<<(ostream,exception)
 
 #undef NDEBUG
 #include <cassert>

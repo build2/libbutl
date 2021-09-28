@@ -1,35 +1,12 @@
 // file      : libbutl/process-run.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/process.mxx>
-#endif
+#include <libbutl/process.hxx>
 
-// C includes.
-
-#ifndef __cpp_lib_modules_ts
 #include <cstdlib>  // exit()
 #include <iostream> // cerr
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.process;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.path;
-#endif
-
-import butl.utility; // operator<<(ostream,exception)
-#else
-#include <libbutl/utility.mxx>
-#endif
+#include <libbutl/utility.hxx> // operator<<(ostream,exception)
 
 using namespace std;
 

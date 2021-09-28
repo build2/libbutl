@@ -13,7 +13,7 @@
 #include <utility>      // move()
 #include <system_error>
 
-#include <libbutl/utility.mxx> // function_cast()
+#include <libbutl/utility.hxx> // function_cast()
 
 using namespace std;
 

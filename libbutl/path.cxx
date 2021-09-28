@@ -1,9 +1,7 @@
 // file      : libbutl/path.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/path.mxx>
-#endif
+#include <libbutl/path.hxx>
 
 #ifdef _WIN32
 #  include <libbutl/win32-utility.hxx>
@@ -25,32 +23,11 @@
 #endif
 
 #include <cassert>
-
-#ifndef __cpp_lib_modules_ts
-#include <string>
-#include <cstddef>
-#include <utility>
-
 #include <atomic>
 #include <cstring> // strcpy()
-#endif
 
-#ifdef __cpp_modules_ts
-module butl.path;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-#endif
-#endif
-
-import butl.utility; // throw_*_error()
-import butl.process; // process::current_id()
-#else
-#include <libbutl/utility.mxx>
-#include <libbutl/process.mxx>
-#endif
+#include <libbutl/utility.hxx> // throw_*_error()
+#include <libbutl/process.hxx> // process::current_id()
 
 #include <libbutl/export.hxx>
 

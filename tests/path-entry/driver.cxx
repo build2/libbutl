@@ -1,34 +1,17 @@
 // file      : tests/path-entry/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <string>
 #include <iostream>
 #include <stdexcept>    // invalid_argument
 #include <system_error>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.path;
-import butl.path-io;
-import butl.utility;    // operator<<(ostream, exception)
-import butl.optional;
-import butl.timestamp;
-import butl.filesystem;
-#else
-#include <libbutl/path.mxx>
-#include <libbutl/path-io.mxx>
-#include <libbutl/utility.mxx>
-#include <libbutl/optional.mxx>
-#include <libbutl/timestamp.mxx>
-#include <libbutl/filesystem.mxx>
-#endif
+#include <libbutl/path.hxx>
+#include <libbutl/path-io.hxx>
+#include <libbutl/utility.hxx>    // operator<<(ostream, exception)
+#include <libbutl/optional.hxx>
+#include <libbutl/timestamp.hxx>
+#include <libbutl/filesystem.hxx>
 
 #undef NDEBUG
 #include <cassert>

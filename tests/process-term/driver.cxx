@@ -10,7 +10,6 @@
 #  include <libbutl/win32-utility.hxx>
 #endif
 
-#ifndef __cpp_lib_modules_ts
 #include <string>
 #include <cerrno>   // ERANGE
 #include <utility>  // move()
@@ -21,23 +20,10 @@
 #ifndef _WIN32
 #  include <chrono>
 #endif
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.process;
-import butl.optional;
-import butl.fdstream;
-#else
-#include <libbutl/process.mxx>
-#include <libbutl/optional.mxx>
-#include <libbutl/fdstream.mxx>
-#endif
+#include <libbutl/process.hxx>
+#include <libbutl/optional.hxx>
+#include <libbutl/fdstream.hxx>
 
 #undef NDEBUG
 #include <cassert>

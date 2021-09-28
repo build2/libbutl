@@ -5,7 +5,6 @@
 #  include <libbutl/win32-utility.hxx>
 #endif
 
-#ifndef __cpp_lib_modules_ts
 #include <string>
 #include <vector>
 #include <chrono>
@@ -16,27 +15,12 @@
 #ifndef _WIN32
 #  include <thread> // this_thread::sleep_for()
 #endif
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.path;
-import butl.utility;   // eof()
-import butl.builtin;
-import butl.optional;
-import butl.timestamp; // to_stream(duration)
-#else
-#include <libbutl/path.mxx>
-#include <libbutl/utility.mxx>
-#include <libbutl/builtin.mxx>
-#include <libbutl/optional.mxx>
-#include <libbutl/timestamp.mxx>
-#endif
+#include <libbutl/path.hxx>
+#include <libbutl/utility.hxx>   // eof()
+#include <libbutl/builtin.hxx>
+#include <libbutl/optional.hxx>
+#include <libbutl/timestamp.hxx> // to_stream(duration)
 
 #undef NDEBUG
 #include <cassert>

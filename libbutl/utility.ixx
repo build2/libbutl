@@ -1,12 +1,10 @@
 // file      : libbutl/utility.ixx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <cctype>    // toupper(), tolower(), is*()
 #include <cwctype>   // isw*()
 #include <algorithm> // for_each()
 #include <stdexcept> // invalid_argument
-#endif
 
 namespace butl
 {

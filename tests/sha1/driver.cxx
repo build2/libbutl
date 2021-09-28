@@ -1,27 +1,13 @@
 // file      : tests/sha1/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <string>
 #include <cstddef> // size_t
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-#endif
-import butl.sha1;
-import butl.path;
-import butl.fdstream;
-import butl.filesystem;
-#else
-#include <libbutl/sha1.mxx>
-#include <libbutl/path.mxx>
-#include <libbutl/fdstream.mxx>
-#include <libbutl/filesystem.mxx> // auto_rmfile
-#endif
+#include <libbutl/sha1.hxx>
+#include <libbutl/path.hxx>
+#include <libbutl/fdstream.hxx>
+#include <libbutl/filesystem.hxx> // auto_rmfile
 
 #undef NDEBUG
 #include <cassert>

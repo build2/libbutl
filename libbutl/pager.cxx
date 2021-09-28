@@ -1,9 +1,7 @@
 // file      : libbutl/pager.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/pager.mxx>
-#endif
+#include <libbutl/pager.hxx>
 
 #include <errno.h> // E*
 
@@ -14,46 +12,20 @@
 #  include <libbutl/win32-utility.hxx>
 #endif
 
-#ifndef __cpp_lib_modules_ts
 #include <string>
 #include <vector>
-#include <iostream>
-
+#include <cstddef> // size_t
 #include <cstring> // strchr()
 #include <utility> // move()
+
 #ifndef _WIN32
 #  include <chrono>
 #  include <thread> // this_thread::sleep_for()
 #endif
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.pager;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.process;
-import butl.fdstream;
-#endif
-
-#ifndef _WIN32
-import std.threading;
-#endif
-
-import butl.utility;  // operator<<(ostream, exception), throw_generic_error()
-import butl.optional;
-import butl.fdstream; // fdclose()
-#else
-#include <libbutl/utility.mxx>
-#include <libbutl/optional.mxx>
-#include <libbutl/fdstream.mxx>
-#endif
+#include <libbutl/utility.hxx>
+#include <libbutl/optional.hxx>
+#include <libbutl/fdstream.hxx>
 
 using namespace std;
 

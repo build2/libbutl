@@ -1,36 +1,11 @@
 // file      : libbutl/process-io.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/process-io.mxx>
-#endif
-
-// C includes.
-
-#ifndef __cpp_lib_modules_ts
-#include <ostream>
+#include <libbutl/process-io.hxx>
 
 #include <cstring> // strchr()
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.process_io;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.process;
-#endif
-
-import butl.path-io;
-#else
-#include <libbutl/path-io.mxx>
-#endif
+#include <libbutl/path-io.hxx>
 
 using namespace std;
 

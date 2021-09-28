@@ -26,7 +26,7 @@
 #include <cassert>
 #include <stdexcept> // invalid_argument, logic_error
 
-#include <libbutl/utility.mxx> // eos()
+#include <libbutl/utility.hxx> // eos()
 
 #if 0
 #include <libbutl/lz4-stream.hxx>

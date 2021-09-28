@@ -5,29 +5,14 @@
 #  include <sys/resource.h> // setrlimit()
 #endif
 
-#ifndef __cpp_lib_modules_ts
 #include <string>
 #include <iostream>
 #include <exception>    // set_terminate(), terminate_handler
 #include <system_error>
-#else
-import std.io;
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-#endif
-import butl.process;
-import butl.fdstream;
-import butl.backtrace;
-#else
-#include <libbutl/process.mxx>
-#include <libbutl/fdstream.mxx>
-#include <libbutl/backtrace.mxx>
-#endif
+#include <libbutl/process.hxx>
+#include <libbutl/fdstream.hxx>
+#include <libbutl/backtrace.hxx>
 
 #undef NDEBUG
 #include <cassert>

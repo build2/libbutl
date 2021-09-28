@@ -1,9 +1,7 @@
 // file      : libbutl/fdstream.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/fdstream.mxx>
-#endif
+#include <libbutl/fdstream.hxx>
 
 #include <errno.h> // errno, E*
 
@@ -39,52 +37,21 @@
 #  include <algorithm> // count()
 #endif
 
-#include <cassert>
-
-#ifndef __cpp_lib_modules_ts
-#include <vector>
-#include <string>
-#include <chrono>
-#include <istream>
-#include <ostream>
-#include <utility>
-#include <cstdint>
-#include <cstddef>
-
 #include <ios>          // ios_base::openmode, ios_base::failure
 #include <new>          // bad_alloc
 #include <limits>       // numeric_limits
+#include <cassert>
 #include <cstring>      // memcpy(), memmove()
 #include <iostream>     // cin, cout
 #include <exception>    // uncaught_exception[s]()
 #include <stdexcept>    // invalid_argument
 #include <system_error>
-#endif
 
-#include <libbutl/ft/exception.hxx>     // uncaught_exceptions
+#include <libbutl/ft/exception.hxx>    // uncaught_exceptions
 #include <libbutl/process-details.hxx>
 
-#ifdef __cpp_modules_ts
-module butl.fdstream;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-import std.threading; // Clang wants it in purview (see process-details.hxx).
-#endif
-import butl.path;
-import butl.filesystem;
-import butl.small_vector;
-#endif
-
-import butl.utility; // throw_*_ios_failure(), function_cast()
-import butl.timestamp;
-#else
-#include <libbutl/utility.mxx>
-#include <libbutl/timestamp.mxx>
-#endif
+#include <libbutl/utility.hxx>   // throw_*_ios_failure(), function_cast()
+#include <libbutl/timestamp.hxx>
 
 using namespace std;
 

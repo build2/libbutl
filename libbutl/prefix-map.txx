@@ -1,7 +1,7 @@
 // file      : libbutl/prefix-map.txx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
+namespace butl
 {
   template <typename M>
   auto prefix_map_common<M>::

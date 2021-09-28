@@ -5,7 +5,7 @@
 
 #include <odb/pre.hxx>
 
-#include <libbutl/small-vector.mxx>
+#include <libbutl/small-vector.hxx>
 
 #include <odb/container-traits.hxx>
 

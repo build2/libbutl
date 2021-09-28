@@ -1,25 +1,13 @@
 // file      : tests/manifest-serializer/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <vector>
 #include <string>
 #include <utility> // pair
 #include <sstream>
 #include <iostream>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.manifest_serializer;
-#else
-#include <libbutl/manifest-serializer.mxx>
-#endif
+#include <libbutl/manifest-serializer.hxx>
 
 #undef NDEBUG
 #include <cassert>

@@ -1,29 +1,15 @@
 // file      : tests/regex/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <regex>
 #include <string>
 #include <utility>   // pair
 #include <iostream>
 #include <stdexcept> // invalid_argument
 #include <exception>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-import std.regex; // @@ MOD TODO: shouldn't be necessary (re-export).
-#endif
-import butl.regex;
-import butl.utility; // operator<<(ostream, exception)
-#else
-#include <libbutl/regex.mxx>
-#include <libbutl/utility.mxx>
-#endif
+#include <libbutl/regex.hxx>
+#include <libbutl/utility.hxx> // operator<<(ostream, exception)
 
 #undef NDEBUG
 #include <cassert>

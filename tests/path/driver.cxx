@@ -1,25 +1,12 @@
 // file      : tests/path/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <sstream>
 #include <iostream>
 #include <type_traits>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.path;
-//import butl.path_io;
-#else
-#include <libbutl/path.mxx>
-//#include <libbutl/path-io.mxx>
-#endif
+#include <libbutl/path.hxx>
+//#include <libbutl/path-io.hxx>
 
 #undef NDEBUG
 #include <cassert>

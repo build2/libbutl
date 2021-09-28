@@ -1,7 +1,7 @@
 // file      : libbutl/default-options.ixx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
+namespace butl
 {
   template <typename O>
   inline O

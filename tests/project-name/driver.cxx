@@ -1,26 +1,14 @@
 // file      : tests/project-name/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <ios>       // ios::*bit
 #include <string>
 #include <iostream>
 #include <stdexcept> // invalid_argument
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.utility;      // operator<<(ostream,exception), eof(), *case()
-import butl.project_name;
-#else
-#include <libbutl/utility.mxx>
-#include <libbutl/project-name.mxx>
-#endif
+#include <libbutl/utility.hxx>      // operator<<(ostream,exception), eof(),
+                                    // *case()
+#include <libbutl/project-name.hxx>
 
 #undef NDEBUG
 #include <cassert>

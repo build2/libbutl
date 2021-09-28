@@ -1,39 +1,12 @@
 // file      : libbutl/tab-parser.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/tab-parser.mxx>
-#endif
-
-#include <cassert>
-
-#ifndef __cpp_lib_modules_ts
-#include <string>
-#include <vector>
-#include <cstdint>
-#include <stdexcept>
+#include <libbutl/tab-parser.hxx>
 
 #include <istream>
 #include <sstream>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.tab_parser;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-#endif
-
-import butl.string_parser;
-#else
-#include <libbutl/string-parser.mxx>
-#endif
+#include <libbutl/string-parser.hxx>
 
 using namespace std;
 

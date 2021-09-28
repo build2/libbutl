@@ -1,7 +1,9 @@
 // file      : libbutl/regex.ixx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
+#include <utility> // move(), make_pair()
+
+namespace butl
 {
   template <typename C>
   inline std::pair<std::basic_string<C>, bool>

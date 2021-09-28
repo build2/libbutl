@@ -1,41 +1,13 @@
 // file      : libbutl/curl.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/curl.mxx>
-#endif
-
-// C includes.
+#include <libbutl/curl.hxx>
 
 #include <cassert>
-
-#ifndef __cpp_lib_modules_ts
-#include <string>
-
 #include <utility>   // move()
 #include <exception> // invalid_argument
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.curl;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-#endif
-import butl.path;
-import butl.process;
-import butl.fdstream;
-import butl.small_vector;
-#endif
-
-import butl.utility; // icasecmp()
-#else
-#include <libbutl/utility.mxx>
-#endif
+#include <libbutl/utility.hxx>
 
 using namespace std;
 

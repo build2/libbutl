@@ -1,0 +1,175 @@
+// file      : libbutl/semantic-version.hxx -*- C++ -*-
+// license   : MIT; see accompanying LICENSE file
+
+#pragma once
+
+#include <string>
+#include <cstddef> // size_t
+#include <cstdint> // uint*_t
+#include <utility> // move()
+#include <ostream>
+
+#include <libbutl/optional.hxx>
+
+#include <libbutl/export.hxx>
+
+// FreeBSD defines these macros in its <sys/types.h>.
+//
+#ifdef major
+#  undef major
+#endif
+
+#ifdef minor
+#  undef minor
+#endif
+
+namespace butl
+{
+  // Semantic or semantic-like version.
+  //
+  // <major>.<minor>[.<patch>][<build>]
+  //
+  // If the patch component is absent, then it defaults to 0.
+  //
+  // @@ Currently there is no way to enforce the three-component version.
+  //    Supporting this will require changing allow_build to a bit-wise
+  //    flag. See parse_semantic_version_impl() for some sketched code.
+  //    We may also want to pass these flags to string() to not print
+  //    0 patch.
+  //
+  // By default, a version containing the <build> component is considered
+  // valid only if separated from <patch> with '-' (semver pre-release) or '+'
+  // (semver build metadata). However, as discussed below, the list of valid
+  // separators can be customized to recognize other semver-like formats.
+  //
+  // Note also that the format of semver pre-release and build metadata are
+  // not validated.
+  //
+  struct LIBBUTL_SYMEXPORT semantic_version
+  {
+    std::uint64_t major = 0;
+    std::uint64_t minor = 0;
+    std::uint64_t patch = 0;
+    std::string   build;
+
+    // Construct the semantic version from various representations. Throw
+    // std::invalid_argument if the format is not recognizable or components
+    // are invalid.
+    //
+    semantic_version () = default;
+
+    semantic_version (std::uint64_t major,
+                      std::uint64_t minor,
+                      std::uint64_t patch,
+                      std::string   build = "");
+
+    // The build_separators argument can be NULL (no build component allowed),
+    // empty (any build component allowed), or a string of characters to allow
+    // as separators. When allow_build is true build_separators defaults to
+    // "-+".
+    //
+    explicit
+    semantic_version (const std::string&, bool allow_build = true);
+
+    semantic_version (const std::string&, const char* build_separators);
+
+    // As above but parse from the specified position until the end of the
+    // string.
+    //
+    semantic_version (const std::string&, std::size_t pos, bool = true);
+
+    semantic_version (const std::string&, std::size_t pos, const char*);
+
+    std::string
+    string (bool ignore_build = false) const;
+
+    // Numeric representation in the AAAAABBBBBCCCCC0000 form, where:
+    //
+    // AAAAA - major version number
+    // BBBBB - minor version number
+    // CCCCC - patch version number
+    //
+    // See standard version for details.
+    //
+    explicit
+    semantic_version (std::uint64_t numeric, std::string build = "");
+
+    // If any of the major/minor/patch components is greater than 99999, then
+    // throw std::invalid_argument. The build component is ignored.
+    //
+    std::uint64_t
+    numeric () const;
+
+    // Unless instructed to ignore, the build components are compared
+    // lexicographically.
+    //
+    int
+    compare (const semantic_version& v, bool ignore_build = false) const
+    {
+      return (major != v.major ? (major < v.major ? -1 : 1) :
+              minor != v.minor ? (minor < v.minor ? -1 : 1) :
+              patch != v.patch ? (patch < v.patch ? -1 : 1) :
+              ignore_build ? 0 : build.compare (v.build));
+    }
+  };
+
+  // Try to parse a string as a semantic version returning nullopt if invalid.
+  //
+  optional<semantic_version>
+  parse_semantic_version (const std::string&, bool allow_build = true);
+
+  optional<semantic_version>
+  parse_semantic_version (const std::string&, const char* build_separators);
+
+  optional<semantic_version>
+  parse_semantic_version (const std::string&, std::size_t pos, bool = true);
+
+  optional<semantic_version>
+  parse_semantic_version (const std::string&, std::size_t pos, const char*);
+
+  // NOTE: comparison operators take the build component into account.
+  //
+  inline bool
+  operator< (const semantic_version& x, const semantic_version& y)
+  {
+    return x.compare (y) < 0;
+  }
+
+  inline bool
+  operator> (const semantic_version& x, const semantic_version& y)
+  {
+    return x.compare (y) > 0;
+  }
+
+  inline bool
+  operator== (const semantic_version& x, const semantic_version& y)
+  {
+    return x.compare (y) == 0;
+  }
+
+  inline bool
+  operator<= (const semantic_version& x, const semantic_version& y)
+  {
+    return x.compare (y) <= 0;
+  }
+
+  inline bool
+  operator>= (const semantic_version& x, const semantic_version& y)
+  {
+    return x.compare (y) >= 0;
+  }
+
+  inline bool
+  operator!= (const semantic_version& x, const semantic_version& y)
+  {
+    return !(x == y);
+  }
+
+  inline std::ostream&
+  operator<< (std::ostream& o, const semantic_version& x)
+  {
+    return o << x.string ();
+  }
+}
+
+#include <libbutl/semantic-version.ixx>

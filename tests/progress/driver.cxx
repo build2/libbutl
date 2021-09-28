@@ -8,36 +8,16 @@
 #  include <io.h> //_write()
 #endif
 
-#ifndef __cpp_lib_modules_ts
 #include <string>
 #include <cstddef>  // size_t
 #include <iostream>
 #ifndef _WIN32
 #  include <thread> // this_thread::sleep_for()
 #endif
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#ifndef _WIN32
-import std.threading;
-#endif
-#endif
-import butl.process;
-import butl.fdstream;
-import butl.diagnostics;
-
-import butl.optional;     // @@ MOD Clang should not be necessary.
-import butl.small_vector; // @@ MOD Clang should not be necessary.
-#else
-#include <libbutl/process.mxx>
-#include <libbutl/fdstream.mxx>    // fdopen_null(), stderr_fd()
-#include <libbutl/diagnostics.mxx>
-#endif
+#include <libbutl/process.hxx>
+#include <libbutl/fdstream.hxx>    // fdopen_null(), stderr_fd()
+#include <libbutl/diagnostics.hxx>
 
 #undef NDEBUG
 #include <cassert>

@@ -1,27 +1,14 @@
 // file      : tests/manifest-parser/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <vector>
 #include <string>
 #include <utility> // pair, move()
 #include <sstream>
 #include <iostream>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.optional;
-import butl.manifest_parser;
-#else
-#include <libbutl/optional.mxx>
-#include <libbutl/manifest-parser.mxx>
-#endif
+#include <libbutl/optional.hxx>
+#include <libbutl/manifest-parser.hxx>
 
 #undef NDEBUG
 #include <cassert>

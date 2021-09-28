@@ -1,7 +1,7 @@
 // file      : libbutl/curl.txx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
+namespace butl
 {
   template <typename I>
   typename std::enable_if<curl::is_other<I>::value, I>::type curl::

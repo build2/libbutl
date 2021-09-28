@@ -1,26 +1,14 @@
 // file      : tests/pager/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <ios>      // ios_base::failure
 #include <vector>
 #include <string>
 #include <utility>  // move()
 #include <sstream>
 #include <iostream>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.pager;
-#else
-#include <libbutl/pager.mxx>
-#endif
+#include <libbutl/pager.hxx>
 
 #undef NDEBUG
 #include <cassert>

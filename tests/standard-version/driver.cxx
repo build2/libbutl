@@ -1,29 +1,15 @@
 // file      : tests/standard-version/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <ios>       // ios::failbit, ios::badbit
 #include <string>
 #include <cstdint>   // uint*_t
 #include <iostream>
 #include <stdexcept> // invalid_argument
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.utility;          // operator<<(ostream,exception), eof()
-import butl.optional;
-import butl.standard_version;
-#else
-#include <libbutl/utility.mxx>
-#include <libbutl/optional.mxx>
-#include <libbutl/standard-version.mxx>
-#endif
+#include <libbutl/utility.hxx>          // operator<<(ostream,exception), eof()
+#include <libbutl/optional.hxx>
+#include <libbutl/standard-version.hxx>
 
 #undef NDEBUG
 #include <cassert>

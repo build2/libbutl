@@ -1,7 +1,9 @@
 // file      : libbutl/process-run.txx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
+#include <utility> // forward(), index_sequence
+
+namespace butl
 {
   template <typename V>
   void process_env::

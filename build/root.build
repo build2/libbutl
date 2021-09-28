@@ -5,7 +5,7 @@ cxx.std = latest
 
 using cxx
 
-hxx{*}: extension = hxx  # We also have .mxx; see libbutl/buildfile.
+hxx{*}: extension = hxx
 ixx{*}: extension = ixx
 txx{*}: extension = txx
 cxx{*}: extension = cxx

@@ -1,34 +1,18 @@
 // file      : tests/wildcard/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <map>
 #include <string>
 #include <vector>
 #include <algorithm> // sort()
 #include <exception>
 #include <iostream>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.path;
-import butl.utility;    // operator<<(ostream, exception)
-import butl.optional;
-import butl.filesystem;
-import butl.path_pattern;
-#else
-#include <libbutl/path.mxx>
-#include <libbutl/utility.mxx>
-#include <libbutl/optional.mxx>
-#include <libbutl/filesystem.mxx>
-#include <libbutl/path-pattern.mxx>
-#endif
+#include <libbutl/path.hxx>
+#include <libbutl/utility.hxx>      // operator<<(ostream, exception)
+#include <libbutl/optional.hxx>
+#include <libbutl/filesystem.hxx>
+#include <libbutl/path-pattern.hxx>
 
 #undef NDEBUG
 #include <cassert>

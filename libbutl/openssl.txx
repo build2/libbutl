@@ -1,7 +1,9 @@
 // file      : libbutl/openssl.txx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
+#include <utility> // forward()
+
+namespace butl
 {
   template <typename I>
   typename std::enable_if<openssl::is_other<I>::value, I>::type openssl::

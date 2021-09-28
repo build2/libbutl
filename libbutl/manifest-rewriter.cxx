@@ -1,41 +1,15 @@
 // file      : libbutl/manifest-rewriter.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/manifest-rewriter.mxx>
-#endif
+#include <libbutl/manifest-rewriter.hxx>
 
-#include <cassert>
-
-// C includes.
-
-#ifndef __cpp_lib_modules_ts
 #include <string>
+#include <cassert>
 #include <cstdint> // uint64_t
 #include <cstddef> // size_t
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.manifest_rewriter;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-#endif
-import butl.path;
-import butl.fdstream;
-import butl.manifest_types;
-#endif
-
-import butl.utility;             // utf8_length()
-import butl.manifest_serializer;
-#else
-#include <libbutl/utility.mxx>
-#include <libbutl/manifest-serializer.mxx>
-#endif
+#include <libbutl/utility.hxx>             // utf8_length()
+#include <libbutl/manifest-serializer.hxx>
 
 using namespace std;
 

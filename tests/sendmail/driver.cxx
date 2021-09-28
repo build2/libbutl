@@ -1,32 +1,13 @@
 // file      : tests/sendmail/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <iostream>
 #include <system_error>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.path;
-import butl.process;
-import butl.utility;  // operator<<(ostream, exception)
-import butl.sendmail;
-import butl.fdstream;
-
-import butl.optional;     // @@ MOD Clang should not be necessary.
-import butl.small_vector; // @@ MOD Clang should not be necessary.
-#else
-#include <libbutl/path.mxx>
-#include <libbutl/process.mxx>
-#include <libbutl/utility.mxx>
-#include <libbutl/sendmail.mxx>
-#endif
+#include <libbutl/path.hxx>
+#include <libbutl/process.hxx>
+#include <libbutl/utility.hxx>  // operator<<(ostream, exception)
+#include <libbutl/sendmail.hxx>
 
 #undef NDEBUG
 #include <cassert>

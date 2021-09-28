@@ -1,36 +1,19 @@
 // file      : tests/command/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_lib_modules_ts
 #include <ios>
 #include <string>
 #include <vector>
 #include <iostream>
 #include <stdexcept>    // invalid_argument
 #include <system_error>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.path;
-import butl.path_io;
-import butl.process; // process::print()
-import butl.command;
-import butl.utility;
-import butl.optional;
-#else
-#include <libbutl/path.mxx>
-#include <libbutl/path-io.mxx>
-#include <libbutl/process.mxx>
-#include <libbutl/command.mxx>
-#include <libbutl/utility.mxx>
-#include <libbutl/optional.mxx>
-#endif
+#include <libbutl/path.hxx>
+#include <libbutl/path-io.hxx>
+#include <libbutl/process.hxx>
+#include <libbutl/command.hxx>
+#include <libbutl/utility.hxx>
+#include <libbutl/optional.hxx>
 
 #undef NDEBUG
 #include <cassert>

@@ -1,38 +1,16 @@
 // file      : libbutl/project-name.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/project-name.mxx>
-#endif
+#include <libbutl/project-name.hxx>
 
-#ifndef __cpp_lib_modules_ts
 #include <string>
 #include <vector>
 #include <utility>   // move()
 #include <algorithm> // find()
 #include <stdexcept> // invalid_argument
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.project_name;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.utility;
-#endif
-
-import butl.path;    // path::traits
-import butl.utility; // alpha(), alnum()
-#else
-#include <libbutl/path.mxx>
-#include <libbutl/utility.mxx>
-#endif
+#include <libbutl/path.hxx>    // path::traits
+#include <libbutl/utility.hxx> // alpha(), alnum()
 
 using namespace std;
 

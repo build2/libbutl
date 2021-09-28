@@ -1,48 +1,18 @@
 // file      : libbutl/command.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-#ifndef __cpp_modules_ts
-#include <libbutl/command.mxx>
-#endif
-
-#include <cassert>
-
-#ifndef __cpp_lib_modules_ts
-#include <map>
-#include <string>
-#include <cstddef>
-#include <functional>
+#include <libbutl/command.hxx>
 
 #include <ios>          // ios::failure
 #include <vector>
+#include <cassert>
 #include <utility>      // move()
 #include <stdexcept>    // invalid_argument
 #include <system_error>
-#endif
 
-// Other includes.
-
-#ifdef __cpp_modules_ts
-module butl.command;
-
-// Only imports additional to interface.
-#ifdef __clang__
-#ifdef __cpp_lib_modules_ts
-import std.core;
-import std.io;
-#endif
-import butl.process;
-import butl.optional;
-#endif
-
-import butl.builtin;
-import butl.fdstream;
-import butl.string_parser;
-#else
-#include <libbutl/builtin.mxx>
-#include <libbutl/fdstream.mxx>
-#include <libbutl/string-parser.mxx>
-#endif
+#include <libbutl/builtin.hxx>
+#include <libbutl/fdstream.hxx>
+#include <libbutl/string-parser.hxx>
 
 using namespace std;
 

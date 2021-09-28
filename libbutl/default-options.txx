@@ -1,7 +1,15 @@
 // file      : libbutl/default-options.txx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
-LIBBUTL_MODEXPORT namespace butl //@@ MOD Clang needs this for some reason.
+#include <utility>      // move(), forward(), make_pair()
+#include <algorithm>    // reverse()
+#include <stdexcept>    // invalid_argument
+#include <system_error>
+
+#include <libbutl/git.hxx>
+#include <libbutl/filesystem.hxx>
+
+namespace butl
 {
   inline bool
   options_dir_exists (const dir_path& d)
