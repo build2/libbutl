@@ -373,6 +373,22 @@ namespace butl
         : (p = rfind_separator (s, n - 1)) == nullptr ? s : ++p;
     }
 
+    // Return true if sb is a sub-path of sp (i.e., sp is a prefix). Expects
+    // both paths to be normalized. Note that this function returns true if
+    // the paths are equal. Empty path is considered a prefix of any path.
+    //
+    static bool
+    sub (const C* sb, size_type nb,
+         const C* sp, size_type np);
+
+    // Return true if sp is a super-path of sb (i.e., sb is a suffix). Expects
+    // both paths to be normalized. Note that this function returns true if
+    // the paths are equal. Empty path is considered a prefix of any path.
+    //
+    static bool
+    sup (const C* sp, size_type np,
+         const C* sb, size_type nb);
+
     static int
     compare (string_type const& l,
              string_type const& r,

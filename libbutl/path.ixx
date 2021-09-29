@@ -117,6 +117,45 @@ namespace butl
     return r;
   }
 
+  template <typename C>
+  inline bool path_traits<C>::
+  sub (const C* s, size_type n,
+       const C* ps, size_type pn)
+  {
+    // The thinking here is that we can use the full string representations
+    // (including the trailing slash in "/").
+    //
+    if (pn == 0)
+      return true;
+
+    // The second condition guards against the /foo-bar vs /foo case.
+    //
+    return n >= pn &&
+      compare (s, pn, ps, pn) == 0 &&
+      (is_separator (ps[pn - 1]) || // p ends with a separator
+       n == pn                   || // *this == p
+       is_separator (s[pn]));       // next char is a separator
+  }
+
+  template <typename C>
+  inline bool path_traits<C>::
+  sup (const C* s, size_type n,
+       const C* ps, size_type pn)
+  {
+    // The thinking here is that we can use the full string representations
+    // (including the trailing slash in "/").
+    //
+    if (pn == 0)
+      return true;
+
+    // The second condition guards against the /foo-bar vs bar case.
+    //
+    return n >= pn &&
+      compare (s + n - pn, pn, ps, pn) == 0 &&
+      (n == pn ||                     // *this == p
+       is_separator (s[n - pn - 1])); // Previous char is a separator.
+  }
+
 #ifdef _WIN32
   template <>
   inline char path_traits<char>::
@@ -230,52 +269,16 @@ namespace butl
   inline bool basic_path<C, K>::
   sub (const basic_path& p) const
   {
-    // The thinking here is that we can use the full string representations
-    // (including the trailing slash in "/").
-    //
-    const string_type& ps (p.path_);
-    size_type pn (ps.size ());
-
-    if (pn == 0)
-      return true;
-
-    const string_type& s (this->path_);
-    size_type n (s.size ());
-
-    // The second condition guards against the /foo-bar vs /foo case.
-    //
-    return n >= pn &&
-      traits_type::compare (s.c_str (), pn, ps.c_str (), pn) == 0 &&
-      (traits_type::is_separator (ps.back ()) || // p ends with a separator
-       n == pn                                || // *this == p
-       traits_type::is_separator (s[pn]));       // next char is a separator
+    return traits_type::sub (this->path_.c_str (), this->path_.size (),
+                             p.path_.c_str (), p.path_.size ());
   }
 
   template <typename C, typename K>
   inline bool basic_path<C, K>::
   sup (const basic_path& p) const
   {
-    // The thinking here is that we can use the full string representations
-    // (including the trailing slash in "/").
-    //
-    const string_type& ps (p.path_);
-    size_type pn (ps.size ());
-
-    if (pn == 0)
-      return true;
-
-    const string_type& s (this->path_);
-    size_type n (s.size ());
-
-    // The second condition guards against the /foo-bar vs bar case.
-    //
-    return n >= pn &&
-      traits_type::compare (s.c_str () +  n - pn, pn, ps.c_str (), pn) == 0 &&
-      (n == pn || // *this == p
-       //
-       // Previous char is a separator.
-       //
-       traits_type::is_separator (s[n - pn - 1]));
+    return traits_type::sup (this->path_.c_str (), this->path_.size (),
+                             p.path_.c_str (), p.path_.size ());
   }
 
   template <typename C, typename K>
