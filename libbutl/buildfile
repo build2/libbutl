@@ -1,8 +1,6 @@
 # file      : libbutl/buildfile
 # license   : MIT; see accompanying LICENSE file
 
-# @@ If/when going back to using mxx{}, make sure to cleanup explicit .mxx.
-#
 lib{butl}: {hxx ixx txx cxx}{** -uuid-* +uuid-io         \
                                 -win32-utility           \
                                 -version                 \

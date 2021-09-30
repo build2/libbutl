@@ -204,7 +204,7 @@ namespace butl
 
     // Create empty version.
     //
-    standard_version () {} // = default; @@ MOD VC
+    standard_version () = default;
   };
 
   // Try to parse a string as a standard version returning nullopt if invalid.
