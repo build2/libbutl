@@ -1114,6 +1114,11 @@ namespace butl
     // underlying CreateFile() function call (see mventry() for details). If
     // that's the case, we will keep trying to open the file for two seconds.
     //
+    // Also, it turns out, if someone memory-maps a file, it takes Windows
+    // some time to realize it's been unmapped and until then any attempt to
+    // open it results in EINVAL POSIX error, ERROR_USER_MAPPED_FILE system
+    // error. So we retry those as well.
+    //
     for (size_t i (0); i < 21; ++i)
     {
       // Sleep 100 milliseconds before the open retry.
@@ -1133,10 +1138,11 @@ namespace butl
       // Note that MinGW's _sopen() is just a stub forwarding the call to the
       // (publicly available) MSVCRT's implementation.
       //
-      if (!(fd == -1        &&
-            out             &&
-            errno == EACCES &&
-            GetLastError () == ERROR_SHARING_VIOLATION))
+      if (!(fd == -1                             &&
+            out                                  &&
+            (errno == EACCES || errno == EINVAL) &&
+            (GetLastError () == ERROR_SHARING_VIOLATION ||
+             GetLastError () == ERROR_USER_MAPPED_FILE)))
         break;
     }
 
