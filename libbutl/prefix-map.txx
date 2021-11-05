@@ -197,4 +197,58 @@ namespace butl
     return i;
 #endif
   }
+
+  template <typename M>
+  auto prefix_multimap_common<M>::
+  sup_range (const key_type& k) -> std::pair<iterator, iterator>
+  {
+#if 0
+    // TODO (see above).
+#else
+    // First look for the exact match before making any copies.
+    //
+    auto r (this->equal_range (k));
+
+    if (r.first == r.second)
+    {
+      const auto& c (this->key_comp ());
+
+      for (key_type p (k); c.prefix (p); )
+      {
+        r = this->equal_range (p);
+        if (r.first != r.second)
+          break;
+      }
+    }
+
+    return r;
+#endif
+  }
+
+  template <typename M>
+  auto prefix_multimap_common<M>::
+  sup_range (const key_type& k) const -> std::pair<const_iterator, const_iterator>
+  {
+#if 0
+    // TODO (see above).
+#else
+    // First look for the exact match before making any copies.
+    //
+    auto r (this->equal_range (k));
+
+    if (r.first == r.second)
+    {
+      const auto& c (this->key_comp ());
+
+      for (key_type p (k); c.prefix (p); )
+      {
+        r = this->equal_range (p);
+        if (r.first != r.second)
+          break;
+      }
+    }
+
+    return r;
+#endif
+  }
 }

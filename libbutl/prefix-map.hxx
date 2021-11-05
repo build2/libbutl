@@ -135,7 +135,6 @@ namespace butl
     const_iterator
     find_sup (const key_type&) const;
 
-
     // As above but additionally evaluate a predicate on each matching entry
     // returning the one for which it returns true.
     //
@@ -148,6 +147,26 @@ namespace butl
     find_sup_if (const key_type&, P) const;
   };
 
+  template <typename M>
+  struct prefix_multimap_common: prefix_map_common<M>
+  {
+    typedef M map_type;
+    typedef typename map_type::key_type key_type;
+    typedef typename map_type::iterator iterator;
+    typedef typename map_type::const_iterator const_iterator;
+
+    using prefix_map_common<M>::prefix_map_common;
+
+    // Find the most qualified entries that are super-prefixes of the
+    // specified prefix.
+    //
+    std::pair<iterator, iterator>
+    sup_range (const key_type&);
+
+    std::pair<const_iterator, const_iterator>
+    sup_range (const key_type&) const;
+  };
+
   template <typename M, typename prefix_map_common<M>::delimiter_type D>
   struct prefix_map_impl: prefix_map_common<M>
   {
@@ -156,6 +175,16 @@ namespace butl
     prefix_map_impl (): prefix_map_common<M> (D) {}
     prefix_map_impl (std::initializer_list<value_type> i)
         : prefix_map_common<M> (std::move (i), D) {}
+  };
+
+  template <typename M, typename prefix_map_common<M>::delimiter_type D>
+  struct prefix_multimap_impl: prefix_multimap_common<M>
+  {
+    typedef typename prefix_multimap_common<M>::value_type value_type;
+
+    prefix_multimap_impl (): prefix_multimap_common<M> (D) {}
+    prefix_multimap_impl (std::initializer_list<value_type> i)
+        : prefix_multimap_common<M> (std::move (i), D) {}
   };
 
   template <typename K,
@@ -167,7 +196,7 @@ namespace butl
             typename T,
             typename compare_prefix<K>::delimiter_type D>
   using prefix_multimap =
-    prefix_map_impl<std::multimap<K, T, compare_prefix<K>>, D>;
+    prefix_multimap_impl<std::multimap<K, T, compare_prefix<K>>, D>;
 }
 
 #include <libbutl/prefix-map.txx>

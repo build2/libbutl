@@ -125,4 +125,12 @@ namespace butl
   template <typename T>
   using dir_path_map =
     prefix_map<dir_path, T, dir_path::traits_type::directory_separator>;
+
+  template <typename T>
+  using path_multimap =
+    prefix_multimap<path, T, path::traits_type::directory_separator>;
+
+  template <typename T>
+  using dir_path_multimap =
+    prefix_multimap<dir_path, T, dir_path::traits_type::directory_separator>;
 }
