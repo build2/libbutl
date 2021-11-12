@@ -86,6 +86,7 @@
 #endif
 
 #include <ios>      // ios_base::failure
+#include <memory>   // unique_ptr
 #include <cstring>  // strlen(), strchr(), strpbrk(), strncmp()
 #include <utility>  // move()
 #include <ostream>
