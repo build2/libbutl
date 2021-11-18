@@ -26,4 +26,13 @@ namespace butl
                  std::forward<A> (options)...)
   {
   }
+
+  template <typename E>
+  inline optional<openssl_info> openssl::
+  info (E&& err, const process_env& env)
+  {
+    return info ([] (const char* [], std::size_t) {},
+                 std::forward<E> (err),
+                 env);
+  }
 }

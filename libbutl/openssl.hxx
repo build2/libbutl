@@ -8,8 +8,10 @@
 
 #include <libbutl/path.hxx>
 #include <libbutl/process.hxx>
+#include <libbutl/optional.hxx>
 #include <libbutl/fdstream.hxx>
 #include <libbutl/small-vector.hxx>
+#include <libbutl/semantic-version.hxx>
 
 #include <libbutl/export.hxx>
 
@@ -78,6 +80,23 @@ namespace butl
   //    department (that were apparently fixed in 1.0.2). To work around these
   //    bugs pass user-supplied options first.
   //
+  struct openssl_info
+  {
+    // Note that the program name can be used by the caller to properly
+    // interpret the version.
+    //
+    // The name/version examples:
+    //
+    // OpenSSL  3.0.0
+    // OpenSSL  1.1.1l
+    // LibreSSL 2.8.3
+    //
+    // The `l` component above ends up in semantic_version::build.
+    //
+    std::string name;
+    semantic_version version;
+  };
+
   class LIBBUTL_SYMEXPORT openssl: public process
   {
   public:
@@ -110,6 +129,22 @@ namespace butl
              const process_env&,
              const std::string& command,
              A&&... options);
+
+    // Run `openssl version` command and try to parse and return the
+    // information it prints to stdout. Return nullopt if the process hasn't
+    // terminated successfully or stdout parsing has failed. Throw
+    // process_error and io_error in case of errors.
+    //
+    template <typename E>
+    static optional<openssl_info>
+    info (E&& err, const process_env&);
+
+    template <typename C,
+              typename E>
+    static optional<openssl_info>
+    info (const C&,
+          E&& err,
+          const process_env&);
 
   private:
     template <typename T>
