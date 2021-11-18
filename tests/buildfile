@@ -1,4 +1,4 @@
 # file      : tests/buildfile
 # license   : MIT; see accompanying LICENSE file
 
-./: {*/ -build/ -curl/ -openssl/ -sendmail/ -progress/}
+./: {*/ -build/ -curl/ -sendmail/ -progress/}
