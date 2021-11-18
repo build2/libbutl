@@ -23,12 +23,28 @@ int
 main (int, const char* argv[])
 try
 {
-  openssl os (nullfd, path ("-"), 2, path ("openssl"), "rand", 128);
+  using butl::optional;
 
-  vector<char> r (os.in.read_binary ());
-  os.in.close ();
+  // Test openssl rand command.
+  //
+  {
+    openssl os (nullfd, path ("-"), 2, path ("openssl"), "rand", 128);
 
-  return os.wait () && r.size () == 128 ? 0 : 1;
+    vector<char> r (os.in.read_binary ());
+    os.in.close ();
+
+    assert (os.wait () && r.size () == 128);
+  }
+
+  // Test openssl info retrieval.
+  //
+  {
+    optional<openssl_info> v (openssl::info (2, path ("openssl")));
+
+    assert (v);
+  }
+
+  return 0;
 }
 catch (const system_error& e)
 {
