@@ -237,7 +237,10 @@ namespace butl
         ml = true;
       }
       else if (eos (p))
+      {
+        c = p;     // Set to EOF.
         ml = true;
+      }
       else
         unget (c);
     }
