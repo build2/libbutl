@@ -7,7 +7,7 @@ tags: c++, package, manager, bpkg
 description: A very very very very very very very very very very very very\
  very very very very very very very very very very very very very very very\
  very very long description.
-changes: \
+changes:\
 1.0.1
   - Fixed a  very very very very very very very very very very very very very\
   very annoying bug.
@@ -26,7 +26,7 @@ requires: ?* linux | windows
 requires: c++11
 :
 path: c:\windows\\
-path: \
+path:\
 
 c:\windows\\
 \

@@ -4,6 +4,7 @@
 #include <libbutl/manifest-serializer.hxx>
 
 #include <ostream>
+#include <cassert>
 
 #include <libbutl/utf8.hxx>
 #include <libbutl/utility.hxx>
@@ -66,10 +67,7 @@ namespace butl
         os_ << ':';
 
         if (!v.empty ())
-        {
-          os_ << ' ';
-          write_value (v, l + 2);
-        }
+          write_value (v, l + 1);
 
         os_ << endl;
         break;
@@ -272,6 +270,8 @@ namespace butl
   void manifest_serializer::
   write_value (const string& v, size_t cl)
   {
+    assert (!v.empty ());
+
     // Consider both \r and \n characters as line separators, and the
     // \r\n characters sequence as a single line separator.
     //
@@ -290,9 +290,12 @@ namespace butl
     // readability, still allowing the user to easily copy the value which
     // seems to be the main reason for using the flag.
     //
-    if (cl > 39 || nl () != string::npos ||
-        v.front () == ' ' || v.front () == '\t' ||
-        v.back () == ' ' || v.back () == '\t')
+    if (cl + 1 > 39           || // '+ 1' for the space after the colon.
+        nl () != string::npos ||
+        v.front () == ' '     ||
+        v.front () == '\t'    ||
+        v.back () == ' '      ||
+        v.back () == '\t')
     {
       os_ << "\\" << endl; // Multi-line mode introducer.
 
@@ -317,7 +320,10 @@ namespace butl
       os_ << endl << "\\"; // Multi-line mode terminator.
     }
     else
-      write_value (v.c_str (), v.size (), cl);
+    {
+      os_ << ' ';
+      write_value (v.c_str (), v.size (), cl + 1);
+    }
   }
 
   // manifest_serialization

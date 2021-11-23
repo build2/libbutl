@@ -189,21 +189,21 @@ main ()
   //
   string n ("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
   assert (test ({{"","1"},{n,"x"},{"",""},{"",""}},
-                ": 1\n" + n + ": \\\nx\n\\\n"));
+                ": 1\n" + n + ":\\\nx\n\\\n"));
   assert (test ({{"","1"},{"a","\n"},{"",""},{"",""}},
-                ": 1\na: \\\n\n\n\\\n"));
+                ": 1\na:\\\n\n\n\\\n"));
   assert (test ({{"","1"},{"a","\n\n"},{"",""},{"",""}},
-                ": 1\na: \\\n\n\n\n\\\n"));
+                ": 1\na:\\\n\n\n\n\\\n"));
   assert (test ({{"","1"},{"a","\nx\n"},{"",""},{"",""}},
-                ": 1\na: \\\n\nx\n\n\\\n"));
+                ": 1\na:\\\n\nx\n\n\\\n"));
   assert (test ({{"","1"},{"a","x\ny\nz"},{"",""},{"",""}},
-                ": 1\na: \\\nx\ny\nz\n\\\n"));
+                ": 1\na:\\\nx\ny\nz\n\\\n"));
   assert (test ({{"","1"},{"a"," x"},{"",""},{"",""}},
-                ": 1\na: \\\n x\n\\\n"));
+                ": 1\na:\\\n x\n\\\n"));
   assert (test ({{"","1"},{"a","x "},{"",""},{"",""}},
-                ": 1\na: \\\nx \n\\\n"));
+                ": 1\na:\\\nx \n\\\n"));
   assert (test ({{"","1"},{"a"," x "},{"",""},{"",""}},
-                ": 1\na: \\\n x \n\\\n"));
+                ": 1\na:\\\n x \n\\\n"));
 
   // The long lines mode.
   //
@@ -212,42 +212,42 @@ main ()
                 true /* long_lines */));
 
   assert (test ({{"","1"},{"a", " abc\n" + l1 + "\ndef"},{"",""},{"",""}},
-                ": 1\na: \\\n abc\n" + l1 + "\ndef\n\\\n",
+                ": 1\na:\\\n abc\n" + l1 + "\ndef\n\\\n",
                 true /* long_lines */));
 
   assert (test ({{"","1"},{n,l1},{"",""},{"",""}},
-                ": 1\n" + n + ": \\\n" + l1 + "\n\\\n",
+                ": 1\n" + n + ":\\\n" + l1 + "\n\\\n",
                 true /* long_lines */));
 
   // Carriage return character.
   //
   assert (test ({{"","1"},{"a","x\ry"},{"",""},{"",""}},
-                ": 1\na: \\\nx\ny\n\\\n"));
+                ": 1\na:\\\nx\ny\n\\\n"));
   assert (test ({{"","1"},{"a","x\r"},{"",""},{"",""}},
-                ": 1\na: \\\nx\n\n\\\n"));
+                ": 1\na:\\\nx\n\n\\\n"));
   assert (test ({{"","1"},{"a","x\r\ny"},{"",""},{"",""}},
-                ": 1\na: \\\nx\ny\n\\\n"));
+                ": 1\na:\\\nx\ny\n\\\n"));
   assert (test ({{"","1"},{"a","x\r\n"},{"",""},{"",""}},
-                ": 1\na: \\\nx\n\n\\\n"));
+                ": 1\na:\\\nx\n\n\\\n"));
 
   // Extra three x's are for the leading name part ("a: ") that we
   // don't have.
   //
   assert (test ({{"","1"},{"a","\nxxx" + l1},{"",""},{"",""}},
-                ": 1\na: \\\n\nxxx" + e1 + "\n\\\n"));
+                ": 1\na:\\\n\nxxx" + e1 + "\n\\\n"));
   assert (test ({{"","1"},{"a","\nxxx" + l2},{"",""},{"",""}},
-                ": 1\na: \\\n\nxxx" + e2 + "\n\\\n"));
+                ": 1\na:\\\n\nxxx" + e2 + "\n\\\n"));
   assert (test ({{"","1"},{"a","\nxxx" + l3},{"",""},{"",""}},
-                ": 1\na: \\\n\nxxx" + e3 + "\n\\\n"));
+                ": 1\na:\\\n\nxxx" + e3 + "\n\\\n"));
   assert (test ({{"","1"},{"a","\nxxx" + l4},{"",""},{"",""}},
-                ": 1\na: \\\n\nxxx" + e4 + "\n\\\n"));
+                ": 1\na:\\\n\nxxx" + e4 + "\n\\\n"));
 
   // Backslash escaping (simple and multi-line).
   //
   assert (test ({{"","1"},{"a","c:\\"},{"",""},{"",""}},
                 ": 1\na: c:\\\\\n"));
   assert (test ({{"","1"},{"a","c:\\\nd:\\"},{"",""},{"",""}},
-                ": 1\na: \\\nc:\\\\\nd:\\\\\n\\\n"));
+                ": 1\na:\\\nc:\\\\\nd:\\\\\n\\\n"));
 
   // Manifest value/comment merging.
   //

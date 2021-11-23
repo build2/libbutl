@@ -96,10 +96,12 @@ namespace butl
     size_t
     write_name (const std::string&);
 
-    // Write a value assuming the current line already has the specified
-    // codepoint offset. If the resulting line length would be too large then
-    // the multi-line representation will be used. It is assumed that the
-    // name, followed by the colon, is already written.
+    // Write a non-empty value assuming the current line already has the
+    // specified codepoint offset. If the resulting line length would be too
+    // large then the multi-line representation will be used. For the
+    // single-line representation the space character is written before the
+    // value. It is assumed that the name, followed by the colon, is already
+    // written.
     //
     void
     write_value (const std::string&, std::size_t offset);

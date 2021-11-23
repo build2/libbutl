@@ -73,8 +73,6 @@ namespace butl
 
     if (!nv.value.empty ())
     {
-      os << ' ';
-
       manifest_serializer s (os, path_.string (), long_lines_);
 
       // Note that the name can be surrounded with the ASCII whitespace
@@ -86,7 +84,7 @@ namespace butl
       //
       s.write_value (nv.value,
                      static_cast<size_t> (nv.colon_pos - nv.start_pos) -
-                     (nv.name.size () - utf8_length (nv.name)) + 2);
+                     (nv.name.size () - utf8_length (nv.name)) + 1);
     }
 
     os << suffix;
@@ -118,15 +116,13 @@ namespace butl
 
     if (!nv.value.empty ())
     {
-      os << ' ';
-
       // Note that the name can be surrounded with the ASCII whitespace
       // characters and the start_pos refers to the first character in the
       // line.
       //
       s.write_value (nv.value,
                      static_cast<size_t> (nv.colon_pos - nv.start_pos) -
-                     (nv.name.size () - n) + 2);
+                     (nv.name.size () - n) + 1);
     }
 
     os << suffix;

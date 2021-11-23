@@ -67,17 +67,26 @@ namespace butl
                   {{"a", "xyz"}, edit_cmd {"x", "y", "c"}, {"e", "123"}}) ==
             ":1\na: xyz\nc:d\nx: y\ne: 123");
 
-    assert (edit (":1\na: b", {{"a", "xy\nz"}}) == ":1\na: \\\nxy\nz\n\\");
+    assert (edit (":1\na: b", {{"a", "xy\nz"}}) == ":1\na:\\\nxy\nz\n\\");
+
+    assert (edit (":1\na:\\\nxy\nz\n\\\nb: c", {{"a", "ab\ncd\ne"}}) ==
+            ":1\na:\\\nab\ncd\ne\n\\\nb: c");
+
+    assert (edit (":1\na: \\\nxy\nz\n\\\nb: c", {{"a", "ab\ncd\ne"}}) ==
+            ":1\na:\\\nab\ncd\ne\n\\\nb: c");
+
+    assert (edit (":1\na:\n\\\nxy\nz\n\\\nb: c", {{"a", "ab\ncd\ne"}}) ==
+            ":1\na:\\\nab\ncd\ne\n\\\nb: c");
 
     assert (edit (":1\n", {{"a", "b", ""}}) == ":1\na: b\n");
 
     assert (edit (":1\n                                     abc: b",
                   {{"abc", "xyz"}}) ==
-            ":1\n                                     abc: \\\nxyz\n\\");
+            ":1\n                                     abc:\\\nxyz\n\\");
 
     assert (edit (":1\n                                     a\xD0\xB0g : b",
                   {{"a\xD0\xB0g", "xyz"}}) ==
-            ":1\n                                     a\xD0\xB0g : \\\nxyz\n\\");
+            ":1\n                                     a\xD0\xB0g :\\\nxyz\n\\");
 
     // Test editing of manifests that contains CR characters.
     //
