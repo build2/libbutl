@@ -222,7 +222,7 @@ namespace butl
     string& v (r.value);
     string::size_type n (0); // Size of last non-space character (simple mode).
 
-    // Detect the multi-line mode introductor.
+    // Detect the multi-line mode introducer.
     //
     bool ml (false);
     if (c == '\\')
@@ -252,7 +252,7 @@ namespace butl
 
     // The nl flag signals that the preceding character was a "special
     // newline", that is, a newline that was part of the milti-line mode
-    // introductor or an escape sequence.
+    // introducer or an escape sequence.
     //
     for (bool nl (ml); !eos (c); c = peek ())
     {
@@ -270,7 +270,7 @@ namespace butl
       //
       // The first block handles the special sequence that starts with
       // a special newline. In multi-line mode, this is an "immediate
-      // termination" where we "use" the newline from the introductor.
+      // termination" where we "use" the newline from the introducer.
       // Note also that in the simple mode the special sequence can
       // only start with a special (i.e., escaped) newline.
       //

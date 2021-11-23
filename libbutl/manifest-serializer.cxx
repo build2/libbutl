@@ -294,7 +294,7 @@ namespace butl
         v.front () == ' ' || v.front () == '\t' ||
         v.back () == ' ' || v.back () == '\t')
     {
-      os_ << "\\" << endl; // Multi-line mode introductor.
+      os_ << "\\" << endl; // Multi-line mode introducer.
 
       // Chunk the value into fragments separated by newlines.
       //
