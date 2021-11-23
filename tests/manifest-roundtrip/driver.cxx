@@ -15,17 +15,39 @@
 using namespace std;
 using namespace butl;
 
+// Usage: argv[0] [-m]
+//
+// Round-trip a manifest reading it from stdin and printing to stdout.
+//
+// -m
+//    Serialize multi-line manifest values using the v2 form.
+//
 int
-main ()
+main (int argc, const char* argv[])
 try
 {
+  bool multiline_v2 (false);
+
+  for (int i (1); i != argc; ++i)
+  {
+    string v (argv[i]);
+
+    if (v == "-m")
+      multiline_v2 = true;
+  }
+
   // Read/write in binary mode.
   //
   stdin_fdmode  (fdstream_mode::binary);
   stdout_fdmode (fdstream_mode::binary);
 
   manifest_parser p (cin, "stdin");
-  manifest_serializer s (cout, "stdout");
+
+  manifest_serializer s (cout,
+                         "stdout",
+                         false /* long_lines */,
+                         {} /* filter */,
+                         multiline_v2);
 
   for (bool eom (true), eos (false); !eos; )
   {

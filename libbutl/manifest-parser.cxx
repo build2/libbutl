@@ -222,7 +222,8 @@ namespace butl
     string& v (r.value);
     string::size_type n (0); // Size of last non-space character (simple mode).
 
-    // Detect the multi-line mode introducer.
+    // Detect the old-fashioned multi-line mode introducer (like in
+    // 'foo:\<newline>').
     //
     bool ml (false);
     if (c == '\\')
@@ -243,6 +244,38 @@ namespace butl
       }
       else
         unget (c);
+    }
+
+    // Detect the new-fashioned multi-line mode introducer (like in
+    // 'foo:<newline>\<newline>').
+    //
+    if (!ml && c == '\n')
+    {
+      get ();
+      xchar p1 (peek ());
+
+      if (p1 == '\\')
+      {
+        get ();
+        xchar p2 (peek ());
+
+        if (p2 == '\n')
+        {
+          get (); // Newline is not part of the value so skip it.
+          c = peek ();
+          ml = true;
+        }
+        else if (eos (p2))
+        {
+          c = p2;    // Set to EOF.
+          ml = true;
+        }
+        else
+          unget (p1);  // Unget '\\'. Note: '\n' will be ungot below.
+      }
+
+      if (!ml)
+        unget (c); // Unget '\n'.
     }
 
     // Multi-line value starts from the line that follows the name.

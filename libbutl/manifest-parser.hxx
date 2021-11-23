@@ -37,7 +37,7 @@ namespace butl
   };
 
   class LIBBUTL_SYMEXPORT manifest_parser:
-    protected char_scanner<utf8_validator>
+    protected char_scanner<utf8_validator, 2>
   {
   public:
     // The filter, if specified, is called by next() prior to returning the
@@ -83,7 +83,7 @@ namespace butl
     split_comment (const std::string&);
 
   private:
-    using base = char_scanner<utf8_validator>;
+    using base = char_scanner<utf8_validator, 2>;
 
     void
     parse_next (manifest_name_value&);
