@@ -47,19 +47,21 @@ namespace butl
     // includes a number of optimizations that assume nobody else is messing
     // with the stream.
     //
-    // The line and position arguments can be used to override the start line
-    // and position in the stream (useful when re-scanning data saved with the
-    // save_* facility).
+    // The line, column, and position arguments can be used to override the
+    // start line, column, and position in the stream (useful when re-scanning
+    // data saved with the save_* facility).
     //
     char_scanner (std::istream&,
                   bool crlf = true,
                   std::uint64_t line = 1,
+                  std::uint64_t column = 1,
                   std::uint64_t position = 0);
 
     char_scanner (std::istream&,
                   validator_type,
                   bool crlf = true,
                   std::uint64_t line = 1,
+                  std::uint64_t column = 1,
                   std::uint64_t position = 0);
 
     char_scanner (const char_scanner&) = delete;

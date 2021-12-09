@@ -11,9 +11,10 @@ namespace butl
                 validator_type v,
                 bool crlf,
                 std::uint64_t l,
+                std::uint64_t c,
                 std::uint64_t p)
       : line (l),
-        column (1),
+        column (c),
         position (p),
         is_ (is),
         val_ (std::move (v)),

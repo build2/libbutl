@@ -5,8 +5,10 @@ namespace butl
 {
   template <typename V, std::size_t N>
   inline char_scanner<V, N>::
-  char_scanner (std::istream& is, bool crlf, std::uint64_t l, std::uint64_t p)
-      : char_scanner (is, validator_type (), crlf, l, p)
+  char_scanner (std::istream& is,
+                bool crlf,
+                std::uint64_t l, std::uint64_t c, std::uint64_t p)
+      : char_scanner (is, validator_type (), crlf, l, c, p)
   {
   }
 
