@@ -27,8 +27,8 @@ $* <<EOF >>EOF
   package-email: boris@codesynthesis.com; Direct email to the author.
   depends: libbutl
   depends: * build2
-  depends: ?* bpkg
-  requires: ?* linux | windows
+  depends: * bpkg
+  requires: * linux ? ($linux) | windows ? ($windows)
   requires: c++11
   :
   path: c:\windows\\
@@ -65,8 +65,8 @@ $* -m <<EOF >>EOF
   package-email: boris@codesynthesis.com; Direct email to the author.
   depends: libbutl
   depends: * build2
-  depends: ?* bpkg
-  requires: ?* linux | windows
+  depends: * bpkg
+  requires: * linux ? ($linux) | windows ? ($windows)
   requires: c++11
   :
   path: c:\windows\\
