@@ -3,8 +3,8 @@
 
 #include <libbutl/manifest-parser.hxx>
 
+#include <string>
 #include <cassert>
-#include <sstream>
 
 using namespace std;
 
@@ -479,11 +479,21 @@ namespace butl
   static inline string
   format (const string& n, uint64_t l, uint64_t c, const string& d)
   {
-    ostringstream os;
+    using std::to_string;
+
+    string r;
     if (!n.empty ())
-      os << n << ':';
-    os << l << ':' << c << ": error: " << d;
-    return os.str ();
+    {
+      r += n;
+      r += ':';
+    }
+
+    r += to_string (l);
+    r += ':';
+    r += to_string (c);
+    r += ": error: ";
+    r += d;
+    return r;
   }
 
   manifest_parsing::
