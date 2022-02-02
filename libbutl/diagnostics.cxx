@@ -17,6 +17,8 @@
 #include <cstddef>  // size_t
 #include <iostream> // cerr
 
+#include <libbutl/ft/lang.hxx> // thread_local
+
 #include <libbutl/utility.hxx>
 #include <libbutl/optional.hxx>
 #include <libbutl/fdstream.hxx>
@@ -131,13 +133,13 @@ namespace butl
   default_writer (const diag_record& r)
   {
     r.os.put ('\n');
-    diag_stream_lock () << r.os.str ();
+
+    diag_stream_lock l;
+    (*diag_stream) << r.os.str ();
 
     // We can endup flushing the result of several writes. The last one may
     // possibly be incomplete, but that's not a problem as it will also be
     // followed by the flush() call.
-    //
-    // @@ Strange: why not just hold the lock for both write and flush?
     //
     diag_stream->flush ();
   }
@@ -185,5 +187,29 @@ namespace butl
     if (!std::uncaught_exception () || exception_unwinding_dtor ())
       flush ();
 #endif
+  }
+
+  // Diagnostics stack.
+  //
+  static
+#ifdef __cpp_thread_local
+  thread_local
+#else
+  __thread
+#endif
+  const diag_frame* diag_frame_stack = nullptr;
+
+  const diag_frame* diag_frame::
+  stack () noexcept
+  {
+    return diag_frame_stack;
+  }
+
+  const diag_frame* diag_frame::
+  stack (const diag_frame* f) noexcept
+  {
+    const diag_frame* r (diag_frame_stack);
+    diag_frame_stack = f;
+    return r;
   }
 }

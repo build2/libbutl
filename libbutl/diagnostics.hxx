@@ -74,7 +74,19 @@ namespace butl
     ~diag_progress_lock ();
   };
 
+  // Diagnostic record and marks (error, warn, etc).
   //
+  // There are two ways to use this facility in a project: simple, where we
+  // just alias the types in our namespace, and complex, where instead we
+  // derive from them and "override" (hide, really) operator<< (and a few
+  // other functions) in order to make ADL look in our namespace rather than
+  // butl. In the simple case we may have to resort to defining some
+  // operator<< overloads in namespace std in order to satisfy ADL. This is
+  // usually not an acceptable approach for libraries, which is where the
+  // complex case comes in (see libbuild2 for a "canonical" example of the
+  // complex case). Note also that it doesn't seem worth templatazing epilogue
+  // so the complex case may also need to do a few casts but those should be
+  // limited to the diagnostics infrastructure.
   //
   struct diag_record;
   template <typename> struct diag_prologue;
@@ -263,4 +275,97 @@ namespace butl
       e.B::operator() (r);
     }
   };
+
+  // Diagnostics stack. Each frame is "applied" to the diag record.
+  //
+  // Unfortunately most of our use-cases don't fit into the 2-pointer small
+  // object optimization of std::function. So we have to complicate things
+  // a bit here.
+  //
+  struct LIBBUTL_SYMEXPORT diag_frame
+  {
+    explicit
+    diag_frame (void (*f) (const diag_frame&, const diag_record&))
+        : func_ (f)
+    {
+      if (func_ != nullptr)
+        prev_ = stack (this);
+    }
+
+    diag_frame (diag_frame&& x)
+        : func_ (x.func_)
+    {
+      if (func_ != nullptr)
+      {
+        prev_ = x.prev_;
+        stack (this);
+
+        x.func_ = nullptr;
+      }
+    }
+
+    diag_frame& operator= (diag_frame&&) = delete;
+
+    diag_frame (const diag_frame&) = delete;
+    diag_frame& operator= (const diag_frame&) = delete;
+
+    ~diag_frame ()
+    {
+      if (func_ != nullptr )
+        stack (prev_);
+    }
+
+    // Normally passed as an epilogue.
+    //
+    static void
+    apply (const diag_record& r)
+    {
+      for (const diag_frame* f (stack ()); f != nullptr; f = f->prev_)
+        f->func_ (*f, r);
+    }
+
+    // Tip of the stack.
+    //
+    static const diag_frame*
+    stack () noexcept;
+
+    // Set the new and return the previous tip of the stack.
+    //
+    static const diag_frame*
+    stack (const diag_frame*) noexcept;
+
+    struct stack_guard
+    {
+      explicit stack_guard (const diag_frame* s): s_ (stack (s)) {}
+      ~stack_guard () {stack (s_);}
+      const diag_frame* s_;
+    };
+
+  private:
+    void (*func_) (const diag_frame&, const diag_record&);
+    const diag_frame* prev_;
+  };
+
+  template <typename F>
+  struct diag_frame_impl: diag_frame
+  {
+    explicit
+    diag_frame_impl (F f): diag_frame (&thunk), func_ (move (f)) {}
+
+  private:
+    static void
+    thunk (const diag_frame& f, const diag_record& r)
+    {
+      static_cast<const diag_frame_impl&> (f).func_ (r);
+    }
+
+    const F func_;
+  };
+
+  template <typename F>
+  inline diag_frame_impl<F>
+  make_diag_frame (F f)
+  {
+    return diag_frame_impl<F> (move (f));
+  }
 }
