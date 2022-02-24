@@ -291,6 +291,8 @@ namespace butl
     explicit operator bool () const {return this->v_;}
   };
 
+  // optional ? optional
+  //
   template <typename T>
   inline auto
   operator== (const optional<T>& x, const optional<T>& y)
@@ -317,6 +319,131 @@ namespace butl
   template <typename T>
   inline auto
   operator> (const optional<T>& x, const optional<T>& y)
+  {
+    return y < x;
+  }
+
+  // optional ? nullopt
+  // nullopt ? optional
+  //
+  template <typename T>
+  inline auto
+  operator== (const optional<T>& x, nullopt_t)
+  {
+    bool px (x);
+    return !px;
+  }
+
+  template <typename T>
+  inline auto
+  operator== (nullopt_t, const optional<T>& y)
+  {
+    bool py (y);
+    return !py;
+  }
+
+  template <typename T>
+  inline auto
+  operator!= (const optional<T>& x, nullopt_t y)
+  {
+    return !(x == y);
+  }
+
+  template <typename T>
+  inline auto
+  operator!= (nullopt_t x, const optional<T>& y)
+  {
+    return !(x == y);
+  }
+
+  template <typename T>
+  inline auto
+  operator< (const optional<T>&, nullopt_t)
+  {
+    return false;
+  }
+
+  template <typename T>
+  inline auto
+  operator< (nullopt_t, const optional<T>& y)
+  {
+    bool py (y);
+    return py;
+  }
+
+  template <typename T>
+  inline auto
+  operator> (const optional<T>& x, nullopt_t y)
+  {
+    return y < x;
+  }
+
+  template <typename T>
+  inline auto
+  operator> (nullopt_t x, const optional<T>& y)
+  {
+    return y < x;
+  }
+
+  // optional ? T
+  // T ? optional
+  //
+  template <typename T>
+  inline auto
+  operator== (const optional<T>& x, const T& y)
+  {
+    bool px (x);
+    return px && *x == y;
+  }
+
+  template <typename T>
+  inline auto
+  operator== (const T& x, const optional<T>& y)
+  {
+    bool py (y);
+    return py && x == *y;
+  }
+
+  template <typename T>
+  inline auto
+  operator!= (const optional<T>& x, const T& y)
+  {
+    return !(x == y);
+  }
+
+  template <typename T>
+  inline auto
+  operator!= (const T& x, const optional<T>& y)
+  {
+    return !(x == y);
+  }
+
+  template <typename T>
+  inline auto
+  operator< (const optional<T>& x, const T& y)
+  {
+    bool px (x);
+    return !px || *x < y;
+  }
+
+  template <typename T>
+  inline auto
+  operator< (const T& x, const optional<T>& y)
+  {
+    bool py (y);
+    return py && x < *y;
+  }
+
+  template <typename T>
+  inline auto
+  operator> (const optional<T>& x, const T& y)
+  {
+    return y < x;
+  }
+
+  template <typename T>
+  inline auto
+  operator> (const T& x, const optional<T>& y)
   {
     return y < x;
   }
