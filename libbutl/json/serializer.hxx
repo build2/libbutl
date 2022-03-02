@@ -235,6 +235,18 @@ namespace butl
       void
       value (std::nullptr_t);
 
+      // Serialize value as a pre-serialized JSON value.
+      //
+      // Note that the value is expected to be a valid (and suitable) UTF-8-
+      // encoded JSON text. Note also that if pretty-printing is enabled,
+      // the resulting output may not be correctly indented.
+      //
+      void
+      value_json_text (const char*);
+
+      void
+      value_json_text (const std::string&);
+
       // Serialize next JSON event.
       //
       // If check is false, then don't check whether the value is valid UTF-8
