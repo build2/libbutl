@@ -59,7 +59,7 @@ namespace butl
     string_type path;
 
     explicit
-    invalid_basic_path (const string_type& p): path (p) {}
+    invalid_basic_path (string_type p): path (std::move (p)) {}
     explicit
     invalid_basic_path (const C* p): path (p) {}
     invalid_basic_path (const C* p, size_type n): path (p, n) {}
