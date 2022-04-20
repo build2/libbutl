@@ -63,9 +63,7 @@
 #ifdef LIBBUTL_STD_OPTIONAL
 namespace butl
 {
-  template <typename T>
-  using optional = std::optional<T>;
-
+  using std::optional;
   using std::nullopt_t;
   using std::nullopt;
 }

@@ -635,6 +635,10 @@ namespace butl
       {
         // Child.
         //
+        // NOTE: make sure not to call anything that may acquire a mutex that
+        //       could be already acquired in another thread, most notably
+        //       malloc(). @@ What about exceptions (all the fail() calls)?
+
         // Duplicate the user-supplied (fd > -1) or the created pipe descriptor
         // to the standard stream descriptor (read end for STDIN_FILENO, write
         // end otherwise). Close the pipe afterwards.
@@ -694,6 +698,9 @@ namespace butl
 
               try
               {
+                // @@ TODO: redo without allocation (PATH_MAX?) Maybe
+                //          also using C API to avoid exceptions.
+                //
                 if (e != nullptr)
                   setenv (string (v, e - v), e + 1);
                 else
@@ -701,6 +708,8 @@ namespace butl
               }
               catch (const system_error& e)
               {
+                // @@ Should we assume this cannot throw?
+                //
                 throw process_child_error (e.code ().value ());
               }
             }

@@ -5,8 +5,6 @@
 
 #include <cstddef> // nullptr_t
 
-#include <libbutl/export.hxx>
-
 namespace butl
 {
   // Const-propagating pointer.
