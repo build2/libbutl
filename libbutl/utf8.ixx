@@ -116,7 +116,7 @@ namespace butl
         {
           if (b < 0xFE)
           {
-            *what  = b < 0xFC ? "5" : "6";
+            *what  = b < 0xFC ? '5' : '6';
             *what += "-byte length UTF-8 sequence";
           }
           else
