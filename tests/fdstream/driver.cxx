@@ -12,13 +12,18 @@
 #include <ios>
 #include <string>
 #include <vector>
-#include <thread>
 #include <iomanip>
 #include <sstream>
 #include <fstream>
 #include <utility>   // move()
 #include <iostream>
 #include <exception>
+
+#ifndef LIBBUTL_MINGW_STDTHREAD
+#  include <thread>
+#else
+#  include <libbutl/mingw-thread.hxx>
+#endif
 
 #include <libbutl/path.hxx>
 #include <libbutl/process.hxx>
@@ -115,6 +120,12 @@ read_time (const path& p, const T& s, size_t n)
 int
 main (int argc, const char* argv[])
 {
+#ifndef LIBBUTL_MINGW_STDTHREAD
+  using std::thread;
+#else
+  using mingw_stdthread::thread;
+#endif
+
   bool v (false);
   bool child (false);
 

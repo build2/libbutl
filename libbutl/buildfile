@@ -3,6 +3,7 @@
 
 lib{butl}: {hxx ixx txx cxx}{** -uuid-* +uuid-io         \
                                 -win32-utility           \
+                                -mingw-*                 \
                                 -version                 \
                                 -builtin-options}        \
            {hxx}{version} {hxx ixx cxx}{builtin-options}
@@ -12,9 +13,15 @@ tsys   = $cxx.target.system
 
 windows = ($tclass == 'windows')
 
-# Exclude these from compilation on non-Windows targets.
+# Whether to use our own implementation of C++14 threads on MinGW (note:
+# requires Windows 7 or later).
+#
+mingw_stdthread = ($tsys == 'mingw32')
+
+# Exclude these from compilation on targets where does not apply.
 #
 lib{butl}: {hxx ixx cxx}{win32-utility}: include = $windows
+lib{butl}: hxx{mingw-*}: include = $mingw_stdthread
 
 # Our C-files are always included into C++-files that wrap the corresponding
 # API so treat them as files exclude from the compilation.
@@ -72,12 +79,18 @@ hxx{version}:
 #
 cxx.poptions =+ "-I$out_root" "-I$src_root"
 
+if $mingw_stdthread
+  cxx.poptions += -D_WIN32_WINNT=0x0601 -DLIBBUTL_MINGW_STDTHREAD
+
 obja{*} bmia{*}: cxx.poptions += -DLIBBUTL_STATIC_BUILD
 objs{*} bmis{*}: cxx.poptions += -DLIBBUTL_SHARED_BUILD
 
 # Export options.
 #
 lib{butl}: cxx.export.poptions = "-I$out_root" "-I$src_root"
+
+if $mingw_stdthread
+  lib{butl}: cxx.export.poptions += -D_WIN32_WINNT=0x0601 -DLIBBUTL_MINGW_STDTHREAD
 
 liba{butl}: cxx.export.poptions += -DLIBBUTL_STATIC
 libs{butl}: cxx.export.poptions += -DLIBBUTL_SHARED

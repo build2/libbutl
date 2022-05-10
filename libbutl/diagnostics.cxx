@@ -17,6 +17,12 @@
 #include <cstddef>  // size_t
 #include <iostream> // cerr
 
+#ifndef LIBBUTL_MINGW_STDTHREAD
+#  include <mutex>
+#else
+#  include <libbutl/mingw-mutex.hxx>
+#endif
+
 #include <libbutl/ft/lang.hxx> // thread_local
 
 #include <libbutl/utility.hxx>
@@ -29,7 +35,11 @@ namespace butl
 {
   ostream* diag_stream = &cerr;
 
-  static mutex diag_mutex;
+#ifndef LIBBUTL_MINGW_STDTHREAD
+  static std::mutex diag_mutex;
+#else
+  static mingw_stdthread::mutex diag_mutex;
+#endif
 
   string diag_progress;
   static string diag_progress_blank; // Being printed blanks out the line.

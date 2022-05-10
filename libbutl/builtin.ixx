@@ -25,7 +25,7 @@ namespace butl
   {
     if (state_ != nullptr)
     {
-      std::unique_lock<std::mutex> l (state_->mutex);
+      unique_lock l (state_->mutex);
 
       if (!state_->finished)
         return nullopt;
@@ -53,7 +53,7 @@ namespace butl
                   f ();
 
                   {
-                    std::unique_lock<std::mutex> l (this->mutex);
+                    unique_lock l (this->mutex);
                     finished = true;
                   }
 

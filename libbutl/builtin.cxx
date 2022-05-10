@@ -2246,7 +2246,7 @@ namespace butl
   {
     if (state_ != nullptr)
     {
-      unique_lock<mutex> l (state_->mutex);
+      unique_lock l (state_->mutex);
 
       if (!state_->finished)
         state_->condv.wait (l, [this] {return state_->finished;});
@@ -2261,7 +2261,7 @@ namespace butl
   {
     if (state_ != nullptr)
     {
-      unique_lock<mutex> l (state_->mutex);
+      unique_lock l (state_->mutex);
 
       if (!state_->finished &&
           !state_->condv.wait_for (l, tm, [this] {return state_->finished;}))

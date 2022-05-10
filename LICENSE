@@ -4,6 +4,7 @@ libbutl/sha1.c:
 
 libbutl/{sha256c.c, strptime.c, timelocal.[hc]}:
 libbutl/{xxhash.[hc], lz4*.[hc]}:
+libbutl/mingw-*.hxx:
 
 2-clause BSD License; see the file headers for details.
 

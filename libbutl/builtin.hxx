@@ -4,17 +4,24 @@
 #pragma once
 
 #include <map>
-#include <mutex>
 #include <string>
 #include <vector>
-#include <thread>
 #include <chrono>
 #include <memory>             // unique_ptr
 #include <cstddef>            // size_t
 #include <utility>            // move()
 #include <cstdint>            // uint8_t
 #include <functional>
-#include <condition_variable>
+
+#ifndef LIBBUTL_MINGW_STDTHREAD
+#  include <mutex>
+#  include <thread>
+#  include <condition_variable>
+#else
+#  include <libbutl/mingw-mutex.hxx>
+#  include <libbutl/mingw-thread.hxx>
+#  include <libbutl/mingw-condition_variable.hxx>
+#endif
 
 #include <libbutl/path.hxx>
 #include <libbutl/fdstream.hxx>
@@ -56,12 +63,26 @@ namespace butl
     ~builtin () {if (state_ != nullptr) state_->thread.join ();}
 
   public:
+#ifndef LIBBUTL_MINGW_STDTHREAD
+    using mutex_type = std::mutex;
+    using condition_variable_type = std::condition_variable;
+    using thread_type = std::thread;
+
+    using unique_lock = std::unique_lock<mutex_type>;
+#else
+    using mutex_type = mingw_stdthread::mutex;
+    using condition_variable_type = mingw_stdthread::condition_variable;
+    using thread_type = mingw_stdthread::thread;
+
+    using unique_lock = mingw_stdthread::unique_lock<mutex_type>;
+#endif
+
     struct async_state
     {
       bool finished = false;
-      std::mutex mutex;
-      std::condition_variable condv;
-      std::thread thread;
+      mutex_type mutex;
+      condition_variable_type condv;
+      thread_type thread;
 
       // Note that we can't use std::function as an argument type to get rid
       // of the template since std::function can only be instantiated with a
