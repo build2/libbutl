@@ -7,8 +7,13 @@
 // __cpp_thread_local (extension)
 //
 // If this macro is undefined then one may choose to fallback to __thread.
-// Note, however, that it only for values that do not require dynamic
+// Note, however, that it only works for values that do not require dynamic
 // (runtime) initialization.
+//
+// Note that thread_local with dynamic allocation/destruction appears to be
+// broken when we use our own implementation of C++14 threads on MinGW. So
+// we restrict ourselves to __thread which appears to be functioning, at
+// least in the POSIX threads GCC configuration.
 //
 #ifndef __cpp_thread_local
    //
@@ -20,7 +25,7 @@
 #    if __apple_build_version__ >= 8000000
 #      define __cpp_thread_local 201103
 #    endif
-#  else
+#  elif !defined(LIBBUTL_MINGW_STDTHREAD)
 #    define __cpp_thread_local 201103
 #  endif
 #endif

@@ -16,6 +16,11 @@ windows = ($tclass == 'windows')
 # Whether to use our own implementation of C++14 threads on MinGW (note:
 # requires Windows 7 or later).
 #
+# Note that for now we use built-in POSIX thread support during bootstrap
+# (which, as a side effect, verifies we still use MinGW GCC configured with
+# POSIX support, which we still need for TLS, exceptions, and thread-safe
+# static locals).
+#
 mingw_stdthread = ($tsys == 'mingw32')
 
 # Exclude these from compilation on targets where does not apply.
