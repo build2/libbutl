@@ -126,9 +126,17 @@ public:
                   const std::chrono::duration<Rep, Period>& rel_time,
                   Predicate pred)
     {
+#if __cplusplus >= 201703L
+      using steady_duration = typename std::chrono::steady_clock::duration;
+      return wait_until(lock,
+                        std::chrono::steady_clock::now() +
+                        std::chrono::ceil<steady_duration> (rel_time),
+                        std::move(pred));
+#else
       return wait_until(lock,
                         std::chrono::steady_clock::now() + rel_time,
                         std::move(pred));
+#endif
     }
     template <class Clock, class Duration>
     cv_status wait_until (unique_lock<mutex>& lock,

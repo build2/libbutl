@@ -81,11 +81,6 @@ namespace mingw_stdthread
 
   // Slim Reader-Writer (SRW)-based implementation that requires Windows 7.
   //
-#if !defined(SRWLOCK_INIT)
-#error SRWLOCK_INIT macro is not defined
-//#define SRWLOCK_INIT {0}
-#endif
-
   class mutex
   {
   protected:
