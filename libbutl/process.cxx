@@ -47,6 +47,14 @@
 #  elif defined(__NetBSD__) && __NetBSD__ >= 6
 #    define LIBBUTL_POSIX_SPAWN
 //
+// On OpenBSD posix_spawn() appeared in 5.2 (see the man page for details).
+//
+#  elif defined(__OpenBSD__)
+#    include <sys/param.h> // OpenBSD (yyyymm)
+#    if OpenBSD >= 201211  // 5.2 released on 1 Nov 2012.
+#      define LIBBUTL_POSIX_SPAWN
+#    endif
+//
 // posix_spawn() appeared in Version 3 of the Single UNIX Specification that
 // was implemented in MacOS 10.5 (see the man page for details).
 //
