@@ -7,7 +7,8 @@
 // complications of the build scripts/makefiles.
 //
 // With glibc linking with -rdynamic gives (non-static) function names.
-// FreeBSD/NetBSD requires explicitly linking -lexecinfo.
+// FreeBSD/NetBSD requires explicitly linking -lexecinfo. OpenBSD only has
+// this functionality built-in from 7.0 and requires -lexecinfo.
 //
 // Note that some libc implementation on Linux (most notably, musl), don't
 // support this, at least not out of the box.
@@ -18,6 +19,11 @@
       defined(__FreeBSD__) || \
       defined(__NetBSD__)
 #    define LIBBUTL_BACKTRACE
+#  elif defined (__OpenBSD__)
+#    include <sys/param.h> // OpenBSD (yyyymm)
+#    if OpenBSD >= 202110  // 7.0 was released in October 2021.
+#      define LIBBUTL_BACKTRACE
+#    endif
 #  endif
 #else
 #  if defined(__GLIBC__) || \

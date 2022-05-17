@@ -65,6 +65,14 @@ switch $tclass, $tsys
 
   case 'bsd', 'freebsd' | 'netbsd'
     cxx.libs += -lexecinfo
+
+  case 'bsd', 'openbsd'
+  {
+    # Built-in libexecinfo is only available since OpenBSD 7.0.
+    #
+    if (([uint64] $regex.replace($cxx.target.version, '(\d+)\..+', '\1')) >= 7)
+      cxx.libs += -lexecinfo
+  }
 }
 
 if! $windows
