@@ -146,10 +146,28 @@ namespace butl
   LIBBUTL_SYMEXPORT std::string&
   trim (std::string&);
 
+  LIBBUTL_SYMEXPORT std::string&
+  trim_left (std::string&);
+
+  LIBBUTL_SYMEXPORT std::string&
+  trim_right (std::string&);
+
   inline std::string
   trim (std::string&& s)
   {
     return move (trim (s));
+  }
+
+  inline std::string
+  trim_left (std::string&& s)
+  {
+    return move (trim_left (s));
+  }
+
+  inline std::string
+  trim_right (std::string&& s)
+  {
+    return move (trim_right (s));
   }
 
   // Find the beginning and end poistions of the next word. Return the size

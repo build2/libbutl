@@ -171,13 +171,42 @@ namespace butl
     for (; i != n && ws (l[i]);     ++i) ;
     for (; n != i && ws (l[n - 1]); --n) ;
 
-    if (i != 0)
+    if (n != l.size ()) l.resize (n);
+    if (i != 0)         l.erase (0, i);
+
+    return l;
+  }
+
+  string&
+  trim_left (string& l)
+  {
+    auto ws = [] (char c )
     {
-      string s (l, i, n - i);
-      l.swap (s);
-    }
-    else if (n != l.size ())
-      l.resize (n);
+      return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+    };
+
+    size_t i (0), n (l.size ());
+
+    for (; i != n && ws (l[i]); ++i) ;
+
+    if (i != 0) l.erase (0, i);
+
+    return l;
+  }
+
+  string&
+  trim_right (string& l)
+  {
+    auto ws = [] (char c )
+    {
+      return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+    };
+
+    size_t i (0), n (l.size ());
+
+    for (; n != i && ws (l[n - 1]); --n) ;
+
+    if (n != l.size ()) l.resize (n);
 
     return l;
   }
