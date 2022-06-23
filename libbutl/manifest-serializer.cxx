@@ -101,22 +101,89 @@ namespace butl
   merge_comment (const string& value, const string& comment)
   {
     string r;
-    for (char c: value)
-    {
-      // Escape ';' character.
-      //
-      if (c == ';')
-        r += '\\';
 
-      r += c;
-    }
-
-    // Add the comment.
+    // Merge the value and comment differently depending on whether any of
+    // them is multi-line or not.
     //
-    if (!comment.empty ())
+    if (value.find ('\n') == string::npos && // Single-line.
+        comment.find ('\n') == string::npos)
     {
-      r += "; ";
-      r += comment;
+      for (char c: value)
+      {
+        // Escape ';' and '\' characters.
+        //
+        if (c == ';' || c == '\\')
+          r += '\\';
+
+        r += c;
+      }
+
+      // Add the comment.
+      //
+      if (!comment.empty ())
+      {
+        r += "; ";
+        r += comment;
+      }
+    }
+    else // Multi-line.
+    {
+      // Parse the value lines and add them to the resulting value, escaping
+      // them if required.
+      //
+      // Note that we only need to escape lines which have the '\*;' form.
+      //
+      for (auto i (value.begin ()), e (value.end ()); i != e; )
+      {
+        // Find the end of the line and while at it the first non-backslash
+        // character.
+        //
+        auto le (i);
+        auto nb (e);
+        for (; le != e && *le != '\n'; ++le)
+        {
+          if (nb == e && *le != '\\')
+            nb = le;
+        }
+
+        // If the first non-backslash character is ';' and it is the last
+        // character on the line, then we need to escape the line characters.
+        // Note that we only escape ';' if it is the only character on the
+        // line. Otherwise, we only escape backslashes doubling the number of
+        // them from the left:
+        //
+        // ;   -> \;
+        // \;  -> \\;
+        // \\; -> \\\\;
+        // \\\; -> \\\\\\;
+        //
+        if (nb != e && *nb == ';' && nb + 1 == le)
+          r.append (nb == i ? 1 : nb - i, '\\');
+
+        // Add the line to the resulting value together with the trailing
+        // newline, if present.
+        //
+        r.append (i, le);
+
+        if (le != e)
+          r += '\n';
+
+        // If the value end is not reached then position to the beginning of
+        // the next line and to the end of the value otherwise.
+        //
+        i = (le != e ? le + 1 : e);
+      }
+
+      // Append the comment, if present.
+      //
+      if (!comment.empty ())
+      {
+        if (!r.empty ())
+          r += '\n';
+
+        r += ";\n";
+        r += comment;
+      }
     }
 
     return r;

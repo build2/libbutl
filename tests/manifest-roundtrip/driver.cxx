@@ -22,11 +22,16 @@ using namespace butl;
 // -m
 //    Serialize multi-line manifest values using the v2 form.
 //
+// -s
+//    Split values into the value/comment pairs and merge them back before
+//    printing.
+//
 int
 main (int argc, const char* argv[])
 try
 {
   bool multiline_v2 (false);
+  bool split (false);
 
   for (int i (1); i != argc; ++i)
   {
@@ -34,6 +39,8 @@ try
 
     if (v == "-m")
       multiline_v2 = true;
+    else if (v == "-s")
+      split = true;
   }
 
   // Read/write in binary mode.
@@ -60,6 +67,12 @@ try
     }
     else
       eom = false;
+
+    if (split)
+    {
+      const auto& vc (manifest_parser::split_comment (nv.value));
+      nv.value = manifest_serializer::merge_comment (vc.first, vc.second);
+    }
 
     s.next (nv.name, nv.value);
   }

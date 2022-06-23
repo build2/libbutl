@@ -76,3 +76,43 @@ $* -m <<EOF >>EOF
   c:\windows\\
   \
   EOF
+
+: split-merge-comment
+:
+$* -s <<EOF >>EOF
+  : 1
+  info:\
+  value
+  text
+  \
+  info:\
+  value
+  text
+  ;
+  comment
+  \
+  info:\
+  ;
+  comment
+  text
+  \
+  info:\
+  value
+  \;
+  \\
+  ;
+  comment
+  \
+  info:\
+  value
+  \\;
+  ;
+  comment
+  \
+  info:\
+  value
+  \\\\;
+  ;
+  comment
+  \
+  EOF

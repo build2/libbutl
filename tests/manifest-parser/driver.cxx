@@ -164,19 +164,76 @@ namespace butl
 
     // Manifest value splitting (into the value/comment pair).
     //
+    // Single-line.
+    //
     {
-      auto p (manifest_parser::split_comment ("value\\; text ; comment text"));
-      assert (p.first == "value; text" && p.second == "comment text");
+      auto p (manifest_parser::split_comment (
+                "\\value\\\\\\; text ; comment text"));
+
+      assert (p.first == "\\value\\; text" && p.second == "comment text");
     }
 
     {
-      auto p (manifest_parser::split_comment ("value"));
-      assert (p.first == "value" && p.second == "");
+      auto p (manifest_parser::split_comment ("value\\"));
+      assert (p.first == "value\\" && p.second == "");
     }
 
     {
       auto p (manifest_parser::split_comment ("; comment"));
       assert (p.first == "" && p.second == "comment");
+    }
+
+    // Multi-line.
+    //
+    {
+      auto p (manifest_parser::split_comment ("value\n;"));
+      assert (p.first == "value" && p.second == "");
+    }
+
+    {
+      auto p (manifest_parser::split_comment ("value\ntext\n"));
+      assert (p.first == "value\ntext\n" && p.second == "");
+    }
+
+    {
+      auto p (manifest_parser::split_comment ("value\ntext\n;"));
+      assert (p.first == "value\ntext" && p.second == "");
+    }
+
+    {
+      auto p (manifest_parser::split_comment ("value\ntext\n;\n"));
+      assert (p.first == "value\ntext" && p.second == "");
+    }
+
+    {
+      auto p (manifest_parser::split_comment ("\n\\\nvalue\ntext\n"
+                                              ";\n"
+                                              "\n\n comment\ntext"));
+
+      assert (p.first == "\n\\\nvalue\ntext" && p.second ==
+              "\n\n comment\ntext");
+    }
+
+    {
+      auto p (manifest_parser::split_comment ("\n;\ncomment"));
+      assert (p.first == "" && p.second == "comment");
+    }
+
+    {
+      auto p (manifest_parser::split_comment (";\ncomment"));
+      assert (p.first == "" && p.second == "comment");
+    }
+
+    {
+      auto p (manifest_parser::split_comment (";\n"));
+      assert (p.first == "" && p.second == "");
+    }
+
+    {
+      auto p (manifest_parser::split_comment (
+                "\\;\n\\\\;\n\\\\\\;\n\\\\\\\\;\n\\\\\\\\\\;"));
+
+      assert (p.first == ";\n\\;\n\\;\n\\\\;\n\\\\;" && p.second == "");
     }
 
     // UTF-8.

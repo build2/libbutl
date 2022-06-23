@@ -148,41 +148,136 @@ namespace butl
   {
     using iterator = string::const_iterator;
 
-    auto space = [] (char c) -> bool {return c == ' ' || c == '\t';};
-
-    iterator i (v.begin ());
-    iterator e (v.end ());
-
-    string r;
-    size_t n (0);
-    for (char c; i != e && (c = *i) != ';'; ++i)
-    {
-      // Unescape ';' character.
-      //
-      if (c == '\\' && i + 1 != e && *(i + 1) == ';')
-        c = *++i;
-
-      r += c;
-
-      if (!space (c))
-        n = r.size ();
-    }
-
-    // Strip the value trailing spaces.
+    // Parse the value differently depending on whether it is multi-line or
+    // not.
     //
-    if (r.size () != n)
-      r.resize (n);
-
-    // Find beginning of a comment (i).
-    //
-    if (i != e)
+    if (v.find ('\n') == string::npos) // Single-line.
     {
-      // Skip spaces.
-      //
-      for (++i; i != e && space (*i); ++i);
-    }
+      auto space = [] (char c) {return c == ' ' || c == '\t';};
 
-    return make_pair (move (r), string (i, e));
+      iterator i (v.begin ());
+      iterator e (v.end ());
+
+      string r;
+      size_t n (0);
+      for (char c; i != e && (c = *i) != ';'; ++i)
+      {
+        // Unescape ';' and '\' characters.
+        //
+        if (c == '\\' && i + 1 != e && (*(i + 1) == ';' || *(i + 1) == '\\'))
+          c = *++i;
+
+        r += c;
+
+        if (!space (c))
+          n = r.size ();
+      }
+
+      // Strip the value trailing spaces.
+      //
+      if (r.size () != n)
+        r.resize (n);
+
+      // Find beginning of a comment (i).
+      //
+      if (i != e)
+      {
+        // Skip spaces.
+        //
+        for (++i; i != e && space (*i); ++i);
+      }
+
+      return make_pair (move (r), string (i, e));
+    }
+    else // Multi-line.
+    {
+      string r;
+      string c;
+
+      // Parse the value lines until the comment separator is encountered or
+      // the end of the value is reached. Add these lines to the resulting
+      // value, unescaping them if required.
+      //
+      // Note that we only need to unescape lines which have the '\+;' form.
+      //
+      auto i (v.begin ());
+      auto e (v.end ());
+
+      while (i != e)
+      {
+        // Find the end of the line and while at it the first non-backslash
+        // character.
+        //
+        auto le (i);
+        auto nb (e);
+        for (; le != e && *le != '\n'; ++le)
+        {
+          if (nb == e && *le != '\\')
+            nb = le;
+        }
+
+        // If the value end is not reached then position to the beginning of
+        // the next line and to the end of the value otherwise.
+        //
+        auto next = [&i, &le, &e] () {i = (le != e ? le + 1 : e);};
+
+        // If the first non-backslash character is ';' and it is the last
+        // character on the line, then this is either the comment separator or
+        // an escape sequence.
+        //
+        if (nb != e && *nb == ';' && nb + 1 == le)
+        {
+          // If ';' is the first (and thus the only) character on the line,
+          // then this is the comment separator and we bail out from this
+          // loop. Note that in this case we need to trim the trailing newline
+          // (but only one) from the resulting value since it is considered as
+          // a part of the separator.
+          //
+          if (nb == i)
+          {
+            if (!r.empty ())
+            {
+              assert (r.back () == '\n');
+              r.pop_back ();
+            }
+
+            next ();
+            break;
+          }
+          //
+          // Otherwise, this is an escape sequence, so unescape it. For that
+          // just take the rightmost half of the string:
+          //
+          // \;     -> ;
+          // \\;    -> \;
+          // \\\;   -> \;
+          // \\\\;  -> \\;
+          // \\\\\; -> \\;
+          //
+          else
+            i += (le - i) / 2;
+        }
+
+        // Add the line to the resulting value together with the trailing
+        // newline, if present.
+        //
+        r.append (i, le);
+
+        if (le != e)
+          r += '\n';
+
+        next ();
+      }
+
+      // If we haven't reached the end of the value then it means we've
+      // encountered the comment separator. In this case save the remaining
+      // value part as a comment.
+      //
+      if (i != e)
+        c = string (i, e);
+
+      return make_pair (move (r), move (c));
+    }
   }
 
   void manifest_parser::

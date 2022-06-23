@@ -251,11 +251,36 @@ main ()
 
   // Manifest value/comment merging.
   //
-  assert (manifest_serializer::merge_comment ("value; text", "comment") ==
-          "value\\; text; comment");
+  // Single-line.
+  //
+  assert (manifest_serializer::merge_comment ("value\\; text", "comment") ==
+          "value\\\\\\; text; comment");
 
   assert (manifest_serializer::merge_comment ("value text", "") ==
           "value text");
+
+  // Multi-line.
+  //
+  assert (manifest_serializer::merge_comment ("value\n;\ntext", "comment") ==
+          "value\n\\;\ntext\n;\ncomment");
+
+  assert (manifest_serializer::merge_comment ("value\n\\;\ntext\n",
+                                              "comment") ==
+          "value\n\\\\;\ntext\n\n;\ncomment");
+
+  assert (manifest_serializer::merge_comment ("value\n\\\\;\ntext\n",
+                                              "comment") ==
+          "value\n\\\\\\\\;\ntext\n\n;\ncomment");
+
+
+  assert (manifest_serializer::merge_comment ("value\n\\\ntext", "comment") ==
+          "value\n\\\ntext\n;\ncomment");
+
+  assert (manifest_serializer::merge_comment ("\\", "comment\n") ==
+          "\\\n;\ncomment\n");
+
+  assert (manifest_serializer::merge_comment ("", "comment\ntext") ==
+          ";\ncomment\ntext");
 
   // Filtering.
   //
