@@ -18,6 +18,7 @@
 #include <utility>
 #include <ostream>
 #include <sstream>
+#include <cstring>
 
 namespace butl
 {
@@ -252,10 +253,31 @@ namespace butl
     struct parser<bool>
     {
       static void
-      parse (bool& x, scanner& s)
+      parse (bool& x, bool& xs, scanner& s)
       {
-        s.next ();
-        x = true;
+        const char* o (s.next ());
+
+        if (s.more ())
+        {
+          const char* v (s.next ());
+
+          if (std::strcmp (v, "1")    == 0 ||
+              std::strcmp (v, "true") == 0 ||
+              std::strcmp (v, "TRUE") == 0 ||
+              std::strcmp (v, "True") == 0)
+            x = true;
+          else if (std::strcmp (v, "0")     == 0 ||
+                   std::strcmp (v, "false") == 0 ||
+                   std::strcmp (v, "FALSE") == 0 ||
+                   std::strcmp (v, "False") == 0)
+            x = false;
+          else
+            throw invalid_value (o, v);
+        }
+        else
+          throw missing_value (o);
+
+        xs = true;
       }
     };
 
@@ -372,6 +394,14 @@ namespace butl
       parser<T>::parse (x.*M, s);
     }
 
+    template <typename X, bool X::*M>
+    void
+    thunk (X& x, scanner& s)
+    {
+      s.next ();
+      x.*M = true;
+    }
+
     template <typename X, typename T, T X::*M, bool X::*S>
     void
     thunk (X& x, scanner& s)
@@ -382,7 +412,6 @@ namespace butl
 }
 
 #include <map>
-#include <cstring>
 
 namespace butl
 {
@@ -733,15 +762,15 @@ namespace butl
     _cli_cp_options_map_init ()
     {
       _cli_cp_options_map_["--recursive"] =
-      &::butl::cli::thunk< cp_options, bool, &cp_options::recursive_ >;
+      &::butl::cli::thunk< cp_options, &cp_options::recursive_ >;
       _cli_cp_options_map_["-R"] =
-      &::butl::cli::thunk< cp_options, bool, &cp_options::recursive_ >;
+      &::butl::cli::thunk< cp_options, &cp_options::recursive_ >;
       _cli_cp_options_map_["-r"] =
-      &::butl::cli::thunk< cp_options, bool, &cp_options::recursive_ >;
+      &::butl::cli::thunk< cp_options, &cp_options::recursive_ >;
       _cli_cp_options_map_["--preserve"] =
-      &::butl::cli::thunk< cp_options, bool, &cp_options::preserve_ >;
+      &::butl::cli::thunk< cp_options, &cp_options::preserve_ >;
       _cli_cp_options_map_["-p"] =
-      &::butl::cli::thunk< cp_options, bool, &cp_options::preserve_ >;
+      &::butl::cli::thunk< cp_options, &cp_options::preserve_ >;
     }
   };
 
@@ -1007,9 +1036,9 @@ namespace butl
     _cli_date_options_map_init ()
     {
       _cli_date_options_map_["--utc"] =
-      &::butl::cli::thunk< date_options, bool, &date_options::utc_ >;
+      &::butl::cli::thunk< date_options, &date_options::utc_ >;
       _cli_date_options_map_["-u"] =
-      &::butl::cli::thunk< date_options, bool, &date_options::utc_ >;
+      &::butl::cli::thunk< date_options, &date_options::utc_ >;
     }
   };
 
@@ -1275,9 +1304,9 @@ namespace butl
     _cli_ln_options_map_init ()
     {
       _cli_ln_options_map_["--symbolic"] =
-      &::butl::cli::thunk< ln_options, bool, &ln_options::symbolic_ >;
+      &::butl::cli::thunk< ln_options, &ln_options::symbolic_ >;
       _cli_ln_options_map_["-s"] =
-      &::butl::cli::thunk< ln_options, bool, &ln_options::symbolic_ >;
+      &::butl::cli::thunk< ln_options, &ln_options::symbolic_ >;
     }
   };
 
@@ -1543,9 +1572,9 @@ namespace butl
     _cli_mkdir_options_map_init ()
     {
       _cli_mkdir_options_map_["--parents"] =
-      &::butl::cli::thunk< mkdir_options, bool, &mkdir_options::parents_ >;
+      &::butl::cli::thunk< mkdir_options, &mkdir_options::parents_ >;
       _cli_mkdir_options_map_["-p"] =
-      &::butl::cli::thunk< mkdir_options, bool, &mkdir_options::parents_ >;
+      &::butl::cli::thunk< mkdir_options, &mkdir_options::parents_ >;
     }
   };
 
@@ -1811,9 +1840,9 @@ namespace butl
     _cli_mv_options_map_init ()
     {
       _cli_mv_options_map_["--force"] =
-      &::butl::cli::thunk< mv_options, bool, &mv_options::force_ >;
+      &::butl::cli::thunk< mv_options, &mv_options::force_ >;
       _cli_mv_options_map_["-f"] =
-      &::butl::cli::thunk< mv_options, bool, &mv_options::force_ >;
+      &::butl::cli::thunk< mv_options, &mv_options::force_ >;
     }
   };
 
@@ -2080,13 +2109,13 @@ namespace butl
     _cli_rm_options_map_init ()
     {
       _cli_rm_options_map_["--recursive"] =
-      &::butl::cli::thunk< rm_options, bool, &rm_options::recursive_ >;
+      &::butl::cli::thunk< rm_options, &rm_options::recursive_ >;
       _cli_rm_options_map_["-r"] =
-      &::butl::cli::thunk< rm_options, bool, &rm_options::recursive_ >;
+      &::butl::cli::thunk< rm_options, &rm_options::recursive_ >;
       _cli_rm_options_map_["--force"] =
-      &::butl::cli::thunk< rm_options, bool, &rm_options::force_ >;
+      &::butl::cli::thunk< rm_options, &rm_options::force_ >;
       _cli_rm_options_map_["-f"] =
-      &::butl::cli::thunk< rm_options, bool, &rm_options::force_ >;
+      &::butl::cli::thunk< rm_options, &rm_options::force_ >;
     }
   };
 
@@ -2352,9 +2381,9 @@ namespace butl
     _cli_rmdir_options_map_init ()
     {
       _cli_rmdir_options_map_["--force"] =
-      &::butl::cli::thunk< rmdir_options, bool, &rmdir_options::force_ >;
+      &::butl::cli::thunk< rmdir_options, &rmdir_options::force_ >;
       _cli_rmdir_options_map_["-f"] =
-      &::butl::cli::thunk< rmdir_options, bool, &rmdir_options::force_ >;
+      &::butl::cli::thunk< rmdir_options, &rmdir_options::force_ >;
     }
   };
 
@@ -2623,13 +2652,13 @@ namespace butl
     _cli_sed_options_map_init ()
     {
       _cli_sed_options_map_["--quiet"] =
-      &::butl::cli::thunk< sed_options, bool, &sed_options::quiet_ >;
+      &::butl::cli::thunk< sed_options, &sed_options::quiet_ >;
       _cli_sed_options_map_["-n"] =
-      &::butl::cli::thunk< sed_options, bool, &sed_options::quiet_ >;
+      &::butl::cli::thunk< sed_options, &sed_options::quiet_ >;
       _cli_sed_options_map_["--in-place"] =
-      &::butl::cli::thunk< sed_options, bool, &sed_options::in_place_ >;
+      &::butl::cli::thunk< sed_options, &sed_options::in_place_ >;
       _cli_sed_options_map_["-i"] =
-      &::butl::cli::thunk< sed_options, bool, &sed_options::in_place_ >;
+      &::butl::cli::thunk< sed_options, &sed_options::in_place_ >;
       _cli_sed_options_map_["--expression"] =
       &::butl::cli::thunk< sed_options, std::vector<std::string>, &sed_options::expression_,
         &sed_options::expression_specified_ >;
@@ -3165,13 +3194,13 @@ namespace butl
     _cli_test_options_map_init ()
     {
       _cli_test_options_map_["--file"] =
-      &::butl::cli::thunk< test_options, bool, &test_options::file_ >;
+      &::butl::cli::thunk< test_options, &test_options::file_ >;
       _cli_test_options_map_["-f"] =
-      &::butl::cli::thunk< test_options, bool, &test_options::file_ >;
+      &::butl::cli::thunk< test_options, &test_options::file_ >;
       _cli_test_options_map_["--directory"] =
-      &::butl::cli::thunk< test_options, bool, &test_options::directory_ >;
+      &::butl::cli::thunk< test_options, &test_options::directory_ >;
       _cli_test_options_map_["-d"] =
-      &::butl::cli::thunk< test_options, bool, &test_options::directory_ >;
+      &::butl::cli::thunk< test_options, &test_options::directory_ >;
     }
   };
 
