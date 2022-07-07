@@ -57,16 +57,16 @@
   if ($test.target == $build.host)
   {
     +if ($cxx.target.class != 'windows')
-      lnf = ^ln -s t l &l
-      lnd = $lnf
+      lnf = [cmdline] ^ln -s t l &l
+      lnd = [cmdline] $lnf
     else
       echo 'yes' >=t
       if cmd /C 'mklink l t' >- 2>- &?l && cat l >'yes'
-        lnf = cmd /C 'mklink l t' &l >-
-        lnd = cmd /C 'mklink /D l t' &l >-
+        lnf = [cmdline] cmd /C 'mklink l t' &l >-
+        lnd = [cmdline] cmd /C 'mklink /D l t' &l >-
       end
 
-      jnc = cmd /C 'mklink /J l t' &l >-
+      jnc = [cmdline] cmd /C 'mklink /J l t' &l >-
     end
 
     : symlink

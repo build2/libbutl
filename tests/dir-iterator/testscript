@@ -24,16 +24,16 @@ $* a >"dir     b"
 if ($test.target == $build.host)
 {
   +if ($cxx.target.class != 'windows')
-    lnf = ^ln -s t wd/l &wd/l
-    lnd = $lnf
+    lnf = [cmdline] ^ln -s t wd/l &wd/l
+    lnd = [cmdline] $lnf
   else
     echo 'yes' >=t
     if cmd /C 'mklink l t' >- 2>- &?l && cat l >'yes'
-      lnf = cmd /C 'mklink wd\l t' &wd/l >-
-      lnd = cmd /C 'mklink /D wd\l t' &wd/l >-
+      lnf = [cmdline] cmd /C 'mklink wd\l t' &wd/l >-
+      lnd = [cmdline] cmd /C 'mklink /D wd\l t' &wd/l >-
     end
 
-    jnc = cmd /C 'mklink /J wd\l wd\t' &wd/l >-
+    jnc = [cmdline] cmd /C 'mklink /J wd\l wd\t' &wd/l >-
   end
 
   : symlink
