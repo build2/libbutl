@@ -47,13 +47,14 @@ namespace butl
   //
   template <typename F>
   inline builtin::async_state::
-  async_state (F f)
-      : thread ([f = std::move (f), this] () mutable noexcept
+  async_state (uint8_t& r, F f)
+      : thread ([this, &r, f = std::move (f)] () mutable noexcept
                 {
-                  f ();
+                  uint8_t t (f ());
 
                   {
                     unique_lock l (this->mutex);
+                    r = t;
                     finished = true;
                   }
 
@@ -68,9 +69,10 @@ namespace butl
   {
     std::unique_ptr<builtin::async_state> s (
       new builtin::async_state (
-        [f = std::move (f), &r] () mutable noexcept
+        r,
+        [f = std::move (f)] () mutable noexcept -> uint8_t
         {
-          r = f ();
+          return f ();
         }));
 
     return builtin (r, move (s));

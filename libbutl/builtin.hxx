@@ -90,8 +90,7 @@ namespace butl
       // be able to capture auto_fd by value in a lambda, etc).
       //
       template <typename F>
-      explicit
-      async_state (F);
+      async_state (uint8_t&, F);
     };
 
     builtin (std::uint8_t& r, std::unique_ptr<async_state>&& s = nullptr)
