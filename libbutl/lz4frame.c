@@ -904,8 +904,8 @@ size_t LZ4F_compressUpdate(LZ4F_cctx* cctxPtr,
     }
 
     /* keep tmpIn within limits */
-    if ((cctxPtr->tmpIn + blockSize) > (cctxPtr->tmpBuff + cctxPtr->maxBufferSize)   /* necessarily LZ4F_blockLinked && lastBlockCompressed==fromTmpBuffer */
-        && !(cctxPtr->prefs.autoFlush))
+    if (!(cctxPtr->prefs.autoFlush) &&
+        (cctxPtr->tmpIn + blockSize) > (cctxPtr->tmpBuff + cctxPtr->maxBufferSize))   /* necessarily LZ4F_blockLinked && lastBlockCompressed==fromTmpBuffer */
     {
         int const realDictSize = LZ4F_localSaveDict(cctxPtr);
         cctxPtr->tmpIn = cctxPtr->tmpBuff + realDictSize;
