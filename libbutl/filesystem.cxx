@@ -626,7 +626,7 @@ namespace butl
     string d;
     if (path::traits_type::root (p))
     {
-      d = p;
+      d = string (p); // GCC bug #105329.
       d += path::traits_type::directory_separator;
       p = d.c_str ();
     }
