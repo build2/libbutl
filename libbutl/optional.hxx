@@ -263,10 +263,10 @@ namespace butl
 #if (!defined(_MSC_VER) || _MSC_VER > 1900) &&  \
     (!defined(__GNUC__) || __GNUC__ > 4 || defined(__clang__))
     constexpr optional (const optional&) = default;
-    constexpr optional (optional&&)      = default;
+    constexpr optional (optional&&) noexcept (is_nothrow_constructible<T, T>::value) = default;
 #else
     optional (const optional&) = default;
-    optional (optional&&)      = default;
+    optional (optional&&) noexcept (is_nothrow_constructible<T, T>::value) = default;
 #endif
 
     optional& operator= (nullopt_t v) {static_cast<base&> (*this) = v;             return *this;}
