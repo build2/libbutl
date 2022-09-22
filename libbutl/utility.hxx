@@ -132,11 +132,13 @@ namespace butl
   bool digit  (char);
   bool alnum  (char);
   bool xdigit (char);
+  bool wspace (char);
 
   bool alpha  (wchar_t);
   bool digit  (wchar_t);
   bool alnum  (wchar_t);
   bool xdigit (wchar_t);
+  bool wspace (wchar_t);
 
   // Basic string utilities.
   //

@@ -143,6 +143,12 @@ namespace butl
   }
 
   inline bool
+  wspace (char c)
+  {
+    return std::isspace (c);
+  }
+
+  inline bool
   alpha (wchar_t c)
   {
     return std::iswalpha (c);
@@ -164,6 +170,12 @@ namespace butl
   xdigit (wchar_t c)
   {
     return std::iswxdigit (c);
+  }
+
+  inline bool
+  wspace (wchar_t c)
+  {
+    return std::iswspace (c);
   }
 
   inline std::size_t
