@@ -8,6 +8,10 @@ libbutl/mingw-*.hxx:
 
 2-clause BSD License; see the file headers for details.
 
+libbutl/json/pdjson.[hc]:
+
+UNLICENSE (dedicated to the public domain).
+
 The rest:
 
 MIT License

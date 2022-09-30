@@ -29,9 +29,9 @@ lib{butl}: {hxx ixx cxx}{win32-utility}: include = $windows
 lib{butl}: hxx{mingw-*}: include = $mingw_stdthread
 
 # Our C-files are always included into C++-files that wrap the corresponding
-# API so treat them as files exclude from the compilation.
+# API so treat them as files to exclude from the compilation.
 #
-lib{butl}: file{*.c *.h}
+lib{butl}: file{**.c **.h}
 
 # Platform-specific UUID implementations.
 #
