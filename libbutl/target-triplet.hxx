@@ -77,6 +77,7 @@ namespace butl
   // i686-w64-mingw32                  i686    w64        mingw32
   // i686-lfs-linux-gnu                i686    lfs        linux-gnu
   // x86_64-unknown-linux-gnu          x86_64             linux-gnu
+  // x86_64-redhat-linux               x86_64  redhat     linux-gnu
   // x86_64-linux-gnux32               x86_64             linux-gnux32
   // x86_64-microsoft-win32-msvc14.0   x86_64  microsoft  win32-msvc     14.0
   // x86_64-pc-windows-msvc            x86_64             windows-msvc

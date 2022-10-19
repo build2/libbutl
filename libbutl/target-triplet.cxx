@@ -88,6 +88,11 @@ namespace butl
     if (system.front () == '-' || system.back () == '-')
       bad ("invalid os/kernel/abi");
 
+    // Canonicalize SYSTEM.
+    //
+    if (system == "linux")
+      system = "linux-gnu"; // Per config.sub.
+
     // Extract VERSION for some recognized systems.
     //
     string::size_type v (0);
