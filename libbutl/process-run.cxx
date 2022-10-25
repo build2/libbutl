@@ -24,7 +24,7 @@ namespace butl
     try
     {
       return process (pp, cmd,
-                      in, out, err,
+                      move (in), move (out), move (err),
                       cwd != nullptr ? cwd->string ().c_str () : nullptr,
                       envvars);
     }

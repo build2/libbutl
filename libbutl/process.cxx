@@ -1794,7 +1794,6 @@ namespace butl
 
       using namespace chrono;
 
-
       // Retry for about 1 hour.
       //
       system_clock::duration timeout (1h);

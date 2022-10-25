@@ -298,21 +298,41 @@ namespace butl
              const char* const* envvars = nullptr);
 
     // If the descriptors are pipes that you have created, then you should use
-    // this constructor instead to communicate this information.
+    // this constructor instead to communicate this information (the parent
+    // end may need to be "probed" on Windows).
     //
     // For generality, if the "other" end of the pipe is -1, then assume this
     // is not a pipe.
     //
     struct pipe
     {
-      int in  = -1;
-      int out = -1;
-
       pipe () = default;
       pipe (int i, int o): in (i), out (o) {}
 
       explicit
       pipe (const fdpipe& p): in (p.in.get ()), out (p.out.get ()) {}
+
+      // Transfer ownership to one end of the pipe.
+      //
+      pipe (auto_fd i, int o): in (i.release ()), out (o), own_in (true) {}
+      pipe (int i, auto_fd o): in (i), out (o.release ()), own_out (true) {}
+
+      // Moveable-only type.
+      //
+      pipe (pipe&&);
+      pipe& operator= (pipe&&);
+
+      pipe (const pipe&) = delete;
+      pipe& operator= (const pipe&) = delete;
+
+      ~pipe ();
+
+    public:
+      int in  = -1;
+      int out = -1;
+
+      bool own_in = false;
+      bool own_out = false;
     };
 
     process (const process_path&, const char* [],

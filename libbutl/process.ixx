@@ -124,6 +124,42 @@ namespace butl
   }
 #endif
 
+  // process::pipe
+  //
+  inline process::pipe::
+  pipe (pipe&& p)
+      : in (p.in), out (p.out), own_in (p.own_in), own_out (p.own_out)
+  {
+    p.in = p.out = -1;
+  }
+
+  inline process::pipe& process::pipe::
+  operator= (pipe&& p)
+  {
+    if (this != &p)
+    {
+      int d (own_in ? in : own_out ? out : -1);
+      if (d != -1)
+        fdclose (d);
+
+      in = p.in;
+      out = p.out;
+      own_in = p.own_in;
+      own_out = p.own_out;
+
+      p.in = p.out = -1;
+    }
+    return *this;
+  }
+
+  inline process::pipe::
+  ~pipe ()
+  {
+    int d (own_in ? in : own_out ? out : -1);
+    if (d != -1)
+      fdclose (d);
+  }
+
   // process
   //
 #ifndef _WIN32

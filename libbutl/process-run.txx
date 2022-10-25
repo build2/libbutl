@@ -87,21 +87,21 @@ namespace butl
   // valid file descriptor.
   //
   inline process::pipe
-  process_stdin (const process::pipe& v)
+  process_stdin (process::pipe v)
   {
     assert (v.in >= 0);
     return v;
   }
 
   inline process::pipe
-  process_stdout (const process::pipe& v)
+  process_stdout (process::pipe v)
   {
     assert (v.out >= 0);
     return v;
   }
 
   inline process::pipe
-  process_stderr (const process::pipe& v)
+  process_stderr (process::pipe v)
   {
     assert (v.out >= 0);
     return v;
@@ -170,7 +170,9 @@ namespace butl
     return process_start (env.cwd,
                           *env.path, cmd.data (),
                           env.vars,
-                          in_i, out_i, err_i);
+                          std::move (in_i),
+                          std::move (out_i),
+                          std::move (err_i));
   }
 
   template <typename C,
