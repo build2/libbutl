@@ -105,6 +105,7 @@ namespace butl
 
     optional<semantic_version> ver (
       parse_semantic_version (string (s, b, e != string::npos ? e - b : e),
+                              semantic_version::allow_build,
                               "" /* build_separators */));
 
     if (!ver)

@@ -15,23 +15,9 @@ namespace butl
   {
   }
 
-  // Note: the order is important to MinGW GCC (DLL linkage).
-  //
   inline semantic_version::
-  semantic_version (const std::string& s, std::size_t p, bool ab)
-      : semantic_version (s, p, ab ? "-+" : nullptr)
-  {
-  }
-
-  inline semantic_version::
-  semantic_version (const std::string& s, const char* bs)
-      : semantic_version (s, 0, bs)
-  {
-  }
-
-  inline semantic_version::
-  semantic_version (const std::string& s, bool ab)
-      : semantic_version (s, ab ? "-+" : nullptr)
+  semantic_version (const std::string& s, flags fs, const char* bs)
+      : semantic_version (s, 0, fs, bs)
   {
   }
 
@@ -42,29 +28,53 @@ namespace butl
   };
 
   LIBBUTL_SYMEXPORT semantic_version_result
-  parse_semantic_version_impl (const std::string&, std::size_t, const char*);
+  parse_semantic_version_impl (const std::string&,
+                               std::size_t,
+                               semantic_version::flags,
+                               const char*);
 
   inline optional<semantic_version>
-  parse_semantic_version (const std::string& s, bool ab)
+  parse_semantic_version (const std::string& s,
+                          semantic_version::flags fs,
+                          const char* bs)
   {
-    return parse_semantic_version (s, ab ? "-+" : nullptr);
+    return parse_semantic_version_impl (s, 0, fs, bs).version;
   }
 
   inline optional<semantic_version>
-  parse_semantic_version (const std::string& s, const char* bs)
+  parse_semantic_version (const std::string& s,
+                          std::size_t p,
+                          semantic_version::flags fs,
+                          const char* bs)
   {
-    return parse_semantic_version_impl (s, 0, bs).version;
+    return parse_semantic_version_impl (s, p, fs, bs).version;
   }
 
-  inline optional<semantic_version>
-  parse_semantic_version (const std::string& s, std::size_t p, bool ab)
+  inline semantic_version::flags
+  operator& (semantic_version::flags x, semantic_version::flags y)
   {
-    return parse_semantic_version (s, p, ab ? "-+" : nullptr);
+    return x &= y;
   }
 
-  inline optional<semantic_version>
-  parse_semantic_version (const std::string& s, std::size_t p, const char* bs)
+  inline semantic_version::flags
+  operator| (semantic_version::flags x, semantic_version::flags y)
   {
-    return parse_semantic_version_impl (s, p, bs).version;
+    return x |= y;
+  }
+
+  inline semantic_version::flags
+  operator&= (semantic_version::flags& x, semantic_version::flags y)
+  {
+    return x = static_cast<semantic_version::flags> (
+      static_cast<std::uint16_t> (x) &
+      static_cast<std::uint16_t> (y));
+  }
+
+  inline semantic_version::flags
+  operator|= (semantic_version::flags& x, semantic_version::flags y)
+  {
+    return x = static_cast<semantic_version::flags> (
+      static_cast<std::uint16_t> (x) |
+      static_cast<std::uint16_t> (y));
   }
 }

@@ -23,7 +23,6 @@ main ()
     semver v;
     assert (v.major == 0 && v.minor == 0 && v.patch == 0 && v.build.empty ());
   }
-
   {
     semver v (1, 2, 3);
     assert (v.major == 1 && v.minor == 2 && v.patch == 3 && v.build.empty ());
@@ -46,17 +45,27 @@ main ()
 
   // String representation.
   //
-  assert (semver ("1.2")            == semver (1, 2, 0));
-  assert (semver ("1.2-3")          == semver (1, 2, 0, "-3"));
-  assert (semver ("1.2.a1", "+-.")  == semver (1, 2, 0, ".a1"));
-  assert (semver ("1.2.3")          == semver (1, 2, 3));
-  assert (semver ("1.2.3-4")        == semver (1, 2, 3, "-4"));
-  assert (semver ("1.2.3+4")        == semver (1, 2, 3, "+4"));
-  assert (semver ("1.2.3.4", "+-.") == semver (1, 2, 3, ".4"));
-  assert (semver ("1.2.3a",  "")    == semver (1, 2, 3, "a"));
-  try {semver v ("1.2.3-4", false); assert (false);} catch (failed) {}
-  try {semver v ("1.2.3.4");        assert (false);} catch (failed) {}
-  try {semver v ("1.2.3a");         assert (false);} catch (failed) {}
+  assert (semver ("1",       semver::allow_omit_minor)                              == semver (1, 0, 0));
+  assert (semver ("1-2",     semver::allow_omit_minor | semver::allow_build)        == semver (1, 0, 0, "-2"));
+  assert (semver ("1.2",     semver::allow_omit_minor)                              == semver (1, 2, 0));
+  assert (semver ("1.2+a",   semver::allow_omit_minor | semver::allow_build)        == semver (1, 2, 0, "+a"));
+  assert (semver ("1.2",     semver::allow_omit_patch)                              == semver (1, 2, 0));
+  assert (semver ("1.2-3",   semver::allow_omit_patch | semver::allow_build)        == semver (1, 2, 0, "-3"));
+  assert (semver ("1.2.a1",  semver::allow_omit_patch | semver::allow_build, ".+-") == semver (1, 2, 0, ".a1"));
+  assert (semver ("1.2.3")                                                          == semver (1, 2, 3));
+  assert (semver ("1.2.3-4", semver::allow_build)                                   == semver (1, 2, 3, "-4"));
+  assert (semver ("1.2.3+4", semver::allow_build)                                   == semver (1, 2, 3, "+4"));
+  assert (semver ("1.2.3.4", semver::allow_build, "+-.")                            == semver (1, 2, 3, ".4"));
+  assert (semver ("1.2.3a",  semver::allow_build, "")                               == semver (1, 2, 3, "a"));
+
+  try {semver v ("1");       assert (false);} catch (failed) {}
+  try {semver v ("1.x.2");   assert (false);} catch (failed) {}
+  try {semver v ("1.2");     assert (false);} catch (failed) {}
+  try {semver v ("1.2.x");   assert (false);} catch (failed) {}
+  try {semver v ("1.2.3-4"); assert (false);} catch (failed) {}
+  try {semver v ("1.2.3.4"); assert (false);} catch (failed) {}
+  try {semver v ("1.2.3a");  assert (false);} catch (failed) {}
+
   assert (!parse_semantic_version ("1.2.3.4"));
 
   // Numeric representation.

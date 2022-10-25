@@ -36,7 +36,9 @@ namespace butl
     // MinGit: git version 2.16.1.windows.1
     //
     if (s.compare (0, 12, "git version ") == 0)
-      return parse_semantic_version (s, 12, "" /* build_separators */);
+      return parse_semantic_version (s, 12,
+                                     semantic_version::allow_build,
+                                     "" /* build_separators */);
 
     return nullopt;
   }

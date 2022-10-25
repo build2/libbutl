@@ -27,15 +27,9 @@ namespace butl
 {
   // Semantic or semantic-like version.
   //
-  // <major>.<minor>[.<patch>][<build>]
+  // <major>[.<minor>[.<patch>]][<build>]
   //
-  // If the patch component is absent, then it defaults to 0.
-  //
-  // @@ Currently there is no way to enforce the three-component version.
-  //    Supporting this will require changing allow_build to a bit-wise
-  //    flag. See parse_semantic_version_impl() for some sketched code.
-  //    We may also want to pass these flags to string() to not print
-  //    0 patch.
+  // If the minor and patch components are absent, then they default to 0.
   //
   // By default, a version containing the <build> component is considered
   // valid only if separated from <patch> with '-' (semver pre-release) or '+'
@@ -63,23 +57,36 @@ namespace butl
                       std::uint64_t patch,
                       std::string   build = "");
 
-    // The build_separators argument can be NULL (no build component allowed),
-    // empty (any build component allowed), or a string of characters to allow
-    // as separators. When allow_build is true build_separators defaults to
-    // "-+".
+    // If the allow_build flag is specified, then build_separators argument
+    // can be a string of characters to allow as separators, empty (any build
+    // component allowed), or NULL (defaults to "-+").
     //
-    explicit
-    semantic_version (const std::string&, bool allow_build = true);
+    // Note: allow_omit_minor implies allow_omit_patch.
+    //
+    enum flags
+    {
+      none             = 0,    // Exact <major>.<minor>.<patch> form.
+      allow_omit_minor = 0x01, // Allow <major> form.
+      allow_omit_patch = 0x02, // Allow <major>.<minor> form.
+      allow_build      = 0x04, // Allow <major>.<minor>.<patch>-<build> form.
+    };
 
-    semantic_version (const std::string&, const char* build_separators);
+    explicit
+    semantic_version (const std::string&,
+                      flags = none,
+                      const char* build_separators = nullptr);
 
     // As above but parse from the specified position until the end of the
     // string.
     //
-    semantic_version (const std::string&, std::size_t pos, bool = true);
+    semantic_version (const std::string&,
+                      std::size_t pos,
+                      flags = none,
+                      const char* = nullptr);
 
-    semantic_version (const std::string&, std::size_t pos, const char*);
-
+    // @@ We may also want to pass allow_* flags not to print 0 minor/patch or
+    //    maybe invent ignore_* flags.
+    //
     std::string
     string (bool ignore_build = false) const;
 
@@ -116,16 +123,15 @@ namespace butl
   // Try to parse a string as a semantic version returning nullopt if invalid.
   //
   optional<semantic_version>
-  parse_semantic_version (const std::string&, bool allow_build = true);
+  parse_semantic_version (const std::string&,
+                          semantic_version::flags = semantic_version::none,
+                          const char* build_separators = nullptr);
 
   optional<semantic_version>
-  parse_semantic_version (const std::string&, const char* build_separators);
-
-  optional<semantic_version>
-  parse_semantic_version (const std::string&, std::size_t pos, bool = true);
-
-  optional<semantic_version>
-  parse_semantic_version (const std::string&, std::size_t pos, const char*);
+  parse_semantic_version (const std::string&,
+                          std::size_t pos,
+                          semantic_version::flags = semantic_version::none,
+                          const char* = nullptr);
 
   // NOTE: comparison operators take the build component into account.
   //
@@ -170,6 +176,18 @@ namespace butl
   {
     return o << x.string ();
   }
+
+  inline semantic_version::flags
+  operator& (semantic_version::flags, semantic_version::flags);
+
+  inline semantic_version::flags
+  operator| (semantic_version::flags, semantic_version::flags);
+
+  inline semantic_version::flags
+  operator&= (semantic_version::flags&, semantic_version::flags);
+
+  inline semantic_version::flags
+  operator|= (semantic_version::flags&, semantic_version::flags);
 }
 
 #include <libbutl/semantic-version.ixx>

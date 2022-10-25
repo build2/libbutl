@@ -3,6 +3,7 @@
 
 #include <libbutl/semantic-version.hxx>
 
+#include <cassert>
 #include <cstring>   // strchr()
 #include <utility>   // move()
 #include <stdexcept> // invalid_argument
@@ -52,9 +53,9 @@ namespace butl
   }
 
   semantic_version::
-  semantic_version (const std::string& s, size_t p, const char* bs)
+  semantic_version (const std::string& s, size_t p, flags fs, const char* bs)
   {
-    semantic_version_result r (parse_semantic_version_impl (s, p, bs));
+    semantic_version_result r (parse_semantic_version_impl (s, p, fs, bs));
 
     if (r.version)
       *this = move (*r.version);
@@ -70,8 +71,27 @@ namespace butl
                 uint64_t min = 0, uint64_t max = uint64_t (~0));
 
   semantic_version_result
-  parse_semantic_version_impl (const string& s, size_t p, const char* bs)
+  parse_semantic_version_impl (const string& s, size_t p,
+                               semantic_version::flags fs,
+                               const char* bs)
   {
+    bool allow_build ((fs & semantic_version::allow_build) != 0);
+
+    // If build separators are specified, then the allow_build flag must be
+    // specified explicitly.
+    //
+    assert (bs == nullptr || allow_build);
+
+    if (allow_build && bs == nullptr)
+      bs = "-+";
+
+    bool require_minor ((fs & semantic_version::allow_omit_minor) == 0);
+
+    if (!require_minor)
+      fs |= semantic_version::allow_omit_patch;
+
+    bool require_patch ((fs & semantic_version::allow_omit_patch) == 0);
+
     auto bail = [] (string m)
     {
       return semantic_version_result {nullopt, move (m)};
@@ -82,31 +102,47 @@ namespace butl
     if (!parse_uint64 (s, p, r.major))
       return bail ("invalid major version");
 
-    if (s[p] != '.')
-      return bail ("'.' expected after major version");
-
-    if (!parse_uint64 (s, ++p, r.minor))
-      return bail ("invalid minor version");
-
-    if (s[p] == '.')
+    if (s[p] == '.') // Is there a minor version?
     {
-      // Treat it as build if failed to parse as patch (e.g., 1.2.alpha).
+      // Try to parse the minor version and treat it as build on failure
+      // (e.g., 1.alpha).
       //
-      if (!parse_uint64 (s, ++p, r.patch))
+      if (parse_uint64 (s, ++p, r.minor))
       {
-        //if (require_patch)
-        //  return bail ("invalid patch version");
+        if (s[p] == '.') // Is there a patch version?
+        {
+          // Try to parse the patch version and treat it as build on failure
+          // (e.g., 1.2.alpha).
+          //
+          if (parse_uint64 (s, ++p, r.patch))
+            ;
+          else
+          {
+            if (require_patch)
+              return bail ("invalid patch version");
+
+            --p;
+            // Fall through.
+          }
+        }
+        else if (require_patch)
+          return bail ("'.' expected after minor version");
+      }
+      else
+      {
+        if (require_minor)
+          return bail ("invalid minor version");
 
         --p;
         // Fall through.
       }
     }
-    //else if (require_patch)
-    //  return bail ("'.' expected after minor version");
+    else if (require_minor)
+      return bail ("'.' expected after major version");
 
     if (char c = s[p])
     {
-      if (bs == nullptr || (*bs != '\0' && strchr (bs, c) == nullptr))
+      if (!allow_build || (*bs != '\0' && strchr (bs, c) == nullptr))
         return bail ("junk after version");
 
       r.build.assign (s, p, string::npos);
