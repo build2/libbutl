@@ -190,7 +190,7 @@ namespace butl
   }
 
   void process::
-  print (ostream& o, const char* const args[], size_t n)
+  print (ostream& o, const char* const* args, size_t n)
   {
     size_t m (0);
     const char* const* p (args);
@@ -383,7 +383,7 @@ namespace butl
   }
 
   process::
-  process (const process_path& pp, const char* args[],
+  process (const process_path& pp, const char* const* args,
            pipe pin, pipe pout, pipe perr,
            const char* cwd,
            const char* const* evars)
@@ -1365,7 +1365,7 @@ namespace butl
   static map<string, bool> detect_msys_cache_;
 
   process::
-  process (const process_path& pp, const char* args[],
+  process (const process_path& pp, const char* const* args,
            pipe pin, pipe pout, pipe perr,
            const char* cwd,
            const char* const* evars)

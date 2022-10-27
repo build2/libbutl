@@ -223,12 +223,11 @@ namespace butl
   }
 
   inline process::
-  process (const process_path& pp, const char* args[],
+  process (const process_path& pp, const char* const* args,
            int in, int out, int err,
            const char* cwd,
            const char* const* envvars)
-      : process (pp,
-                 args,
+      : process (pp, args,
                  pipe (in, -1), pipe (-1, out), pipe (-1, err),
                  cwd,
                  envvars)
@@ -236,14 +235,76 @@ namespace butl
   }
 
   inline process::
-  process (const char* args[],
+  process (const char** args,
            int in, int out, int err,
            const char* cwd,
            const char* const* envvars)
-      : process (path_search (args[0]), args, in, out, err, cwd, envvars) {}
+      : process (path_search (args[0]), args, in, out, err, cwd, envvars)
+  {
+  }
 
   inline process::
-  process (const process_path& pp, const char* args[],
+  process (const process_path& pp, const std::vector<const char*>& args,
+           int in, int out, int err,
+           const char* cwd,
+           const char* const* envvars)
+      : process (pp, args.data (),
+                 pipe (in, -1), pipe (-1, out), pipe (-1, err),
+                 cwd,
+                 envvars)
+  {
+  }
+
+  inline process::
+  process (std::vector<const char*>& args,
+           int in, int out, int err,
+           const char* cwd,
+           const char* const* envvars)
+      : process (path_search (args[0]), args.data (),
+                 in, out, err,
+                 cwd,
+                 envvars)
+  {
+  }
+
+  inline process::
+  process (const process_path& pp, const char* const* args,
+           int in, int out, pipe err,
+           const char* cwd,
+           const char* const* envvars)
+      : process (pp, args,
+                 pipe (in, -1), pipe (-1, out), std::move (err),
+                 cwd,
+                 envvars)
+  {
+  }
+
+  inline process::
+  process (const process_path& pp, const std::vector<const char*>& args,
+           pipe in, pipe out, pipe err,
+           const char* cwd,
+           const char* const* envvars)
+      : process (pp, args.data (),
+                 std::move (in), std::move (out), std::move (err),
+                 cwd,
+                 envvars)
+  {
+  }
+
+  inline process::
+  process (const process_path& pp, const std::vector<const char*>& args,
+           int in, int out, pipe err,
+           const char* cwd,
+           const char* const* envvars)
+      : process (pp, args.data (),
+                 pipe (in, -1), pipe (-1, out), std::move (err),
+                 cwd,
+                 envvars)
+  {
+  }
+
+  inline process::
+  process (const process_path& pp, const char* const* args,
            process& in, int out, int err,
            const char* cwd,
            const char* const* envvars)
@@ -254,11 +315,13 @@ namespace butl
   }
 
   inline process::
-  process (const char* args[],
+  process (const char** args,
            process& in, int out, int err,
            const char* cwd,
            const char* const* envvars)
-      : process (path_search (args[0]), args, in, out, err, cwd, envvars) {}
+      : process (path_search (args[0]), args, in, out, err, cwd, envvars)
+  {
+  }
 
   inline process::
   process (process&& p)

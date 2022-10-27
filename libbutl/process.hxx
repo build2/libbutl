@@ -287,12 +287,22 @@ namespace butl
     // Note that the versions without the the process_path argument may
     // temporarily change args[0] (see path_search() for details).
     //
-    process (const char* [],
+    process (const char**,
              int in = 0, int out = 1, int err = 2,
              const char* cwd = nullptr,
              const char* const* envvars = nullptr);
 
-    process (const process_path&, const char* [],
+    process (const process_path&, const char* const*,
+             int in = 0, int out = 1, int err = 2,
+             const char* cwd = nullptr,
+             const char* const* envvars = nullptr);
+
+    process (std::vector<const char*>&,
+             int in = 0, int out = 1, int err = 2,
+             const char* cwd = nullptr,
+             const char* const* envvars = nullptr);
+
+    process (const process_path&, const std::vector<const char*>&,
              int in = 0, int out = 1, int err = 2,
              const char* cwd = nullptr,
              const char* const* envvars = nullptr);
@@ -335,8 +345,23 @@ namespace butl
       bool own_out = false;
     };
 
-    process (const process_path&, const char* [],
+    process (const process_path&, const char* const*,
              pipe in, pipe out, pipe err,
+             const char* cwd = nullptr,
+             const char* const* envvars = nullptr);
+
+    process (const process_path&, const char* const*,
+             int in, int out, pipe err,
+             const char* cwd = nullptr,
+             const char* const* envvars = nullptr);
+
+    process (const process_path&, const std::vector<const char*>&,
+             pipe in, pipe out, pipe err,
+             const char* cwd = nullptr,
+             const char* const* envvars = nullptr);
+
+    process (const process_path&, const std::vector<const char*>&,
+             int in, int out, pipe err,
              const char* cwd = nullptr,
              const char* const* envvars = nullptr);
 
@@ -348,12 +373,12 @@ namespace butl
     // rhs.wait (); // Wait for last first.
     // lhs.wait ();
     //
-    process (const char* [],
+    process (const char**,
              process&, int out = 1, int err = 2,
              const char* cwd = nullptr,
              const char* const* envvars = nullptr);
 
-    process (const process_path&, const char* [],
+    process (const process_path&, const char* const*,
              process&, int out = 1, int err = 2,
              const char* cwd = nullptr,
              const char* const* envvars = nullptr);
@@ -518,7 +543,7 @@ namespace butl
     // nameN arg arg ... nullptr nullptr
     //
     static void
-    print (std::ostream&, const char* const args[], size_t n = 0);
+    print (std::ostream&, const char* const* args, size_t n = 0);
 
     // Quote and escape the specified command line argument. If batch is true
     // then also quote the equal (`=`), comma (`,`) and semicolon (`;`)
@@ -698,7 +723,7 @@ namespace butl
   // command line or similar. It should be callable with the following
   // signature:
   //
-  // void (const char*[], std::size_t)
+  // void (const char* const*, std::size_t)
   //
   template <typename C,
             typename I,
