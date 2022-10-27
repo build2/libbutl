@@ -167,6 +167,8 @@ namespace butl
   inline std::vector<char> ifdstream::
   read_binary ()
   {
+    // @@ TODO: surely there is a more efficient way! See sha256!
+
     std::vector<char> v (std::istreambuf_iterator<char> (*this),
                          std::istreambuf_iterator<char> ());
     return v;

@@ -137,6 +137,11 @@ namespace butl
   class LIBBUTL_SYMEXPORT fdstreambuf: public bufstreambuf
   {
   public:
+    // Reasonable (for stack allocation) buffer size that provides decent
+    // performance.
+    //
+    static const std::size_t buffer_size = 8192;
+
     fdstreambuf () = default;
 
     // Unless specified, the current read/write position is assumed to
@@ -173,6 +178,9 @@ namespace butl
     //
     bool
     blocking (bool);
+
+    bool
+    blocking () const {return !non_blocking_;}
 
   public:
     using base = bufstreambuf;
@@ -238,7 +246,7 @@ namespace butl
 
   private:
     auto_fd fd_;
-    char buf_[8192];
+    char buf_[buffer_size];
     bool non_blocking_ = false;
   };
 
@@ -310,6 +318,9 @@ namespace butl
   public:
     int
     fd () const {return buf_.fd ();}
+
+    bool
+    blocking () const {return buf_.blocking ();}
 
   protected:
     fdstreambuf buf_;
