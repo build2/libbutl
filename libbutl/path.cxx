@@ -184,8 +184,8 @@ namespace butl
     using std::to_string;
 
     return prefix
-      + "-" + to_string (process::current_id ())
-      + "-" + to_string (temp_name_count++);
+      + '-' + to_string (process::current_id ())
+      + '-' + to_string (temp_name_count++);
   }
 
   template <>

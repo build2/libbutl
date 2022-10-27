@@ -87,7 +87,7 @@ namespace butl
         // Note that quoting is essential here.
         //
         for (const dir_path& p: projects)
-          ps.push_back ("'" + p.representation () + "'");
+          ps.push_back ('\'' + p.representation () + '\'');
 
         pr = process_start_callback (
           cmd_callback ? cmd_callback : [] (const char* const*, size_t) {},
@@ -297,7 +297,7 @@ namespace butl
       assert (!pr.wait ());
 
       throw b_error (
-        string ("process ") + pp.recall_string () + " " + to_string (*pr.exit),
+        string ("process ") + pp.recall_string () + ' ' + to_string (*pr.exit),
         move (pr.exit));
     }
     catch (const process_error& e)

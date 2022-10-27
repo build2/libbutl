@@ -51,7 +51,7 @@ namespace butl
       //
       if (p == string::npos)
         throw invalid_argument (string ("unmatched substitution character '") +
-                                open + "'");
+                                open + '\'');
 
       if (p == sp)
         throw invalid_argument ("empty substitution variable");
@@ -60,12 +60,12 @@ namespace butl
 
       if (vn.find_first_of (" \t") != string::npos)
         throw invalid_argument ("whitespace in substitution variable '" +
-                                vn + "'");
+                                vn + '\'');
 
       // Find the variable and append its value or fail if it's unknown.
       //
       if (!sc (vn, r))
-        throw invalid_argument ("unknown substitution variable '" + vn + "'");
+        throw invalid_argument ("unknown substitution variable '" + vn + '\'');
     }
 
     // Append the source string tail following the last substitution.
@@ -168,7 +168,7 @@ namespace butl
         catch (const invalid_path& e)
         {
           throw invalid_argument ("invalid stdout redirect file path '" +
-                                  e.path + "'");
+                                  e.path + '\'');
         }
 
         if (redir->empty ())

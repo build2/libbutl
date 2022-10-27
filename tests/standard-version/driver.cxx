@@ -83,7 +83,7 @@ version (const string& s,
 
       if (v.minor () != 99999)
       {
-        standard_version_constraint c1 ("~" + s);
+        standard_version_constraint c1 ('~' + s);
         standard_version_constraint c2 ('[' + s + ' ' + max_ver ('~') + ')');
         assert (c1 == c2);
       }
@@ -91,7 +91,7 @@ version (const string& s,
       if ((v.major () == 0 && v.minor () != 99999) ||
           (v.major () != 0 && v.major () != 99999))
       {
-        standard_version_constraint c1 ("^" + s);
+        standard_version_constraint c1 ('^' + s);
         standard_version_constraint c2 ('[' + s + ' ' + max_ver ('^') + ')');
         assert (c1 == c2);
       }
