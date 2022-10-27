@@ -27,8 +27,11 @@ namespace butl
   LIBBUTL_SYMEXPORT extern std::ostream* diag_stream;
 
   // Acquire the diagnostics exclusive access mutex in ctor, release in dtor.
-  // An object of the type must be created prior to writing to diag_stream (see
-  // above).
+  // An object of the type must be created prior to writing to diag_stream
+  // (see above).
+  //
+  // Note that this class also manages the interaction with the progress
+  // printing (see below).
   //
   struct LIBBUTL_SYMEXPORT diag_stream_lock
   {
@@ -128,8 +131,10 @@ namespace butl
     bool
     full () const {return !empty_;}
 
+    // Note that currently the passed writer is not passed to the epilogue.
+    //
     void
-    flush () const;
+    flush (void (*writer) (const diag_record&) = nullptr) const;
 
     void
     append (const char* indent, diag_epilogue* e) const
