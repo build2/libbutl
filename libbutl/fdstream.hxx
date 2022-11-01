@@ -652,6 +652,54 @@ namespace butl
   LIBBUTL_SYMEXPORT ifdstream&
   getline (ifdstream&, std::string&, char delim = '\n');
 
+  // The non-blocking getline() version that reads the line in potentially
+  // multiple calls. Key differences compared to getline():
+  //
+  // - Stream must be in the non-blocking mode and exception mask must have
+  //   at least badbit.
+  //
+  // - Return type is bool instead of stream. Return true if the line has been
+  //   read or false if it should be called again once the stream has more
+  //   data to read. Also return true on failure.
+  //
+  // - The string must be empty on the first call.
+  //
+  // - There could still be data to read in the stream's buffer (as opposed to
+  //   file descriptor) after this function returns true and you should be
+  //   careful not to block on fdselect() in this case. In fact, the
+  //   recommended pattern is to call this function first and only call
+  //   fdselect() if it returns false.
+  //
+  // The typical usage in combination with the eof() helper:
+  //
+  // fdselect_set fds {is.fd (), ...};
+  // fdselect_state& ist (fds[0]);
+  // fdselect_state& ...;
+  //
+  // for (string l; ist.fd != nullfd || ...; )
+  // {
+  //   if (ist.fd != nullfd && getline_non_blocking (is, l))
+  //   {
+  //     if (eof (is))
+  //       ist.fd = nullfd;
+  //     else
+  //     {
+  //       // Consume line.
+  //
+  //       l.clear ();
+  //     }
+  //
+  //     continue;
+  //   }
+  //
+  //   ifdselect (fds);
+  //
+  //   // Handle other ready fds.
+  // }
+  //
+  LIBBUTL_SYMEXPORT bool
+  getline_non_blocking (ifdstream&, std::string&, char delim = '\n');
+
   // Open a file returning an auto_fd that holds its file descriptor on
   // success and throwing ios::failure otherwise.
   //
@@ -858,7 +906,7 @@ namespace butl
   // underlying OS error.
   //
   // Note that the function clears all the previously-ready entries on each
-  // call. Entries with nullfd are ignored.
+  // call. Entries with nullfd are ignored (but cleared).
   //
   // On Windows only pipes and only their input (read) ends are supported.
   //

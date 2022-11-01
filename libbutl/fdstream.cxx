@@ -41,7 +41,7 @@
 #include <new>          // bad_alloc
 #include <limits>       // numeric_limits
 #include <cassert>
-#include <cstring>      // memcpy(), memmove()
+#include <cstring>      // memcpy(), memmove(), memchr()
 #include <iostream>     // cin, cout
 #include <exception>    // uncaught_exception[s]()
 #include <stdexcept>    // invalid_argument
@@ -846,7 +846,7 @@ namespace butl
   }
 
   ifdstream&
-  getline (ifdstream& is, string& s, char delim)
+  getline (ifdstream& is, string& l, char delim)
   {
     ifdstream::iostate eb (is.exceptions ());
     assert (eb & ifdstream::badbit);
@@ -863,7 +863,7 @@ namespace butl
     if (eb != ifdstream::badbit)
       is.exceptions (ifdstream::badbit);
 
-    std::getline (is, s, delim);
+    std::getline (is, l, delim);
 
     // Throw if any of the newly set bits are present in the exception mask.
     //
@@ -874,6 +874,55 @@ namespace butl
       is.exceptions (eb); // Restore exception mask.
 
     return is;
+  }
+
+  bool
+  getline_non_blocking (ifdstream& is, std::string& l, char delim)
+  {
+    assert (!is.blocking () && (is.exceptions () &ifdstream::badbit) != 0);
+
+    fdstreambuf& sb (*static_cast<fdstreambuf*> (is.rdbuf ()));
+
+    // Read until blocked (0), EOF (-1) or encounter the delimiter.
+    //
+    // Note that here we reasonably assume that any failure in in_avail()
+    // will lead to badbit and thus an exception (see showmanyc()).
+    //
+    streamsize s;
+    while ((s = sb.in_avail ()) > 0)
+    {
+      const char* p (sb.gptr ());
+      size_t n (sb.egptr () - p);
+
+      const char* e (static_cast<const char*> (memchr (p, delim, n)));
+      if (e != nullptr)
+        n = e - p;
+
+      l.append (p, n);
+
+      // Note: consume the delimiter if found.
+      //
+      sb.gbump (static_cast<int> (n + (e != nullptr ? 1 : 0)));
+
+      if (e != nullptr)
+        break;
+    }
+
+    // Here s can be:
+    //
+    // -1 -- EOF.
+    //  0 -- blocked before encountering delimiter/EOF.
+    // >0 -- encountered the delimiter.
+    //
+    if (s == -1 && l.empty ())
+    {
+      // If we couldn't extract anything, not even the delimiter, then this is
+      // a failure per the getline() interface.
+      //
+      is.setstate (ifdstream::failbit);
+    }
+
+    return s != 0;
   }
 
   // ofdstream
@@ -1412,6 +1461,8 @@ namespace butl
 
       for (fdselect_state& s: from)
       {
+        s.ready = false;
+
         if (s.fd == nullfd)
           continue;
 
@@ -1419,7 +1470,6 @@ namespace butl
           throw invalid_argument ("invalid file descriptor");
 
         FD_SET (s.fd, &to);
-        s.ready = false;
 
         if (max_fd < s.fd)
           max_fd = s.fd;
@@ -1907,13 +1957,14 @@ namespace butl
 
     for (fdselect_state& s: read)
     {
+      s.ready = false;
+
       if (s.fd == nullfd)
         continue;
 
       if (s.fd < 0)
         throw invalid_argument ("invalid file descriptor");
 
-      s.ready = false;
       ++n;
     }
 
