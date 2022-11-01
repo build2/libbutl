@@ -877,9 +877,9 @@ namespace butl
   }
 
   bool
-  getline_non_blocking (ifdstream& is, std::string& l, char delim)
+  getline_non_blocking (ifdstream& is, string& l, char delim)
   {
-    assert (!is.blocking () && (is.exceptions () &ifdstream::badbit) != 0);
+    assert (!is.blocking () && (is.exceptions () & ifdstream::badbit) != 0);
 
     fdstreambuf& sb (*static_cast<fdstreambuf*> (is.rdbuf ()));
 
@@ -914,12 +914,15 @@ namespace butl
     //  0 -- blocked before encountering delimiter/EOF.
     // >0 -- encountered the delimiter.
     //
-    if (s == -1 && l.empty ())
+    if (s == -1)
     {
+      is.setstate (ifdstream::eofbit);
+
       // If we couldn't extract anything, not even the delimiter, then this is
       // a failure per the getline() interface.
       //
-      is.setstate (ifdstream::failbit);
+      if (l.empty ())
+        is.setstate (ifdstream::failbit);
     }
 
     return s != 0;

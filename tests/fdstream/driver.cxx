@@ -568,6 +568,83 @@ main (int argc, const char* argv[])
       t.join ();
   }
 
+  // Test (non-blocking) reading with getline_non_blocking().
+  //
+  {
+    const string ln (
+      "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+
+    string s;
+    for (size_t i (0); i < 300; ++i)
+    {
+      s += ln;
+      s += '\n';
+    }
+
+    const char* args[] = {argv[0], "-c", nullptr};
+
+    auto test_read = [&args, &s, &ln] ()
+    {
+      try
+      {
+        process   pr (args, -1, -1);
+        ofdstream os (move (pr.out_fd));
+
+        ifdstream is (move (pr.in_ofd),
+                      fdstream_mode::non_blocking,
+                      ios_base::badbit);
+
+        os << s;
+        os.close ();
+
+        fdselect_set fds {is.fd ()};
+        fdselect_state& ist (fds[0]);
+
+        string r;
+        for (string l; ist.fd != nullfd; )
+        {
+          if (ist.fd != nullfd && getline_non_blocking (is, l))
+          {
+            if (eof (is))
+              ist.fd = nullfd;
+            else
+            {
+              assert (l == ln);
+
+              r += l;
+              r += '\n';
+
+              l.clear ();
+            }
+
+            continue;
+          }
+
+          ifdselect (fds);
+        }
+
+        is.close ();
+
+        assert (r == s);
+      }
+      catch (const ios::failure&)
+      {
+        assert (false);
+      }
+      catch (const process_error&)
+      {
+        assert (false);
+      }
+    };
+
+    vector<thread> threads;
+    for (size_t i (0); i < 20; ++i)
+      threads.emplace_back (test_read);
+
+    for (thread& t: threads)
+      t.join ();
+  }
+
   // Test setting and getting position via the non-standard fdstreambuf
   // interface.
   //
