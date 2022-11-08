@@ -612,18 +612,18 @@ namespace butl
 
     // Constructors.
     //
-    path_data ()
+    path_data () noexcept
         : tsep_ (0) {}
 
-    path_data (string_type&& p, difference_type ts)
+    path_data (string_type&& p, difference_type ts) noexcept
         : path_ (std::move (p)), tsep_ (path_.empty () ? 0 : ts) {}
 
     explicit
-    path_data (string_type&& p)
+    path_data (string_type&& p) noexcept
         : path_ (std::move (p)) { _init (); }
 
     void
-    _init ()
+    _init () noexcept
     {
       size_type n (path_.size ()), i;
 
@@ -651,7 +651,8 @@ namespace butl
       using path_data<C>::path_data;
 
       base_type () = default;
-      base_type (path_data<C>&& d): path_data<C> (std::move (d)) {}
+      base_type (path_data<C>&& d) noexcept
+        : path_data<C> (std::move (d)) {}
     };
 
     using dir_type = basic_path<C, dir_path_kind<C>>;
@@ -1278,7 +1279,8 @@ namespace butl
     // Direct initialization without init()/cast().
     //
     explicit
-    basic_path (data_type&& d): base_type (std::move (d)) {}
+    basic_path (data_type&& d) noexcept
+      : base_type (std::move (d)) {}
 
     using base_type::_size;
     using base_type::_init;
