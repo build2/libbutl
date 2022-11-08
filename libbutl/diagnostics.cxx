@@ -154,7 +154,7 @@ namespace butl
     diag_stream->flush ();
   }
 
-  void (*diag_record::writer) (const diag_record&) = &default_writer;
+  diag_writer* diag_record::writer = &default_writer;
 
   void diag_record::
   flush (void (*w) (const diag_record&)) const
@@ -174,8 +174,8 @@ namespace butl
         //
         auto e (epilogue_);
         epilogue_ = nullptr;
-        e (*this); // Can throw. @@ TODO: pass writer.
-        flush (w);  // Call ourselves to write the data in case it returns.
+        e (*this, w); // Can throw.
+        flush (w);    // Call ourselves to write the data in case it returns.
       }
     }
   }

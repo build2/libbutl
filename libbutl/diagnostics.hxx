@@ -95,7 +95,8 @@ namespace butl
   template <typename> struct diag_prologue;
   template <typename> struct diag_mark;
 
-  using diag_epilogue = void (const diag_record&);
+  using diag_writer = void (const diag_record&);
+  using diag_epilogue = void (const diag_record&, diag_writer*);
 
   struct LIBBUTL_SYMEXPORT diag_record
   {
@@ -131,10 +132,8 @@ namespace butl
     bool
     full () const {return !empty_;}
 
-    // Note that currently the passed writer is not passed to the epilogue.
-    //
     void
-    flush (void (*writer) (const diag_record&) = nullptr) const;
+    flush (diag_writer* = nullptr) const;
 
     void
     append (const char* indent, diag_epilogue* e) const
@@ -185,7 +184,7 @@ namespace butl
     // Diagnostics writer. The default implementation writes the record text
     // to diag_stream. If it is NULL, then the record text is ignored.
     //
-    static void (*writer) (const diag_record&);
+    static diag_writer* writer;
 
   protected:
 #ifdef __cpp_lib_uncaught_exceptions
@@ -320,10 +319,10 @@ namespace butl
         stack (prev_);
     }
 
-    // Normally passed as an epilogue.
+    // Normally passed as an epilogue. Writer is not used.
     //
     static void
-    apply (const diag_record& r)
+    apply (const diag_record& r, diag_writer* = nullptr)
     {
       for (const diag_frame* f (stack ()); f != nullptr; f = f->prev_)
         f->func_ (*f, r);
