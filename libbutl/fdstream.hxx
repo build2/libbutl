@@ -914,11 +914,13 @@ namespace butl
   {
     int  fd;
     bool ready;
+    void* data; // Arbitrary data which can be associated with the descriptor.
 
     // Note: intentionally non-explicit to allow implicit initialization when
     // pushing to fdselect_set.
     //
-    fdselect_state (int fd): fd (fd), ready (false) {}
+    fdselect_state (int fd, void* d = nullptr)
+        : fd (fd), ready (false), data (d) {}
   };
 
   using fdselect_set = small_vector<fdselect_state, 4>;
