@@ -104,7 +104,7 @@ namespace butl
       return *this;
     }
 
-    small_vector (small_vector&& v)
+    small_vector (small_vector&& v) noexcept
       : base_type (allocator_type (this))
     {
       if (v.size () <= N)
