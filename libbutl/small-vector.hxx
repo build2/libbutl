@@ -24,6 +24,9 @@ namespace butl
   //
   // - swap() is deleted (see notes below).
   //
+  // - In contrast to std::vector, the references, pointers, and iterators
+  //   referring to elements are invalidated after moving from it.
+  //
   template <typename T, std::size_t N>
   class small_vector: private small_allocator_buffer<T, N>,
                       public std::vector<T, small_allocator<T, N>>
