@@ -14,7 +14,7 @@ namespace butl
     inline static bool
     space (char c) noexcept
     {
-      return c == ' ' || c == '\t';
+      return c == ' ' || c == '\t' || c == '\n' || c == '\r';
     }
 
     vector<pair<string, size_t>>
