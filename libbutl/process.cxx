@@ -758,6 +758,13 @@ namespace butl
   {
     if (handle != 0)
     {
+      // First close any open pipe ends for good measure but ignore any
+      // errors.
+      //
+      out_fd.reset ();
+      in_ofd.reset ();
+      in_efd.reset ();
+
       int es;
       int r (waitpid (handle, &es, 0));
       handle = 0; // We have tried.
@@ -1960,6 +1967,10 @@ namespace butl
   {
     if (handle != 0)
     {
+      out_fd.reset ();
+      in_ofd.reset ();
+      in_efd.reset ();
+
       DWORD es;
       DWORD e (NO_ERROR);
       if (WaitForSingleObject (handle, INFINITE) != WAIT_OBJECT_0 ||
