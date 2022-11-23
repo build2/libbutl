@@ -279,7 +279,9 @@ namespace butl
     binary       = 0x02,
     skip         = 0x04,
     blocking     = 0x08,
-    non_blocking = 0x10
+    non_blocking = 0x10,
+
+    none = 0
   };
 
   inline fdstream_mode operator& (fdstream_mode, fdstream_mode);
