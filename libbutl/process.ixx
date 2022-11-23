@@ -214,11 +214,7 @@ namespace butl
 
   inline process::
   process (optional<process_exit> e)
-      : handle (0),
-        exit (std::move (e)),
-        out_fd (-1),
-        in_ofd (-1),
-        in_efd (-1)
+      : handle (0), exit (std::move (e))
   {
   }
 
@@ -268,11 +264,57 @@ namespace butl
   }
 
   inline process::
+  process (const char** args,
+           pipe in, pipe out, pipe err,
+           const char* cwd,
+           const char* const* envvars)
+      : process (path_search (args[0]), args,
+                 std::move (in), std::move (out), std::move (err),
+                 cwd, envvars)
+  {
+  }
+
+  inline process::
+  process (const char** args,
+           int in, int out, pipe err,
+           const char* cwd,
+           const char* const* envvars)
+      : process (path_search (args[0]), args,
+                 pipe (in, -1), pipe (-1, out), std::move (err),
+                 cwd, envvars)
+  {
+  }
+
+  inline process::
   process (const process_path& pp, const char* const* args,
            int in, int out, pipe err,
            const char* cwd,
            const char* const* envvars)
       : process (pp, args,
+                 pipe (in, -1), pipe (-1, out), std::move (err),
+                 cwd,
+                 envvars)
+  {
+  }
+
+  inline process::
+  process (std::vector<const char*>& args,
+           pipe in, pipe out, pipe err,
+           const char* cwd,
+           const char* const* envvars)
+      : process (path_search (args[0]), args.data (),
+                 std::move (in), std::move (out), std::move (err),
+                 cwd,
+                 envvars)
+  {
+  }
+
+  inline process::
+  process (std::vector<const char*>& args,
+           int in, int out, pipe err,
+           const char* cwd,
+           const char* const* envvars)
+      : process (path_search (args[0]), args.data (),
                  pipe (in, -1), pipe (-1, out), std::move (err),
                  cwd,
                  envvars)
@@ -305,13 +347,27 @@ namespace butl
 
   inline process::
   process (const process_path& pp, const char* const* args,
+           process& in, pipe out, pipe err,
+           const char* cwd,
+           const char* const* envvars)
+      : process (pp, args,
+                 [&in] ()
+                 {
+                   assert (in.in_ofd != nullfd); // Should be a pipe.
+                   return process::pipe (std::move (in.in_ofd), -1);
+                 } (),
+                 std::move (out), std::move (err),
+                 cwd, envvars)
+  {
+  }
+
+  inline process::
+  process (const process_path& pp, const char* const* args,
            process& in, int out, int err,
            const char* cwd,
            const char* const* envvars)
-      : process (pp, args, in.in_ofd.get (), out, err, cwd, envvars)
+      : process (pp, args, in, pipe (-1, out), pipe (-1, err), cwd, envvars)
   {
-    assert (in.in_ofd.get () != -1); // Should be a pipe.
-    in.in_ofd.reset (); // Close it on our side.
   }
 
   inline process::
@@ -320,6 +376,37 @@ namespace butl
            const char* cwd,
            const char* const* envvars)
       : process (path_search (args[0]), args, in, out, err, cwd, envvars)
+  {
+  }
+
+  inline process::
+  process (const char** args,
+           process& in, pipe out, pipe err,
+           const char* cwd,
+           const char* const* envvars)
+      : process (path_search (args[0]), args,
+                 in, std::move (out), std::move (err),
+                 cwd, envvars)
+  {
+  }
+
+  inline process::
+  process (const char** args,
+           process& in, int out, pipe err,
+           const char* cwd,
+           const char* const* envvars)
+      : process (path_search (args[0]), args,
+                 in, pipe (-1, out), std::move (err),
+                 cwd, envvars)
+  {
+  }
+
+  inline process::
+  process (const process_path& pp, const char* const* args,
+           process& in, int out, pipe err,
+           const char* cwd,
+           const char* const* envvars)
+      : process (pp, args, in, pipe (-1, out), std::move (err), cwd, envvars)
   {
   }
 

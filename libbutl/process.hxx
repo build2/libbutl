@@ -269,7 +269,30 @@ namespace butl
     // the parent. So you should do this yourself, if required.  For example,
     // to redirect the child process stdout to stderr, you can do:
     //
-    // process p (..., 0, 2);
+    // process pr (..., 0, 2);
+    //
+    // Note also that the somewhat roundabout setup with -1 as a redirect
+    // "instruction" and out_fd/in_ofd/in_efd data members for the result
+    // helps to make sure the stream instances are destroyed before the
+    // process instance. For example:
+    //
+    // process pr (..., 0, -1, 2);
+    // ifdstream is (move (pr.in_ofd));
+    //
+    // This is important in case an exception is thrown where we want to make
+    // sure all our pipe ends are closed before we wait for the process exit
+    // (which happens in the process destructor).
+    //
+    // And speaking of the destruction order, another thing to keep in mind is
+    // that only one stream can use the skip mode (fdstream_mode::skip;
+    // because skipping is performed in the blocking mode) and the stream that
+    // skips should come first so that all other streams are destroyed/closed
+    // before it (failed that, we may end up in a deadlock). For example:
+    //
+    // process pr (..., -1, -1, -1);
+    // ifdstream is (move (pr.in_ofd), fdstream_mode::skip); // Must be first.
+    // ifdstream es (move (pr.in_efd));
+    // ofdstream os (move (pr.out_fd));
     //
     // The cwd argument allows to change the current working directory of the
     // child process. NULL and empty arguments are ignored.
@@ -345,12 +368,32 @@ namespace butl
       bool own_out = false;
     };
 
+    process (const char**,
+             pipe in, pipe out, pipe err,
+             const char* cwd = nullptr,
+             const char* const* envvars = nullptr);
+
+    process (const char**,
+             int in, int out, pipe err,
+             const char* cwd = nullptr,
+             const char* const* envvars = nullptr);
+
     process (const process_path&, const char* const*,
              pipe in, pipe out, pipe err,
              const char* cwd = nullptr,
              const char* const* envvars = nullptr);
 
     process (const process_path&, const char* const*,
+             int in, int out, pipe err,
+             const char* cwd = nullptr,
+             const char* const* envvars = nullptr);
+
+    process (std::vector<const char*>&,
+             pipe in, pipe out, pipe err,
+             const char* cwd = nullptr,
+             const char* const* envvars = nullptr);
+
+    process (std::vector<const char*>&,
              int in, int out, pipe err,
              const char* cwd = nullptr,
              const char* const* envvars = nullptr);
@@ -383,6 +426,26 @@ namespace butl
              const char* cwd = nullptr,
              const char* const* envvars = nullptr);
 
+    process (const char**,
+             process&, pipe out, pipe err,
+             const char* cwd = nullptr,
+             const char* const* envvars = nullptr);
+
+    process (const char**,
+             process&, int out, pipe err,
+             const char* cwd = nullptr,
+             const char* const* envvars = nullptr);
+
+    process (const process_path&, const char* const*,
+             process&, pipe out, pipe err,
+             const char* cwd = nullptr,
+             const char* const* envvars = nullptr);
+
+    process (const process_path&, const char* const*,
+             process&, int out, pipe err,
+             const char* cwd = nullptr,
+             const char* const* envvars = nullptr);
+
     // Wait for the process to terminate. Return true if the process
     // terminated normally and with the zero exit code. Unless ignore_error
     // is true, throw process_error if anything goes wrong. This function can
@@ -409,7 +472,7 @@ namespace butl
     // Note that the destructor will wait for the process but will ignore
     // any errors and the exit status.
     //
-    ~process () {if (handle != 0) wait (true);}
+    ~process () { if (handle != 0) wait (true); }
 
     // Process termination.
     //
@@ -459,7 +522,7 @@ namespace butl
     //
     // ... // E.g., print args[0].
     //
-    // process p (pp, args);
+    // process pr (pp, args);
     //
     // You can also specify the fallback directory which will be tried last.
     // This, for example, can be used to implement the Windows "search in the
@@ -571,8 +634,8 @@ namespace butl
     //
     optional<process_exit> exit;
 
-    // Use the following file descriptors to communicate with the new process's
-    // standard streams.
+    // Use the following file descriptors to communicate with the new
+    // process's standard streams (if redirected to pipes; see above).
     //
     auto_fd out_fd; // Write to it to send to stdin.
     auto_fd in_ofd; // Read from it to receive from stdout.
