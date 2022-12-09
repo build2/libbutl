@@ -1859,6 +1859,9 @@ namespace butl
   bool
   fdterm (int fd)
   {
+    // @@ Both GCC and Clang simply call GetConsoleMode() for this check. I
+    //    wonder why we don't do the same?
+
     // We don't need to close it (see fd_to_handle()).
     //
     HANDLE h (fd_to_handle (fd));
