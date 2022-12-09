@@ -1479,9 +1479,9 @@ namespace butl
     basic_path_name (): // Create empty/NULL path name.
         base (nullptr, &name) {}
 
-    basic_path_name (basic_path_name&&);
+    basic_path_name (basic_path_name&&) noexcept;
     basic_path_name (const basic_path_name&);
-    basic_path_name& operator= (basic_path_name&&);
+    basic_path_name& operator= (basic_path_name&&) noexcept;
     basic_path_name& operator= (const basic_path_name&);
   };
 
@@ -1508,9 +1508,9 @@ namespace butl
 
     basic_path_name_value (): base (&path) {} // Create empty/NULL path name.
 
-    basic_path_name_value (basic_path_name_value&&);
+    basic_path_name_value (basic_path_name_value&&) noexcept;
     basic_path_name_value (const basic_path_name_value&);
-    basic_path_name_value& operator= (basic_path_name_value&&);
+    basic_path_name_value& operator= (basic_path_name_value&&) noexcept;
     basic_path_name_value& operator= (const basic_path_name_value&);
   };
 }

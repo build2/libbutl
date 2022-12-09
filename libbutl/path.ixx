@@ -782,7 +782,7 @@ namespace butl
   //
   template <typename P>
   inline basic_path_name<P>::
-  basic_path_name (basic_path_name&& p)
+  basic_path_name (basic_path_name&& p) noexcept
       : basic_path_name (p.path, std::move (p.name))
   {
   }
@@ -796,7 +796,7 @@ namespace butl
 
   template <typename P>
   inline basic_path_name<P>& basic_path_name<P>::
-  operator= (basic_path_name&& p)
+  operator= (basic_path_name&& p) noexcept
   {
     if (this != &p)
     {
@@ -824,7 +824,7 @@ namespace butl
   //
   template <typename P>
   inline basic_path_name_value<P>::
-  basic_path_name_value (basic_path_name_value&& p)
+  basic_path_name_value (basic_path_name_value&& p) noexcept
       : basic_path_name_value (std::move (p.path), std::move (p.name))
   {
   }
@@ -838,7 +838,7 @@ namespace butl
 
   template <typename P>
   inline basic_path_name_value<P>& basic_path_name_value<P>::
-  operator= (basic_path_name_value&& p)
+  operator= (basic_path_name_value&& p) noexcept
   {
     if (this != &p)
     {

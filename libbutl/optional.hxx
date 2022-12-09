@@ -108,10 +108,16 @@ namespace butl
 #if (!defined(_MSC_VER) || _MSC_VER > 1900) &&  \
     (!defined(__GNUC__) || __GNUC__ > 4 || defined(__clang__))
       constexpr optional_data (const optional_data& o): v_ (o.v_) {if (v_) new (&d_) T (o.d_);}
-      constexpr optional_data (optional_data&& o):      v_ (o.v_) {if (v_) new (&d_) T (std::move (o.d_));}
+
+      constexpr optional_data (optional_data&& o)
+        noexcept (std::is_nothrow_move_constructible<T>::value)
+        : v_ (o.v_) {if (v_) new (&d_) T (std::move (o.d_));}
 #else
       optional_data (const optional_data& o): v_ (o.v_) {if (v_) new (&d_) T (o.d_);}
-      optional_data (optional_data&& o):      v_ (o.v_) {if (v_) new (&d_) T (std::move (o.d_));}
+
+      optional_data (optional_data&& o)
+        noexcept (std::is_nothrow_move_constructible<T>::value)
+        : v_ (o.v_) {if (v_) new (&d_) T (std::move (o.d_));}
 #endif
 
       optional_data& operator= (nullopt_t);
@@ -119,7 +125,11 @@ namespace butl
       optional_data& operator= (T&&);
 
       optional_data& operator= (const optional_data&);
-      optional_data& operator= (optional_data&&);
+
+      optional_data& operator= (optional_data&&)
+        noexcept (std::is_nothrow_move_constructible<T>::value &&
+                  std::is_nothrow_move_assignable<T>::value    &&
+                  std::is_nothrow_destructible<T>::value);
 
       ~optional_data ();
     };
@@ -151,10 +161,16 @@ namespace butl
 #if (!defined(_MSC_VER) || _MSC_VER > 1900) && \
     (!defined(__GNUC__) || __GNUC__ > 4 || defined(__clang__))
       constexpr optional_data (const optional_data& o): v_ (o.v_) {if (v_) new (&d_) T (o.d_);}
-      constexpr optional_data (optional_data&& o):      v_ (o.v_) {if (v_) new (&d_) T (std::move (o.d_));}
+
+      constexpr optional_data (optional_data&& o)
+        noexcept (std::is_nothrow_move_constructible<T>::value)
+        : v_ (o.v_) {if (v_) new (&d_) T (std::move (o.d_));}
 #else
       optional_data (const optional_data& o): v_ (o.v_) {if (v_) new (&d_) T (o.d_);}
-      optional_data (optional_data&& o):      v_ (o.v_) {if (v_) new (&d_) T (std::move (o.d_));}
+
+      optional_data (optional_data&& o)
+        noexcept (std::is_nothrow_move_constructible<T>::value)
+        : v_ (o.v_) {if (v_) new (&d_) T (std::move (o.d_));}
 #endif
 
       optional_data& operator= (nullopt_t);
@@ -162,7 +178,12 @@ namespace butl
       optional_data& operator= (T&&);
 
       optional_data& operator= (const optional_data&);
-      optional_data& operator= (optional_data&&);
+
+      // Note: it is trivially destructible and thus is no-throw destructible.
+      //
+      optional_data& operator= (optional_data&&)
+        noexcept (std::is_nothrow_move_constructible<T>::value &&
+                  std::is_nothrow_move_assignable<T>::value);
     };
 
     template <typename T,

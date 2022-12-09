@@ -4,8 +4,9 @@
 #pragma once
 
 #include <vector>
-#include <cstddef> // size_t
-#include <utility> // move()
+#include <cstddef>     // size_t
+#include <utility>     // move()
+#include <type_traits> // is_nothrow_move_constructible
 
 #include <libbutl/small-allocator.hxx>
 
@@ -107,7 +108,25 @@ namespace butl
       return *this;
     }
 
-    small_vector (small_vector&& v) noexcept
+    // Note that while the move constructor is implemented via the move
+    // assignment it may not throw if the value type is no-throw move
+    // constructible.
+    //
+    // Specifically, if v.size() > N then allocators evaluate as equal and the
+    // buffer ownership is transferred. Otherwise, the allocators do not
+    // evaluate as equal and the individual elements are move-constructed in
+    // the preallocated buffer.
+    //
+    // Also note that this constructor ends up calling
+    // base_type::operator=(base_type&&) whose noexcept expression evaluates
+    // to false (propagate_on_container_move_assignment and is_always_equal
+    // are false for small_allocator; see std::vector documentation for
+    // details). We, however, assume that the noexcept expression we use here
+    // is strict enough for all "sane" std::vector implementations since
+    // small_allocator never throws directly.
+    //
+    small_vector (small_vector&& v)
+      noexcept (std::is_nothrow_move_constructible<T>::value)
       : base_type (allocator_type (this))
     {
       if (v.size () <= N)
@@ -121,8 +140,14 @@ namespace butl
       v.clear ();
     }
 
+    // Note that when size() <= N and v.size() > N, then allocators of this
+    // and other containers do not evaluate as equal. Thus, the memory for the
+    // new elements is allocated on the heap and so std::bad_alloc can be
+    // thrown. @@ TODO: maybe we could re-implement this case in terms of
+    // swap()?
+    //
     small_vector&
-    operator= (small_vector&& v)
+    operator= (small_vector&& v) noexcept (false)
     {
       // VC's implementation of operator=(&&) (both 14 and 15) frees the
       // memory and then reallocated with capacity equal to v.size(). This is

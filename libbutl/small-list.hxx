@@ -4,8 +4,9 @@
 #pragma once
 
 #include <list>
-#include <cstddef> // size_t
-#include <utility> // move()
+#include <cstddef>     // size_t
+#include <utility>     // move()
+#include <type_traits> // is_nothrow_move_constructible
 
 #include <libbutl/small-allocator.hxx>
 
@@ -103,14 +104,20 @@ namespace butl
       return *this;
     }
 
+    // See small_vector for the move-constructor/assignment noexept
+    // expressions reasoning.
+    //
     small_list (small_list&& v)
+#if !defined(__GLIBCXX__) && (!defined(_MSC_VER) || _MSC_VER > 1900)
+      noexcept (std::is_nothrow_move_constructible<T>::value)
+#endif
       : base_type (allocator_type (this))
     {
       *this = std::move (v); // Delegate to operator=(&&).
     }
 
     small_list&
-    operator= (small_list&& v)
+    operator= (small_list&& v) noexcept (false)
     {
       // libstdc++'s implementation prior to GCC 6 is broken (calls swap()).
       // Since there is no easy way to determine this library's version, for
@@ -122,7 +129,7 @@ namespace butl
 #if defined(__GLIBCXX__) || (defined(_MSC_VER) && _MSC_VER <= 1900)
       this->clear ();
       for (T& x: v)
-        this->push_back (std::move (x));
+        this->push_back (std::move (x)); // Note: can throw bad_alloc.
       v.clear ();
 #else
       // Note: propagate_on_container_move_assignment = false

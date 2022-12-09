@@ -77,6 +77,9 @@ namespace butl
     template <typename T>
     inline optional_data<T, false>& optional_data<T, false>::
     operator= (optional_data&& o)
+      noexcept (std::is_nothrow_move_constructible<T>::value &&
+                std::is_nothrow_move_assignable<T>::value    &&
+                std::is_nothrow_destructible<T>::value)
     {
       if (o.v_)
       {
@@ -171,6 +174,8 @@ namespace butl
     template <typename T>
     inline optional_data<T, true>& optional_data<T, true>::
     operator= (optional_data&& o)
+      noexcept (std::is_nothrow_move_constructible<T>::value &&
+                std::is_nothrow_move_assignable<T>::value)
     {
       if (o.v_)
       {

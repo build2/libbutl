@@ -35,7 +35,7 @@ namespace butl
         args0_ (nullptr) {}
 
   inline process_path::
-  process_path (process_path&& p)
+  process_path (process_path&& p) noexcept
       : effect (std::move (p.effect)),
         args0_ (p.args0_)
   {
@@ -48,7 +48,7 @@ namespace butl
   }
 
   inline process_path& process_path::
-  operator= (process_path&& p)
+  operator= (process_path&& p) noexcept
   {
     if (this != &p)
     {
@@ -127,14 +127,14 @@ namespace butl
   // process::pipe
   //
   inline process::pipe::
-  pipe (pipe&& p)
+  pipe (pipe&& p) noexcept
       : in (p.in), out (p.out), own_in (p.own_in), own_out (p.own_out)
   {
     p.in = p.out = -1;
   }
 
   inline process::pipe& process::pipe::
-  operator= (pipe&& p)
+  operator= (pipe&& p) noexcept
   {
     if (this != &p)
     {
@@ -411,7 +411,7 @@ namespace butl
   }
 
   inline process::
-  process (process&& p)
+  process (process&& p) noexcept
       : handle (p.handle),
         exit   (std::move (p.exit)),
         out_fd (std::move (p.out_fd)),
@@ -422,7 +422,7 @@ namespace butl
   }
 
   inline process& process::
-  operator= (process&& p)
+  operator= (process&& p) noexcept (false)
   {
     if (this != &p)
     {
@@ -459,13 +459,13 @@ namespace butl
   // process_env
   //
   inline process_env::
-  process_env (process_env&& e)
+  process_env (process_env&& e) noexcept
   {
     *this = std::move (e);
   }
 
   inline process_env& process_env::
-  operator= (process_env&& e)
+  operator= (process_env&& e) noexcept
   {
     if (this != &e)
     {

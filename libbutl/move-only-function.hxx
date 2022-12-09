@@ -124,7 +124,10 @@ namespace butl
         return f (std::forward<A> (args)...);
       }
 
-      wrapper (wrapper&& w): f (std::move (w.f)) {}
+      wrapper (wrapper&& w)
+        noexcept (std::is_nothrow_move_constructible<F>::value)
+        : f (std::move (w.f)) {}
+
       wrapper& operator= (wrapper&&) = delete; // Shouldn't be needed.
 
       ~wrapper () {f.~F ();}

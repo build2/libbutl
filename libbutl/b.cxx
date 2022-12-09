@@ -83,6 +83,8 @@ namespace butl
 
         string spec ("info(");
 
+        // Note that quoting is essential here.
+        //
         for (size_t i (0); i != projects.size(); ++i)
         {
           if (i != 0)

@@ -117,8 +117,8 @@ namespace butl
 
     // Moveable-only type.
     //
-    process_path (process_path&&);
-    process_path& operator= (process_path&&);
+    process_path (process_path&&) noexcept;
+    process_path& operator= (process_path&&) noexcept;
 
     process_path (const process_path&) = delete;
     process_path& operator= (const process_path&) = delete;
@@ -352,8 +352,8 @@ namespace butl
 
       // Moveable-only type.
       //
-      pipe (pipe&&);
-      pipe& operator= (pipe&&);
+      pipe (pipe&&) noexcept;
+      pipe& operator= (pipe&&) noexcept;
 
       pipe (const pipe&) = delete;
       pipe& operator= (const pipe&) = delete;
@@ -499,8 +499,8 @@ namespace butl
 
     // Moveable-only type.
     //
-    process (process&&);
-    process& operator= (process&&);
+    process (process&&) noexcept;
+    process& operator= (process&&) noexcept (false); // Note: calls wait().
 
     process (const process&) = delete;
     process& operator= (const process&) = delete;
@@ -749,8 +749,8 @@ namespace butl
 
     // Moveable-only type.
     //
-    process_env (process_env&&);
-    process_env& operator= (process_env&&);
+    process_env (process_env&&) noexcept;
+    process_env& operator= (process_env&&) noexcept;
 
     process_env (const process_env&) = delete;
     process_env& operator= (const process_env&) = delete;

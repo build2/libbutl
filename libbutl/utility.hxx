@@ -314,8 +314,8 @@ namespace butl
 
     // Move-to-empty-only type.
     //
-    auto_thread_env (auto_thread_env&&);
-    auto_thread_env& operator= (auto_thread_env&&);
+    auto_thread_env (auto_thread_env&&) noexcept;
+    auto_thread_env& operator= (auto_thread_env&&) noexcept;
 
     auto_thread_env (const auto_thread_env&) = delete;
     auto_thread_env& operator= (const auto_thread_env&) = delete;

@@ -5,6 +5,7 @@
 
 #include <cstddef>      // size_t
 #include <utility>      // move()
+#include <type_traits>  // is_nothrow_move_constructible
 #include <forward_list>
 
 #include <libbutl/small-allocator.hxx>
@@ -101,14 +102,20 @@ namespace butl
       return *this;
     }
 
+    // See small_vector for the move-constructor/assignment noexept
+    // expressions reasoning.
+    //
     small_forward_list (small_forward_list&& v)
+#if !defined(_MSC_VER) || _MSC_VER > 1900
+      noexcept (std::is_nothrow_move_constructible<T>::value)
+#endif
       : base_type (allocator_type (this))
     {
       *this = std::move (v); // Delegate to operator=(&&).
     }
 
     small_forward_list&
-    operator= (small_forward_list&& v)
+    operator= (small_forward_list&& v) noexcept (false)
     {
       // VC14's implementation of operator=(&&) swaps pointers without regard
       // for allocator (fixed in 15).

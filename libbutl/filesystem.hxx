@@ -215,8 +215,8 @@ namespace butl
 
     // Movable-only type. Move-assignment cancels the lhs object.
     //
-    auto_rm (auto_rm&&);
-    auto_rm& operator= (auto_rm&&);
+    auto_rm (auto_rm&&) noexcept;
+    auto_rm& operator= (auto_rm&&) noexcept;
     auto_rm (const auto_rm&) = delete;
     auto_rm& operator= (const auto_rm&) = delete;
 

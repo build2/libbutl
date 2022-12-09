@@ -158,10 +158,10 @@ namespace butl
     void
     swap (uuid&);
 
-    uuid (uuid&&);
+    uuid (uuid&&) noexcept;
     uuid (const uuid&) = default;
 
-    uuid& operator= (uuid&&);
+    uuid& operator= (uuid&&) noexcept;
     uuid& operator= (const uuid&) = default;
   };
 

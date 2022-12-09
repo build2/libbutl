@@ -154,7 +154,7 @@ namespace mingw_stdthread
     native_handle_type native_handle() const {return mHandle;}
     thread(): mHandle(kInvalidHandle), mThreadId(){}
 
-    thread(thread&& other)
+    thread(thread&& other) noexcept
         :mHandle(other.mHandle), mThreadId(other.mThreadId)
     {
       other.mHandle = kInvalidHandle;

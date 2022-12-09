@@ -166,7 +166,7 @@ namespace butl
 #endif
         empty_ (r.empty_),
         epilogue_ (r.epilogue_),
-        os (std::move (r.os))
+        os (std::move (r.os)) // Note: can throw.
     {
       if (!empty_)
       {

@@ -73,7 +73,7 @@ namespace butl
   //
   template <typename P>
   inline auto_rm<P>::
-  auto_rm (auto_rm&& x)
+  auto_rm (auto_rm&& x) noexcept
       : path (std::move (x.path)), active (x.active)
   {
     x.active = false;
@@ -81,7 +81,7 @@ namespace butl
 
   template <typename P>
   inline auto_rm<P>& auto_rm<P>::
-  operator= (auto_rm&& x)
+  operator= (auto_rm&& x) noexcept
   {
     if (this != &x)
     {

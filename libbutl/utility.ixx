@@ -371,14 +371,14 @@ namespace butl
   }
 
   inline auto_thread_env::
-  auto_thread_env (auto_thread_env&& x)
+  auto_thread_env (auto_thread_env&& x) noexcept
       : prev_env (std::move (x.prev_env))
   {
     x.prev_env = nullopt;
   }
 
   inline auto_thread_env& auto_thread_env::
-  operator= (auto_thread_env&& x)
+  operator= (auto_thread_env&& x) noexcept
   {
     if (this != &x)
     {
