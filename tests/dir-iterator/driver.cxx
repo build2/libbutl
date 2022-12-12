@@ -26,7 +26,7 @@ operator<< (ostream& os, entry_type e)
   return os << entry_type_string[static_cast<size_t> (e)];
 }
 
-// Usage: argv[0] [-v] [-i] <dir>
+// Usage: argv[0] [-v] [-i|-d] <dir>
 //
 // Iterates over a directory filesystem sub-entries, obtains their types and
 // target types for symlinks.
@@ -45,6 +45,7 @@ main (int argc, const char* argv[])
 
   bool verbose (false);
   bool ignore_dangling (false);
+  bool detect_dangling (false);
 
   int i (1);
   for (; i != argc; ++i)
@@ -55,6 +56,8 @@ main (int argc, const char* argv[])
       verbose = true;
     else if (v == "-i")
       ignore_dangling = true;
+    else if (v == "-d")
+      detect_dangling = true;
     else
       break;
   }
@@ -65,11 +68,17 @@ main (int argc, const char* argv[])
     return 1;
   }
 
+  assert (!ignore_dangling || !detect_dangling);
+
   const char* d (argv[i]);
 
   try
   {
-    for (const dir_entry& de: dir_iterator (dir_path (d), ignore_dangling))
+    for (const dir_entry& de:
+           dir_iterator (dir_path (d),
+                         (ignore_dangling ? dir_iterator::ignore_dangling :
+                          detect_dangling ? dir_iterator::detect_dangling :
+                                            dir_iterator::no_follow)))
     {
       entry_type lt (de.ltype ());
       entry_type t (lt == entry_type::symlink ? de.type () : lt);

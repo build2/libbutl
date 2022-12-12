@@ -11,7 +11,7 @@ namespace butl
   {
     // @@ Could 0 size be a valid and faster way?
     //
-    return dir_iterator (d, false /* ignore_dangling */) == dir_iterator ();
+    return dir_iterator (d, dir_iterator::no_follow) == dir_iterator ();
   }
 
   inline bool
@@ -168,23 +168,23 @@ namespace butl
   inline entry_type dir_entry::
   ltype () const
   {
-    return t_ != entry_type::unknown ? t_ : (t_ = type (false));
+    return t_ ? *t_ : *(t_ = type (false /* follow_symlinks */));
   }
 
   inline entry_type dir_entry::
   type () const
   {
     entry_type t (ltype ());
-    return t != entry_type::symlink
-      ? t
-      : lt_ != entry_type::unknown ? lt_ : (lt_ = type (true));
+    return t != entry_type::symlink ? t    :
+           lt_                      ? *lt_ :
+           *(lt_ = type (true /* follow_symlinks */));
   }
 
   // dir_iterator
   //
   inline dir_iterator::
   dir_iterator (dir_iterator&& x) noexcept
-    : e_ (std::move (x.e_)), h_ (x.h_), ignore_dangling_ (x.ignore_dangling_)
+    : e_ (std::move (x.e_)), h_ (x.h_), mode_ (x.mode_)
   {
 #ifndef _WIN32
     x.h_ = nullptr;

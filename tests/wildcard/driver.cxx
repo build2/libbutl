@@ -4,11 +4,14 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <algorithm> // sort()
-#include <exception>
 #include <iostream>
+#include <algorithm>    // sort()
+#include <exception>
+#include <functional>
+#include <system_error>
 
 #include <libbutl/path.hxx>
+#include <libbutl/path-io.hxx>
 #include <libbutl/utility.hxx>      // operator<<(ostream, exception)
 #include <libbutl/optional.hxx>
 #include <libbutl/filesystem.hxx>
@@ -59,8 +62,13 @@ int _CRT_glob = 0;
 //    through contains only the specified entry. The start directory is used if
 //    the first pattern component is a self-matching wildcard.
 //
+// -d (print|stop)
+//    If a inaccessible/dangling link is encountered, then print its path to
+//    stderr and, optionally, stop the search. Meaningful in combination with
+//    -sd and must follow it, if specified in the command line.
+//
 // -i
-//    Pass psflags::ignorable_components to the match/search functions.
+//    Pass path_match_flags::match_absent to the match/search functions.
 //    Meaningful in combination with -sd or -sp options and must follow it, if
 //    specified in the command line.
 //
@@ -93,6 +101,9 @@ try
     bool sort (true);
     path_match_flags flags (path_match_flags::follow_symlinks);
 
+    bool dangle_stop (false);
+    function<bool (const dir_entry&)> dangle_func;
+
     int i (2);
     for (; i != argc; ++i)
     {
@@ -101,6 +112,34 @@ try
         sort = false;
       else if (o == "-i")
         flags |= path_match_flags::match_absent;
+      else if (o == "-d")
+      {
+        ++i;
+
+        assert (op == "-sd" && i != argc);
+
+        string v (argv[i]);
+
+        if (v == "print")
+        {
+          dangle_func = [] (const dir_entry& de)
+          {
+            cerr << de.base () / de.path () << endl;
+            return true;
+          };
+        }
+        else if (v == "stop")
+        {
+          dangle_func = [&dangle_stop] (const dir_entry& de)
+          {
+            cerr << de.base () / de.path () << endl;
+            dangle_stop = true;
+            return false;
+          };
+        }
+        else
+          assert (false);
+      }
       else
         break; // End of options.
     }
@@ -166,9 +205,12 @@ try
     };
 
     if (!entry)
-      path_search (pattern, add, start, flags);
+      path_search (pattern, add, start, flags, dangle_func);
     else
       path_search (pattern, *entry, add, start, flags);
+
+    if (dangle_stop)
+      return 1;
 
     // It the search succeeds, then test search in the directory tree
     // represented by each matched path. Otherwise, if the directory tree is
@@ -230,8 +272,13 @@ catch (const invalid_path& e)
   cerr << e << ": " << e.path << endl;
   return 2;
 }
+catch (const system_error& e)
+{
+  cerr << e << endl;
+  return 3;
+}
 catch (const exception& e)
 {
   cerr << e << endl;
-  return 2;
+  return 4;
 }

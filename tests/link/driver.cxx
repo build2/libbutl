@@ -107,11 +107,11 @@ link_dir (const dir_path& target,
   dir_path tp (target.absolute () ? target : link.directory () / target);
 
   set<pair<entry_type, path>> te;
-  for (const dir_entry& de: dir_iterator (tp, false /* ignore_dangling */))
+  for (const dir_entry& de: dir_iterator (tp, dir_iterator::no_follow))
     te.emplace (de.ltype (), de.path ());
 
   set<pair<entry_type, path>> le;
-  for (const dir_entry& de: dir_iterator (link, false /* ignore_dangling */))
+  for (const dir_entry& de: dir_iterator (link, dir_iterator::no_follow))
     le.emplace (de.ltype (), de.path ());
 
   return te == le;
@@ -306,7 +306,7 @@ main (int argc, const char* argv[])
     assert (pe.first && pe.second.type == entry_type::directory);
   }
 
-  for (const dir_entry& de: dir_iterator (td, false /* ignore_dangling */))
+  for (const dir_entry& de: dir_iterator (td, dir_iterator::no_follow))
   {
     assert (de.path () != path ("dslink") ||
             (de.type () == entry_type::directory &&
@@ -368,7 +368,9 @@ main (int argc, const char* argv[])
   {
     mksymlink (dp / "non-existing", dp / "lnk");
     assert (!dir_empty (dp));
-    assert (dir_iterator (dp, true /* ignore_dangling */) == dir_iterator ());
+
+    assert (dir_iterator (dp, dir_iterator::ignore_dangling) ==
+            dir_iterator ());
   }
   catch (const system_error& e)
   {
@@ -393,10 +395,10 @@ main (int argc, const char* argv[])
 
   mksymlink  (dp / "non-existing", dp / "lnk1", true /* dir */);
   assert (!dir_empty (dp));
-  assert (dir_iterator (dp, true /* ignore_dangling */) == dir_iterator ());
+  assert (dir_iterator (dp, dir_iterator::ignore_dangling) == dir_iterator ());
 
   mksymlink  (tgd, dp / "lnk2", true /* dir */);
-  assert (dir_iterator (dp, true /* ignore_dangling */) != dir_iterator ());
+  assert (dir_iterator (dp, dir_iterator::ignore_dangling) != dir_iterator ());
 
   rmdir_r (dp);
   assert (dir_exists (tgd));

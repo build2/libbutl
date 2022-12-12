@@ -1006,7 +1006,7 @@ namespace butl
     //
     try
     {
-      for (const dir_entry& de: dir_iterator (p, false /* ignore_dangling */))
+      for (const dir_entry& de: dir_iterator (p, dir_iterator::no_follow))
       {
         path ep (p / de.path ()); //@@ Would be good to reuse the buffer.
 
@@ -1811,7 +1811,7 @@ namespace butl
       h_ = x.h_;
       x.h_ = nullptr;
 
-      ignore_dangling_ = x.ignore_dangling_;
+      mode_ = x.mode_;
     }
     return *this;
   }
@@ -1832,6 +1832,11 @@ namespace butl
   entry_type dir_entry::
   type (bool follow_symlinks) const
   {
+    // Note that this function can only be used for resolving an entry type
+    // lazily and thus can't be used with the detect_dangling dir_iterator
+    // mode (see dir_iterator::next () implementation for details). Thus, we
+    // always throw on the stat()/lstat() failure.
+    //
     path_type p (b_ / p_);
     struct stat s;
     if ((follow_symlinks
@@ -1850,8 +1855,8 @@ namespace butl
   };
 
   dir_iterator::
-  dir_iterator (const dir_path& d, bool ignore_dangling)
-    : ignore_dangling_ (ignore_dangling)
+  dir_iterator (const dir_path& d, mode m)
+    : mode_ (m)
   {
     unique_ptr<DIR, dir_deleter> h (opendir (d.string ().c_str ()));
     h_ = h.get ();
@@ -1867,7 +1872,7 @@ namespace butl
   }
 
   template <typename D>
-  static inline /*constexpr*/ entry_type
+  static inline /*constexpr*/ optional<entry_type>
   d_type (const D* d, decltype(d->d_type)*)
   {
     switch (d->d_type)
@@ -1895,13 +1900,13 @@ namespace butl
 #endif
       return entry_type::other;
 
-    default: return entry_type::unknown;
+    default: return nullopt;
     }
   }
 
   template <typename D>
-  static inline constexpr entry_type
-  d_type (...) {return entry_type::unknown;}
+  static inline constexpr optional<entry_type>
+  d_type (...) {return nullopt;}
 
   void dir_iterator::
   next ()
@@ -1923,25 +1928,40 @@ namespace butl
 
         e_.p_ = move (p);
         e_.t_ = d_type<struct dirent> (de, nullptr);
-        e_.lt_ = entry_type::unknown;
+        e_.lt_ = nullopt;
 
         // If requested, we ignore dangling symlinks, skipping ones with
-        // non-existing or inaccessible targets.
+        // non-existing or inaccessible targets (ignore_dangling mode), or set
+        // the entry_type::unknown type for them (detect_dangling mode).
         //
-        if (ignore_dangling_)
+        if (mode_ != no_follow)
         {
-          // Note that ltype () can potentially lstat() (see d_type() for
+          bool dd (mode_ == detect_dangling);
+
+          // Note that ltype () can potentially lstat() (see type() for
           // details) and so throw. We, however, need to skip the entry if it
           // is already removed (due to a race) and throw on any other error.
           //
           path fp (e_.base () / e_.path ());
           const char* p (fp.string ().c_str ());
 
-          if (e_.t_ == entry_type::unknown)
+          if (!e_.t_)
           {
             struct stat s;
             if (lstat (p, &s) != 0)
             {
+              // Given that we have already enumerated the filesystem entry,
+              // these error codes can only mean that the entry doesn't exist
+              // anymore and so we always skip it.
+              //
+              // If errno is EACCES, then the permission to search a directory
+              // we currently iterate over has been revoked. Throwing in this
+              // case sounds like the best choice.
+              //
+              // Note that according to POSIX the filesystem entry we call
+              // lstat() on doesn't require any specific permissions to be
+              // granted.
+              //
               if (errno == ENOENT || errno == ENOTDIR)
                 continue;
 
@@ -1951,19 +1971,38 @@ namespace butl
             e_.t_ = type (s);
           }
 
-          if (e_.t_ == entry_type::symlink)
+          // The entry type should be present and may not be
+          // entry_type::unknown.
+          //
+          //assert (e_.t_ && *e_.t_ != entry_type::unknown);
+
+          // Check if the symlink target exists and is accessible and set the
+          // target type.
+          //
+          if (*e_.t_ == entry_type::symlink)
           {
             struct stat s;
             if (stat (p, &s) != 0)
             {
               if (errno == ENOENT || errno == ENOTDIR || errno == EACCES)
-                continue;
-
-              throw_generic_error (errno);
+              {
+                if (dd)
+                  e_.lt_ = entry_type::unknown;
+                else
+                  continue;
+              }
+              else
+                throw_generic_error (errno);
             }
-
-            e_.lt_ = type (s); // While at it, set the target type.
+            else
+              e_.lt_ = type (s);
           }
+
+          // The symlink target type should be present and in the
+          // ignore_dangling mode it may not be entry_type::unknown.
+          //
+          //assert (*e_.t_ != entry_type::symlink ||
+          //        (e_.lt_ && (dd || *e_.lt_ != entry_type::unknown)));
         }
       }
       else if (errno == 0)
@@ -2004,7 +2043,7 @@ namespace butl
       h_ = x.h_;
       x.h_ = -1;
 
-      ignore_dangling_ = x.ignore_dangling_;
+      mode_ = x.mode_;
     }
     return *this;
   }
@@ -2012,6 +2051,11 @@ namespace butl
   entry_type dir_entry::
   type (bool follow_symlinks) const
   {
+    // Note that this function can only be used for resolving an entry type
+    // lazily and thus can't be used with the detect_dangling dir_iterator
+    // mode (see dir_iterator::next () implementation for details). Thus, we
+    // always throw if the entry info can't be retrieved.
+    //
     path_type p (base () / path ());
     pair<bool, entry_stat> e (path_entry (p, follow_symlinks));
 
@@ -2044,8 +2088,8 @@ namespace butl
   };
 
   dir_iterator::
-  dir_iterator (const dir_path& d, bool ignore_dangling)
-    : ignore_dangling_ (ignore_dangling)
+  dir_iterator (const dir_path& d, mode m)
+    : mode_ (m)
   {
     auto_dir h (h_);
     e_.b_ = d; // Used by next().
@@ -2096,15 +2140,19 @@ namespace butl
         // Note that the entry type detection always requires to additionally
         // query the entry information. Thus, we evaluate its type lazily.
         //
-        e_.t_ = entry_type::unknown;
+        e_.t_ = nullopt;
 
-        e_.lt_ = entry_type::unknown;
+        e_.lt_ = nullopt;
 
         // If requested, we ignore dangling symlinks and junctions, skipping
-        // ones with non-existing or inaccessible targets.
+        // ones with non-existing or inaccessible targets (ignore_dangling
+        // mode), or set the entry_type::unknown type for them
+        // (detect_dangling mode).
         //
-        if (ignore_dangling_)
+        if (mode_ != no_follow)
         {
+          bool dd (mode_ == detect_dangling);
+
           // Check the last error code throwing for codes other than "path not
           // found" and "access denied".
           //
@@ -2149,7 +2197,18 @@ namespace butl
             if (rp.first == entry_type::unknown)
             {
               verify_error ();
-              continue;
+
+              // Probably the failure to obtain the reparse point information
+              // (involves calling CreateFile(), DeviceIoControl(), etc) can
+              // also be interpreted differently, as described above. However,
+              // given that we have managed to retrieve the entry attributes
+              // let's treat this failure as a lack of permissions and set the
+              // entry type to unknown in the detect dangling mode.
+              //
+              if (!dd)
+                continue;
+
+              // Fall through.
             }
 
             e_.t_ = rp.first;
@@ -2159,7 +2218,15 @@ namespace butl
                     ? entry_type::directory
                     : entry_type::regular;
 
-          if (e_.t_ == entry_type::symlink)
+          // In this mode the entry type should be present and in the
+          // ignore_dangling mode it may not be entry_type::unknown.
+          //
+          //assert (e_.t_ && (dd || *e_.t_ != entry_type::unknown));
+
+          // Check if the symlink target exists and is accessible and set the
+          // target type.
+          //
+          if (*e_.t_ == entry_type::symlink)
           {
             // Query the target info.
             //
@@ -2175,17 +2242,27 @@ namespace butl
             if (ti.first == nullhandle)
             {
               verify_error ();
-              continue;
+
+              if (dd)
+                e_.lt_ = entry_type::unknown;
+              else
+                continue;
             }
+            else
+            {
+              ti.first.close (); // Checks for error.
 
-            ti.first.close (); // Checks for error.
-
-            // While at it, set the target type.
-            //
-            e_.lt_ = directory (ti.second.dwFileAttributes)
-                     ? entry_type::directory
-                     : entry_type::regular;
+              e_.lt_ = directory (ti.second.dwFileAttributes)
+                       ? entry_type::directory
+                       : entry_type::regular;
+            }
           }
+
+          // In this mode the symlink target type should be present and in the
+          // ignore_dangling mode it may not be entry_type::unknown.
+          //
+          //assert (*e_.t_ != entry_type::symlink ||
+          //        (e_.lt_ && (dd || *e_.lt_ != entry_type::unknown)));
         }
       }
       else if (errno == ENOENT)
@@ -2207,13 +2284,26 @@ namespace butl
 #endif
 
   // Search for paths matching the pattern and call the specified function for
-  // each matching path. Return false if the underlying func() call returns
-  // false. Otherwise the function conforms to the path_search() description.
+  // each matching path. Return false if the underlying func() or
+  // dangling_func() call returns false. Otherwise the function conforms to
+  // the path_search() description.
   //
   // Note that the access to the traversed directory tree (real or virtual) is
   // performed through the provided filesystem object.
   //
   static const string any_dir ("*/");
+
+  // Filesystem traversal callbacks.
+  //
+  // Called before entering a directory for the recursive traversal. If
+  // returns false, then the directory is not entered.
+  //
+  using preopen = function<bool (const dir_path&)>;
+
+  // Called before skipping a dangling link. If returns false, then the
+  // traversal is stopped.
+  //
+  using preskip = function<bool (const dir_entry&)>;
 
   template <typename FS>
   static bool
@@ -2222,10 +2312,13 @@ namespace butl
     dir_path pattern_dir,
     path_match_flags fl,
     const function<bool (path&&, const string& pattern, bool interm)>& func,
+    const function<bool (const dir_entry&)>& dangling_func,
     FS& filesystem)
   {
     bool follow_symlinks ((fl & path_match_flags::follow_symlinks) !=
                           path_match_flags::none);
+
+    assert (follow_symlinks || dangling_func == nullptr);
 
     // Fast-forward the leftmost pattern non-wildcard components. So, for
     // example, search for foo/f* in /bar/ becomes search for f* in /bar/foo/.
@@ -2273,17 +2366,47 @@ namespace butl
     //
     bool simple (pattern.simple ());
 
-    // Note that we rely on "small function object" optimization here.
+    // If symlinks need to be followed, then pass the preskip callback for the
+    // filesystem iterator.
+    //
+    bool fs (follow_symlinks || !simple);
+    preskip ps;
+    bool dangling_stop (false);
+
+    if (fs)
+    {
+      if (dangling_func != nullptr)
+      {
+        // Note that we rely on the "small function object" optimization here.
+        //
+        ps = [&dangling_func, &dangling_stop] (const dir_entry& de) -> bool
+        {
+          dangling_stop = !dangling_func (de);
+          return !dangling_stop;
+        };
+      }
+      else
+      {
+        ps = [] (const dir_entry& de) -> bool
+        {
+          throw_generic_error (
+            de.ltype () == entry_type::symlink ? ENOENT : EACCES);
+        };
+      }
+    }
+
+    // Note that we rely on the "small function object" optimization here.
     //
     typename FS::iterator_type i (filesystem.iterator (
       pattern_dir,
       path_pattern_recursive (pcr),
       path_pattern_self_matching (pcr),
-      follow_symlinks || !simple,
+      fs,
       [&pattern_dir, &func] (const dir_path& p) -> bool // Preopen.
       {
         return func (pattern_dir / p, any_dir, true);
-      }));
+      },
+      move (ps)));
 
     // Canonicalize the pattern component collapsing consecutive stars (used to
     // express that it is recursive) into a single one.
@@ -2329,7 +2452,7 @@ namespace butl
       // represented by the iterator as an empty path, and so we need to
       // compute it (the leaf would actually be enough) for matching. This
       // leaf can be acquired from the pattern_dir (if not empty) or
-      // start_dir.  We don't expect the start_dir to be empty, as the
+      // start_dir. We don't expect the start_dir to be empty, as the
       // filesystem object must replace an empty start directory with the
       // current one. This is the case when we search in the current directory
       // (start_dir is empty) with a pattern that starts with a *** wildcard
@@ -2368,9 +2491,13 @@ namespace butl
                               pattern_dir / path_cast<dir_path> (move (p)),
                               fl,
                               func,
+                              dangling_func,
                               filesystem))
         return false;
     }
+
+    if (dangling_stop)
+      return false;
 
     // If requested, also search with the absent-matching pattern path
     // component omitted, unless this is the only pattern component.
@@ -2379,8 +2506,15 @@ namespace butl
         pc.to_directory ()                                              &&
         (!pattern_dir.empty () || !simple)                              &&
         pc.string ().find_first_not_of ('*') == string::npos            &&
-        !search (pattern.leaf (pc), pattern_dir, fl, func, filesystem))
+        !search (pattern.leaf (pc),
+                 pattern_dir,
+                 fl,
+                 func,
+                 dangling_func,
+                 filesystem))
+    {
       return false;
+    }
 
     return true;
   }
@@ -2388,8 +2522,6 @@ namespace butl
   // Path search implementations.
   //
   static const dir_path empty_dir;
-
-  using preopen = function<bool (const dir_path&)>;
 
   // Base for filesystem (see above) implementations.
   //
@@ -2440,13 +2572,17 @@ namespace butl
                             bool recursive,
                             bool self,
                             bool fs,
-                            preopen po)
+                            preopen po,
+                            preskip ps)
         : start_ (move (p)),
           recursive_ (recursive),
           self_ (self),
           follow_symlinks_ (fs),
-          preopen_ (move (po))
+          preopen_ (move (po)),
+          preskip_ (move (ps))
     {
+      assert (fs || ps == nullptr);
+
       open (dir_path (), self_);
     }
 
@@ -2456,11 +2592,15 @@ namespace butl
     recursive_dir_iterator& operator= (const recursive_dir_iterator&) = delete;
     recursive_dir_iterator (recursive_dir_iterator&&) = default;
 
-    // Return false if no more entries left. Otherwise save the next entry path
-    // and return true. The path is relative to the directory being
+    // Return false if no more entries left. Otherwise save the next entry
+    // path and return true. The path is relative to the directory being
     // traversed and contains a trailing separator for sub-directories. Throw
     // std::system_error in case of a failure (insufficient permissions,
     // dangling symlink encountered, etc).
+    //
+    // If symlinks need to be followed, then skip inaccessible/dangling
+    // entries or, if the preskip callback is specified and returns false for
+    // such an entry, stop the entire traversal.
     //
     bool
     next (path& p)
@@ -2470,44 +2610,64 @@ namespace butl
 
       auto& i (iters_.back ());
 
-      // If we got to the end of directory sub-entries, then go one level up
-      // and return this directory path.
-      //
-      if (i.first == dir_iterator ())
+      for (;;) // Skip inaccessible/dangling entries.
       {
-        path d (move (i.second));
-        iters_.pop_back ();
-
-        // Return the path unless it is the last one (the directory we started
-        // to iterate from) and the self flag is not set.
+        // If we got to the end of directory sub-entries, then go one level up
+        // and return this directory path.
         //
-        if (iters_.empty () && !self_)
-          return false;
+        if (i.first == dir_iterator ())
+        {
+          path d (move (i.second));
+          iters_.pop_back ();
 
-        p = move (d);
+          // Return the path unless it is the last one (the directory we
+          // started to iterate from) and the self flag is not set.
+          //
+          if (iters_.empty () && !self_)
+            return false;
+
+          p = move (d);
+          return true;
+        }
+
+        const dir_entry& de (*i.first);
+
+        // Append separator if a directory. Note that dir_entry::type() can
+        // throw.
+        //
+        entry_type et (follow_symlinks_ ? de.type () : de.ltype ());
+
+        // If the entry turned out to be inaccessible/dangling, then skip it
+        // if the preskip function is not specified or returns true and stop
+        // the entire traversal otherwise.
+        //
+        if (et == entry_type::unknown)
+        {
+          if (preskip_ != nullptr && !preskip_ (de))
+          {
+            iters_.clear ();
+            return false;
+          }
+
+          ++i.first;
+          continue;
+        }
+
+        path pe (et == entry_type::directory
+                 ? path_cast<dir_path> (i.second / de.path ())
+                 : i.second / de.path ());
+
+        ++i.first;
+
+        if (recursive_ && pe.to_directory ())
+        {
+          open (path_cast<dir_path> (move (pe)), true);
+          return next (p);
+        }
+
+        p = move (pe);
         return true;
       }
-
-      const dir_entry& de (*i.first);
-
-      // Append separator if a directory. Note that dir_entry::type() can
-      // throw.
-      //
-      entry_type et (follow_symlinks_ ? de.type () : de.ltype ());
-      path pe (et == entry_type::directory
-               ? path_cast<dir_path> (i.second / de.path ())
-               : i.second / de.path ());
-
-      ++i.first;
-
-      if (recursive_ && pe.to_directory ())
-      {
-        open (path_cast<dir_path> (move (pe)), true);
-        return next (p);
-      }
-
-      p = move (pe);
-      return true;
     }
 
   private:
@@ -2529,10 +2689,15 @@ namespace butl
         {
           dir_path d (start_ / p);
 
-          // If we follow symlinks, then we ignore the dangling ones.
+          // If we follow symlinks, then we may need to skip the dangling
+          // ones. Note, however, that we will be skipping them not at the
+          // dir_iterator level but ourselves, after calling the preskip
+          // callback function (see next() for details).
           //
           i = dir_iterator (!d.empty () ? d : dir_path ("."),
-                            follow_symlinks_);
+                            follow_symlinks_
+                            ? dir_iterator::detect_dangling
+                            : dir_iterator::no_follow);
         }
 
         iters_.emplace_back (move (i), move (p));
@@ -2562,6 +2727,7 @@ namespace butl
     bool self_;
     bool follow_symlinks_;
     preopen preopen_;
+    preskip preskip_;
     small_vector<pair<dir_iterator, dir_path>, 1> iters_;
   };
 
@@ -2585,13 +2751,15 @@ namespace butl
               bool recursive,
               bool self,
               bool follow_symlinks,
-              preopen po) const
+              preopen po,
+              preskip ps) const
     {
       return iterator_type (start_ / p,
                             recursive,
                             self,
                             follow_symlinks,
-                            move (po));
+                            move (po),
+                            move (ps));
     }
   };
 
@@ -2600,10 +2768,11 @@ namespace butl
     const path& pattern,
     const function<bool (path&&, const string& pattern, bool interm)>& func,
     const dir_path& start,
-    path_match_flags flags)
+    path_match_flags flags,
+    const function<bool (const dir_entry&)>& dangling_func)
   {
     real_filesystem fs (pattern.relative () ? start : empty_dir);
-    search (pattern, dir_path (), flags, func, fs);
+    search (pattern, dir_path (), flags, func, dangling_func, fs);
   }
 
   // Search path in the directory tree represented by a path.
@@ -2761,7 +2930,8 @@ namespace butl
               bool recursive,
               bool self,
               bool /*follow_symlinks*/,
-              preopen po)
+              preopen po,
+              preskip)
     {
       // If path and sub-path are non-empty, and both are absolute or relative,
       // then no extra effort is required (prior to checking if one is a
@@ -2820,6 +2990,6 @@ namespace butl
     path_match_flags flags)
   {
     path_filesystem fs (start, entry);
-    search (pattern, dir_path (), flags, func, fs);
+    search (pattern, dir_path (), flags, func, nullptr /* dangle_func */, fs);
   }
 }

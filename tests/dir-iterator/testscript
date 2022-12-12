@@ -54,6 +54,12 @@ if ($test.target == $build.host)
 
       $*    ../wd >- 2>! != 0 : keep
       $* -i ../wd >'reg     f': skip
+
+      : detect
+      :
+      $* -d ../wd >>~%EOO%
+        %(reg     f|sym unk l)%{2}
+        EOO
     }
 
     : dir
@@ -71,6 +77,12 @@ if ($test.target == $build.host)
 
       $*    ../wd >- 2>! != 0 : keep
       $* -i ../wd >'dir     d': skip
+
+      : detect
+      :
+      $* -d ../wd >>~%EOO%
+        %(dir     d|sym unk l)%{2}
+        EOO
     }
   }
 
@@ -89,5 +101,11 @@ if ($test.target == $build.host)
 
     $*    ../wd >- 2>! != 0 : keep
     $* -i ../wd >'dir     d': skip
+
+      : detect
+      :
+      $* -d ../wd >>~%EOO%
+        %(dir     d|sym unk l)%{2}
+        EOO
   }
 }

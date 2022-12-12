@@ -650,12 +650,14 @@
   {
     mkdir a;
     touch --no-cleanup a/b;
-    ^ln -s b a/l &a/l;
+    ln -s b a/l &a/l;
     rm a/b;
 
     touch a/c;
 
-    $* a/* >/'a/c'
+    $* a/* 2>! == 3;
+    $* -d 'print' a/* >/'a/c' 2>/'a/l';
+    $* -d 'stop'  a/* >!      2>/'a/l' == 1
   }
 }
 

@@ -470,7 +470,7 @@ namespace butl
       if (cbs.create)
         call (fail, cbs.create, to, false /* pre */);
 
-      for (const auto& de: dir_iterator (from, false /* ignore_dangling */))
+      for (const auto& de: dir_iterator (from, dir_iterator::no_follow))
       {
         path f (from / de.path ());
         path t (to / de.path ());

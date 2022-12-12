@@ -652,6 +652,12 @@ namespace butl
 
     // Symlink target type in case of the symlink, ltype() otherwise.
     //
+    // If type() returns entry_type::unknown then this entry is inaccessible
+    // (ltype() also returns entry_type::unknown) or is a dangling symlink
+    // (ltype() returns entry_type::symlink). Used with the detect_dangling
+    // dir_iterator mode. Note that on POSIX ltype() can never return unknown
+    // (because it is part of the directory iteration result).
+    //
     entry_type
     type () const;
 
@@ -678,8 +684,11 @@ namespace butl
   private:
     friend class dir_iterator;
 
-    mutable entry_type t_ = entry_type::unknown;  // Lazy evaluation.
-    mutable entry_type lt_ = entry_type::unknown; // Lazy evaluation.
+    // Note: lazy evaluation.
+    //
+    mutable optional<entry_type> t_;  // Entry type.
+    mutable optional<entry_type> lt_; // Symlink target type.
+
     path_type p_;
     dir_path b_;
   };
@@ -696,12 +705,15 @@ namespace butl
     ~dir_iterator ();
     dir_iterator () = default;
 
-    // If it is requested to ignore dangling symlinks, then the increment
-    // operator will skip symlinks that refer to non-existing or inaccessible
-    // targets. That implies that it will always try to stat() symlinks.
+    // If the mode is either ignore_dangling or detect_dangling, then stat()
+    // the entry and either ignore inaccessible/dangling entry or return it
+    // with the corresponding dir_entry type set to unknown (see dir_entry
+    // type()/ltype() for details).
     //
+    enum mode {no_follow, detect_dangling, ignore_dangling};
+
     explicit
-    dir_iterator (const dir_path&, bool ignore_dangling);
+    dir_iterator (const dir_path&, mode);
 
     dir_iterator (const dir_iterator&) = delete;
     dir_iterator& operator= (const dir_iterator&) = delete;
@@ -730,7 +742,7 @@ namespace butl
     intptr_t h_ = -1;
 #endif
 
-    bool ignore_dangling_ = false;
+    mode mode_ = no_follow;
   };
 
   // Range-based for loop support.
@@ -821,9 +833,20 @@ namespace butl
   // (a/b/,   b*/, true)
   // (a/b/c/, c*/, false)
   //
-  // Note that recursive iterating through directories currently goes
-  // depth-first which make sense for the cleanup use cases. In future we may
-  // want to make it controllable.
+  // Note that recursive iterating through directories currently goes depth-
+  // first which make sense for the cleanup use cases. In the future we may
+  // want to make this controllable.
+  //
+  // If the match flags contain follow_symlinks, then call the dangling
+  // callback function for inaccessible/dangling entries if specified, and
+  // throw appropriate std::system_error otherwise. If the callback function
+  // returns true, then inaccessible/dangling entry is ignored. Otherwise,
+  // the entire search is stopped.
+  //
+  // Note also that if pattern is not simple (that is, contains directory
+  // components), then some symlinks (those that are matched against the
+  // directory components) may still be followed and thus the dangling
+  // function called.
   //
   LIBBUTL_SYMEXPORT void
   path_search (const path& pattern,
@@ -831,7 +854,8 @@ namespace butl
                                          const std::string& pattern,
                                          bool interm)>&,
                const dir_path& start = dir_path (),
-               path_match_flags = path_match_flags::follow_symlinks);
+               path_match_flags = path_match_flags::follow_symlinks,
+               const std::function<bool (const dir_entry&)>& dangling = nullptr);
 
   // Same as above, but behaves as if the directory tree being searched
   // through contains only the specified entry. The start directory is used if
