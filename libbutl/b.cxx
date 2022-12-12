@@ -35,7 +35,7 @@ namespace butl
   void
   b_info (std::vector<b_project_info>& r,
           const vector<dir_path>& projects,
-          bool ext_mods,
+          b_info_flags fl,
           uint16_t verb,
           const function<b_callback>& cmd_callback,
           const path& program,
@@ -81,13 +81,20 @@ namespace butl
         else
           vops.push_back ("-q");
 
-        vector<string> ps;
-        ps.reserve (projects.size ());
+        string spec ("info(");
 
-        // Note that quoting is essential here.
-        //
-        for (const dir_path& p: projects)
-          ps.push_back ('\'' + p.representation () + '\'');
+        for (size_t i (0); i != projects.size(); ++i)
+        {
+          if (i != 0)
+            spec += ' ';
+
+          spec += '\'' + projects[i].representation () + '\'';
+        }
+
+        if ((fl & b_info_flags::subprojects) == b_info_flags::none)
+          spec += ",no_subprojects";
+
+        spec += ')';
 
         pr = process_start_callback (
           cmd_callback ? cmd_callback : [] (const char* const*, size_t) {},
@@ -96,10 +103,12 @@ namespace butl
           2 /* stderr */,
           pp,
           vops,
-          ext_mods ? nullptr : "--no-external-modules",
+          ((fl & b_info_flags::ext_mods) == b_info_flags::none
+           ? "--no-external-modules"
+           : nullptr),
           "-s",
           ops,
-          "info:", ps);
+          spec);
 
         pipe.out.close ();
         ifdstream is (move (pipe.in), fdstream_mode::skip, ifdstream::badbit);

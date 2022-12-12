@@ -51,11 +51,6 @@ namespace butl
   // result vector can be used to determine which project information caused
   // the error.
   //
-  // Unless you need information that may come from external modules
-  // (operations, meta-operations, etc), pass false as the ext_mods argument,
-  // which results in passing --no-external-modules to the build2 program and
-  // speeds up its execution.
-  //
   // You can also specify the build2 verbosity level, command line callback
   // (see process_run_callback() for details), build program search details,
   // and additional options.
@@ -92,12 +87,35 @@ namespace butl
     std::vector<std::string> modules;
   };
 
+  enum class b_info_flags: std::uint16_t
+  {
+    // Retrieve information that may come from external modules (operations,
+    // meta-operations, etc). Omitting this flag results in passing
+    // --no-external-modules to the build2 program and speeds up its
+    // execution.
+    //
+    ext_mods = 0x1,
+
+    // Discover subprojects. Omitting this flag results in passing
+    // no_subprojects info meta-operation parameter to the build2 program and
+    // speeds up its execution.
+    //
+    subprojects = 0x2,
+
+    none = 0
+  };
+
+  inline b_info_flags operator& (b_info_flags, b_info_flags);
+  inline b_info_flags operator| (b_info_flags, b_info_flags);
+  inline b_info_flags operator&= (b_info_flags&, b_info_flags);
+  inline b_info_flags operator|= (b_info_flags&, b_info_flags);
+
   using b_callback = void (const char* const args[], std::size_t n);
 
   LIBBUTL_SYMEXPORT void
   b_info (std::vector<b_project_info>& result,
           const std::vector<dir_path>& projects,
-          bool ext_mods,
+          b_info_flags,
           std::uint16_t verb = 1,
           const std::function<b_callback>& cmd_callback = {},
           const path& program = path ("b"),
@@ -108,7 +126,7 @@ namespace butl
   //
   inline b_project_info
   b_info (const dir_path& project,
-          bool ext_mods,
+          b_info_flags fl,
           std::uint16_t verb = 1,
           const std::function<b_callback>& cmd_callback = {},
           const path& program = path ("b"),
@@ -118,7 +136,7 @@ namespace butl
     std::vector<b_project_info> r;
     b_info (r,
             std::vector<dir_path> ({project}),
-            ext_mods,
+            fl,
             verb,
             cmd_callback,
             program,
@@ -128,3 +146,5 @@ namespace butl
     return std::move (r[0]);
   }
 }
+
+#include <libbutl/b.ixx>
