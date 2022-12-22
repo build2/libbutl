@@ -739,7 +739,7 @@ namespace butl
 #ifndef _WIN32
     DIR* h_ = nullptr;
 #else
-    intptr_t h_ = -1;
+    intptr_t h_ = -1; // INVALID_HANDLE_VALUE
 #endif
 
     mode mode_ = no_follow;

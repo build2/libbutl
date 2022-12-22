@@ -16,7 +16,7 @@
 #else
 #  include <libbutl/win32-utility.hxx>
 
-#  include <io.h>        // _find*(), _unlink(), _chmod()
+#  include <io.h>        // _unlink(), _chmod()
 #  include <direct.h>    // _mkdir(), _rmdir()
 #  include <winioctl.h>  // FSCTL_SET_REPARSE_POINT
 #  include <sys/types.h> // _stat
@@ -28,8 +28,9 @@
 #    define S_ISCHR(m) (((m) & S_IFMT) == S_IFCHR)
 #  endif
 
-#  include <cwchar>  // mbsrtowcs(), wcsrtombs(), mbstate_t
-#  include <cstring> // strncmp()
+#  include <cwchar>      // mbsrtowcs(), wcsrtombs(), mbstate_t
+#  include <cstring>     // strncmp()
+#  include <type_traits> // is_same
 #endif
 
 #include <chrono>
@@ -309,16 +310,15 @@ namespace butl
 
   // Open a filesystem entry for reading and optionally writing its
   // meta-information and return the entry handle and meta-information if the
-  // path refers to an existing entry and nullhandle otherwise. Follow reparse
-  // points by default. Underlying OS errors are reported by throwing
-  // std::system_error, unless ignore_error is true in which case nullhandle
-  // is returned. In the latter case the error code can be obtained by calling
-  // GetLastError().
+  // path refers to an existing entry and nullhandle otherwise. Underlying OS
+  // errors are reported by throwing std::system_error, unless ignore_error is
+  // true in which case nullhandle is returned. In the latter case the error
+  // code can be obtained by calling GetLastError().
   //
   static inline pair<win32::auto_handle, BY_HANDLE_FILE_INFORMATION>
   entry_info_handle (const char* p,
                      bool write,
-                     bool fr = true,
+                     bool follow_reparse_points,
                      bool ie = false)
   {
     // Open the entry for reading/writing its meta-information. Follow reparse
@@ -333,7 +333,7 @@ namespace butl
                   nullptr,
                   OPEN_EXISTING,
                   FILE_FLAG_BACKUP_SEMANTICS | // Required for a directory.
-                  (fr ? 0 : FILE_FLAG_OPEN_REPARSE_POINT),
+                  (follow_reparse_points ? 0 : FILE_FLAG_OPEN_REPARSE_POINT),
                   nullptr));
 
     if (h == nullhandle)
@@ -358,13 +358,15 @@ namespace butl
   }
 
   // Return a flag indicating whether the path is to an existing filesystem
-  // entry and its meta-information if so. Follow reparse points by default.
+  // entry and its meta-information if so.
   //
   static inline pair<bool, BY_HANDLE_FILE_INFORMATION>
-  path_entry_info (const char* p, bool fr = true, bool ie = false)
+  path_entry_handle_info (const char* p,
+                          bool follow_reparse_points,
+                          bool ie = false)
   {
     pair<auto_handle, BY_HANDLE_FILE_INFORMATION> hi (
-      entry_info_handle (p, false /* write */, fr, ie));
+      entry_info_handle (p, false /* write */, follow_reparse_points, ie));
 
     if (hi.first == nullhandle)
       return make_pair (false, BY_HANDLE_FILE_INFORMATION ());
@@ -376,9 +378,28 @@ namespace butl
   }
 
   static inline pair<bool, BY_HANDLE_FILE_INFORMATION>
-  path_entry_info (const path& p, bool fr = true, bool ie = false)
+  path_entry_handle_info (const path& p, bool fr, bool ie = false)
   {
-    return path_entry_info (p.string ().c_str (), fr, ie);
+    return path_entry_handle_info (p.string ().c_str (), fr, ie);
+  }
+
+  // Return a flag indicating whether the path is to an existing filesystem
+  // entry and its extended attributes if so. Don't follow reparse points.
+  //
+  static inline pair<bool, WIN32_FILE_ATTRIBUTE_DATA>
+  path_entry_info (const char* p, bool ie = false)
+  {
+    WIN32_FILE_ATTRIBUTE_DATA r;
+    if (!GetFileAttributesExA (p, GetFileExInfoStandard, &r))
+    {
+      DWORD ec;
+      if (ie || error_file_not_found (ec = GetLastError ()))
+        return make_pair (false, WIN32_FILE_ATTRIBUTE_DATA ());
+
+      throw_system_error (ec);
+    }
+
+    return make_pair (true, r);
   }
 
   // Reparse point data.
@@ -633,52 +654,56 @@ namespace butl
 
     // Stat the entry not following reparse points.
     //
-    pair<bool, BY_HANDLE_FILE_INFORMATION> pi (
-      path_entry_info (p, false /* follow_reparse_points */, ie));
+    pair<bool, WIN32_FILE_ATTRIBUTE_DATA> pi (path_entry_info (p, ie));
 
     if (!pi.first)
       return make_pair (false, entry_stat {entry_type::unknown, 0});
 
-    if (reparse_point (pi.second.dwFileAttributes))
+    auto entry_info = [] (const auto& ei)
     {
-      pair<entry_type, path> rp (reparse_point_entry (p, ie));
+      if (directory (ei.dwFileAttributes))
+        return make_pair (true, entry_stat {entry_type::directory, 0});
+      else
+        return make_pair (
+          true,
+          entry_stat {entry_type::regular,
+                      ((uint64_t (ei.nFileSizeHigh) << 32) | ei.nFileSizeLow)});
+    };
 
-      if (rp.first == entry_type::symlink)
+    if (!reparse_point (pi.second.dwFileAttributes))
+      return entry_info (pi.second);
+
+    pair<entry_type, path> rp (reparse_point_entry (p, ie));
+
+    if (rp.first == entry_type::symlink)
+    {
+      // If following symlinks is requested, then follow the reparse point and
+      // return its target information. Otherwise, return the symlink entry
+      // type.
+      //
+      if (fl)
       {
-        // If following symlinks is requested, then follow the reparse point,
-        // overwrite its own information with the resolved target information,
-        // and fall through. Otherwise, return the symlink entry type.
-        //
-        if (fl)
-        {
-          pi = path_entry_info (p, true /* follow_reparse_points */, ie);
+        pair<bool, BY_HANDLE_FILE_INFORMATION> pi (
+          path_entry_handle_info (p, true /* follow_reparse_points */, ie));
 
-          if (!pi.first)
-            return make_pair (false, entry_stat {entry_type::unknown, 0});
-        }
-        else
-          return make_pair (true, entry_stat {entry_type::symlink, 0});
+        return pi.first
+               ? entry_info (pi.second)
+               : make_pair (false, entry_stat {entry_type::unknown, 0});
       }
-      else if (rp.first == entry_type::unknown)
-        return make_pair (false, entry_stat {entry_type::unknown, 0});
-      else // entry_type::other
-        return make_pair (true, entry_stat {entry_type::other, 0});
+      else
+        return make_pair (true, entry_stat {entry_type::symlink, 0});
     }
-
-    if (directory (pi.second.dwFileAttributes))
-      return make_pair (true, entry_stat {entry_type::directory, 0});
-    else
-      return make_pair (
-        true,
-        entry_stat {entry_type::regular,
-                    ((uint64_t (pi.second.nFileSizeHigh) << 32) |
-                     pi.second.nFileSizeLow)});
+    else if (rp.first == entry_type::unknown)
+      return make_pair (false, entry_stat {entry_type::unknown, 0});
+    else // entry_type::other
+      return make_pair (true, entry_stat {entry_type::other, 0});
   }
 
   permissions
   path_permissions (const path& p)
   {
-    pair<bool, BY_HANDLE_FILE_INFORMATION> pi (path_entry_info (p));
+    pair<bool, BY_HANDLE_FILE_INFORMATION> pi (
+      path_entry_handle_info (p, true /* follow_reparse_points */));
 
     if (!pi.first)
       throw_generic_error (ENOENT);
@@ -718,7 +743,8 @@ namespace butl
   static entry_time
   entry_tm (const char* p, bool dir)
   {
-    pair<bool, BY_HANDLE_FILE_INFORMATION> pi (path_entry_info (p));
+    pair<bool, BY_HANDLE_FILE_INFORMATION> pi (
+      path_entry_handle_info (p, true /* follow_reparse_points */));
 
     // If the entry is of the wrong type, then let's pretend that it doesn't
     // exists.
@@ -772,7 +798,9 @@ namespace butl
     // See also touch_file() below.
     //
     pair<auto_handle, BY_HANDLE_FILE_INFORMATION> hi (
-      entry_info_handle (p, true /* write */));
+      entry_info_handle (p,
+                         true /* write */,
+                         true /* follow_reparse_points */));
 
     // If the entry is of the wrong type, then let's pretend that it doesn't
     // exist.
@@ -857,7 +885,9 @@ namespace butl
     // implicitly.
     //
     pair<auto_handle, BY_HANDLE_FILE_INFORMATION> hi (
-      entry_info_handle (p.string ().c_str (), true /* write */));
+      entry_info_handle (p.string ().c_str (),
+                         true /* write */,
+                         true /* follow_reparse_points */));
 
     if (hi.first != nullhandle)
     {
@@ -2023,31 +2053,6 @@ namespace butl
 
   // dir_entry
   //
-  dir_iterator::
-  ~dir_iterator ()
-  {
-    if (h_ != -1)
-      _findclose (h_); // Ignore any errors.
-  }
-
-  dir_iterator& dir_iterator::
-  operator= (dir_iterator&& x)
-  {
-    if (this != &x)
-    {
-      e_ = move (x.e_);
-
-      if (h_ != -1 && _findclose (h_) == -1)
-        throw_generic_error (errno);
-
-      h_ = x.h_;
-      x.h_ = -1;
-
-      mode_ = x.mode_;
-    }
-    return *this;
-  }
-
   entry_type dir_entry::
   type (bool follow_symlinks) const
   {
@@ -2067,31 +2072,54 @@ namespace butl
 
   // dir_iterator
   //
-  struct auto_dir
+  static_assert(is_same<HANDLE, void*>::value, "HANDLE is not void*");
+
+  static inline HANDLE
+  to_handle (intptr_t h)
   {
-    explicit
-    auto_dir (intptr_t& h): h_ (&h) {}
+    return reinterpret_cast<HANDLE> (h);
+  }
 
-    auto_dir (const auto_dir&) = delete;
-    auto_dir& operator= (const auto_dir&) = delete;
+  dir_iterator::
+  ~dir_iterator ()
+  {
+    if (h_ != -1)
+      FindClose (to_handle (h_)); // Ignore any errors.
+  }
 
-    ~auto_dir ()
+  dir_iterator& dir_iterator::
+  operator= (dir_iterator&& x)
+  {
+    if (this != &x)
     {
-      if (h_ != nullptr && *h_ != -1)
-        _findclose (*h_);
+      e_ = move (x.e_);
+
+      if (h_ != -1 && !FindClose (to_handle (h_)))
+        throw_system_error (GetLastError ());
+
+      h_ = x.h_;
+      x.h_ = -1;
+
+      mode_ = x.mode_;
     }
-
-    void release () {h_ = nullptr;}
-
-  private:
-    intptr_t* h_;
-  };
+    return *this;
+  }
 
   dir_iterator::
   dir_iterator (const dir_path& d, mode m)
     : mode_ (m)
   {
-    auto_dir h (h_);
+    struct deleter
+    {
+      void operator() (intptr_t* p) const
+      {
+        if (p != nullptr && *p != -1)
+          FindClose (to_handle (*p));
+      }
+    };
+
+    unique_ptr<intptr_t, deleter> h (&h_);
+
     e_.b_ = d; // Used by next().
 
     next ();
@@ -2104,31 +2132,37 @@ namespace butl
     for (;;)
     {
       bool r;
-      _finddata_t fi;
+      WIN32_FIND_DATA fi;
 
       if (h_ == -1)
       {
         // The call is made from the constructor. Any other call with h_ == -1
         // is illegal.
         //
-
-        // Check to distinguish non-existent vs empty directories.
+        // Note that we used to check for the directory existence before
+        // iterating over it. However, let's not pessimize things and only
+        // check for the directory existence if FindFirstFileExA() fails.
         //
-        if (!dir_exists (e_.base ()))
-          throw_generic_error (ENOENT);
 
-        h_ = _findfirst ((e_.base () / path ("*")).string ().c_str (), &fi);
-        r = h_ != -1;
+        h_ = reinterpret_cast<intptr_t> (
+          FindFirstFileExA ((e_.base () / path ("*")).string ().c_str (),
+                            FindExInfoBasic,
+                            &fi,
+                            FindExSearchNameMatch,
+                            NULL,
+                            0));
+
+        r = (h_ != -1);
       }
       else
-        r = _findnext (h_, &fi) == 0;
+        r = FindNextFileA (to_handle (h_), &fi);
 
       if (r)
       {
         // We can accept some overhead for '.' and '..' (relying on short
         // string optimization) in favor of a more compact code.
         //
-        path p (fi.name);
+        path p (fi.cFileName);
 
         // Skip '.' and '..'.
         //
@@ -2137,10 +2171,16 @@ namespace butl
 
         e_.p_ = move (p);
 
-        // Note that the entry type detection always requires to additionally
-        // query the entry information. Thus, we evaluate its type lazily.
+        DWORD a (fi.dwFileAttributes);
+        bool rp (reparse_point (a));
+
+        // Evaluate the entry type lazily if this is a reparse point since it
+        // requires to additionally query the entry information (see
+        // reparse_point_entry() for details).
         //
-        e_.t_ = nullopt;
+        e_.t_ = rp            ? nullopt                                      :
+                directory (a) ? optional<entry_type> (entry_type::directory) :
+                                optional<entry_type> (entry_type::regular)   ;
 
         e_.lt_ = nullopt;
 
@@ -2149,18 +2189,20 @@ namespace butl
         // mode), or set the entry_type::unknown type for them
         // (detect_dangling mode).
         //
-        if (mode_ != no_follow)
+        if (rp && mode_ != no_follow)
         {
           bool dd (mode_ == detect_dangling);
 
           // Check the last error code throwing for codes other than "path not
-          // found" and "access denied".
+          // found" and "access denied" and returning this error code
+          // otherwise.
           //
           auto verify_error = [] ()
           {
             DWORD ec (GetLastError ());
             if (!error_file_not_found (ec) && ec != ERROR_ACCESS_DENIED)
               throw_system_error (ec);
+            return ec;
           };
 
           // Note that ltype() queries the entry information due to the type
@@ -2171,52 +2213,34 @@ namespace butl
           path fp (e_.base () / e_.path ());
           const char* p (fp.string ().c_str ());
 
-          DWORD a (GetFileAttributesA (p));
-          if (a == INVALID_FILE_ATTRIBUTES)
+          pair<entry_type, path> rpe (
+            reparse_point_entry (p, true /* ignore_error */));
+
+          if (rpe.first == entry_type::unknown)
           {
-            // Note that sometimes trying to obtain attributes for a
-            // filesystem entry that was potentially removed ends up with
-            // ERROR_ACCESS_DENIED. One can argue that there can be another
-            // reason for this error (antivirus, indexer, etc). However, given
-            // that the entry is seen by a _find*() function and normally you
-            // can retrieve attributes for a read-only entry and for an entry
-            // opened in the non-shared mode (see the CreateFile() function
-            // documentation for details) the only meaningful explanation for
-            // ERROR_ACCESS_DENIED is that the entry is being removed. Also
-            // the DeleteFile() documentation mentions such a possibility.
+            DWORD ec (verify_error ());
+
+            // Silently skip the entry if it is not found (being already
+            // deleted) or we are in the ignore dangling mode. Otherwise, set
+            // the entry type to unknown.
             //
-            verify_error ();
-            continue;
+            // Note that sometimes trying to obtain information for a being
+            // removed filesystem entry ends up with ERROR_ACCESS_DENIED (see
+            // DeleteFile() and CreateFile() for details). Probably getting
+            // this error code while trying to obtain the reparse point
+            // information (involves calling CreateFile(FILE_READ_EA) and
+            // DeviceIoControl()) can also be interpreted differently. We,
+            // however, always treat it as "access denied" in the detect
+            // dangling mode for good measure. Let's see if that won't be too
+            // noisy.
+            //
+            if (ec != ERROR_ACCESS_DENIED || !dd)
+              continue;
+
+            // Fall through.
           }
 
-          if (reparse_point (a))
-          {
-            pair<entry_type, path> rp (
-              reparse_point_entry (p, true /* ignore_error */));
-
-            if (rp.first == entry_type::unknown)
-            {
-              verify_error ();
-
-              // Probably the failure to obtain the reparse point information
-              // (involves calling CreateFile(), DeviceIoControl(), etc) can
-              // also be interpreted differently, as described above. However,
-              // given that we have managed to retrieve the entry attributes
-              // let's treat this failure as a lack of permissions and set the
-              // entry type to unknown in the detect dangling mode.
-              //
-              if (!dd)
-                continue;
-
-              // Fall through.
-            }
-
-            e_.t_ = rp.first;
-          }
-          else
-            e_.t_ = directory (a)
-                    ? entry_type::directory
-                    : entry_type::regular;
+          e_.t_ = rpe.first;
 
           // In this mode the entry type should be present and in the
           // ignore_dangling mode it may not be entry_type::unknown.
@@ -2231,7 +2255,8 @@ namespace butl
             // Query the target info.
             //
             // Note that we use entry_info_handle() rather than
-            // path_entry_info() to be able to verify an error on failure.
+            // path_entry_handle_info() to be able to verify an error on
+            // failure.
             //
             pair<auto_handle, BY_HANDLE_FILE_INFORMATION> ti (
               entry_info_handle (p,
@@ -2265,18 +2290,33 @@ namespace butl
           //        (e_.lt_ && (dd || *e_.lt_ != entry_type::unknown)));
         }
       }
-      else if (errno == ENOENT)
-      {
-        // End of stream.
-        //
-        if (h_ != -1)
-        {
-          _findclose (h_);
-          h_ = -1;
-        }
-      }
       else
-        throw_generic_error (errno);
+      {
+        DWORD ec (GetLastError ());
+        bool first (h_ == -1);
+
+        // Check to distinguish non-existent vs empty directories.
+        //
+        // Note that dir_exists() handles not only the "filesystem entry does
+        // not exist" case but also the case when the entry exists but is not
+        // a directory.
+        //
+        if (first && !dir_exists (e_.base ()))
+          throw_generic_error (ENOENT);
+
+        if (ec == (first ? ERROR_FILE_NOT_FOUND : ERROR_NO_MORE_FILES))
+        {
+          // End of stream.
+          //
+          if (h_ != -1)
+          {
+            FindClose (to_handle (h_));
+            h_ = -1;
+          }
+        }
+        else
+          throw_system_error (ec);
+      }
 
       break;
     }
