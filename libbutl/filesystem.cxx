@@ -402,6 +402,12 @@ namespace butl
     return make_pair (true, r);
   }
 
+  static inline pair<bool, WIN32_FILE_ATTRIBUTE_DATA>
+  path_entry_info (const path& p, bool ie = false)
+  {
+    return path_entry_info (p.string ().c_str (), ie);
+  }
+
   // Reparse point data.
   //
   struct symlink_buf
@@ -702,22 +708,32 @@ namespace butl
   permissions
   path_permissions (const path& p)
   {
-    pair<bool, BY_HANDLE_FILE_INFORMATION> pi (
-      path_entry_handle_info (p, true /* follow_reparse_points */));
-
-    if (!pi.first)
-      throw_generic_error (ENOENT);
-
-    // On Windows a filesystem entry is always readable. Also there is no
-    // notion of group/other permissions at OS level, so we extrapolate user
-    // permissions to group/other permissions (as the _stat() function does).
+    // Let's optimize for the common case when the entry is not a reparse
+    // point.
     //
-    permissions r (permissions::ru | permissions::rg | permissions::ro);
+    auto attr_to_perm = [] (const auto& pi) -> permissions
+    {
+      if (!pi.first)
+        throw_generic_error (ENOENT);
 
-    if (!readonly (pi.second.dwFileAttributes))
-      r |= permissions::wu | permissions::wg | permissions::wo;
+      // On Windows a filesystem entry is always readable. Also there is no
+      // notion of group/other permissions at OS level, so we extrapolate user
+      // permissions to group/other permissions (as the _stat() function
+      // does).
+      //
+      permissions r (permissions::ru | permissions::rg | permissions::ro);
 
-    return r;
+      if (!readonly (pi.second.dwFileAttributes))
+        r |= permissions::wu | permissions::wg | permissions::wo;
+
+      return r;
+    };
+
+    pair<bool, WIN32_FILE_ATTRIBUTE_DATA> pi (path_entry_info (p));
+    return !pi.first || !reparse_point (pi.second.dwFileAttributes)
+           ? attr_to_perm (pi)
+           : attr_to_perm (
+               path_entry_handle_info (p, true /* follow_reparse_points */));
   }
 
   void
@@ -743,32 +759,42 @@ namespace butl
   static entry_time
   entry_tm (const char* p, bool dir)
   {
-    pair<bool, BY_HANDLE_FILE_INFORMATION> pi (
-      path_entry_handle_info (p, true /* follow_reparse_points */));
-
-    // If the entry is of the wrong type, then let's pretend that it doesn't
-    // exists.
+    // Let's optimize for the common case when the entry is not a reparse
+    // point.
     //
-    if (!pi.first || directory (pi.second.dwFileAttributes) != dir)
-      return {timestamp_nonexistent, timestamp_nonexistent};
-
-    auto tm = [] (const FILETIME& t) -> timestamp
+    auto attr_to_time = [dir] (const auto& pi) -> entry_time
     {
-      // Time in FILETIME is in 100 nanosecond "ticks" since "Windows epoch"
-      // (1601-01-01T00:00:00Z). To convert it to "UNIX epoch"
-      // (1970-01-01T00:00:00Z) we need to subtract 11644473600 seconds.
+      // If the entry is of the wrong type, then let's pretend that it doesn't
+      // exists.
       //
-      uint64_t nsec ((static_cast<uint64_t> (t.dwHighDateTime) << 32) |
-                     t.dwLowDateTime);
+      if (!pi.first || directory (pi.second.dwFileAttributes) != dir)
+        return entry_time {timestamp_nonexistent, timestamp_nonexistent};
 
-      nsec -= 11644473600ULL * 10000000; // Now in UNIX epoch.
-      nsec *= 100;                       // Now in nanoseconds.
+      auto tm = [] (const FILETIME& t) -> timestamp
+      {
+        // Time in FILETIME is in 100 nanosecond "ticks" since "Windows epoch"
+        // (1601-01-01T00:00:00Z). To convert it to "UNIX epoch"
+        // (1970-01-01T00:00:00Z) we need to subtract 11644473600 seconds.
+        //
+        uint64_t nsec ((static_cast<uint64_t> (t.dwHighDateTime) << 32) |
+                       t.dwLowDateTime);
 
-      return timestamp (
-        chrono::duration_cast<duration> (chrono::nanoseconds (nsec)));
+        nsec -= 11644473600ULL * 10000000; // Now in UNIX epoch.
+        nsec *= 100;                       // Now in nanoseconds.
+
+        return timestamp (
+          chrono::duration_cast<duration> (chrono::nanoseconds (nsec)));
+      };
+
+      return entry_time {tm (pi.second.ftLastWriteTime),
+                         tm (pi.second.ftLastAccessTime)};
     };
 
-    return {tm (pi.second.ftLastWriteTime), tm (pi.second.ftLastAccessTime)};
+    pair<bool, WIN32_FILE_ATTRIBUTE_DATA> pi (path_entry_info (p));
+    return !pi.first || !reparse_point (pi.second.dwFileAttributes)
+           ? attr_to_time (pi)
+           : attr_to_time (
+               path_entry_handle_info (p, true /* follow_reparse_points */));
   }
 
   static inline FILETIME
