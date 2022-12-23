@@ -184,6 +184,19 @@ namespace butl
   // static inline constexpr int
   // ansec (...) {return 0;}
 
+  static inline entry_time
+  entry_tm (const struct stat& s) noexcept
+  {
+    auto tm = [] (time_t sec, auto nsec) -> timestamp
+    {
+      return system_clock::from_time_t (sec) +
+        chrono::duration_cast<duration> (chrono::nanoseconds (nsec));
+    };
+
+    return {tm (s.st_mtime, mnsec<struct stat> (&s, true)),
+            tm (s.st_atime, ansec<struct stat> (&s, true))};
+  }
+
   // Return the modification and access times of a regular file or directory.
   //
   static entry_time
@@ -201,14 +214,7 @@ namespace butl
     if (dir ? !S_ISDIR (s.st_mode) : !S_ISREG (s.st_mode))
       return {timestamp_nonexistent, timestamp_nonexistent};
 
-    auto tm = [] (time_t sec, auto nsec) -> timestamp
-    {
-      return system_clock::from_time_t (sec) +
-        chrono::duration_cast<duration> (chrono::nanoseconds (nsec));
-    };
-
-    return {tm (s.st_mtime, mnsec<struct stat> (&s, true)),
-            tm (s.st_atime, ansec<struct stat> (&s, true))};
+    return entry_tm (s);
   }
 
   // Set the modification and access times for a regular file or directory.
@@ -641,8 +647,48 @@ namespace butl
     return reparse_point_entry (p.string ().c_str (), ie);
   }
 
-  pair<bool, entry_stat>
-  path_entry (const char* p, bool fl, bool ie)
+  static inline timestamp
+  to_timestamp (const FILETIME& t)
+  {
+    // Time in FILETIME is in 100 nanosecond "ticks" since "Windows epoch"
+    // (1601-01-01T00:00:00Z). To convert it to "UNIX epoch"
+    // (1970-01-01T00:00:00Z) we need to subtract 11644473600 seconds.
+    //
+    uint64_t nsec ((static_cast<uint64_t> (t.dwHighDateTime) << 32) |
+                   t.dwLowDateTime);
+
+    nsec -= 11644473600ULL * 10000000; // Now in UNIX epoch.
+    nsec *= 100;                       // Now in nanoseconds.
+
+    return timestamp (
+      chrono::duration_cast<duration> (chrono::nanoseconds (nsec)));
+  }
+
+  static inline FILETIME
+  to_filetime (timestamp t)
+  {
+    // Time in FILETIME is in 100 nanosecond "ticks" since "Windows epoch"
+    // (1601-01-01T00:00:00Z). To convert "UNIX epoch" (1970-01-01T00:00:00Z)
+    // to it we need to add 11644473600 seconds.
+    //
+    uint64_t ticks (chrono::duration_cast<chrono::nanoseconds> (
+                      t.time_since_epoch ()).count ());
+
+    ticks /= 100;                       // Now in 100 nanosecond "ticks".
+    ticks += 11644473600ULL * 10000000; // Now in "Windows epoch".
+
+    FILETIME r;
+    r.dwHighDateTime = (ticks >> 32) & 0xFFFFFFFF;
+    r.dwLowDateTime = ticks & 0xFFFFFFFF;
+    return r;
+  }
+
+  // If the being returned entry type is regular or directory and et is not
+  // NULL, then also save the entry modification and access times into the
+  // referenced variable.
+  //
+  static inline pair<bool, entry_stat>
+  path_entry (const char* p, bool fl, bool ie, entry_time* et)
   {
     // A path like 'C:', while being a root path in our terminology, is not as
     // such for Windows, that maintains current directory for each drive, and
@@ -665,8 +711,14 @@ namespace butl
     if (!pi.first)
       return make_pair (false, entry_stat {entry_type::unknown, 0});
 
-    auto entry_info = [] (const auto& ei)
+    auto entry_info = [et] (const auto& ei)
     {
+      if (et != nullptr)
+      {
+        et->modification = to_timestamp (ei.ftLastWriteTime);
+        et->access = to_timestamp (ei.ftLastAccessTime);
+      }
+
       if (directory (ei.dwFileAttributes))
         return make_pair (true, entry_stat {entry_type::directory, 0});
       else
@@ -703,6 +755,18 @@ namespace butl
       return make_pair (false, entry_stat {entry_type::unknown, 0});
     else // entry_type::other
       return make_pair (true, entry_stat {entry_type::other, 0});
+  }
+
+  static inline pair<bool, entry_stat>
+  path_entry (const path& p, bool fl, bool ie, entry_time* et)
+  {
+    return path_entry (p.string ().c_str (), fl, ie, et);
+  }
+
+  pair<bool, entry_stat>
+  path_entry (const char* p, bool fl, bool ie)
+  {
+    return path_entry (p, fl, ie, nullptr /* entry_time */);
   }
 
   permissions
@@ -770,24 +834,8 @@ namespace butl
       if (!pi.first || directory (pi.second.dwFileAttributes) != dir)
         return entry_time {timestamp_nonexistent, timestamp_nonexistent};
 
-      auto tm = [] (const FILETIME& t) -> timestamp
-      {
-        // Time in FILETIME is in 100 nanosecond "ticks" since "Windows epoch"
-        // (1601-01-01T00:00:00Z). To convert it to "UNIX epoch"
-        // (1970-01-01T00:00:00Z) we need to subtract 11644473600 seconds.
-        //
-        uint64_t nsec ((static_cast<uint64_t> (t.dwHighDateTime) << 32) |
-                       t.dwLowDateTime);
-
-        nsec -= 11644473600ULL * 10000000; // Now in UNIX epoch.
-        nsec *= 100;                       // Now in nanoseconds.
-
-        return timestamp (
-          chrono::duration_cast<duration> (chrono::nanoseconds (nsec)));
-      };
-
-      return entry_time {tm (pi.second.ftLastWriteTime),
-                         tm (pi.second.ftLastAccessTime)};
+      return entry_time {to_timestamp (pi.second.ftLastWriteTime),
+                         to_timestamp (pi.second.ftLastAccessTime)};
     };
 
     pair<bool, WIN32_FILE_ATTRIBUTE_DATA> pi (path_entry_info (p));
@@ -795,25 +843,6 @@ namespace butl
            ? attr_to_time (pi)
            : attr_to_time (
                path_entry_handle_info (p, true /* follow_reparse_points */));
-  }
-
-  static inline FILETIME
-  to_filetime (timestamp t)
-  {
-    // Time in FILETIME is in 100 nanosecond "ticks" since "Windows epoch"
-    // (1601-01-01T00:00:00Z). To convert "UNIX epoch"
-    // (1970-01-01T00:00:00Z) to it we need to add 11644473600 seconds.
-    //
-    uint64_t ticks (chrono::duration_cast<chrono::nanoseconds> (
-                      t.time_since_epoch ()).count ());
-
-    ticks /= 100;                       // Now in 100 nanosecond "ticks".
-    ticks += 11644473600ULL * 10000000; // Now in "Windows epoch".
-
-    FILETIME r;
-    r.dwHighDateTime = (ticks >> 32) & 0xFFFFFFFF;
-    r.dwLowDateTime = ticks & 0xFFFFFFFF;
-    return r;
   }
 
   // Set the modification and access times for a regular file or directory.
@@ -1900,7 +1929,18 @@ namespace butl
          : lstat (p.string ().c_str (), &s)) != 0)
       throw_generic_error (errno);
 
-    return butl::type (s);
+    entry_type r (butl::type (s));
+
+    // While at it, also save the entry modification and access times.
+    //
+    if (r != entry_type::symlink)
+    {
+      entry_time t (entry_tm (s));
+      mtime_ = t.modification;
+      atime_ = t.access;
+    }
+
+    return r;
   }
 
   // dir_iterator
@@ -1986,6 +2026,9 @@ namespace butl
         e_.t_ = d_type<struct dirent> (de, nullptr);
         e_.lt_ = nullopt;
 
+        e_.mtime_ = timestamp_unknown;
+        e_.atime_ = timestamp_unknown;
+
         // If requested, we ignore dangling symlinks, skipping ones with
         // non-existing or inaccessible targets (ignore_dangling mode), or set
         // the entry_type::unknown type for them (detect_dangling mode).
@@ -2025,6 +2068,13 @@ namespace butl
             }
 
             e_.t_ = type (s);
+
+            if (*e_.t_ != entry_type::symlink)
+            {
+              entry_time t (entry_tm (s));
+              e_.mtime_ = t.modification;
+              e_.atime_ = t.access;
+            }
           }
 
           // The entry type should be present and may not be
@@ -2051,7 +2101,13 @@ namespace butl
                 throw_generic_error (errno);
             }
             else
+            {
               e_.lt_ = type (s);
+
+              entry_time t (entry_tm (s));
+              e_.mtime_ = t.modification;
+              e_.atime_ = t.access;
+            }
           }
 
           // The symlink target type should be present and in the
@@ -2087,11 +2143,22 @@ namespace butl
     // mode (see dir_iterator::next () implementation for details). Thus, we
     // always throw if the entry info can't be retrieved.
     //
+    // While at it, also save the entry modification and access times.
+    //
     path_type p (base () / path ());
-    pair<bool, entry_stat> e (path_entry (p, follow_symlinks));
+    entry_time et;
+    pair<bool, entry_stat> e (
+      path_entry (p, follow_symlinks, false /* ignore_error */, &et));
 
     if (!e.first)
       throw_generic_error (ENOENT);
+
+    if (e.second.type == entry_type::regular ||
+        e.second.type == entry_type::directory)
+    {
+      mtime_ = et.modification;
+      atime_ = et.access;
+    }
 
     return e.second.type;
   }
@@ -2210,6 +2277,15 @@ namespace butl
 
         e_.lt_ = nullopt;
 
+        e_.mtime_ = rp ? timestamp_unknown : to_timestamp (fi.ftLastWriteTime);
+
+        // Note that according to MSDN for the FindFirstFile[Ex]() function
+        // "the NTFS file system delays updates to the last access time for a
+        // file by up to 1 hour after the last access" and "on the FAT file
+        // system access time has a resolution of 1 day".
+        //
+        e_.atime_ = timestamp_unknown;
+
         // If requested, we ignore dangling symlinks and junctions, skipping
         // ones with non-existing or inaccessible targets (ignore_dangling
         // mode), or set the entry_type::unknown type for them
@@ -2306,6 +2382,9 @@ namespace butl
               e_.lt_ = directory (ti.second.dwFileAttributes)
                        ? entry_type::directory
                        : entry_type::regular;
+
+              e_.mtime_ = to_timestamp (ti.second.ftLastWriteTime);
+              e_.atime_ = to_timestamp (ti.second.ftLastAccessTime);
             }
           }
 

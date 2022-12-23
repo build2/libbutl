@@ -7,6 +7,8 @@ test.options = -v
 :
 mkdir a;
 touch a/b;
+sleep 1;
+echo "a" >=a/b; # Change modification time.
 $* a >"reg     b"
 
 : dir

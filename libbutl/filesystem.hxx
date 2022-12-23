@@ -664,6 +664,33 @@ namespace butl
     entry_type
     ltype () const;
 
+    // Modification and access times of the filesystem entry if it is not a
+    // symlink and of the symlink target otherwise.
+    //
+    // These are provided as an optimization if they can be obtained as a
+    // byproduct of work that is already being done anyway (iteration itself,
+    // calls to [l]type(), etc). If (not yet) available, timestamp_unknown is
+    // returned.
+    //
+    // Specifically:
+    //
+    // - On Windows mtime is always set by dir_iterator for entries other than
+    //   reparse points.
+    //
+    // - On all platforms mtime and atime are always set for symlink targets
+    //   by dir_iterator in the {detect,ignore}_dangling modes.
+    //
+    // - On all platforms mtime and atime can potentially be set by [l]type()
+    //   if the stat() call is required to retrieve the type information (the
+    //   native directory entry iterating API doesn't provide it, the type of
+    //   the symlink target is queried, etc).
+    //
+    timestamp
+    mtime () const {return mtime_;}
+
+    timestamp
+    atime () const {return atime_;}
+
     // Entry path (excluding the base). To get the full path, do
     // base () / path ().
     //
@@ -674,8 +701,17 @@ namespace butl
     base () const {return b_;}
 
     dir_entry () = default;
-    dir_entry (entry_type t, path_type p, dir_path b)
-        : t_ (t), p_ (std::move (p)), b_ (std::move (b)) {}
+
+    dir_entry (entry_type t,
+               path_type p,
+               dir_path b,
+               timestamp mt = timestamp_unknown,
+               timestamp at = timestamp_unknown)
+      : t_ (t),
+        mtime_ (mt),
+        atime_ (at),
+        p_ (std::move (p)),
+        b_ (std::move (b)) {}
 
   private:
     entry_type
@@ -688,6 +724,9 @@ namespace butl
     //
     mutable optional<entry_type> t_;  // Entry type.
     mutable optional<entry_type> lt_; // Symlink target type.
+
+    mutable timestamp mtime_ = timestamp_unknown;
+    mutable timestamp atime_ = timestamp_unknown;
 
     path_type p_;
     dir_path b_;
