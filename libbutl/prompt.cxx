@@ -44,8 +44,8 @@ namespace butl
         if (!e)
           a = def;
       }
-    } while (a != "y" && a != "n");
+    } while (a != "y" && a != "Y" && a != "n" && a != "N");
 
-    return a == "y";
+    return a == "y" || a == "Y";
   }
 }
