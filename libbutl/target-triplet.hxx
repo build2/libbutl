@@ -100,6 +100,8 @@ namespace butl
   // windows   *-*-win32-* | *-*-windows-* | *-*-mingw32
   // ios       *-apple-ios*
   //
+  // NOTE: see also os_release if adding anything new here.
+  //
   // References:
   //
   // 1. The libtool repository contains the PLATFORM file that lists many known
