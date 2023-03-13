@@ -38,6 +38,19 @@ namespace butl
   // Note that for Mac OS, the version is the Mac OS version (as printed by
   // sw_vers) rather than Darwin version (as printed by uname).
   //
+  // For Windows we currently do not distinguish the Server edition and the
+  // version mapping is as follows:
+  //
+  // Windows 11             11
+  // Windows 10             10
+  // Windows 8.1            8.1
+  // Windows 8              8
+  // Windows 7              7
+  // Windows Vista          6
+  // Windows XP Pro/64-bit  5.2
+  // Windows XP             5.1
+  // Windows 2000           5
+  //
   // Note that version_id may be empty, for example, on Debian testing:
   //
   // {"debian", {}, "", "",

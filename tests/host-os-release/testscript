@@ -1,4 +1,4 @@
-# file      : bpkg/host-os-release.test.testscript
+# file      : tests/host-os-release/testscript
 # license   : MIT; see accompanying LICENSE file
 
 : linux
@@ -202,6 +202,21 @@ if ($build.host.system == 'freebsd')
     /[0-9]+\.[0-9]+/
 
     FreeBSD
+
+
+    EOO
+}
+
+: windows
+:
+if ($build.host.system == 'windows')
+{
+  $* $build.host >>~/EOO/
+    windows
+
+    /[0-9]+(\.[0-9]+)?/
+
+    Windows
 
 
     EOO

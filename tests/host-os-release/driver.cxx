@@ -1,4 +1,4 @@
-// file      : host-os-release/driver.cxx -*- C++ -*-
+// file      : tests/host-os-release/driver.cxx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
 #include <libbutl/host-os-release.hxx>

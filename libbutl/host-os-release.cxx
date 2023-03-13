@@ -8,10 +8,15 @@
 
 #include <libbutl/path.hxx>
 #include <libbutl/path-io.hxx>
+#include <libbutl/utility.hxx>
 #include <libbutl/process.hxx>
 #include <libbutl/fdstream.hxx>
 #include <libbutl/filesystem.hxx>    // file_exists()
 #include <libbutl/string-parser.hxx> // parse_quoted()
+
+#ifdef _WIN32
+#  include <libbutl/win32-utility.hxx>
+#endif
 
 using namespace std;
 
@@ -201,6 +206,83 @@ namespace butl
     }
   }
 
+  static os_release
+  host_os_release_windows ()
+  {
+#ifdef _WIN32
+    // The straightforward way to get the version would be the GetVersionEx()
+    // Win32 function. However, if the application is built with a certain
+    // assembly manifest, this function will return the version the
+    // application was built for rather than what's actually running.
+    //
+    // The other plausible options are to call the `ver` program and parse it
+    // output (of questionable regularity) or to call RtlGetVersion(). The
+    // latter combined with GetProcAddress() seems to be a widely-used
+    // approach, so we are going with that (seeing that we employ a similar
+    // technique in quite a few places).
+    //
+    HMODULE nh (GetModuleHandle ("ntdll.dll"));
+    if (nh == nullptr)
+      throw runtime_error ("unable to get handle to ntdll.dll");
+
+    using RtlGetVersion = LONG /*NTSTATUS*/ (WINAPI*)(PRTL_OSVERSIONINFOW);
+
+    RtlGetVersion gv (
+      function_cast<RtlGetVersion> (
+        GetProcAddress (nh, "RtlGetVersion")));
+
+    // RtlGetVersion() is available from Windows 2000 which is way before
+    // anything we might possibly care about (e.g., XP or 7).
+    //
+    if (gv == nullptr)
+      throw runtime_error ("unable to get address of RtlGetVersion()");
+
+    RTL_OSVERSIONINFOW vi;
+    vi.dwOSVersionInfoSize = sizeof (vi);
+    gv (&vi); // Always succeeds, according to documentation.
+
+    // Ok, the real mess starts here. Here is how the commonly known Windows
+    // versions correspond to the major/minor/build numbers and how we will
+    // map them (note that there are also Server versions in the mix; see the
+    // OSVERSIONINFOEXW struct documentation for the complete picture):
+    //
+    //                        major  minor  build      mapped
+    // Windows 11             10     0      >=22000    11
+    // Windows 10             10     0      <22000     10
+    // Windows 8.1             6     3                 8.1
+    // Windows 8               6     2                 8
+    // Windows 7               6     1                 7
+    // Windows Vista           6     0                 6
+    // Windows XP Pro/64-bit   5     2                 5.2
+    // Windows XP              5     1                 5.1
+    // Windows 2000            5     0                 5
+    //
+    // Based on this it's probably not wise to try to map any future versions
+    // automatically.
+    //
+    string v;
+    if (vi.dwMajorVersion == 10 && vi.dwMinorVersion == 0)
+    {
+      v = vi.dwBuildNumber >= 22000 ? "11" : "10";
+    }
+    else if (vi.dwMajorVersion == 6 && vi.dwMinorVersion == 3) v = "8.1";
+    else if (vi.dwMajorVersion == 6 && vi.dwMinorVersion == 2) v = "8";
+    else if (vi.dwMajorVersion == 6 && vi.dwMinorVersion == 1) v = "7";
+    else if (vi.dwMajorVersion == 6 && vi.dwMinorVersion == 0) v = "6";
+    else if (vi.dwMajorVersion == 5 && vi.dwMinorVersion == 2) v = "5.2";
+    else if (vi.dwMajorVersion == 5 && vi.dwMinorVersion == 1) v = "5.1";
+    else if (vi.dwMajorVersion == 5 && vi.dwMinorVersion == 0) v = "5";
+    else throw ("unknown windows version " +
+                std::to_string (vi.dwMajorVersion) + '.' +
+                std::to_string (vi.dwMinorVersion) + '.' +
+                std::to_string (vi.dwBuildNumber));
+
+    return os_release {"windows", {}, move (v), "", "Windows", "", ""};
+#else
+    throw runtime_error ("unexpected host operating system");
+#endif
+  }
+
   optional<os_release>
   host_os_release (const target_triplet& h)
   {
@@ -212,6 +294,9 @@ namespace butl
 
     if (c == "macos")
       return host_os_release_macos ();
+
+    if (c == "windows")
+      return host_os_release_windows ();
 
     if (c == "bsd")
     {
