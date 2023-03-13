@@ -184,9 +184,24 @@ if ($build.host.class == 'macos')
   $* $build.host >>~/EOO/
     macos
 
-    /[a-z]+(\.[0-9]+(\.[0-9]+)?)?/
+    /[0-9]+(\.[0-9]+(\.[0-9]+)?)?/
 
     Mac OS
+
+
+    EOO
+}
+
+: freebsd
+:
+if ($build.host.system == 'freebsd')
+{
+  $* $build.host >>~/EOO/
+    freebsd
+
+    /[0-9]+\.[0-9]+/
+
+    FreeBSD
 
 
     EOO
