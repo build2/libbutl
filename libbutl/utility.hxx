@@ -172,7 +172,7 @@ namespace butl
     return move (trim_right (s));
   }
 
-  // Find the beginning and end poistions of the next word. Return the size
+  // Find the beginning and end positions of the next word. Return the size
   // of the word or 0 and set b = e = n if there are no more words. For
   // example:
   //
