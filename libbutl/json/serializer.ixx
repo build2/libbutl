@@ -81,6 +81,20 @@ namespace butl
       next (event::name, {n.c_str (), n.size ()}, c);
     }
 
+    inline void buffer_serializer::
+    member_begin_object (const char* n, bool c)
+    {
+      member_name (n, c);
+      begin_object ();
+    }
+
+    inline void buffer_serializer::
+    member_begin_object (const std::string& n, bool c)
+    {
+      member_name (n, c);
+      begin_object ();
+    }
+
     template <typename T>
     inline void buffer_serializer::
     member (const char* n, const T& v, bool c)
@@ -101,6 +115,20 @@ namespace butl
     begin_array ()
     {
       next (event::begin_array);
+    }
+
+    inline void buffer_serializer::
+    member_begin_array (const char* n, bool c)
+    {
+      member_name (n, c);
+      begin_array ();
+    }
+
+    inline void buffer_serializer::
+    member_begin_array (const std::string& n, bool c)
+    {
+      member_name (n, c);
+      begin_array ();
     }
 
     inline void buffer_serializer::

@@ -167,8 +167,19 @@ namespace butl
 
       // Begin/end an object.
       //
+      // The member_begin_object() version is a shortcut for:
+      //
+      //   member_name (name, check);
+      //   begin_object ();
+      //
       void
       begin_object ();
+
+      void
+      member_begin_object (const char*, bool check = true);
+
+      void
+      member_begin_object (const std::string&, bool check = true);
 
       void
       end_object ();
@@ -199,8 +210,19 @@ namespace butl
 
       // Begin/end an array.
       //
+      // The member_begin_array() version is a shortcut for:
+      //
+      //   member_name (name, check);
+      //   begin_array ();
+      //
       void
       begin_array ();
+
+      void
+      member_begin_array (const char*, bool check = true);
+
+      void
+      member_begin_array (const std::string&, bool check = true);
 
       void
       end_array ();
