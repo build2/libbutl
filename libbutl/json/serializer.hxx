@@ -169,8 +169,8 @@ namespace butl
       //
       // The member_begin_object() version is a shortcut for:
       //
-      //   member_name (name, check);
-      //   begin_object ();
+      //     member_name (name, check);
+      //     begin_object ();
       //
       void
       begin_object ();
@@ -212,8 +212,8 @@ namespace butl
       //
       // The member_begin_array() version is a shortcut for:
       //
-      //   member_name (name, check);
-      //   begin_array ();
+      //     member_name (name, check);
+      //     begin_array ();
       //
       void
       begin_array ();
