@@ -131,13 +131,13 @@ namespace butl
             typename... A,
             typename std::size_t... index>
   process
-  process_start (std::index_sequence<index...>,
-                 const C& cmdc,
-                 I&& in,
-                 O&& out,
-                 E&& err,
-                 const process_env& env,
-                 A&&... args)
+  process_start_impl (std::index_sequence<index...>,
+                      const C& cmdc,
+                      I&& in,
+                      O&& out,
+                      E&& err,
+                      const process_env& env,
+                      A&&... args)
   {
     // Map stdin/stdout/stderr arguments to their integer values, as expected
     // by the process constructor.
@@ -188,13 +188,13 @@ namespace butl
                           const process_env& env,
                           A&&... args)
   {
-    return process_start (std::index_sequence_for<A...> (),
-                          cmdc,
-                          std::forward<I> (in),
-                          std::forward<O> (out),
-                          std::forward<E> (err),
-                          env,
-                          std::forward<A> (args)...);
+    return process_start_impl (std::index_sequence_for<A...> (),
+                               cmdc,
+                               std::forward<I> (in),
+                               std::forward<O> (out),
+                               std::forward<E> (err),
+                               env,
+                               std::forward<A> (args)...);
   }
 
   template <typename I,
@@ -258,5 +258,46 @@ namespace butl
                                  std::forward<E> (err),
                                  env,
                                  std::forward<A> (args)...);
+  }
+
+  template <typename C,
+            typename... A,
+            typename std::size_t... index>
+  void
+  process_print_impl (std::index_sequence<index...>,
+                      const C& cmdc,
+                      const process_env& env,
+                      A&&... args)
+  {
+    // Construct the command line array.
+    //
+    const std::size_t args_size (sizeof... (args));
+
+    small_vector<const char*, args_size + 2> cmd;
+
+    assert (env.path != nullptr);
+    cmd.push_back (env.path->recall_string ());
+
+    std::string storage[args_size != 0 ? args_size : 1];
+
+    const char* dummy[] = {
+      nullptr, process_args_as_wrapper (cmd, args, storage[index])... };
+
+    cmd.push_back (dummy[0]); // NULL (and get rid of unused warning).
+
+    cmdc (cmd.data (), cmd.size ());
+  }
+
+  template <typename C,
+            typename... A>
+  inline void
+  process_print_callback (const C& cmdc,
+                          const process_env& env,
+                          A&&... args)
+  {
+    process_print_impl (std::index_sequence_for<A...> (),
+                        cmdc,
+                        env,
+                        std::forward<A> (args)...);
   }
 }

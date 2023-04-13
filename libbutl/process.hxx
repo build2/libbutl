@@ -827,6 +827,15 @@ namespace butl
                           const process_env&,
                           A&&... args);
 
+  // Call the callback without actually running/starting anything.
+  //
+  template <typename C,
+            typename... A>
+  void
+  process_print_callback (const C&,
+                          const process_env&,
+                          A&&... args);
+
   // Conversion of types to their C string representations. Can be overloaded
   // (including via ADL) for custom types. The default implementation calls
   // to_string() which covers all the numeric values via std::to_string () and
