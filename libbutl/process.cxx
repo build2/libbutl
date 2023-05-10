@@ -846,6 +846,12 @@ namespace butl
     return getpid ();
   }
 
+  process::handle_type process::
+  current_handle ()
+  {
+    return getpid ();
+  }
+
   // process_exit
   //
   process_exit::
@@ -2076,6 +2082,15 @@ namespace butl
   current_id ()
   {
     return GetCurrentProcessId ();
+  }
+
+  process::handle_type process::
+  current_handle ()
+  {
+    // Note that the returned handle is a pseudo handle (-1) that does not
+    // need to be closed.
+    //
+    return GetCurrentProcess ();
   }
 
   // process_exit

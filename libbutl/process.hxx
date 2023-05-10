@@ -629,6 +629,9 @@ namespace butl
   public:
     handle_type handle;
 
+    static handle_type
+    current_handle ();
+
     // Absence means that the exit information is not (yet) known. This can be
     // because you haven't called wait() yet or because wait() failed.
     //
