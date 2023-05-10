@@ -975,6 +975,11 @@ namespace butl
   //
   LIBBUTL_SYMEXPORT std::streamsize
   fdread (int, void*, std::size_t);
+
+  // POSIX write() function wrapper, for uniformity.
+  //
+  LIBBUTL_SYMEXPORT std::streamsize
+  fdwrite (int, const void*, std::size_t);
 }
 
 #include <libbutl/fdstream.ixx>

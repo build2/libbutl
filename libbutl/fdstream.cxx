@@ -353,14 +353,6 @@ namespace butl
     return save () ? 0 : -1;
   }
 
-#ifdef _WIN32
-  static inline int
-  write (int fd, const void* buf, size_t n)
-  {
-    return _write (fd, buf, static_cast<unsigned int> (n));
-  }
-#endif
-
   bool fdstreambuf::
   save ()
   {
@@ -372,7 +364,7 @@ namespace butl
       // descriptor opened for read-only access (while -1 with errno EBADF is
       // expected). This is in contrast with VC's _write() and POSIX's write().
       //
-      auto m (write (fd_.get (), buf_, n));
+      auto m (fdwrite (fd_.get (), buf_, n));
 
       if (m == -1)
         throw_generic_ios_failure (errno);
@@ -487,7 +479,7 @@ namespace butl
     // Flush the buffer.
     //
     size_t wn (bn + an);
-    int r (wn > 0 ? write (fd_.get (), buf_, wn) : 0);
+    streamsize r (wn > 0 ? fdwrite (fd_.get (), buf_, wn) : 0);
 
     if (r == -1)
       throw_generic_ios_failure (errno);
@@ -530,7 +522,7 @@ namespace butl
 
     // The data tail doesn't fit the buffer so write it to the file.
     //
-    r = write (fd_.get (), s, n);
+    r = fdwrite (fd_.get (), s, n);
 
     if (r == -1)
       throw_generic_ios_failure (errno);
@@ -1579,6 +1571,12 @@ namespace butl
     return read (fd, buf, n);
   }
 
+  streamsize
+  fdwrite (int fd, const void* buf, size_t n)
+  {
+    return write (fd, buf, n);
+  }
+
 #else
 
   auto_fd
@@ -2122,6 +2120,12 @@ namespace butl
     }
 
     return r;
+  }
+
+  streamsize
+  fdwrite (int fd, const void* buf, size_t n)
+  {
+    return _write (fd, buf, static_cast<unsigned int> (n));
   }
 
 #endif
