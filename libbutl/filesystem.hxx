@@ -36,6 +36,32 @@
 
 namespace butl
 {
+  // Path permissions.
+  //
+  enum class permissions: std::uint16_t
+  {
+    // Note: matching POSIX values.
+    //
+    xo = 0001,
+    wo = 0002,
+    ro = 0004,
+
+    xg = 0010,
+    wg = 0020,
+    rg = 0040,
+
+    xu = 0100,
+    wu = 0200,
+    ru = 0400,
+
+    none = 0
+  };
+
+  inline permissions operator& (permissions, permissions);
+  inline permissions operator| (permissions, permissions);
+  inline permissions operator&= (permissions&, permissions);
+  inline permissions operator|= (permissions&, permissions);
+
   // Return true if the path is to an existing regular file. Note that by
   // default this function follows symlinks. Underlying OS errors are reported
   // by throwing std::system_error, unless ignore_error is true (in which case
@@ -381,11 +407,13 @@ namespace butl
   inline cpflags operator&= (cpflags&, cpflags);
   inline cpflags operator|= (cpflags&, cpflags);
 
-  // Copy a regular file, including its permissions, and optionally timestamps.
-  // Throw std::system_error on failure. Fail if the destination file exists
-  // and the overwrite_content flag is not set. Leave permissions of an
-  // existing destination file intact unless the overwrite_permissions flag is
-  // set. Delete incomplete copies before throwing.
+  // Copy a regular file, including its permissions (unless custom permissions
+  // are specified), and optionally timestamps. Throw std::system_error on
+  // failure. Fail if the destination file exists and the overwrite_content
+  // flag is not set. Leave permissions of an existing destination file intact
+  // (including if custom permissions are specified) unless the
+  // overwrite_permissions flag is set. Delete incomplete copies before
+  // throwing.
   //
   // Note that in case of overwriting, the existing destination file gets
   // truncated (not deleted) prior to being overwritten. As a side-effect,
@@ -397,7 +425,10 @@ namespace butl
   // fail.
   //
   LIBBUTL_SYMEXPORT void
-  cpfile (const path& from, const path& to, cpflags = cpflags::none);
+  cpfile (const path& from,
+          const path& to,
+          cpflags = cpflags::none,
+          optional<permissions> perm = nullopt);
 
   // Copy a regular file into (inside) an existing directory.
   //
@@ -604,32 +635,6 @@ namespace butl
   {
     return dir_atime (p.string ().c_str (), t);
   }
-
-  // Path permissions.
-  //
-  enum class permissions: std::uint16_t
-  {
-    // Note: matching POSIX values.
-    //
-    xo = 0001,
-    wo = 0002,
-    ro = 0004,
-
-    xg = 0010,
-    wg = 0020,
-    rg = 0040,
-
-    xu = 0100,
-    wu = 0200,
-    ru = 0400,
-
-    none = 0
-  };
-
-  inline permissions operator& (permissions, permissions);
-  inline permissions operator| (permissions, permissions);
-  inline permissions operator&= (permissions&, permissions);
-  inline permissions operator|= (permissions&, permissions);
 
   // Get path permissions. Throw std::system_error on failure. Note that this
   // function resolves symlinks.

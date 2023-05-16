@@ -1695,9 +1695,12 @@ namespace butl
   }
 
   void
-  cpfile (const path& from, const path& to, cpflags fl)
+  cpfile (const path& from,
+          const path& to,
+          cpflags fl,
+          optional<permissions> cperm)
   {
-    permissions perm (path_permissions (from));
+    permissions perm (cperm ? *cperm : path_permissions (from));
     auto_rmfile rm;
 
     cpfile<is_base_of<system_error, ios_base::failure>::value> (
