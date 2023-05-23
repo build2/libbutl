@@ -28,6 +28,13 @@
 using namespace std;
 using namespace butl;
 
+// Disable arguments globbing that may be enabled by default for MinGW runtime
+// (see tests/wildcard/driver.cxx for details).
+//
+#ifdef __MINGW32__
+int _CRT_glob = 0;
+#endif
+
 inline ostream&
 operator<< (ostream& os, const path& p)
 {

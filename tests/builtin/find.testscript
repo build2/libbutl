@@ -1,0 +1,276 @@
+# file      : tests/builtin/find.testscript
+# license   : MIT; see accompanying LICENSE file
+
+posix = ($cxx.target.class != 'windows')
+
+test.arguments = "find"
+
+: no-paths
+:
+$* 2>"find: missing start path" == 1
+
+: no-paths-primary
+:
+$* -name foo 2>"find: unknown option '-name'" == 1
+
+: unknown-primary
+:
+$* . -foo 2>"find: unknown primary '-foo'" == 1
+
+
+: no-primary-value
+:
+$* . -name 2>"find: missing value for primary '-name'" == 1
+
+: empty-primary-value
+:
+$* . -type '' 2>"find: empty value for primary '-type'" == 1
+
+: invalid-type-primary
+:
+$* . -type foo 2>"find: invalid value 'foo' for primary '-type'" == 1
+
+: invalid-mindepth-primary
+:
+$* . -mindepth 12a 2>"find: invalid value '12a' for primary '-mindepth'" == 1
+
+: path-not-exists
+:
+{
+  mkdir d;
+  $* x d >'d' 2>"find: 'x' doesn't exists" != 0
+}
+
+: path
+:
+{
+  : relative
+  :
+  {
+    : no-cwd
+    :
+    {
+      mkdir a;
+      touch a/b;
+
+      $* a >>/EOO
+        a
+        a/b
+        EOO
+    }
+
+    : absolute-cwd
+    :
+    : When cross-testing we cannot guarantee that host absolute paths are
+    : recognized by the target process.
+    :
+    if ($test.target == $build.host)
+    {
+      test.options += -d $~/a;
+      mkdir a;
+      touch a/b;
+
+      $* b >'b'
+    }
+
+    : relative-cwd
+    :
+    if ($test.target == $build.host)
+    {
+      test.options += -d a;
+      mkdir a;
+      touch a/b;
+
+      $* b >'b'
+    }
+  }
+
+  : non-normalized
+  :
+  {
+    mkdir a;
+    touch a/b;
+
+    # Note that the path specified on the command line is used unaltered.
+    #
+    s = ($posix ? '/' : '\');
+
+    $* ./a >>"EOO"
+      ./a
+      ./a$(s)b
+      EOO
+  }
+
+  : absolute
+  :
+  {
+    mkdir a;
+    touch a/b;
+
+    $* $~/a >>/"EOO"
+      $~/a
+      $~/a/b
+      EOO
+  }
+
+  : non-existent
+  :
+  {
+    touch a b;
+
+    $* a x b >>EOO 2>"find: 'x' doesn't exists" != 0
+      a
+      b
+      EOO
+  }
+
+  : non-directory
+  :
+  {
+    touch a b c;
+
+    $* a b/ c >>EOO 2>"find: 'b' is not a directory" != 0
+      a
+      c
+      EOO
+  }
+
+  : trailing-slash
+  :
+  {
+    mkdir -p a/b;
+
+    $* a >>/"EOO";
+      a
+      a/b
+      EOO
+
+    $* a/ >>"EOO"
+      a/
+      a/b
+      EOO
+  }
+}
+
+: name-primary
+:
+{
+  : basic
+  :
+  {
+    mkdir a;
+    touch a/ab a/ba;
+
+    $* . -name 'a*' >>/EOO;
+      ./a
+      ./a/ab
+      EOO
+
+    $* . -name 'b*' >>/EOO;
+      ./a/ba
+      EOO
+
+    $* a -name 'a*' >>/EOO
+      a
+      a/ab
+      EOO
+  }
+
+  : empty
+  :
+  {
+    touch a;
+
+    $* . -name ''
+  }
+}
+
+: type-primary
+:
+{
+  : regular
+  :
+  {
+    mkdir -p a/b;
+    touch a/b/c;
+
+    $* a -type f >>/EOO
+      a/b/c
+      EOO
+  }
+
+  : directory
+  :
+  {
+    mkdir -p a/b;
+    touch a/b/c;
+
+    $* a -type d >>/EOO
+      a
+      a/b
+      EOO
+  }
+
+  : symlink
+  :
+  if $posix
+  {
+    mkdir -p a/b;
+    touch a/b/c;
+    ln -s c a/b/d;
+
+    $* a -type l >>/EOO
+      a/b/d
+      EOO
+  }
+}
+
+: mindepth-primary
+:
+{
+  mkdir -p a/b/c;
+
+  $* a -mindepth 0 >>/EOO;
+    a
+    a/b
+    a/b/c
+    EOO
+
+  $* a -mindepth 1 >>/EOO;
+    a/b
+    a/b/c
+    EOO
+
+  $* a -mindepth 2 >>/EOO;
+    a/b/c
+    EOO
+
+  $* a -mindepth 3
+}
+
+: maxdepth-primary
+:
+{
+  mkdir -p a/b/c;
+
+  $* a -maxdepth 0 >>/EOO;
+    a
+    EOO
+
+  $* a -maxdepth 1 >>/EOO;
+    a
+    a/b
+    EOO
+
+  $* a -maxdepth 2 >>/EOO;
+    a
+    a/b
+    a/b/c
+    EOO
+
+  $* a -maxdepth 3 >>/EOO
+    a
+    a/b
+    a/b/c
+    EOO
+}

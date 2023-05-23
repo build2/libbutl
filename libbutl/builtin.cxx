@@ -816,6 +816,314 @@ namespace butl
     return builtin (r = 0);
   }
 
+  // find <start-path>... [-name <pattern>]
+  //                      [-type <type>]
+  //                      [-mindepth <depth>]
+  //                      [-maxdepth <depth>]
+  //
+  // Note: must be executed asynchronously.
+  //
+  static uint8_t
+  find (const strings& args,
+        auto_fd in, auto_fd out, auto_fd err,
+        const dir_path& cwd,
+        const builtin_callbacks& cbs) noexcept
+  try
+  {
+    uint8_t r (1);
+    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+
+    // Note that on some errors we will issue diagnostics but continue the
+    // search and return with non-zero code at the end. This is consistent
+    // with how major implementations behave (see below).
+    //
+    bool error_occured (false);
+    auto error = [&cerr, &error_occured] (bool fail = false)
+    {
+      error_occured = true;
+      return error_record (cerr, fail, "find");
+    };
+
+    auto fail = [&error] () {return error (true /* fail */);};
+
+    try
+    {
+      in.close ();
+      ofdstream cout (out != nullfd ? move (out) : fddup (stdout_fd ()));
+
+      // Parse arguments.
+      //
+      cli::vector_scanner scan (args);
+
+      // Currently, we don't expect any options.
+      //
+      parse<find_options> (scan, args, cbs.parse_option, fail);
+
+      // Parse path arguments until the first primary (starts with '-') is
+      // encountered.
+      //
+      small_vector<path, 1> paths;
+
+      while (scan.more ())
+      {
+        if (*scan.peek () == '-')
+          break;
+
+        try
+        {
+          paths.emplace_back (scan.next ());
+        }
+        catch (const invalid_path& e)
+        {
+          fail () << "invalid path '" << e.path << "'";
+        }
+      }
+
+      // Note that POSIX doesn't explicitly describe the behavior if no paths
+      // are specified on the command line. On Linux the current directory is
+      // assumed in this case. We, however, will follow the FreeBSD behavior
+      // and fail since this seems to be less error-prone.
+      //
+      if (paths.empty ())
+        fail () << "missing start path";
+
+      // Parse primaries.
+      //
+      optional<string>     name;
+      optional<entry_type> type;
+      optional<uint64_t>   min_depth;
+      optional<uint64_t>   max_depth;
+
+      while (scan.more ())
+      {
+        const char* p (scan.next ());
+
+        // Return the string value of the current primary. Fail if absent or
+        // empty, unless empty value is allowed.
+        //
+        auto str = [p, &scan, &fail] (bool allow_empty = false)
+        {
+          if (!scan.more ())
+          {
+            fail () << "missing value for primary '" << p << "'";
+          }
+
+          string n (p); // Save for diagnostics.
+          string r (scan.next ());
+
+          if (r.empty () && !allow_empty)
+            fail () << "empty value for primary '" << n << "'";
+
+          return r;
+        };
+
+        // Return the unsigned numeric value of the current primary. Fail if
+        // absent or is not a valid number.
+        //
+        auto num = [p, &str, &fail] ()
+        {
+          string n (p); // Save for diagnostics.
+          string s (str ());
+
+          const char* b (s.c_str ());
+          char* e (nullptr);
+          errno = 0; // We must clear it according to POSIX.
+          uint64_t r (strtoull (b, &e, 10)); // Can't throw.
+
+          if (errno == ERANGE || e != b + s.size ())
+            fail () << "invalid value '" << s << "' for primary '" << n << "'";
+
+          return r;
+        };
+
+        if (strcmp (p, "-name") == 0)
+        {
+          // Note that the empty never-matching pattern is allowed.
+          //
+          name = str (true /* allow_empty */);
+        }
+        else if (strcmp (p, "-type") == 0)
+        {
+          string s (str ());
+          char t (s.size () == 1 ? s[0] : '\0');
+
+          switch (t)
+          {
+          case 'f': type = entry_type::regular;   break;
+          case 'd': type = entry_type::directory; break;
+          case 'l': type = entry_type::symlink;   break;
+          default: fail () << "invalid value '" << s << "' for primary '-type'";
+          }
+        }
+        else if (strcmp (p, "-mindepth") == 0)
+        {
+          min_depth = num ();
+        }
+        else if (strcmp (p, "-maxdepth") == 0)
+        {
+          max_depth = num ();
+        }
+        else
+          fail () << "unknown primary '" << p << "'";
+      }
+
+      // Print the path if the expression evaluates to true for it. Traverse
+      // further down if the path refers to a directory and the maximum depth
+      // is not specified or is not reached.
+      //
+      // Note that paths for evaluating/printing (pp) and for
+      // stating/traversing (ap) are passed separately. The former is
+      // potentially relative and the latter is absolute. Also note that
+      // for optimization we separately pass the base name simple path.
+      //
+      auto find = [&cout,
+                   &name,
+                   &type,
+                   &min_depth,
+                   &max_depth,
+                   &fail] (const path& pp,
+                           const path& ap,
+                           const path& bp,
+                           entry_type t,
+                           uint64_t level,
+                           const auto& find) -> void
+      {
+        // Print the path if no primary evaluates to false.
+        //
+        if ((!type      || *type == t)          &&
+            (!min_depth || level >= *min_depth) &&
+            (!name      || path_match (bp.string (), *name)))
+        {
+          // Print the trailing directory separator, if present.
+          //
+          if (pp.to_directory ())
+          {
+            // The trailing directory separator can only be present for
+            // paths specified on the command line.
+            //
+            assert (level == 0);
+
+            cout << pp.representation () << '\n';
+          }
+          else
+            cout << pp << '\n';
+        }
+
+        // Traverse the directory, unless the max depth is specified and
+        // reached.
+        //
+        if (t == entry_type::directory && (!max_depth || level < *max_depth))
+        try
+        {
+          for (const auto& de: dir_iterator (path_cast<dir_path> (ap),
+                                             dir_iterator::no_follow))
+          {
+            find (pp / de.path (),
+                  ap / de.path (),
+                  de.path (),
+                  de.ltype (),
+                  level + 1,
+                  find);
+          }
+        }
+        catch (const system_error& e)
+        {
+          fail () << "unable to scan directory '" << pp << "': " << e;
+        }
+      };
+
+      dir_path wd;
+
+      for (const path& p: paths)
+      {
+        // Complete the path if it is relative, so that we can properly stat
+        // it and, potentially, traverse. Note that we don't normalize it
+        // since POSIX requires that the paths should be evaluated (by
+        // primaries) and printed unaltered.
+        //
+        path ap;
+
+        if (p.relative ())
+        {
+          if (wd.empty () && cwd.relative ())
+            wd = current_directory (cwd, fail);
+
+          ap = (!wd.empty () ? wd : cwd) / p;
+        }
+
+        // Issue an error if the path is empty, doesn't exist, or has the
+        // trailing directory separator but refers to a non-directory.
+        //
+        // Note that POSIX doesn't explicitly describe the behavior if any of
+        // the above happens. We will follow the behavior which is common for
+        // both Linux and FreeBSD by issuing the diagnostics, proceeding to
+        // the subsequent paths, and returning with non-zero code at the end.
+        //
+        if (p.empty ())
+        {
+          error () << "empty path";
+          continue;
+        }
+
+        const path& fp (!ap.empty () ? ap : p);
+        pair<bool, entry_stat> pe;
+
+        try
+        {
+          pe = path_entry (fp);
+        }
+        catch (const system_error& e)
+        {
+          fail () << "unable to stat '" << p << "': " << e;
+        }
+
+        if (!pe.first)
+        {
+          error () << "'" << p << "' doesn't exists";
+          continue;
+        }
+
+        entry_type t (pe.second.type);
+
+        if (p.to_directory () && t != entry_type::directory)
+        {
+          error () << "'" << p << "' is not a directory";
+          continue;
+        }
+
+        find (p, fp, p.leaf (), t, 0 /* level */, find);
+      }
+
+      cout.close ();
+      r = !error_occured ? 0 : 1;
+    }
+    // Can be thrown while closing cin or creating, writing to, or closing
+    // cout or writing to cerr.
+    //
+    catch (const io_error& e)
+    {
+      error () << e;
+    }
+    catch (const failed&)
+    {
+      // Diagnostics has already been issued.
+    }
+    catch (const cli::exception& e)
+    {
+      error () << e;
+    }
+
+    cerr.close ();
+    return r;
+  }
+  // In particular, handles io_error exception potentially thrown while
+  // creating, writing to, or closing cerr.
+  //
+  catch (const std::exception&)
+  {
+    return 1;
+  }
+
   // Create a symlink to a file or directory at the specified path and calling
   // the hook for the created filesystem entries. The paths must be absolute
   // and normalized. Fall back to creating a hardlink, if symlink creation is
@@ -2227,6 +2535,7 @@ namespace butl
     {"diff",  {nullptr,            2}},
     {"echo",  {&async_impl<&echo>, 2}},
     {"false", {&false_,            0}},
+    {"find",  {&async_impl<&find>, 2}},
     {"ln",    {&sync_impl<&ln>,    2}},
     {"mkdir", {&sync_impl<&mkdir>, 2}},
     {"mv",    {&sync_impl<&mv>,    2}},

@@ -34,6 +34,11 @@ namespace butl
     bool --utc|-u;
   };
 
+  class find_options
+  {
+    // No options so far (expression/primaries handled as arguments).
+  };
+
   class ln_options
   {
     bool --symbolic|-s;
