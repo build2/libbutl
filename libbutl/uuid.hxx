@@ -48,12 +48,12 @@ namespace butl
   {
     // Normally not accessed directly (see RFC4122 Section 4.1.2).
     //
-    std::uint32_t  time_low = 0;
-    std::uint16_t  time_mid = 0;
-    std::uint16_t  time_hiv = 0;       // hi_and_version
-    std::uint8_t   clock_seq_hir = 0;  // hi_and_reserved
-    std::uint8_t   clock_seq_low = 0;
-    std::uint8_t   node[6] = {0, 0, 0, 0, 0, 0};
+    std::uint32_t time_low = 0;
+    std::uint16_t time_mid = 0;
+    std::uint16_t time_hiv = 0;      // hi_and_version
+    std::uint8_t  clock_seq_hir = 0; // hi_and_reserved
+    std::uint8_t  clock_seq_low = 0;
+    std::uint8_t  node[6] = {0, 0, 0, 0, 0, 0};
 
     // System UUID generator. See the uuid_generator interface for details.
     //
@@ -183,7 +183,7 @@ namespace butl
     ~uuid_generator () = default;
 
     // Generate a UUID. If strong is true (default), generate a strongly-
-    // unique UUID. Throw std::runtime_error to report errors, including if
+    // unique UUID. Throw std::system_error to report errors, including if
     // strong uniqueness cannot be guaranteed.
     //
     // A weak UUID is not guaranteed to be unique, neither universialy nor
@@ -207,7 +207,7 @@ namespace butl
     // Optional explicit initialization and termination. Note that it is not
     // thread-safe and must only be performed once (normally from main())
     // before/after any calls to generate(), respectively. Both functions may
-    // throw std::runtime_error to report errors.
+    // throw std::system_error to report errors.
     //
     static void
     initialize ();
