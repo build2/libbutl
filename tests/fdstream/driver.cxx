@@ -42,7 +42,9 @@ static const string text2 ("12");            // Keep shorter than text1.
 
 // Windows text mode write-translated form of text1.
 //
+#ifdef _WIN32
 static const string text3 ("ABCDEF\r\nXYZ");
+#endif
 
 static string
 from_stream (ifdstream& is)
