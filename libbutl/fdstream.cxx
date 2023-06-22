@@ -2064,7 +2064,7 @@ namespace butl
 
       // Use exponential backoff but not too aggressive and with 25ms max.
       //
-      DWORD t (i >= 100 ? 25 : 1 + (i / 4));
+      DWORD t (static_cast<DWORD> (i >= 100 ? 25 : 1 + (i / 4)));
 
       if (timeout)
       {
