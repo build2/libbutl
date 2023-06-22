@@ -1142,12 +1142,12 @@ namespace butl
     // failure (see mventry() for details). If that's the case, we will keep
     // trying to move the file for two seconds.
     //
-    for (size_t i (0); i < 21; ++i)
+    for (size_t i (0); i < 41; ++i)
     {
-      // Sleep 100 milliseconds before the removal retry.
+      // Sleep 50 milliseconds before the removal retry.
       //
       if (i != 0)
-        Sleep (100);
+        Sleep (50);
 
       ur = _unlink (f);
 
@@ -1792,12 +1792,12 @@ namespace butl
     // fdopen().
     //
     DWORD ec;
-    for (size_t i (0); i < 21; ++i)
+    for (size_t i (0); i < 41; ++i)
     {
       // Sleep 100 milliseconds before the move retry.
       //
       if (i != 0)
-        Sleep (100);
+        Sleep (50);
 
       if (MoveFileExA (f, t, mfl))
         return;

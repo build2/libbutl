@@ -1164,12 +1164,12 @@ namespace butl
     // open it results in EINVAL POSIX error, ERROR_USER_MAPPED_FILE system
     // error. So we retry those as well.
     //
-    for (size_t i (0); i < 21; ++i)
+    for (size_t i (0); i < 41; ++i)
     {
-      // Sleep 100 milliseconds before the open retry.
+      // Sleep 50 milliseconds before the open retry.
       //
       if (i != 0)
-        Sleep (100);
+        Sleep (50);
 
       fd = pass_perm
            ? _sopen (f, of, _SH_DENYNO, pf)
@@ -1989,7 +1989,7 @@ namespace butl
     //
     size_t r (0);
 
-    while (true)
+    for (size_t i (0);; ++i)
     {
       for (fdselect_state& s: read)
       {
@@ -2062,7 +2062,9 @@ namespace butl
       if (r != 0)
         break;
 
-      DWORD t (50);
+      // Use exponential backoff but not too aggressive and with 25ms max.
+      //
+      DWORD t (i >= 100 ? 25 : 1 + (i / 4));
 
       if (timeout)
       {
