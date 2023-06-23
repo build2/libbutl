@@ -34,6 +34,7 @@
 
 #  include <wchar.h> // wcsncmp(), wcsstr()
 
+#  include <thread>    // this_thread::yield()
 #  include <algorithm> // count()
 #endif
 
@@ -2064,7 +2065,9 @@ namespace butl
 
       // Use exponential backoff but not too aggressive and with 25ms max.
       //
-      DWORD t (static_cast<DWORD> (i >= 100 ? 25 : 1 + (i / 4)));
+      DWORD t (
+        static_cast<DWORD> (i <= 1000  ?  0 :
+                            i >= 1000 + 100 ? 25 : 1 + ((i - 1000) / 4)));
 
       if (timeout)
       {
@@ -2081,7 +2084,10 @@ namespace butl
           break;
       }
 
-      Sleep (t);
+      if (t == 0)
+        this_thread::yield ();
+      else
+        Sleep (t);
     }
 
     return make_pair (r, 0);
