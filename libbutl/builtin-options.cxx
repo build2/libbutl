@@ -27,7 +27,7 @@ namespace butl
     // unknown_option
     //
     unknown_option::
-    ~unknown_option () throw ()
+    ~unknown_option () noexcept
     {
     }
 
@@ -38,7 +38,7 @@ namespace butl
     }
 
     const char* unknown_option::
-    what () const throw ()
+    what () const noexcept
     {
       return "unknown option";
     }
@@ -46,7 +46,7 @@ namespace butl
     // unknown_argument
     //
     unknown_argument::
-    ~unknown_argument () throw ()
+    ~unknown_argument () noexcept
     {
     }
 
@@ -57,7 +57,7 @@ namespace butl
     }
 
     const char* unknown_argument::
-    what () const throw ()
+    what () const noexcept
     {
       return "unknown argument";
     }
@@ -65,7 +65,7 @@ namespace butl
     // missing_value
     //
     missing_value::
-    ~missing_value () throw ()
+    ~missing_value () noexcept
     {
     }
 
@@ -76,7 +76,7 @@ namespace butl
     }
 
     const char* missing_value::
-    what () const throw ()
+    what () const noexcept
     {
       return "missing option value";
     }
@@ -84,7 +84,7 @@ namespace butl
     // invalid_value
     //
     invalid_value::
-    ~invalid_value () throw ()
+    ~invalid_value () noexcept
     {
     }
 
@@ -99,7 +99,7 @@ namespace butl
     }
 
     const char* invalid_value::
-    what () const throw ()
+    what () const noexcept
     {
       return "invalid option value";
     }
@@ -113,7 +113,7 @@ namespace butl
     }
 
     const char* eos_reached::
-    what () const throw ()
+    what () const noexcept
     {
       return "end of argument stream reached";
     }

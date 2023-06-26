@@ -68,7 +68,7 @@ namespace butl
     {
       public:
       virtual
-      ~unknown_option () throw ();
+      ~unknown_option () noexcept;
 
       unknown_option (const std::string& option);
 
@@ -79,7 +79,7 @@ namespace butl
       print (::std::ostream&) const;
 
       virtual const char*
-      what () const throw ();
+      what () const noexcept;
 
       private:
       std::string option_;
@@ -89,7 +89,7 @@ namespace butl
     {
       public:
       virtual
-      ~unknown_argument () throw ();
+      ~unknown_argument () noexcept;
 
       unknown_argument (const std::string& argument);
 
@@ -100,7 +100,7 @@ namespace butl
       print (::std::ostream&) const;
 
       virtual const char*
-      what () const throw ();
+      what () const noexcept;
 
       private:
       std::string argument_;
@@ -110,7 +110,7 @@ namespace butl
     {
       public:
       virtual
-      ~missing_value () throw ();
+      ~missing_value () noexcept;
 
       missing_value (const std::string& option);
 
@@ -121,7 +121,7 @@ namespace butl
       print (::std::ostream&) const;
 
       virtual const char*
-      what () const throw ();
+      what () const noexcept;
 
       private:
       std::string option_;
@@ -131,7 +131,7 @@ namespace butl
     {
       public:
       virtual
-      ~invalid_value () throw ();
+      ~invalid_value () noexcept;
 
       invalid_value (const std::string& option,
                      const std::string& value,
@@ -150,7 +150,7 @@ namespace butl
       print (::std::ostream&) const;
 
       virtual const char*
-      what () const throw ();
+      what () const noexcept;
 
       private:
       std::string option_;
@@ -165,7 +165,7 @@ namespace butl
       print (::std::ostream&) const;
 
       virtual const char*
-      what () const throw ();
+      what () const noexcept;
     };
 
     // Command line argument scanner interface.
