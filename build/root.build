@@ -22,6 +22,9 @@ elif ($cxx.id == 'gcc')
   #
   cxx.coptions += -Wno-maybe-uninitialized -Wno-free-nonheap-object \
 -Wno-stringop-overread
+
+  if ($cxx.version.major >= 13)
+    cxx.coptions += -Wno-dangling-reference
 }
 elif ($cxx.id.type == 'clang' && $cxx.version.major >= 15)
   cxx.coptions += -Wno-unqualified-std-cast-call
