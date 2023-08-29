@@ -901,6 +901,14 @@ namespace butl
   LIBBUTL_SYMEXPORT bool
   fdterm (int);
 
+  // Test whether a terminal file descriptor supports ANSI color output. If
+  // the enable argument is true, then also try to enable color output (only
+  // applicable on some platforms, such as Windows). Throw ios::failure on the
+  // underlying OS error.
+  //
+  LIBBUTL_SYMEXPORT bool
+  fdterm_color (int, bool enable);
+
   // Wait until one or more file descriptors becomes ready for input (reading)
   // or output (writing). Return the pair of numbers of descriptors that are
   // ready. Throw std::invalid_argument if anything is wrong with arguments

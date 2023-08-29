@@ -17,6 +17,10 @@
 #else
 #  include <libbutl/win32-utility.hxx>
 
+#  ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+#    define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x04
+#  endif
+
 #  include <io.h>        // _close(), _read(), _write(), _setmode(), _sopen(),
                          // _lseek(), _dup(), _pipe(), _chsize_s,
                          // _get_osfhandle()
@@ -42,7 +46,8 @@
 #include <new>          // bad_alloc
 #include <limits>       // numeric_limits
 #include <cassert>
-#include <cstring>      // memcpy(), memmove(), memchr()
+#include <cstring>      // memcpy(), memmove(), memchr(), strcmp()
+#include <cstdlib>      // getenv()
 #include <iostream>     // cin, cout
 #include <exception>    // uncaught_exception[s]()
 #include <stdexcept>    // invalid_argument
@@ -1439,6 +1444,16 @@ namespace butl
     throw_generic_ios_failure (errno);
   }
 
+  bool
+  fdterm_color (int, bool)
+  {
+    const char* t (std::getenv ("TERM"));
+
+    // This test was lifted from GCC (Emacs shell sets TERM=dumb).
+    //
+    return t != nullptr && strcmp (t, "dumb") != 0;
+  }
+
   static pair<size_t, size_t>
   fdselect (fdselect_set& read,
             fdselect_set& write,
@@ -1859,7 +1874,7 @@ namespace butl
   fdterm (int fd)
   {
     // @@ Both GCC and Clang simply call GetConsoleMode() for this check. I
-    //    wonder why we don't do the same?
+    //    wonder why we don't do the same? See also fdterm_color() below.
 
     // We don't need to close it (see fd_to_handle()).
     //
@@ -1941,6 +1956,42 @@ namespace butl
 
       return e != nullptr && e[4] >= L'0' && e[4] <= L'9' &&
         (e[5] == L'-' || e[5] == L'\0');
+    }
+
+    return false;
+  }
+
+  bool
+  fdterm_color (int fd, bool enable)
+  {
+    // We don't need to close it (see fd_to_handle()).
+    //
+    HANDLE h (fd_to_handle (fd));
+
+    // See GH issue #312 for background on this logic.
+    //
+    DWORD m;
+    if (!GetConsoleMode (h, &m))
+      throw_system_ios_failure (GetLastError ());
+
+    // Some terminals (e.g. Windows Terminal) enable VT processing by default.
+    //
+    if ((m & ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0)
+      return true;
+
+    if (enable)
+    {
+      // If SetConsoleMode() fails, assume VT processing is unsupported (it
+      // is only supported from a certain build of Windows 10).
+      //
+      // Note that Wine pretends to support this but doesn't handle the escape
+      // sequences. See https://bugs.winehq.org/show_bug.cgi?id=49780.
+      //
+      if (SetConsoleMode (h,
+                          (m                                 |
+                           ENABLE_PROCESSED_OUTPUT           |
+                           ENABLE_VIRTUAL_TERMINAL_PROCESSING)))
+        return true;
     }
 
     return false;
