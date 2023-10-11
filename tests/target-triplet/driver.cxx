@@ -74,6 +74,10 @@ main ()
                 "i686-w64-mingw32",
                 "i686", "w64", "mingw32", "", "windows"));
 
+  assert (test ("x86_64-w64-windows-gnu",
+                "x86_64-w64-mingw32",
+                "x86_64", "w64", "mingw32", "", "windows"));
+
   assert (test ("i686-lfs-linux-gnu",
                 "i686-lfs-linux-gnu",
                 "i686", "lfs", "linux-gnu", "", "linux"));

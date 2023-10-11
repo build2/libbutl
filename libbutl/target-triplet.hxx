@@ -75,6 +75,7 @@ namespace butl
   // arm-softfloat-linux-gnu           arm     softfloat  linux-gnu
   // i686-pc-mingw32                   i686               mingw32
   // i686-w64-mingw32                  i686    w64        mingw32
+  // i686-w64-windows-gnu              i686    w64        mingw32
   // i686-lfs-linux-gnu                i686    lfs        linux-gnu
   // x86_64-unknown-linux-gnu          x86_64             linux-gnu
   // x86_64-redhat-linux               x86_64  redhat     linux-gnu

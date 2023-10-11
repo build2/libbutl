@@ -92,6 +92,8 @@ namespace butl
     //
     if (system == "linux")
       system = "linux-gnu"; // Per config.sub.
+    else if (system == "windows-gnu" && vendor == "w64") // Clang's innovation.
+      system = "mingw32";
 
     // Extract VERSION for some recognized systems.
     //
