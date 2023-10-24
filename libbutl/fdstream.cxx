@@ -1074,12 +1074,12 @@ namespace butl
     of |= O_LARGEFILE;
 #endif
 
-    // Unlike other platforms, *BSD allows opening a directory as a file which
-    // will cause all kinds of problems upstream (e.g., cpfile()). So we
-    // detect and diagnose this. Note: not certain this is the case for NetBSD
-    // and OpenBSD.
+	// Unlike other platforms, *BSD and Linux allow opening a directory as a
+	// file which will cause all kinds of problems upstream (e.g., cpfile()).
+	// So we detect and diagnose this. Note: not certain this is the case for
+	// NetBSD and OpenBSD.
     //
-#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__linux__)
     {
       struct stat s;
       if (stat (f, &s) == 0 && S_ISDIR (s.st_mode))
