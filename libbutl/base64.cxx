@@ -17,18 +17,16 @@ namespace butl
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
   // base64-encode the data in the iterator range [i, e). Write the encoded
-  // data starting at the iterator position o.
+  // data starting at the iterator position o. If url is true, encode using
+  // base64url.
   //
   template <typename I, typename O>
   static void
-  base64_encode (I& i, const I& e, O& o)
+  base64_encode (I& i, const I& e, O& o, bool url = false)
   {
     const size_t un (65); // Non-existing index of the codes string.
     for (size_t n (0); i != e; ++n)
     {
-      if (n && n % 19 == 0)
-        *o++ = '\n'; // Split into lines, like the base64 utility does.
-
       auto next = [&i] () {return static_cast<unsigned char> (*i++);};
 
       unsigned char c (next ());
@@ -51,10 +49,34 @@ namespace butl
         i4 = c & 0x3F;
       }
 
-      *o++ = codes[i1];
-      *o++ = codes[i2];
-      *o++ = i3 == un ? '=' : codes[i3];
-      *o++ = i4 == un ? '=' : codes[i4];
+      // @@ TMP Lots of redundant branches. Would making it a template
+      //    parameter help?
+      //
+      if (!url)
+      {
+        if (n && n % 19 == 0)
+          *o++ = '\n'; // Split into lines, like the base64 utility does.
+
+        *o++ = codes[i1];
+        *o++ = codes[i2];
+        *o++ = i3 == un ? '=' : codes[i3];
+        *o++ = i4 == un ? '=' : codes[i4];
+      }
+      // base64url: different 63rd and 64th characters and no padding or
+      // newlines.
+      //
+      else
+      {
+        auto code = [] (size_t i)
+        {
+          return i == 62 ? '-' : i == 63 ? '_' : codes[i];
+        };
+
+        *o++ = code (i1);
+        *o++ = code (i2);
+        if (i3 != un) *o++ = code (i3);
+        if (i4 != un) *o++ = code (i4);
+      }
     }
   }
 
@@ -167,6 +189,47 @@ namespace butl
     back_insert_iterator<string> o (r);
     auto i (v.begin ());
     base64_encode (i, v.end (), o);
+    return r;
+  }
+
+  string
+  base64url_encode (istream& is)
+  {
+    if (!is.good ())
+      throw invalid_argument ("bad stream");
+
+    string r;
+    istreambuf_iterator<char> i (is);
+    back_insert_iterator<string> o (r);
+
+    base64_encode (i, istreambuf_iterator<char> (), o, true /* url */);
+    is.setstate (istream::eofbit);
+    return r;
+  }
+
+  void
+  base64url_encode (ostream& os, istream& is)
+  {
+    if (!os.good () || !is.good ())
+      throw invalid_argument ("bad stream");
+
+    istreambuf_iterator<char> i (is);
+    ostreambuf_iterator<char> o (os);
+    base64_encode (i, istreambuf_iterator<char> (), o, true /* url */);
+
+    if (o.failed ())
+      os.setstate (istream::badbit);
+
+    is.setstate (istream::eofbit);
+  }
+
+  string
+  base64url_encode (const std::vector<char>& v)
+  {
+    string r;
+    back_insert_iterator<string> o (r);
+    auto i (v.begin ());
+    base64_encode (i, v.end (), o, true /* url */);
     return r;
   }
 
