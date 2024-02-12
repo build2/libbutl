@@ -27,13 +27,13 @@ namespace butl
   LIBBUTL_SYMEXPORT std::string
   base64_encode (const std::vector<char>&);
 
-  // Encode a stream or a buffer using base64url (RFC 4648), a base64 variant
+  // Encode a stream or a buffer using base64url (RFC4648), a base64 variant
   // with different 62nd and 63rd alphabet characters (- and _ instead of ~
-  // and .) to make it filesystem safe, and optional padding because the
+  // and .; to make it filesystem safe) and optional padding because the
   // padding character `=` would have to be percent-encoded to be safe in
-  // URLs.  This implementation does not output any padding, newlines or any
-  // other whitespace in order to conform to RFC7519: JSON Web Token (JWT) and
-  // RFC7515: JSON Web Signature (JWS).
+  // URLs. This implementation does not output any padding, newlines or any
+  // other whitespace (which is required, for example, by RFC7519: JSON Web
+  // Token (JWT) and RFC7515: JSON Web Signature (JWS)).
   //
   // Note that base64url decoding has not yet been implemented.
   //

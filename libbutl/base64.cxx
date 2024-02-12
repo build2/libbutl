@@ -16,6 +16,9 @@ namespace butl
   static const char codes[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
+  static const char codes_url[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
   // base64-encode the data in the iterator range [i, e). Write the encoded
   // data starting at the iterator position o. If url is true, encode using
   // base64url.
@@ -49,9 +52,6 @@ namespace butl
         i4 = c & 0x3F;
       }
 
-      // @@ TMP Lots of redundant branches. Would making it a template
-      //    parameter help?
-      //
       if (!url)
       {
         if (n && n % 19 == 0)
@@ -67,15 +67,11 @@ namespace butl
       //
       else
       {
-        auto code = [] (size_t i)
-        {
-          return i == 62 ? '-' : i == 63 ? '_' : codes[i];
-        };
 
-        *o++ = code (i1);
-        *o++ = code (i2);
-        if (i3 != un) *o++ = code (i3);
-        if (i4 != un) *o++ = code (i4);
+        *o++ = codes_url[i1];
+        *o++ = codes_url[i2];
+        if (i3 != un) *o++ = codes_url[i3];
+        if (i4 != un) *o++ = codes_url[i4];
       }
     }
   }
