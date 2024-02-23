@@ -104,6 +104,13 @@ http ()
     c.out.close ();
     assert (!c.wait ());
   }
+
+  // POST from /dev/null.
+  //
+  {
+    curl c (p, nullfd, 1, 2, curl::post, u + "/bogus");
+    assert (!c.wait ());
+  }
 }
 
 int

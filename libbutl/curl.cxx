@@ -21,10 +21,9 @@ namespace butl
     {
     case ftp_put:
       throw invalid_argument ("no input specified for PUT method");
-    case http_post:
-      throw invalid_argument ("no input specified for POST method");
     case ftp_get:
     case http_get:
+    case http_post:
       {
         d.pipe.in = fdopen_null (); // /dev/null
         return pipe (d.pipe);
