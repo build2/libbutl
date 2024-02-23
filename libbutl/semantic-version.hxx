@@ -177,16 +177,16 @@ namespace butl
     return o << x.string ();
   }
 
-  inline semantic_version::flags
+  semantic_version::flags
   operator& (semantic_version::flags, semantic_version::flags);
 
-  inline semantic_version::flags
+  semantic_version::flags
   operator| (semantic_version::flags, semantic_version::flags);
 
-  inline semantic_version::flags
+  semantic_version::flags
   operator&= (semantic_version::flags&, semantic_version::flags);
 
-  inline semantic_version::flags
+  semantic_version::flags
   operator|= (semantic_version::flags&, semantic_version::flags);
 }
 

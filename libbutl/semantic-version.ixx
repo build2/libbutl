@@ -51,18 +51,6 @@ namespace butl
   }
 
   inline semantic_version::flags
-  operator& (semantic_version::flags x, semantic_version::flags y)
-  {
-    return x &= y;
-  }
-
-  inline semantic_version::flags
-  operator| (semantic_version::flags x, semantic_version::flags y)
-  {
-    return x |= y;
-  }
-
-  inline semantic_version::flags
   operator&= (semantic_version::flags& x, semantic_version::flags y)
   {
     return x = static_cast<semantic_version::flags> (
@@ -76,5 +64,17 @@ namespace butl
     return x = static_cast<semantic_version::flags> (
       static_cast<std::uint16_t> (x) |
       static_cast<std::uint16_t> (y));
+  }
+
+  inline semantic_version::flags
+  operator& (semantic_version::flags x, semantic_version::flags y)
+  {
+    return x &= y;
+  }
+
+  inline semantic_version::flags
+  operator| (semantic_version::flags x, semantic_version::flags y)
+  {
+    return x |= y;
   }
 }

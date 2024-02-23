@@ -105,6 +105,19 @@ http ()
     assert (!c.wait ());
   }
 
+  // POST from stream without --fail.
+  //
+  {
+    curl c (p, path ("-"), nullfd, 2,
+            curl::post,
+            curl::flags::no_fail,
+            u + "/bogus");
+
+    c.out << "bogus" << endl;
+    c.out.close ();
+    assert (c.wait ());
+  }
+
   // POST from /dev/null.
   //
   {

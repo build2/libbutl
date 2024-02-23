@@ -91,6 +91,19 @@ namespace butl
   public:
     enum method_type {get, put, post};
 
+    // By default the -sS and, for the HTTP protocol, --fail and --location
+    // options are passed to curl on the command line. Optionally, these
+    // options can be suppressed.
+    //
+    enum class flags: std::uint16_t
+    {
+      no_fail     = 0x01, // Don't pass --fail.
+      no_location = 0x02, // Don't pass --location
+      no_sS       = 0x04, // Don't pass -sS
+
+      none = 0            // Default options set.
+    };
+
     ifdstream in;
     ofdstream out;
 
@@ -118,6 +131,35 @@ namespace butl
           O&& out,
           E&& err,
           method_type,
+          const std::string& url,
+          A&&... options);
+
+    // Similar to the above, but allows to adjust the curl's default command
+    // line.
+    //
+    template <typename I,
+              typename O,
+              typename E,
+              typename... A>
+    curl (I&& in,
+          O&& out,
+          E&& err,
+          method_type,
+          flags,
+          const std::string& url,
+          A&&... options);
+
+    template <typename C,
+              typename I,
+              typename O,
+              typename E,
+              typename... A>
+    curl (const C&,
+          I&& in,
+          O&& out,
+          E&& err,
+          method_type,
+          flags,
           const std::string& url,
           A&&... options);
 
@@ -159,7 +201,10 @@ namespace butl
     using method_proto_options = small_vector<const char*, 2>;
 
     method_proto
-    translate (method_type, const std::string& url, method_proto_options&);
+    translate (method_type,
+               const std::string& url,
+               method_proto_options&,
+               flags);
 
   private:
     template <typename T>
@@ -199,6 +244,11 @@ namespace butl
     typename std::enable_if<is_other<O>::value, O>::type
     map_out (O&&, method_proto, io_data&);
   };
+
+  curl::flags operator&  (curl::flags, curl::flags);
+  curl::flags operator|  (curl::flags, curl::flags);
+  curl::flags operator&= (curl::flags&, curl::flags);
+  curl::flags operator|= (curl::flags&, curl::flags);
 }
 
 #include <libbutl/curl.ixx>

@@ -65,11 +65,12 @@ namespace butl
         O&& out,
         E&& err,
         method_type m,
+        flags fs,
         const std::string& url,
         A&&... options)
   {
     method_proto_options mpo;
-    method_proto mp (translate (m, url, mpo));
+    method_proto mp (translate (m, url, mpo, fs));
 
     io_data in_data;
     io_data out_data;
@@ -81,8 +82,9 @@ namespace butl
       map_out (std::forward<O> (out), mp, out_data),
       std::forward<E> (err),
       "curl",
-      "-s", // Silent.
-      "-S", // But do show diagnostics.
+      ((fs & flags::no_sS) == flags::none
+       ? "-sS" // Silent but do show diagnostics.
+       : nullptr),
       mpo,
       in_data.options,
       out_data.options,

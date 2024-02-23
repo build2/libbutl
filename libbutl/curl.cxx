@@ -142,7 +142,7 @@ namespace butl
   }
 
   curl::method_proto curl::
-  translate (method_type m, const string& u, method_proto_options& o)
+  translate (method_type m, const string& u, method_proto_options& o, flags fs)
   {
     size_t n (u.find ("://"));
 
@@ -161,8 +161,11 @@ namespace butl
     }
     else if (icasecmp (u, "http", n) == 0 || icasecmp (u, "https", n) == 0)
     {
-      o.push_back ("--fail");     // Fail on HTTP errors (e.g., 404).
-      o.push_back ("--location"); // Follow redirects.
+      if ((fs & flags::no_fail) == flags::none)
+        o.push_back ("--fail");     // Fail on HTTP errors (e.g., 404).
+
+      if ((fs & flags::no_location) == flags::none)
+        o.push_back ("--location"); // Follow redirects.
 
       switch (m)
       {
