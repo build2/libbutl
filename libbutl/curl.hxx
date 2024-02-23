@@ -4,6 +4,7 @@
 #pragma once
 
 #include <string>
+#include <cstdint>     // uint16_t
 #include <type_traits>
 
 #include <libbutl/path.hxx>
@@ -119,6 +120,39 @@ namespace butl
           method_type,
           const std::string& url,
           A&&... options);
+
+    // Read the HTTP response status from an input stream.
+    //
+    // Specifically, read and parse the HTTP status line, by default skip over
+    // the remaining headers (leaving the stream at the beginning of the
+    // response body), and return the status code and the reason phrase. Throw
+    // std::invalid_argument if the status line could not be parsed. Pass
+    // through the ios::failure exception on the stream error.
+    //
+    // Note that if ios::failure is thrown the stream's exception mask may not
+    // be preserved.
+    //
+    struct http_status
+    {
+      std::uint16_t code;
+      std::string reason;
+    };
+
+    static http_status
+    read_http_status (ifdstream&, bool skip_headers = true);
+
+    // Parse and return the HTTP status code. Return 0 if the argument is
+    // invalid.
+    //
+    static std::uint16_t
+    parse_http_status_code (const std::string&);
+
+    // Read the CRLF-terminated line from an input stream, stripping the
+    // trailing CRLF. Pass through the ios::failure exception on the stream
+    // error.
+    //
+    static std::string
+    read_http_response_line (ifdstream&);
 
   private:
     enum method_proto {ftp_get, ftp_put, http_get, http_post};

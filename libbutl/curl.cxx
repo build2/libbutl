@@ -5,6 +5,7 @@
 
 #include <cassert>
 #include <utility>   // move()
+#include <cstdlib>   // strtoul(), size_t
 #include <exception> // invalid_argument
 
 #include <libbutl/utility.hxx>
@@ -174,5 +175,124 @@ namespace butl
     }
 
     throw invalid_argument ("unsupported protocol");
+  }
+
+  uint16_t curl::
+  parse_http_status_code (const string& s)
+  {
+    char* e (nullptr);
+    unsigned long c (strtoul (s.c_str (), &e, 10)); // Can't throw.
+    assert (e != nullptr);
+
+    return *e == '\0' && c >= 100 && c < 600
+           ? static_cast<uint16_t> (c)
+           : 0;
+  }
+
+  string curl::
+  read_http_response_line (ifdstream& is)
+  {
+    string r;
+    getline (is, r); // Strips the trailing LF (0xA).
+
+    // Note that on POSIX CRLF is not automatically translated into LF, so we
+    // need to strip CR (0xD) manually.
+    //
+    if (!r.empty () && r.back () == '\r')
+      r.pop_back ();
+
+    return r;
+  }
+
+  curl::http_status curl::
+  read_http_status (ifdstream& is, bool skip_headers)
+  {
+    // After getting the status line, if requested, we will read until the
+    // empty line (containing just CRLF). Not being able to reach such a line
+    // is an error, which is the reason for the exception mask choice. When
+    // done, we will restore the original exception mask.
+    //
+    ifdstream::iostate es (is.exceptions ());
+    is.exceptions (ifdstream::badbit | ifdstream::failbit | ifdstream::eofbit);
+
+    auto read_status = [&is, es] ()
+    {
+      string l (read_http_response_line (is));
+
+      for (;;) // Breakout loop.
+      {
+        if (l.compare (0, 5, "HTTP/") != 0)
+          break;
+
+        size_t p (l.find (' ', 5));             // The protocol end.
+        if (p == string::npos)
+          break;
+
+        p = l.find_first_not_of (' ', p + 1);   // The code start.
+        if (p == string::npos)
+          break;
+
+        size_t e (l.find (' ', p + 1));         // The code end.
+        if (e == string::npos)
+          break;
+
+        uint16_t c (parse_http_status_code (string (l, p, e - p)));
+        if (c == 0)
+          break;
+
+        string r;
+        p = l.find_first_not_of (' ', e + 1);   // The reason start.
+        if (p != string::npos)
+        {
+          e = l.find_last_not_of (' ');         // The reason end.
+          assert (e != string::npos && e >= p);
+
+          r = string (l, p, e - p + 1);
+        }
+
+        return http_status {c, move (r)};
+      }
+
+      is.exceptions (es); // Restore the exception mask.
+
+      throw invalid_argument ("invalid status line '" + l + "'");
+    };
+
+    // The curl output for a successfull request looks like this:
+    //
+    // HTTP/1.1 100 Continue
+    //
+    // HTTP/1.1 200 OK
+    // Content-Length: 83
+    // Content-Type: text/manifest;charset=utf-8
+    //
+    // <response-body>
+    //
+    // curl normally sends the 'Expect: 100-continue' header for uploads, so
+    // we need to handle the interim HTTP server response with the continue
+    // (100) status code.
+    //
+    // Interestingly, Apache can respond with the continue (100) code and with
+    // the not found (404) code afterwords.
+    //
+    http_status rs (read_status ());
+
+    if (rs.code == 100)
+    {
+      // Skips the interim response.
+      //
+      while (!read_http_response_line (is).empty ()) ;
+
+      rs = read_status (); // Reads the final status code.
+    }
+
+    if (skip_headers)
+    {
+      while (!read_http_response_line (is).empty ()) ; // Skips headers.
+    }
+
+    is.exceptions (es);
+
+    return rs;
   }
 }

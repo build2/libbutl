@@ -43,14 +43,14 @@ sudo /usr/sbin/in.tftpd \
 : http
 :
 {
-  $* 'http' 2>>EOE
+  $* 'http' 2>>~%EOE%
 
   curl -s -S --fail --location https://build2.org/bogus
-  curl: (22) The requested URL returned error: 404 Not Found
+  %curl: \(22\) The requested URL returned error: 404( Not Found)?%
 
   curl -s -S --fail --location https://build2.org
 
   curl -s -S --fail --location --data-binary @- https://build2.org/bogus
-  curl: (22) The requested URL returned error: 404 Not Found
+  %curl: \(22\) The requested URL returned error: 404( Not Found)?%
   EOE
 }
