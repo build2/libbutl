@@ -55,7 +55,10 @@ sudo /usr/sbin/in.tftpd \
 
   curl -sS --location --data-binary @- https://build2.org/bogus
 
-  curl -sS --fail --location https://build2.org/bogus
+  curl -sS --fail --location --data-raw "" --verbose https://build2.org/bogus
+  %.*
+  %> POST /bogus HTTP.+%
+  %.*
   %curl: \(22\) The requested URL returned error: 404( Not Found)?%
   EOE
 }

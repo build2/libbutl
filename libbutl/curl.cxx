@@ -21,9 +21,20 @@ namespace butl
     {
     case ftp_put:
       throw invalid_argument ("no input specified for PUT method");
+    case http_post:
+      {
+        // Post the empty data.
+        //
+        // Note that while it's tempting to specify the --request POST option
+        // instead, that can potentially overwrite the request methods for the
+        // HTTP 30X response code redirects.
+        //
+        d.options.push_back ("--data-raw");
+        d.options.push_back ("");
+      }
+      // Fall through.
     case ftp_get:
     case http_get:
-    case http_post:
       {
         d.pipe.in = fdopen_null (); // /dev/null
         return pipe (d.pipe);

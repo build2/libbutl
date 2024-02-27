@@ -118,10 +118,10 @@ http ()
     assert (c.wait ());
   }
 
-  // POST from /dev/null.
+  // POST empty data.
   //
   {
-    curl c (p, nullfd, 1, 2, curl::post, u + "/bogus");
+    curl c (p, nullfd, 1, 2, curl::post, u + "/bogus", "--verbose");
     assert (!c.wait ());
   }
 }
