@@ -210,6 +210,66 @@ namespace butl
     return e - b;
   }
 
+  inline std::size_t
+  next_word (const std::string& s,
+             std::size_t n, std::size_t& b, std::size_t& e, std::size_t& m,
+             char d1, char d2)
+  {
+    // An empty word will necessarily be represented as b and e being the
+    // position of a delimiter. Consider these corner cases (in all three we
+    // should produce two words):
+    //
+    // \n
+    // a\n
+    // \na
+    //
+    // It feels sensible to represent an empty word as the position of the
+    // trailing delimiter except if it is the last character (the first two
+    // cases). Thus the additional m state, which, if 0 or 1 indicates the
+    // number of delimiters to skip before parsing the next word and 2 if
+    // this is a trailing delimiter for which we need to fake an empty word
+    // with the leading delimiter.
+
+    if (b != e)
+      b = e;
+
+    if (m > 1)
+    {
+      --m;
+      return 0;
+    }
+
+    // Skip the leading delimiter, if any.
+    //
+    b += m;
+
+    if (b == n)
+    {
+      e = n;
+      return 0;
+    }
+
+    // Find first trailing delimiter.
+    //
+    m = 0;
+    for (e = b; e != n; ++e)
+    {
+      if (s[e] == d1 || s[e] == d2)
+      {
+        m = 1;
+
+        // Handle the special delimiter as the last character case.
+        //
+        if (e + 1 == n)
+          ++m;
+
+        break;
+      }
+    }
+
+    return e - b;
+  }
+
   inline std::string&
   sanitize_identifier (std::string& s)
   {

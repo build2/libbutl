@@ -190,12 +190,35 @@ namespace butl
   //
   // The second version examines up to the n'th character in the string.
   //
+  // The third version, instead of skipping consecutive delimiters, treats
+  // them as separating empty words. The additional m variable contains an
+  // unspecified internal state and should be initialized to 0. Note that in
+  // this case you should use the (b == n) condition to detect the end. Note
+  // also that a leading delimiter is considered as separating an empty word
+  // from the rest and the trailing delimiter is considered as separating the
+  // rest from an empty word. For example, this is how to parse lines while
+  // observing blanks:
+  //
+  // for (size_t b (0), e (0), m (0), n (s.size ());
+  //      next_word (s, n, b, e, m, '\n', '\r'), b != n; )
+  // {
+  //   string l (s, b, e - b);
+  // }
+  //
+  // For string "\na\n" this code will observe the {"", "a", ""} words. And
+  // for just "\n" it will observe the {"", ""} words.
+  //
   std::size_t
   next_word (const std::string&, std::size_t& b, std::size_t& e,
              char d1 = ' ', char d2 = '\0');
 
   std::size_t
   next_word (const std::string&, std::size_t n, std::size_t& b, std::size_t& e,
+             char d1 = ' ', char d2 = '\0');
+
+  std::size_t
+  next_word (const std::string&, std::size_t n,
+             std::size_t& b, std::size_t& e, std::size_t& m,
              char d1 = ' ', char d2 = '\0');
 
   // Sanitize a string to only contain characters valid in an identifier
