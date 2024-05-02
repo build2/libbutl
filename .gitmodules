@@ -1,3 +1,6 @@
 [submodule "upstream/odb"]
 	path = upstream/odb
 	url = https://git.codesynthesis.com/odb/odb.git
+[submodule "upstream/sqlite"]
+	path = upstream/sqlite
+	url = https://git.build2.org/packaging/sqlite/sqlite.git
