@@ -1,3 +1,5 @@
+Note that this repository uses git submodules.
+
 The checked out libbutl/version.hxx will be overwritten during the build
 process but these changes should be ignored. To do this automatically, run:
 

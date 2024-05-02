@@ -1,0 +1,3 @@
+[submodule "upstream/odb"]
+	path = upstream/odb
+	url = https://git.codesynthesis.com/odb/odb.git
