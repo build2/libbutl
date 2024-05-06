@@ -4,3 +4,6 @@
 [submodule "upstream/sqlite"]
 	path = upstream/sqlite
 	url = https://git.build2.org/packaging/sqlite/sqlite.git
+[submodule "upstream/libpkg-config"]
+	path = upstream/libpkg-config
+	url = https://github.com/build2/libpkg-config.git

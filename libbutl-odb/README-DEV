@@ -33,7 +33,8 @@ third-party package):
    Look for:
 
    - files to add/remove (see above)
-   - changes to buildfiles that would need to be replicated
+   - changes to buildfiles that would need to be replicated (including to
+     root.build)
 
 3. Replace verison.hxx with pre-generated for this submodule commit.
 
