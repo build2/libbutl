@@ -1,9 +1,22 @@
 # file      : build/root.build
 # license   : MIT; see accompanying LICENSE file
 
+# Ability to build with system libsqlite3.
+#
+# Note that unless libsqlite3 on your system was built with an increased
+# SQLITE_MAX_ATTACHED value (the default is 10), you will most likely come to
+# regret using the system version.
+#
+# Also, while most distributions have to build libsqlite3 in a multi-threaded
+# configuration, we build it single-threaded (and with disabled shared cache
+# support), which gives us a non-negligible performance boost.
+#
+config [bool, config.report=false] config.libbutl.system_libsqlite3 ?= false
+
 cxx.std = latest
 
 using cxx
+using c
 
 hxx{*}: extension = hxx
 ixx{*}: extension = ixx
@@ -11,10 +24,10 @@ txx{*}: extension = txx
 cxx{*}: extension = cxx
 
 if ($cxx.target.system == 'win32-msvc')
-  cxx.poptions += -D_CRT_SECURE_NO_WARNINGS -D_SCL_SECURE_NO_WARNINGS
+  cc.poptions += -D_CRT_SECURE_NO_WARNINGS -D_SCL_SECURE_NO_WARNINGS
 
 if ($cxx.class == 'msvc')
-  cxx.coptions += /wd4251 /wd4275 /wd4800
+  cc.coptions += /wd4251 /wd4275 /wd4800
 elif ($cxx.id == 'gcc')
 {
   # See GCC bugs 100115, 98753 (attachment 50081/comment 15), and 101361. Note

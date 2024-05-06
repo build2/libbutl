@@ -1,0 +1,1 @@
+../../upstream/odb/libodb/odb/simple-object-result.txx

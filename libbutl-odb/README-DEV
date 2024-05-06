@@ -1,0 +1,40 @@
+Excluded/replaced/relocated ODB upstream files/directories:
+  - libodb/odb/tr1/
+  - libodb/odb/buildfile
+  - libodb/odb/details/{condition.cxx lock.cxx mutex.cxx thread.cxx}
+  - libodb/odb/details/posix/
+  - libodb/odb/details/win32/* except for windows.hxx
+
+
+  - libodb/odb/sqlite/buildfile
+  - libodb/odb/sqlite/details/.gitignore
+  - libodb/odb/sqlite/details/options.cli
+  - libodb/odb/sqlite/details/pregenerated/ -- symlink options.?xx directly in details/
+
+  - libodb/odb/version.hxx.in
+  - libodb/odb/sqlite/version.hxx.in
+  - libodb/odb/version.hxx        -- replace with pre-generated for submodule commit
+  - libodb/odb/sqlite/version.hxx -- replace with pre-generated for submodule commit
+
+SQLite is placed into a subdirectory to support the use of external version
+(in which case we omit the corresponding -I option).
+
+Submodule update procedure (similar to updating to a new version of a
+third-party package):
+
+1. Update submodule:
+
+   https://build2.org/stage/build2-toolchain/doc/build2-toolchain-packaging.xhtml#core-version-management-new-version-submodule
+
+2. Review upstream changes:
+
+   https://build2.org/stage/build2-toolchain/doc/build2-toolchain-packaging.xhtml#core-version-management-new-version-review
+
+   Look for:
+
+   - files to add/remove (see above)
+   - changes to buildfiles that would need to be replicated
+
+3. Replace verison.hxx with pre-generated for this submodule commit.
+
+4. Review .gitattributes for any symlink=dir changes.

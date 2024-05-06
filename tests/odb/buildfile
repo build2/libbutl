@@ -1,0 +1,6 @@
+# file      : tests/odb/buildfile
+# license   : MIT; see accompanying LICENSE file
+
+import libs = libbutl%lib{butl-odb}
+
+exe{driver}: {hxx cxx}{*} $libs

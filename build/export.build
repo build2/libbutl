@@ -1,9 +1,21 @@
 # file      : build/export.build
 # license   : MIT; see accompanying LICENSE file
 
-$out_root/
+if ($name($import.target) == 'butl-odb')
 {
-  include libbutl/
-}
+  $out_root/
+  {
+    include libbutl-odb/
+  }
 
-export $out_root/libbutl/lib{butl}
+  export $out_root/libbutl-odb/$import.target
+}
+else
+{
+  $out_root/
+  {
+    include libbutl/
+  }
+
+  export $out_root/libbutl/$import.target
+}

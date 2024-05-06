@@ -1,0 +1,1 @@
+../../upstream/sqlite/libsqlite3/libsqlite3/sqlite3.h
