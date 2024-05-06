@@ -1,0 +1,65 @@
+# file      : libbutl-pkg-config/buildfile
+# license   : MIT; see accompanying LICENSE file
+
+windows = ($c.target.class == 'windows')
+
+msvc_runtime = ($c.target.system == 'win32-msvc')
+
+msvc       = ($c.class == 'msvc')
+clang_msvc = ($c.id.type == 'clang' && $msvc_runtime)
+
+lib{butl-pkg-config}: libpkg-config/{h c}{*}
+
+# Build options.
+#
+c.poptions =+ "-I$src_base"
+
+obja{*}: c.poptions += -DLIBPKG_CONFIG_STATIC_BUILD
+objs{*}: c.poptions += -DLIBPKG_CONFIG_SHARED_BUILD
+
+# Disable warnings.
+#
+if $msvc
+  c.coptions += /wd4996 /wd4267
+elif $clang_msvc
+  c.coptions += -Wno-deprecated-declarations -Wno-unused-function
+
+if $windows
+  c.libs += ($msvc_runtime ? advapi32.lib : -ladvapi32)
+
+# Export options.
+#
+lib{butl-pkg-config}: c.export.poptions = "-I$src_base"
+liba{butl-pkg-config}: c.export.poptions += -DLIBPKG_CONFIG_STATIC
+libs{butl-pkg-config}: c.export.poptions += -DLIBPKG_CONFIG_SHARED
+
+# For pre-releases use the complete version to make sure they cannot be used
+# in place of another pre-release or the final version. See the version module
+# for details on the version.* variable values.
+#
+if $version.pre_release
+  lib{butl-pkg-config}: bin.lib.version = @"-$version.project_id"
+else
+  lib{butl-pkg-config}: bin.lib.version = @"-$version.major.$version.minor"
+
+# Install into the libbutl/pkg-config/ subdirectory of, say, /usr/include
+# recreate subdirectories (so we end up with
+# libbutl/pkg-config/libpkg-config/...>). Arrange via pkg-config to be able to
+# include headers as <libpkg-config/...>.
+#
+# The reason we add an extra pkg-config/ subdirectory instead of installing
+# directly into libbutl/ is because adding -I for libbutl/ will make all the
+# libbutl headers includable without a prefix and thus prone to clashes.
+#
+h{*}:
+{
+  install = include/libbutl/pkg-config/
+  install.subdirs = true
+}
+
+libpkg-config/
+{
+  h{config}@./ h{stdinc}@./: install = false
+}
+
+lib{butl-pkg-config}: c.pkgconfig.include = include/libbutl/pkg-config/

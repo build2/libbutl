@@ -4,15 +4,16 @@
 cxx.std = latest
 
 using cxx
+using c
 
 hxx{*}: extension = hxx
 cxx{*}: extension = cxx
 
 if ($cxx.target.system == 'win32-msvc')
-  cxx.poptions += -D_CRT_SECURE_NO_WARNINGS -D_SCL_SECURE_NO_WARNINGS
+  cc.poptions += -D_CRT_SECURE_NO_WARNINGS -D_SCL_SECURE_NO_WARNINGS
 
 if ($cxx.class == 'msvc')
-  cxx.coptions += /wd4251 /wd4275 /wd4800
+  cc.coptions += /wd4251 /wd4275 /wd4800
 elif ($cxx.id == 'gcc')
 {
   cxx.coptions += -Wno-maybe-uninitialized -Wno-free-nonheap-object \

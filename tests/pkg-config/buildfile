@@ -1,0 +1,6 @@
+# file      : tests/pkg-config/buildfile
+# license   : MIT; see accompanying LICENSE file
+
+import libs = libbutl%lib{butl-pkg-config}
+
+exe{driver}: {h c}{*} $libs testscript

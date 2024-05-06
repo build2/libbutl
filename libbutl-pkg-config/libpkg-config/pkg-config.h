@@ -1,0 +1,1 @@
+../../upstream/libpkg-config/libpkg-config/libpkg-config/pkg-config.h

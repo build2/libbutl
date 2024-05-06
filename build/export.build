@@ -1,21 +1,35 @@
 # file      : build/export.build
 # license   : MIT; see accompanying LICENSE file
 
-if ($name($import.target) == 'butl-odb')
+switch $name($import.target)
 {
-  $out_root/
+  case 'butl-odb'
   {
-    include libbutl-odb/
+    $out_root/
+    {
+      include libbutl-odb/
+    }
+
+    export $out_root/libbutl-odb/$import.target
   }
 
-  export $out_root/libbutl-odb/$import.target
-}
-else
-{
-  $out_root/
+  case 'butl-pkg-config'
   {
-    include libbutl/
+    $out_root/
+    {
+      include libbutl-pkg-config/
+    }
+
+    export $out_root/libbutl-pkg-config/$import.target
   }
 
-  export $out_root/libbutl/$import.target
+  default
+  {
+    $out_root/
+    {
+      include libbutl/
+    }
+
+    export $out_root/libbutl/$import.target
+  }
 }

@@ -1,0 +1,30 @@
+Excluded/replaced/relocated upstream files/directories:
+  - libpkg-config/libbpkg-config/{.gitignore, buildfile}
+
+  - libpkg-config/libbpkg-config/version.h.in
+  - libpkg-config/libbpkg-config/version.h -- replace with pre-generated for
+                                              submodule commit
+
+  - libpkg-config/libbpkg-config/config.h.in
+  - libpkg-config/libbpkg-config/config.h -- replace with pre-generated with
+                                             empty system/default path (we
+					     do/should not use them).
+
+Submodule update procedure (similar to updating to a new version of a
+third-party package):
+
+1. Update submodule:
+
+   https://build2.org/stage/build2-toolchain/doc/build2-toolchain-packaging.xhtml#core-version-management-new-version-submodule
+
+2. Review upstream changes:
+
+   https://build2.org/stage/build2-toolchain/doc/build2-toolchain-packaging.xhtml#core-version-management-new-version-review
+
+   Look for:
+
+   - files to add/remove (see above)
+   - changes to buildfiles that would need to be replicated (including to
+     root.build)
+
+3. Replace verison.h, config.h with pre-generated for this submodule commit.
