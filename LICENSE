@@ -1,16 +1,33 @@
 libbutl/sha1.c:
 
-3-clause BSD License; see the file header for details.
+  3-clause BSD License; see the file header for details.
 
 libbutl/{sha256c.c, strptime.c, timelocal.[hc]}:
 libbutl/{xxhash.[hc], lz4*.[hc]}:
 libbutl/mingw-*.hxx:
 
-2-clause BSD License; see the file headers for details.
+  2-clause BSD License; see the file headers for details.
 
 libbutl/json/pdjson.[hc]:
 
-UNLICENSE (dedicated to the public domain).
+  UNLICENSE (dedicated to the public domain).
+
+libbutl-pkg-config/**.[hc]:
+
+  ISC License (see upstream/libpkg-config/LICENSE for details).
+
+libbutl-odb/sqlite/*.[hc]:
+
+  SQLite Blessing (see upstream/sqlite/ for details).
+
+libbutl-odb/odb/{**.h **.?xx}:
+
+  GPLv2 with License Exception which allows the use of the original build2
+  software in open source or proprietary works without imposing any additional
+  restrictions to the terms and conditions of the MIT license used by build2.
+  For details, see:
+
+  https://git.codesynthesis.com/cgit/odb/odb-etc/tree/license-exceptions/build2-odb-license-exception.txt
 
 The rest:
 
