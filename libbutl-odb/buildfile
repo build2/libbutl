@@ -81,6 +81,9 @@ if! $sys_sqlite
     if! $windows
       c.poptions += -DHAVE_USLEEP=1
 
+    if $windows
+      objs{*}: c.poptions += '-DSQLITE_API=__declspec(dllexport)'
+
     if $gcc
       c.coptions += -fno-strict-aliasing
 
