@@ -965,6 +965,11 @@ main (int argc, const char* argv[])
   }
 
 #endif
+
+  // Test fdterm().
+  //
+  assert (!fdterm (fdopen_null ().get ())); // /dev/null is not a terminal.
+
   // Compare fdstream and fstream operations performance.
   //
   duration fwd (0);
