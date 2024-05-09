@@ -1889,7 +1889,13 @@ namespace butl
       throw_system_ios_failure (e);
 
     if (t == FILE_TYPE_CHAR) // Terminal.
-      return true;
+    {
+      // One notable special file that has this type is nul (as returned by
+      // fdopen_null()). So tighten this case with the GetConsoleMode() call.
+      //
+      DWORD m;
+      return GetConsoleMode (h, &m) != 0;
+    }
 
     if (t != FILE_TYPE_PIPE) // Pipe still can be a terminal (see below).
       return false;
