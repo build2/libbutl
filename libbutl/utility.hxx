@@ -301,6 +301,8 @@ namespace butl
   // of overrides over the process environment (sets and unsets), the same as
   // for the process startup.
   //
+  // See also path_traits::thread_current_directory().
+  //
   extern
 #ifdef __cpp_thread_local
   thread_local

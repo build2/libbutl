@@ -262,7 +262,7 @@ namespace butl
   {
     // Note that there is a similar version for Win32.
 
-    typedef path::traits_type traits;
+    using traits = path::traits_type;
 
     size_t fn (strlen (f));
 
@@ -453,6 +453,15 @@ namespace butl
       in_efd = open_pipe ();
     else if (err == -2)
       in_efd.out = open_null ();
+
+    // If there is no user-supplied CWD and we have thread-specific override,
+    // use that instead of defaulting to the process-wide value.
+    //
+    if (cwd == nullptr || *cwd == '\0')
+    {
+      if (const string* twd = path::traits_type::thread_current_directory ())
+        cwd = twd->c_str ();
+    }
 
     const char* const* tevars (thread_env ());
 
@@ -1391,6 +1400,15 @@ namespace butl
     {
       throw process_error (m == nullptr ? last_error_msg () : m);
     };
+
+    // If there is no user-supplied CWD and we have thread-specific override,
+    // use that instead of defaulting to the process-wide value.
+    //
+    if (cwd == nullptr || *cwd == '\0')
+    {
+      if (const string* twd = path::traits_type::thread_current_directory ())
+        cwd = twd->c_str ();
+    }
 
     // (Un)set the environment variables for the child process.
     //

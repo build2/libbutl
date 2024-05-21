@@ -26,6 +26,8 @@
 #include <atomic>
 #include <cstring> // strcpy()
 
+#include <libbutl/ft/lang.hxx> // thread_local
+
 #include <libbutl/utility.hxx> // throw_*_error()
 #include <libbutl/process.hxx> // process::current_id()
 
@@ -55,10 +57,21 @@ namespace butl
   // char
   //
 
+  static
+#ifdef __cpp_thread_local
+  thread_local
+#else
+  __thread
+#endif
+  const path_traits<char>::string_type* current_directory_ = nullptr;
+
   template <>
   LIBBUTL_SYMEXPORT path_traits<char>::string_type path_traits<char>::
   current_directory ()
   {
+    if (const auto* twd = current_directory_)
+      return *twd;
+
 #ifdef _WIN32
     char cwd[_MAX_PATH];
     if (_getcwd (cwd, _MAX_PATH) == 0)
@@ -96,6 +109,20 @@ namespace butl
     if (chdir (s.c_str ()) != 0)
       throw_generic_error (errno);
 #endif
+  }
+
+  template <>
+  LIBBUTL_SYMEXPORT const path_traits<char>::string_type* path_traits<char>::
+  thread_current_directory ()
+  {
+    return current_directory_;
+  }
+
+  template <>
+  LIBBUTL_SYMEXPORT void path_traits<char>::
+  thread_current_directory (const string_type* twd)
+  {
+    current_directory_ = twd;
   }
 
 #ifndef _WIN32

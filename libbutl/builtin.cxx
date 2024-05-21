@@ -243,7 +243,7 @@ namespace butl
   // completed using the current directory if it is relative. Fail if
   // std::system_error is thrown by the underlying function call.
   //
-  dir_path
+  static dir_path
   current_directory (const dir_path& wd, const function<error_record ()>& fail)
   {
     try

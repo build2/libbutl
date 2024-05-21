@@ -451,11 +451,31 @@ namespace butl
     // Get/set current working directory. Throw std::system_error to report
     // underlying OS errors.
     //
+    // The curren_directory() accessor (as well as the relevant process
+    // startup functions) have a notion of a "thread working directory" which
+    // is implemented as a thread-specific override that can be added/removed
+    // with thread_current_directory() below.
+    //
+    // Note that the current_directory() modifier always sets the process-wide
+    // working directory.
+    //
+    // See also thread_env().
+    //
     static string_type
     current_directory ();
 
     static void
-    current_directory (string_type const&);
+    current_directory (const string_type&);
+
+    // Get/set thread working directory override. Note that the passed
+    // pointed-to string should be valid (and immutable) for as long as the
+    // override is in effect.
+    //
+    static const string_type*
+    thread_current_directory ();
+
+    static void
+    thread_current_directory (const string_type*);
 
     // Return the user home directory. Throw std::system_error to report
     // underlying OS errors.
