@@ -890,7 +890,7 @@ namespace butl
     make_leaf ();
 
     // Return the path without the specified directory part. Returns empty
-    // path if the paths are the same. Throws invalid_path if the directory is
+    // path if the paths are the same. Throw invalid_path if the directory is
     // not a prefix of *this. Expects both paths to be normalized.
     //
     basic_path
@@ -908,7 +908,7 @@ namespace butl
     make_directory ();
 
     // Return the directory part of the path without the specified leaf part.
-    // Throws invalid_path if the leaf is not a suffix of *this. Expects both
+    // Throw invalid_path if the leaf is not a suffix of *this. Expects both
     // paths to be normalized.
     //
     dir_type
@@ -944,7 +944,7 @@ namespace butl
     extension_cstring () const;
 
     // Return a path relative to the specified path that is equivalent
-    // to *this. Throws invalid_path if a relative path cannot be derived
+    // to *this. Throw invalid_path if a relative path cannot be derived
     // (e.g., paths are on different drives on Windows).
     //
     basic_path
@@ -1112,19 +1112,22 @@ namespace butl
     basic_path&
     canonicalize (char dir_sep = '\0');
 
-    // Normalize the path and return *this. Normalization involves collapsing
-    // the '.' and '..'  directories if possible, collapsing multiple
-    // directory separators, and converting all directory separators to the
-    // canonical form. If cur_empty is true then collapse relative paths
-    // representing the current directory (for example, '.', './', 'foo/..')
-    // to an empty path. Otherwise convert it to the canonical form (./ on
-    // POSIX systems). Note that a non-empty path cannot become an empty one
-    // in the latter case.
+    // Normalize the path and return *this. Throw invalid_path if the
+    // resulting path would be invalid (e.g., /tmp/../..).
+    //
+    // Normalization involves collapsing the '.' and '..'  directories if
+    // possible, collapsing multiple directory separators, and converting all
+    // directory separators to the canonical form. If cur_empty is true then
+    // collapse relative paths representing the current directory (for
+    // example, '.', './', 'foo/..')  to an empty path. Otherwise convert it
+    // to the canonical form (./ on POSIX systems). Note that a non-empty path
+    // cannot become an empty one in the latter case.
     //
     // If actual is true, then for case-insensitive filesystems obtain the
     // actual spelling of the path. Only an absolute path can be actualized.
     // If a path component does not exist, then its (and all subsequent)
-    // spelling is unchanged. This is a potentially expensive operation.
+    // spelling is unchanged. Throw system_error on all other underlying
+    // filesystem errors. Note that this is a potentially expensive operation.
     // Normally one can assume that "well-known" directories (current, home,
     // etc.) are returned in their actual spelling.
     //
