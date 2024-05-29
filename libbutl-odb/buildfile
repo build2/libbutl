@@ -46,6 +46,9 @@ if! $sys_sqlite
 
   sqlite/
   {
+    # @@ TMP: add -DSQLITE_DQS=0, -DSQLITE_OMIT_DEPRECATED=1
+    # @@ TODO: maybe use -DSQLITE_OMIT_AUTOINIT?
+
     c.poptions += \
       -DSQLITE_ALLOW_ROWID_IN_VIEW=1 \
       -DSQLITE_ENABLE_COLUMN_METADATA=1 \
@@ -95,6 +98,9 @@ if! $sys_sqlite
 
     if $gcc
       c.coptions += -Wno-unused-variable -Wno-extra -Wno-error
+
+    if ($c.id == 'gcc' && $c.version.major >= 14)
+      c.coptions += -Wno-stringop-overread
   }
 
   if! $windows
