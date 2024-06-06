@@ -76,7 +76,7 @@ switch $tclass, $tsys
 }
 
 if! $windows
-  cxx.libs += -lpthread
+  cxx.libs += -pthread
 
 # Include the generated version header into the distribution (so that we don't
 # pick up an installed one) and don't remove it when cleaning in src (so that

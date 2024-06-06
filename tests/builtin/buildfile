@@ -8,4 +8,4 @@ import libs = libbutl%lib{butl}
 exe{driver}: {hxx cxx}{*} $libs testscript{*}
 
 if ($cxx.target.class != 'windows')
-  cxx.libs += -lpthread
+  cxx.libs += -pthread
