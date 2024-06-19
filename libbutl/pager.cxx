@@ -14,9 +14,10 @@
 
 #include <string>
 #include <vector>
-#include <cstddef> // size_t
-#include <cstring> // strchr()
-#include <utility> // move()
+#include <cstddef>      // size_t
+#include <cstring>      // strchr()
+#include <utility>      // move()
+#include <system_error> // system_error, generic_category()
 
 #ifndef _WIN32
 #  include <chrono>
@@ -177,16 +178,33 @@ namespace butl
         throw; // Re-throw as system_error.
     }
 
-    // Setup the indentation machinery.
+    // Setup the indentation machinery and the 'broken pipe' error handling.
     //
-    if (!indent_.empty ())
-      buf_ = stream ().rdbuf (this);
+    // Note that the pager, if instructed to quit, may not bother reading out
+    // all the data from stdin and just exit successfully (with 0 code)
+    // outright. In this case writing to the pipe on our end results in the
+    // EPIPE (EINVAL on Windows) error. We will handle this error by switching
+    // into the skip mode, so that the caller may continue to write the data
+    // normally till the end, without the need to handle this situation in a
+    // special way.
+    //
+    buf_ = stream ().rdbuf (this);
   }
 
   bool pager::
   wait (bool ie)
   {
-    // Teardown the indentation machinery.
+    // Prevent ofdstream::close() from throwing in the ignore errors mode.
+    //
+    if (ie)
+      os_.exceptions (ofdstream::goodbit);
+
+    os_.close ();
+
+    // Teardown the indentation machinery and the 'broken pipe' error handling.
+    //
+    // Note that we need to do this after the above close() call, so that the
+    // underlying flush() call would still be noop in the skip mode.
     //
     if (buf_ != nullptr)
     {
@@ -194,33 +212,91 @@ namespace butl
       buf_ = nullptr;
     }
 
-    // Prevent ofdstream::close() from throwing in the ignore errors mode.
-    //
-    if (ie)
-      os_.exceptions (ofdstream::goodbit);
-
-    os_.close ();
     return p_.wait (ie);
   }
 
   pager::int_type pager::
   overflow (int_type c)
   {
-    if (prev_ == '\n' && c != '\n') // Don't indent blanks.
+    // Unless we are in the skip mode or the passed character is EOF, print
+    // the indentation, if required, and delegate writing the character to the
+    // stashed ofdstream's streambuf. Switch to the skip mode on the 'broken
+    // pipe' error (see above for details).
+    //
+    if (!skip_ && c != traits_type::eof ())
+    try
     {
-      auto n (static_cast<streamsize> (indent_.size ()));
+      if (!indent_.empty ())
+      {
+        if (prev_ == '\n' && c != '\n') // Don't indent blanks.
+        {
+          auto n (static_cast<streamsize> (indent_.size ()));
 
-      if (buf_->sputn (indent_.c_str (), n) != n)
-        return traits_type::eof ();
+          if (buf_->sputn (indent_.c_str (), n) != n)
+            return traits_type::eof ();
+        }
+
+        prev_ = c;
+      }
+
+      return buf_->sputc (c);
+    }
+    //
+    // Note that we catch the system_error exception rather than
+    // ios_base::failure to be compilable with older C++ standard libraries
+    // which may not derive ios_base::failure from system_error (GCC 4.9,
+    // etc). For such libraries there is no easy way to handle the 'broken
+    // pipe' error at this level since it is indistinguishable from other IO
+    // errors. Thus, we just pass it through. Also note that we could
+    // potentially treat any IO error as the 'broken pipe' error for such
+    // libraries (it's actually hard to think of other reasons). Let's,
+    // however, keep it simple for now and see how it goes.
+    //
+    catch (const system_error& e)
+    {
+      if (e.code ().category () == generic_category () &&
+#ifndef _WIN32
+          e.code ().value () == EPIPE)
+#else
+          e.code ().value () == EINVAL)
+#endif
+      {
+        skip_ = true;
+
+        // Fall through.
+      }
+      else
+        throw;
     }
 
-    prev_ = c;
-    return buf_->sputc (c);
+    return 0; // Success.
   }
 
   int pager::
   sync ()
   {
-    return buf_->pubsync ();
+    if (!skip_)
+    try
+    {
+      return buf_->pubsync ();
+    }
+    catch (const system_error& e)
+    {
+      if (e.code ().category () == generic_category () &&
+#ifndef _WIN32
+          e.code ().value () == EPIPE)
+#else
+          e.code ().value () == EINVAL)
+#endif
+      {
+        skip_ = true;
+
+        // Fall through.
+      }
+      else
+        throw;
+    }
+
+    return 0; // Success.
   }
 }

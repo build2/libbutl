@@ -68,10 +68,10 @@ namespace butl
     using traits_type = std::streambuf::traits_type;
 
     virtual int_type
-    overflow (int_type);
+    overflow (int_type) override;
 
     virtual int
-    sync ();
+    sync () override;
 
   private:
     process p_;
@@ -80,5 +80,6 @@ namespace butl
     std::string indent_;
     int_type prev_ = '\n'; // Previous character.
     std::streambuf* buf_ = nullptr;
+    bool skip_ = false;
   };
 }
