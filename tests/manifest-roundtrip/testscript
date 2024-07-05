@@ -13,7 +13,8 @@ $* <<EOF >>EOF
   description: A very very very very very very very very very very very very\
    very very very very very very very very very very very very very very very\
    very very long description.
-  changes:\
+  changes:
+  \
   1.0.1
     - Fixed a  very very very very very very very very very very very very very\
     very annoying bug.
@@ -32,7 +33,8 @@ $* <<EOF >>EOF
   requires: c++11
   :
   path: c:\windows\\
-  path:\
+  path:
+  \
 
   c:\windows\\
   \
@@ -40,7 +42,7 @@ $* <<EOF >>EOF
 
 : multiline-v2
 :
-$* -m <<EOF >>EOF
+$* <<EOF >>EOF
   : 1
   name: libbpkg
   version: 1.0.1
@@ -81,35 +83,41 @@ $* -m <<EOF >>EOF
 :
 $* -s <<EOF >>EOF
   : 1
-  info:\
+  info:
+  \
   value
   text
   \
-  info:\
+  info:
+  \
   value
   text
   ;
   comment
   \
-  info:\
+  info:
+  \
   ;
   comment
   text
   \
-  info:\
+  info:
+  \
   value
   \;
   \\
   ;
   comment
   \
-  info:\
+  info:
+  \
   value
   \\;
   ;
   comment
   \
-  info:\
+  info:
+  \
   value
   \\\\;
   ;

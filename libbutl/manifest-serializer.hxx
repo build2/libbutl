@@ -45,19 +45,14 @@ namespace butl
     // Unless long_lines is true, break lines in values (including multi-line)
     // so that their length does not exceed 78 codepoints (including '\n').
     //
-    // Note that the multiline_v2 flag is temporary and should not be used
-    // except by the implementation for testing.
-    //
     manifest_serializer (std::ostream& os,
                          const std::string& name,
                          bool long_lines = false,
-                         std::function<filter_function> filter = {},
-                         bool multiline_v2 = false)
+                         std::function<filter_function> filter = {})
       : os_ (os),
         name_ (name),
         long_lines_ (long_lines),
-        filter_ (std::move (filter)),
-        multiline_v2_ (multiline_v2)
+        filter_ (std::move (filter))
     {
     }
 

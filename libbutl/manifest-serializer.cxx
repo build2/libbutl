@@ -364,10 +364,7 @@ namespace butl
         v.back () == ' '      ||
         v.back () == '\t')
     {
-      if (multiline_v2_)
-        os_ << endl;
-
-      os_ << "\\" << endl; // Multi-line mode introducer.
+      os_ << endl << "\\" << endl; // Multi-line mode introducer.
 
       // Chunk the value into fragments separated by newlines.
       //

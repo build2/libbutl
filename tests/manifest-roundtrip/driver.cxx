@@ -19,9 +19,6 @@ using namespace butl;
 //
 // Round-trip a manifest reading it from stdin and printing to stdout.
 //
-// -m
-//    Serialize multi-line manifest values using the v2 form.
-//
 // -s
 //    Split values into the value/comment pairs and merge them back before
 //    printing.
@@ -30,17 +27,16 @@ int
 main (int argc, const char* argv[])
 try
 {
-  bool multiline_v2 (false);
   bool split (false);
 
   for (int i (1); i != argc; ++i)
   {
     string v (argv[i]);
 
-    if (v == "-m")
-      multiline_v2 = true;
-    else if (v == "-s")
+    if (v == "-s")
       split = true;
+    else
+      assert (false);
   }
 
   // Read/write in binary mode.
@@ -53,8 +49,7 @@ try
   manifest_serializer s (cout,
                          "stdout",
                          false /* long_lines */,
-                         {} /* filter */,
-                         multiline_v2);
+                         {} /* filter */);
 
   for (bool eom (true), eos (false); !eos; )
   {
