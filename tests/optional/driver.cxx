@@ -2,7 +2,8 @@
 // license   : MIT; see accompanying LICENSE file
 
 #include <vector>
-#include <utility>    // move()
+#include <string>
+#include <utility>    // move(), pair
 
 #include <libbutl/optional.hxx>
 
@@ -27,7 +28,24 @@ main ()
 {
   using butl::optional;
 
-  optional<move_only> r;
-  vector<optional<move_only>> rs;
-  rs.emplace_back (move (r));
+  {
+    optional<move_only> r;
+    vector<optional<move_only>> rs;
+    rs.emplace_back (move (r));
+  }
+
+  // See https://github.com/libstud/libstud-optional/issues/1 for details.
+  //
+#if 0
+  {
+    vector<pair<string, optional<string>>> options;
+    auto add = [&options] (string o, optional<string> v = {})
+    {
+      options.emplace_back (move (o), move (v));
+    };
+
+    add ("-usb");
+    add ("-device", "usb-kbd");
+  }
+#endif
 }
