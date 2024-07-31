@@ -9,8 +9,10 @@
 
 #include <libbutl/path.hxx>
 #include <libbutl/process.hxx>
+#include <libbutl/optional.hxx>
 #include <libbutl/fdstream.hxx>
 #include <libbutl/small-vector.hxx>
+#include <libbutl/semantic-version.hxx>
 
 #include <libbutl/export.hxx>
 
@@ -162,6 +164,14 @@ namespace butl
           flags,
           const std::string& url,
           A&&... options);
+
+    // Try to run the specified program with the --version option and parse
+    // its stdout for the curl version. Return nullopt if this program cannot
+    // be found/executed, doesn't exit with the zero code, or its stdout
+    // cannot be parsed.
+    //
+    static optional<semantic_version>
+    version (const path&);
 
     // Read the HTTP response status from an input stream.
     //

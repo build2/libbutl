@@ -5,10 +5,13 @@
 
 #include <cassert>
 #include <utility>   // move()
-#include <cstdlib>   // strtoul(), size_t
+#include <cstdlib>   // strtoul(), exit(), size_t
 #include <exception> // invalid_argument
 
 #include <libbutl/utility.hxx>
+#include <libbutl/process.hxx>
+#include <libbutl/optional.hxx>
+#include <libbutl/fdstream.hxx>
 
 using namespace std;
 
@@ -188,6 +191,62 @@ namespace butl
     }
 
     throw invalid_argument ("unsupported protocol");
+  }
+
+  optional<semantic_version> curl::
+  version (const path& prog)
+  {
+    // curl --version prints the version to stdout and exits with 0
+    // status. The first line starts with "curl X.Y.Z"
+    //
+    const char* args[] = {prog.string ().c_str (), "--version", nullptr};
+
+    try
+    {
+      // Redirect stdout to a pipe and stderr to /dev/null.
+      //
+      // Note that curl may print the following line to stderr if built with
+      // the --enable-debug option:
+      //
+      // WARNING: this libcurl is Debug-enabled, do not use in production
+      //
+      process pr (args, 0, -1, -2);
+
+      string l;
+
+      try
+      {
+        ifdstream is (move (pr.in_ofd), fdstream_mode::skip);
+
+        getline (is, l);
+        is.close ();
+
+        if (!pr.wait () || l.compare (0, 5, "curl ") != 0)
+          return nullopt;
+      }
+      catch (const ios_base::failure&)
+      {
+        return nullopt;
+      }
+
+      // Try to extract the version.
+      //
+      // Note that there is some variety across the build configurations:
+      //
+      // curl 8.9.1-DEV (x86_64-pc-linux-gnu) libcurl/8.9.1-DEV OpenSSL/3.1.1 zlib/1.2.13 libpsl/0.21.2 OpenLDAP/2.6.7
+      // curl 8.7.1 (x86_64-pc-linux-gnu) libcurl/8.7.1 OpenSSL/3.2.2 zlib/1.2.11 brotli/1.0.9 zstd/1.5.5 libidn2/2.3.3 libpsl/0.21.2 libssh2/1.11.0 nghttp2/1.50.0 librtmp/2.3 OpenLDAP/2.5.13
+      //
+      return parse_semantic_version (l, 5,
+                                     semantic_version::allow_build,
+                                     "" /* build_separators */);
+    }
+    catch (const process_error& e)
+    {
+      if (e.child)
+        std::exit (1);
+
+      return nullopt;
+    }
   }
 
   uint16_t curl::
