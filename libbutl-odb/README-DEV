@@ -36,6 +36,6 @@ third-party package):
    - changes to buildfiles that would need to be replicated (including to
      root.build)
 
-3. Replace verison.hxx with pre-generated for this submodule commit.
+3. Replace TWO verison.hxx with pre-generated for this submodule commit.
 
 4. Review .gitattributes for any symlink=dir changes.
