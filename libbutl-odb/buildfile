@@ -91,7 +91,7 @@ if! $sys_sqlite
       c.coptions += -fno-strict-aliasing
 
     if $clang_msvc
-      c.coptions += -Wno-deprecated-declarations
+      c.coptions += -Wno-deprecated-declarations -Wno-unused-function
 
     if ($clang && $c.version.major >= 15)
       c.coptions += -Wno-unused-but-set-variable
