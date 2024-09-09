@@ -268,7 +268,15 @@ namespace butl
            ec == ERROR_INVALID_NAME   ||
            ec == ERROR_INVALID_DRIVE  ||
            ec == ERROR_BAD_PATHNAME   ||
-           ec == ERROR_BAD_NETPATH;
+           ec == ERROR_BAD_NETPATH    ||
+           //
+           // Note that for reasons unknown, filesystem entry stat functions
+           // (GetFileAttributesExA(), etc) may end up with the
+           // ERROR_NOT_READY error code rather than ERROR_INVALID_DRIVE for
+           // paths on non-existent drives. Thus, we treat the ERROR_NOT_READY
+           // error code in the same way as ERROR_INVALID_DRIVE here.
+           //
+           ec == ERROR_NOT_READY;
   }
 
   static inline bool
