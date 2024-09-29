@@ -44,6 +44,30 @@ $* . -mindepth 12a 2>"find: invalid value '12a' for primary '-mindepth'" == 1
 : path
 :
 {
+  : dir-symlink
+  :
+  {
+    mkdir -p a/c;
+    ln -s a c;
+
+    # If 'c' path is a symlink (may not be the case on Windows), then check
+    # that the find builtin only dereferences it if it is terminated with the
+    # directory separator.
+    #
+    $* c -type l | set p;
+
+    if ($p == 'c')
+      $* c >>EOO
+        c
+        EOO
+    end;
+
+    $* c/ -type d >>EOO
+      c/
+      c/c
+      EOO
+  }
+
   : relative
   :
   {

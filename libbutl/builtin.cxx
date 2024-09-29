@@ -1070,7 +1070,13 @@ namespace butl
 
         try
         {
-          pe = path_entry (fp);
+          // Note that POSIX makes no distinction between symlink path with
+          // and without trailing directory separator and specify that it
+          // should not be deferenced. The major implementations, however,
+          // dereference symlink paths with the trailing directory separator.
+          // We will follow that behavior.
+          //
+          pe = path_entry (fp, p.to_directory () /* follow_symlinks */);
         }
         catch (const system_error& e)
         {
