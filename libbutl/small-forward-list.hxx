@@ -57,6 +57,7 @@ namespace butl
     using buffer_type = small_forward_list_buffer<T, N>;
     using allocator_type = small_allocator<T, N, buffer_type>;
     using base_type = std::forward_list<T, allocator_type>;
+    using typename base_type::value_type;
 
     small_forward_list ()
       : base_type (allocator_type (this)) {}

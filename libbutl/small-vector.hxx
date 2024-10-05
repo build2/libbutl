@@ -38,6 +38,7 @@ namespace butl
     using buffer_type = small_allocator_buffer<T, N>;
     using allocator_type = small_allocator<T, N>;
     using base_type = std::vector<T, allocator_type>;
+    using typename base_type::value_type;
 
     small_vector ()
       : base_type (allocator_type (this))
