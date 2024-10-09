@@ -596,25 +596,37 @@ namespace butl
         new_env.push_back (nullptr);
       }
 
-      ulock l (process_spawn_mutex); // Note: won't be released in child.
-
-      // Note that in most non-fork based implementations this call suspends
-      // the parent thread until the child process calls exec() or terminates.
-      // This avoids "text file busy" issue (see the fork-based code below):
-      // due to the process_spawn_mutex lock the execution of the script is
-      // delayed until the child closes the descriptor.
+      // Retry to create the child process after the "resource temporarily
+      // unavailable" (EAGAIN) failure for 1050ms.
       //
-      r = posix_spawn (&handle,
-                       pp.effect_string (),
-                       &fa,
-                       nullptr /* attrp */,
-                       const_cast<char* const*> (&args[0]),
-                       new_env.empty ()
-                       ? environ
-                       : const_cast<char* const*> (new_env.data ()));
-        if (r != 0)
+      for (size_t i (0);; ++i)
+      {
+        ulock l (process_spawn_mutex); // Note: won't be released in child.
+
+        // Note that in most non-fork based implementations this call suspends
+        // the parent thread until the child process calls exec() or
+        // terminates. This avoids "text file busy" issue (see the fork-based
+        // code below): due to the process_spawn_mutex lock the execution of
+        // the script is delayed until the child closes the descriptor.
+        //
+        r = posix_spawn (&handle,
+                         pp.effect_string (),
+                         &fa,
+                         nullptr /* attrp */,
+                         const_cast<char* const*> (&args[0]),
+                         new_env.empty ()
+                         ? environ
+                         : const_cast<char* const*> (new_env.data ()));
+
+        if (r == 0)
+          break;
+
+        if (i != 15 && r == EAGAIN)
+          this_thread::sleep_for (i * 10ms);
+        else
           fail (r);
-    } // Release the lock in parent.
+      } // Release the lock in parent.
+    }
 #ifndef LIBBUTL_POSIX_SPAWN_CHDIR
     else
 #endif
@@ -632,21 +644,32 @@ namespace butl
           throw process_error (errno);
       };
 
-      ulock l (process_spawn_mutex); // Will not be released in child.
-
-      // Note that the file descriptors with the FD_CLOEXEC flag stay open in
-      // the child process between fork() and exec() calls. This may cause the
-      // "text file busy" issue: if some other thread creates a shell script
-      // and the write-open file descriptor leaks into some child process,
-      // then exec() for this script fails with ETXTBSY (see exec() man page
-      // for details). If that's the case, it feels like such a descriptor
-      // should not stay open for too long. Thus, we will retry the exec()
-      // calls for about half a second.
+      // Retry to create the child process after the "resource temporarily
+      // unavailable" (EAGAIN) failure for 1050ms.
       //
-      handle = fork ();
+      for (size_t i (0);; ++i)
+      {
+        ulock l (process_spawn_mutex); // Will not be released in child.
 
-      if (handle == -1)
-        fail (false /* child */);
+        // Note that the file descriptors with the FD_CLOEXEC flag stay open
+        // in the child process between fork() and exec() calls. This may
+        // cause the "text file busy" issue: if some other thread creates a
+        // shell script and the write-open file descriptor leaks into some
+        // child process, then exec() for this script fails with ETXTBSY (see
+        // exec() man page for details). If that's the case, it feels like
+        // such a descriptor should not stay open for too long. Thus, we will
+        // retry the exec() calls for about half a second.
+        //
+        handle = fork ();
+
+        if (handle != -1)
+          break;
+
+        if (i != 15 && errno == EAGAIN)
+          this_thread::sleep_for (i * 10ms);
+        else
+          fail (false /* child */);
+      } // Release the lock in parent.
 
       if (handle == 0)
       {
@@ -752,7 +775,7 @@ namespace butl
 
         fail (true /* child */);
       }
-    } // Release the lock in parent.
+    }
 #endif // LIBBUTL_POSIX_SPAWN_CHDIR
 
     assert (handle != 0); // Shouldn't get here unless in the parent process.
