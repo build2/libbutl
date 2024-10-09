@@ -18,6 +18,10 @@
 #include <exception>
 #include <system_error>
 
+#ifndef _WIN32
+#  include <thread> // this_thread::sleep_for()
+#endif
+
 #include <libbutl/regex.hxx>
 #include <libbutl/path-io.hxx>
 #include <libbutl/utility.hxx>      // operator<<(ostream,exception),
@@ -2489,22 +2493,44 @@ namespace butl
               const dir_path& cwd,
               const builtin_callbacks& cbs)
   {
-    unique_ptr<builtin::async_state> s (
-      new builtin::async_state (
-        r,
-        [fn,
-         &args,
-         in = move (in), out = move (out), err = move (err),
-         &cwd,
-         &cbs] () mutable noexcept -> uint8_t
-        {
-          return fn (args,
-                     move (in), move (out), move (err),
-                     cwd,
-                     cbs);
-        }));
+#ifndef _WIN32
+    // Retry to create the thread after the "resource temporarily unavailable"
+    // (EAGAIN) failure for 1050ms.
+    //
+    for (size_t i (0);; ++i)
+    try
+#endif
+    {
+      unique_ptr<builtin::async_state> s (
+        new builtin::async_state (
+          r,
+          [fn,
+           &args,
+           in = move (in), out = move (out), err = move (err),
+           &cwd,
+           &cbs] () mutable noexcept -> uint8_t
+          {
+            return fn (args,
+                       move (in), move (out), move (err),
+                       cwd,
+                       cbs);
+          }));
 
-    return builtin (r, move (s));
+      return builtin (r, move (s));
+    }
+#ifndef _WIN32
+    catch (const system_error& e)
+    {
+      if (i != 15                                      &&
+          e.code ().category () == generic_category () &&
+          e.code ().value () == EAGAIN)
+      {
+        this_thread::sleep_for (i * 10ms);
+      }
+      else
+        throw;
+    }
+#endif
   }
 
   template <builtin_impl fn>
