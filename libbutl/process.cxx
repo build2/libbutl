@@ -599,10 +599,10 @@ namespace butl
       // Retry to create the child process after the "resource temporarily
       // unavailable" (EAGAIN) failure for 1050ms.
       //
+      ulock l (process_spawn_mutex);
+
       for (size_t i (0);; ++i)
       {
-        ulock l (process_spawn_mutex); // Note: won't be released in child.
-
         // Note that in most non-fork based implementations this call suspends
         // the parent thread until the child process calls exec() or
         // terminates. This avoids "text file busy" issue (see the fork-based
@@ -618,14 +618,19 @@ namespace butl
                          ? environ
                          : const_cast<char* const*> (new_env.data ()));
 
+        l.unlock (); // Release the lock in parent.
+
         if (r == 0)
           break;
 
         if (i != 15 && r == EAGAIN)
+        {
           this_thread::sleep_for (i * 10ms);
+          l.lock ();
+        }
         else
           fail (r);
-      } // Release the lock in parent.
+      }
     }
 #ifndef LIBBUTL_POSIX_SPAWN_CHDIR
     else
@@ -647,10 +652,10 @@ namespace butl
       // Retry to create the child process after the "resource temporarily
       // unavailable" (EAGAIN) failure for 1050ms.
       //
+      ulock l (process_spawn_mutex); // Note: should not be released in child.
+
       for (size_t i (0);; ++i)
       {
-        ulock l (process_spawn_mutex); // Will not be released in child.
-
         // Note that the file descriptors with the FD_CLOEXEC flag stay open
         // in the child process between fork() and exec() calls. This may
         // cause the "text file busy" issue: if some other thread creates a
@@ -662,11 +667,17 @@ namespace butl
         //
         handle = fork ();
 
+        if (handle != 0) // Parent.
+          l.unlock ();
+
         if (handle != -1)
           break;
 
         if (i != 15 && errno == EAGAIN)
+        {
           this_thread::sleep_for (i * 10ms);
+          l.lock ();
+        }
         else
           fail (false /* child */);
       } // Release the lock in parent.
