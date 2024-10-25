@@ -217,6 +217,25 @@ namespace butl
     bool first_only ((flags & regex_constants::format_first_only) != 0);
     bool no_copy ((flags & regex_constants::format_no_copy) != 0);
 
+    // Note that by default the std::regex_search(), std::regex_replace(), and
+    // std::regex_iterator() functions match the empty substrings in non-empty
+    // strings for all the major implementations. For example:
+    //
+    // - regex_search("bb", "a*") call returns true.
+    //
+    // - regex_replace("bb", "a*", "x") call returns "xbxbx".
+    //
+    // - regex_replace("a", ".*", "x") call returns "xx".
+    //
+    // - Iterating using the regex_iterator("a", ".*") object ends up with the
+    //   two matches: "a" and "".
+    //
+    // Since such a behavior feels counter-intuitive, we suppress it using the
+    // match_not_null flag, except for the empty string.
+    //
+    if (!s.empty ())
+      flags |= regex_constants::match_not_null;
+
     // Beginning of the last unmatched substring.
     //
     str_it ub (s.begin ());

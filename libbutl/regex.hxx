@@ -52,7 +52,7 @@ namespace butl
                         const std::basic_string<C>& fmt,
                         F&& append,
                         std::regex_constants::match_flag_type =
-                        std::regex_constants::match_default);
+                          std::regex_constants::match_default);
 
   // As above but concatenate non-matched substrings and matched substring
   // replacements into a string returning it as well as whether the search

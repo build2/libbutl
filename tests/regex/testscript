@@ -63,6 +63,21 @@
     :
     $* xay '/a/\lVZ/' >xvZy
   }
+
+  : empty-substring
+  :
+  : Note that the regex search-based replacement with the match_not_null flag
+  : is broken for older versions of libstdc++ and libc++ (may ignore
+  : match_not_null for the former and may hang for some string/pattern for the
+  : latter).
+  :
+  if (($cxx.id != 'gcc'   || $cxx.version.major >= 7) && \
+      ($cxx.id != 'clang' || $cxx.version.major >= 6))
+  {
+    $* '' '/.*/x/' >'x'      : empty
+    $* a  '/a*/x/' >'x'      : match
+    $* aa '/b*/x/'      == 1 : no-match
+  }
 }
 
 : replace-match
@@ -72,6 +87,14 @@
 
   $* abc  '/a(b)c/x\1y/'  >xby : match
   $* abcd '/a(b)c/x\1yd/' == 1 : no-match
+
+  : empty-substring
+  :
+  {
+    $* '' '/.*/x/'          >'x' : empty
+    $* a  '/a*/x/'          >'x' : match
+    $* ab '/a(c*)(b)/\1\2/' >'b' : match-mid
+  }
 }
 
 : invalid-regex-fmt
