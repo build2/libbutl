@@ -26,18 +26,22 @@ namespace butl
 
     // Parse a whitespace-separated list of strings. Can contain single or
     // double quoted substrings. No escaping is supported. If unquote is true,
-    // return one-level unquoted values. Throw invalid_string in case of
+    // return one-level unquoted values. Optionally, assume that the passed
+    // string may contain comment lines (lines with `#` as the first non-
+    // whitespace character) and ignore them. Throw invalid_string in case of
     // invalid quoting.
     //
     LIBBUTL_SYMEXPORT std::vector<std::string>
-    parse_quoted (const std::string&, bool unquote);
+    parse_quoted (const std::string&, bool unquote, bool comments = false);
 
     // As above but return a list of string and zero-based position pairs.
     // Position is useful for issuing diagnostics about an invalid string
     // during second-level parsing.
     //
     LIBBUTL_SYMEXPORT std::vector<std::pair<std::string, std::size_t>>
-    parse_quoted_position (const std::string&, bool unquote);
+    parse_quoted_position (const std::string&,
+                           bool unquote,
+                           bool comments = false);
 
     // Remove a single level of quotes. Note that the format or the
     // correctness of the quotation is not validated.

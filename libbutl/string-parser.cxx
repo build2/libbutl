@@ -18,15 +18,33 @@ namespace butl
     }
 
     vector<pair<string, size_t>>
-    parse_quoted_position (const string& s, bool unquote)
+    parse_quoted_position (const string& s, bool unquote, bool comments)
     {
       vector<pair<string, size_t>> r;
+
+      bool newline (true);
       for (auto b (s.begin ()), i (b), e (s.end ()); i != e; )
       {
-        for (; i != e && space (*i); ++i) ; // Skip spaces.
+        // Skip spaces.
+        //
+        for (; i != e && space (*i); ++i)
+        {
+          if (*i == '\n')
+            newline = true;
+        }
+
+        // Skip comment line.
+        //
+        if (comments && newline && i != e && *i == '#')
+        {
+          for (++i; i != e && *i != '\n'; ++i) ;
+          continue;
+        }
 
         if (i == e) // No more strings.
           break;
+
+        newline = false;
 
         string s;
         char quoting ('\0'); // Current quoting mode, can be used as bool.
@@ -74,9 +92,10 @@ namespace butl
     }
 
     vector<string>
-    parse_quoted (const string& s, bool unquote)
+    parse_quoted (const string& s, bool unquote, bool comments)
     {
-      vector<pair<string, size_t>> sp (parse_quoted_position (s, unquote));
+      vector<pair<string, size_t>> sp (
+        parse_quoted_position (s, unquote, comments));
 
       vector<string> r;
       r.reserve (sp.size ());

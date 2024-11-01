@@ -30,6 +30,36 @@
     x  "y z
     EOO
   }
+
+  : comments
+  :
+  {
+    $* -c <<EOI >>EOO
+    # Comment 1
+    #
+    abc #xyz
+
+      # Comment 2
+      #
+      abc#
+
+    "# not a comment 3" #not-a-comment4
+
+    "abc
+    # not a comment 5
+    "
+    # Comment 6
+    EOI
+    abc
+    #xyz
+    abc#
+    "# not a comment 3"
+    #not-a-comment4
+    "abc
+    # not a comment 5
+    "
+    EOO
+  }
 }
 
 : invalid

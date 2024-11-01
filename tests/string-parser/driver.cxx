@@ -14,13 +14,14 @@
 using namespace std;
 using namespace butl::string_parser;
 
-// Usage: argv[0] [-l] [-u] [-p]
+// Usage: argv[0] [-l] [-u] [-p] [-c]
 //
 // Read and parse lines into strings from STDIN and print them to STDOUT.
 //
 // -l  output each string on a separate line
 // -u  unquote strings
 // -p  output positions
+// -c  comments
 //
 int
 main (int argc, char* argv[])
@@ -29,6 +30,7 @@ try
   bool spl (false);     // Print string per line.
   bool unquote (false);
   bool pos (false);
+  bool comments (false);
 
   for (int i (1); i != argc; ++i)
   {
@@ -40,6 +42,8 @@ try
       unquote = true;
     else if (o == "-p")
       pos = true;
+    else if (o == "-c")
+      comments = true;
     else
       assert (false);
   }
@@ -51,11 +55,8 @@ try
 
   cout.exceptions (ios::failbit | ios::badbit);
 
-  string l;
-  while (getline (cin, l))
+  auto print = [spl, pos] (const vector<pair<string, size_t>>& v)
   {
-    vector<pair<string, size_t>> v (parse_quoted_position (l, unquote));
-
     if (!spl)
     {
       for (auto b (v.cbegin ()), i (b), e (v.cend ()); i != e; ++i)
@@ -81,6 +82,19 @@ try
         cout << s.first << endl;
       }
     }
+  };
+
+  if (!comments)
+  {
+    string l;
+    while (getline (cin, l))
+      print (parse_quoted_position (l, unquote));
+  }
+  else
+  {
+    string s;
+    getline (cin, s, '\0');
+    print (parse_quoted_position (s, unquote, true /* comments */));
   }
 
   return 0;
