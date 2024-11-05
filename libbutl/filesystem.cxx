@@ -272,11 +272,13 @@ namespace butl
            //
            // Note that for reasons unknown, filesystem entry stat functions
            // (GetFileAttributesExA(), etc) may end up with the
-           // ERROR_NOT_READY error code rather than ERROR_INVALID_DRIVE for
-           // paths on non-existent drives. Thus, we treat the ERROR_NOT_READY
-           // error code in the same way as ERROR_INVALID_DRIVE here.
+           // ERROR_NOT_READY or ERROR_INVALID_PARAMETER error code rather
+           // than ERROR_INVALID_DRIVE for paths on non-existent drives. Thus,
+           // we treat the ERROR_NOT_READY and ERROR_INVALID_PARAMETER error
+           // codes in the same way as ERROR_INVALID_DRIVE here.
            //
-           ec == ERROR_NOT_READY;
+           ec == ERROR_NOT_READY      ||
+           ec == ERROR_INVALID_PARAMETER;
   }
 
   static inline bool
