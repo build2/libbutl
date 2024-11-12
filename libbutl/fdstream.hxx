@@ -906,6 +906,9 @@ namespace butl
   // applicable on some platforms, such as Windows). Throw ios::failure on the
   // underlying OS error.
   //
+  // Note that calling this function is only valid if fdterm() above returned
+  // true for this file descriptor.
+  //
   LIBBUTL_SYMEXPORT bool
   fdterm_color (int, bool enable);
 

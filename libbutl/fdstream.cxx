@@ -1447,6 +1447,8 @@ namespace butl
   bool
   fdterm_color (int, bool)
   {
+    // Note: Windows version of fdterm_color() uses the same logic for MSYS.
+    //
     const char* t (std::getenv ("TERM"));
 
     // This test was lifted from GCC (Emacs shell sets TERM=dumb).
@@ -1875,6 +1877,8 @@ namespace butl
   {
     // @@ Both GCC and Clang simply call GetConsoleMode() for this check. I
     //    wonder why we don't do the same? See also fdterm_color() below.
+    //    Answer: probably because it would fail for the MSYS pipe (see
+    //    below).
 
     // We don't need to close it (see fd_to_handle()).
     //
@@ -1978,7 +1982,19 @@ namespace butl
     //
     DWORD m;
     if (!GetConsoleMode (h, &m))
-      throw_system_ios_failure (GetLastError ());
+    {
+      DWORD e (GetLastError ());
+
+      // This might be the MSYS terminal connected via a pipe, in which case
+      // we use the POSIX semantics (we can assume it's not any pipe because
+      // calling this function is only valid if fdterm() returned true).
+      //
+      if (GetFileType (h) != FILE_TYPE_PIPE)
+        throw_system_ios_failure (e);
+
+      const char* t (std::getenv ("TERM"));
+      return t != nullptr && strcmp (t, "dumb") != 0;
+    }
 
     // Some terminals (e.g. Windows Terminal) enable VT processing by default.
     //
