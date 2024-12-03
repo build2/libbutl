@@ -143,8 +143,8 @@ namespace butl
   // in both cases.
   //
   // If the end argument is not NULL, then it points to the first character
-  // that was not parsed. Otherwise, throw invalid_argument in case of any
-  // unparsed characters.
+  // that was not parsed. Otherwise, throw std::system_error with the generic
+  // category and EINVAL error code in case of any unparsed characters.
   //
   // Throw std::system_error on input/format mismatch and underlying time
   // conversion function failures.
