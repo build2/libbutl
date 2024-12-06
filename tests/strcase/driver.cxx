@@ -61,9 +61,9 @@ main ()
   assert (lcase ("") == string ());
 
   string s (upper);
-  assert (lcase (s) == lower);
+  assert (make_lcase (s) == lower);
 
   s = lower;
-  ucase (const_cast<char*> (s.data ()), s.size ());
+  make_ucase (const_cast<char*> (s.data ()), s.size ());
   assert (s == upper);
 }

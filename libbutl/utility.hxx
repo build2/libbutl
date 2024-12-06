@@ -75,20 +75,26 @@ namespace butl
   std::string ucase (const std::string&,
                      std::size_t p = 0,
                      std::size_t n = std::string::npos);
-  std::string& ucase (std::string&,
-                      std::size_t p = 0,
-                      std::size_t n = std::string::npos);
-  void ucase (char*, std::size_t);
+  std::string ucase (std::string&&,
+                     std::size_t p = 0,
+                     std::size_t n = std::string::npos);
+  std::string& make_ucase (std::string&,
+                           std::size_t p = 0,
+                           std::size_t n = std::string::npos);
+  void make_ucase (char*, std::size_t);
 
   char lcase (char);
   std::string lcase (const char*, std::size_t n = std::string::npos);
   std::string lcase (const std::string&,
                      std::size_t p = 0,
                      std::size_t n = std::string::npos);
-  std::string& lcase (std::string&,
-                      std::size_t p = 0,
-                      std::size_t n = std::string::npos);
-  void lcase (char*, std::size_t);
+  std::string lcase (std::string&&,
+                     std::size_t p = 0,
+                     std::size_t n = std::string::npos);
+  std::string& make_lcase (std::string&,
+                           std::size_t p = 0,
+                           std::size_t n = std::string::npos);
+  void make_lcase (char*, std::size_t);
 
   // Compare ASCII characters/strings ignoring case. Behave as if characters
   // had been converted to the lower case and then byte-compared. Return a
@@ -226,9 +232,9 @@ namespace butl
   //
   // Note that it doesn't make sure the first character is not a digit.
   //
-  std::string& sanitize_identifier (std::string&);
-  std::string  sanitize_identifier (std::string&&);
   std::string  sanitize_identifier (const std::string&);
+  std::string  sanitize_identifier (std::string&&);
+  std::string& make_sanitized_identifier (std::string&);
 
   // Sanitize a string (e.g., a path) to be a valid C string literal by
   // escaping backslahes, double-quotes, and newlines.

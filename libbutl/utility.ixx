@@ -14,15 +14,22 @@ namespace butl
     return std::toupper (c);
   }
 
+  inline std::string
+  ucase (std::string&& s, std::size_t p, std::size_t n)
+  {
+    make_ucase (s, p, n);
+    return std::move (s);
+  }
+
   inline void
-  ucase (char* s, std::size_t n)
+  make_ucase (char* s, std::size_t n)
   {
     for (const char* e (s + n); s != e; ++s)
       *s = ucase (*s);
   }
 
   inline std::string&
-  ucase (std::string& s, std::size_t p, std::size_t n)
+  make_ucase (std::string& s, std::size_t p, std::size_t n)
   {
     if (n == std::string::npos)
       n = s.size () - p;
@@ -30,7 +37,7 @@ namespace butl
     if (n != 0)
     {
       s.front () = s.front (); // Force copy in CoW.
-      ucase (const_cast<char*> (s.data ()) + p, n);
+      make_ucase (const_cast<char*> (s.data ()) + p, n);
     }
     return s;
   }
@@ -39,7 +46,8 @@ namespace butl
   ucase (const char* s, std::size_t n)
   {
     std::string r (s, n == std::string::npos ? std::strlen (s) : n);
-    return ucase (r);
+    make_ucase (r);
+    return r;
   }
 
   inline std::string
@@ -54,15 +62,22 @@ namespace butl
     return std::tolower (c);
   }
 
+  inline std::string
+  lcase (std::string&& s, std::size_t p, std::size_t n)
+  {
+    make_lcase (s, p, n);
+    return std::move (s);
+  }
+
   inline void
-  lcase (char* s, std::size_t n)
+  make_lcase (char* s, std::size_t n)
   {
     for (const char* e (s + n); s != e; ++s)
       *s = lcase (*s);
   }
 
   inline std::string&
-  lcase (std::string& s, std::size_t p, std::size_t n)
+  make_lcase (std::string& s, std::size_t p, std::size_t n)
   {
     if (n == std::string::npos)
       n = s.size () - p;
@@ -70,7 +85,7 @@ namespace butl
     if (n != 0)
     {
       s.front () = s.front (); // Force copy in CoW.
-      lcase (const_cast<char*> (s.data ()) + p, n);
+      make_lcase (const_cast<char*> (s.data ()) + p, n);
     }
     return s;
   }
@@ -79,7 +94,8 @@ namespace butl
   lcase (const char* s, std::size_t n)
   {
     std::string r (s, n == std::string::npos ? std::strlen (s) : n);
-    return lcase (r);
+    make_lcase (r);
+    return r;
   }
 
   inline std::string
@@ -271,7 +287,7 @@ namespace butl
   }
 
   inline std::string&
-  sanitize_identifier (std::string& s)
+  make_sanitized_identifier (std::string& s)
   {
     std::for_each (s.begin (), s.end (), [] (char& c)
                    {
@@ -284,7 +300,7 @@ namespace butl
   inline std::string
   sanitize_identifier (std::string&& s)
   {
-    sanitize_identifier (s);
+    make_sanitized_identifier (s);
     return std::move (s);
   }
 
