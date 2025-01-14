@@ -22,18 +22,18 @@
 // 3.0.0-b.2    0000299999999995020
 // 2.2.0-a.1.z  0000200001999990011
 //
-#define LIBODB_VERSION_FULL  200004999995281ULL
-#define LIBODB_VERSION_STR   "2.5.0-b.28.20240731125623.c6da3d9c4e9f"
-#define LIBODB_VERSION_ID    "2.5.0-b.28.c6da3d9c4e9f"
+#define LIBODB_VERSION_FULL  200005000000000ULL
+#define LIBODB_VERSION_STR   "2.5.0"
+#define LIBODB_VERSION_ID    "2.5.0"
 
 #define LIBODB_VERSION_MAJOR 2
 #define LIBODB_VERSION_MINOR 5
 #define LIBODB_VERSION_PATCH 0
 
-#define LIBODB_PRE_RELEASE   true
+#define LIBODB_PRE_RELEASE   false
 
-#define LIBODB_SNAPSHOT      20240731125623ULL
-#define LIBODB_SNAPSHOT_ID   "c6da3d9c4e9f"
+#define LIBODB_SNAPSHOT      0ULL
+#define LIBODB_SNAPSHOT_ID   ""
 
 
 // Old/deprecated numeric version format is AABBCCDD where:
@@ -55,11 +55,11 @@
 
 // ODB interface version: minor, major, and alpha/beta versions.
 //
-#define ODB_VERSION     20478
-#define ODB_VERSION_STR "2.5-b.28"
+#define ODB_VERSION     20500
+#define ODB_VERSION_STR "2.5"
 
 // libodb version: interface version plus the bugfix version.
 //
-#define LIBODB_VERSION 2049978
+#define LIBODB_VERSION 2050000
 
 #endif // LIBODB_VERSION
