@@ -208,11 +208,22 @@ namespace butl
   // for (size_t b (0), e (0), m (0), n (s.size ());
   //      next_word (s, n, b, e, m, '\n', '\r'), b != n; )
   // {
+  //   // Treat consecutive \r\n (CRLF) as if they were a single
+  //   // delimiter.
+  //   //
+  //   if (b != 0 && text[b - 1] == '\r' &&
+  //       e != n && text[e] == '\n'     &&
+  //       m != 2)
+  //     continue;
+  //
   //   string l (s, b, e - b);
   // }
   //
   // For string "\na\n" this code will observe the {"", "a", ""} words. And
   // for just "\n" it will observe the {"", ""} words.
+  //
+  // Note also that you may erase up to (but not including) the delimiter from
+  // the string, provided you adjust b, e, and n before calling next_word().
   //
   std::size_t
   next_word (const std::string&, std::size_t& b, std::size_t& e,
