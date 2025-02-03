@@ -482,4 +482,32 @@ namespace butl
 
     return *this;
   }
+
+  inline process_env_format
+  operator&= (process_env_format& x, process_env_format y)
+  {
+    return x = static_cast<process_env_format> (
+      static_cast<std::uint16_t> (x) &
+      static_cast<std::uint16_t> (y));
+  }
+
+  inline process_env_format
+  operator|= (process_env_format& x, process_env_format y)
+  {
+    return x = static_cast<process_env_format> (
+      static_cast<std::uint16_t> (x) |
+      static_cast<std::uint16_t> (y));
+  }
+
+  inline process_env_format
+  operator& (process_env_format x, process_env_format y)
+  {
+    return x &= y;
+  }
+
+  inline process_env_format
+  operator| (process_env_format x, process_env_format y)
+  {
+    return x |= y;
+  }
 }

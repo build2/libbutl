@@ -500,31 +500,31 @@ main (int argc, const char* argv[])
     auto str = [] (const process_env& env)
     {
       ostringstream os;
-      os << env;
+      to_stream (os, env);
       return os.str ();
     };
 
-    process_path p;
+    process_path p (path ("program"));
 
-    assert (str (process_env (p)) == "");
+    assert (str (process_env (p)) == "program");
 
     {
       dir_path d ("dir");
       dir_path ds ("d ir");
-      assert (str (process_env (p, d)) == "PWD=dir");
-      assert (str (process_env (p, ds)) == "PWD=\"d ir\"");
+      assert (str (process_env (p, d)) == "PWD=dir program");
+      assert (str (process_env (p, ds)) == "PWD=\"d ir\" program");
     }
 
     {
       dir_path ed; // Empty.
       const char* vars[] = {nullptr};
-      assert (str (process_env (p, ed, vars)) == "");
+      assert (str (process_env (p, ed, vars)) == "program");
     }
 
     {
       const char* vars[] = {"A=B", "A=B C", "A B=C", "A", "A B", nullptr};
       assert (str (process_env (p, vars)) ==
-              "A=B A=\"B C\" \"A B=C\" A= \"A B=\"");
+              "A=B A=\"B C\" \"A B=C\" A= \"A B=\" program");
     }
   }
 }

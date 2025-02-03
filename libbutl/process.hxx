@@ -774,6 +774,49 @@ namespace butl
     small_vector<const char*, 3> vars_;
   };
 
+  // Print the environment variables, the current working directory, and the
+  // process recall path, or some subset of this information. The environment
+  // variables are printed in the POSIX shell command line notation. For
+  // example:
+  //
+  // LC_ALL=C program
+  //
+  // If an environment variable is in the `name` rather than in the
+  // `name=value` form, then it is considered unset. Since there is no POSIX
+  // way to unset a variable on the command line, this information is printed
+  // as `name=` (ambiguous with assigning an empty value but the two cases are
+  // normally handled in the same way). For example:
+  //
+  // PATH= LC_ALL=C program
+  //
+  // Since there is no POSIX way to change the current working directory of a
+  // command to be executed, this information is printed in a pseudo-notation
+  // by assigning to PWD (which, according POSIX, would result in the
+  // undefined behavior of the cwd utility). For example:
+  //
+  // PWD=/tmp LC_ALL=C program
+  //
+  enum class process_env_format: std::uint16_t
+  {
+    none = 0x00,
+    path = 0x01,
+    cwd =  0x02,
+    vars = 0x04,
+    all =  path | cwd | vars
+  };
+
+  process_env_format operator&  (process_env_format,  process_env_format);
+  process_env_format operator|  (process_env_format,  process_env_format);
+  process_env_format operator&= (process_env_format&, process_env_format);
+  process_env_format operator|= (process_env_format&, process_env_format);
+
+  LIBBUTL_SYMEXPORT std::ostream&
+  to_stream (std::ostream&,
+             const process_env&,
+             process_env_format = process_env_format::all);
+
+  // Run process.
+  //
   template <typename I,
             typename O,
             typename E,
