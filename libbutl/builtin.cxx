@@ -32,6 +32,10 @@
 
 #include <libbutl/builtin-options.hxx>
 
+// NOTE: don't forget to update build2::script::run_pipe() if adding a new
+//       builtin or changing any existing builtin, so that it now does/doesn't
+//       read from stdin and/or write to stdout.
+
 // Strictly speaking a builtin which reads/writes from/to standard streams
 // must be asynchronous so that the caller can communicate with it through
 // pipes without being blocked on I/O operations. However, as an optimization,
