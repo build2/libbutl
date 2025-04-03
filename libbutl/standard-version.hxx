@@ -52,8 +52,13 @@ namespace butl
   // 2.2.0-a.1    0000200001999990010
   // 3.0.0-b.2    0000299999999995020
   // 2.2.0-a.1.z  0000200001999990011
+  // 2.2.0-       0000200001999990001
   //
   // Stub is represented as ~0 (but is not considered a pre-release).
+  //
+  // The earliest version is represented as the (otherwise illegal) DDDE value
+  // 0001 and snapshot_sn 0. Note that the earliest version is a final alpha
+  // pre-release.
   //
   struct LIBBUTL_SYMEXPORT standard_version
   {
@@ -110,10 +115,6 @@ namespace butl
     std::string string_snapshot () const;    // Snapshot part only (1234.1f23).
 
     // Predicates. See also alpha(), beta(), and pre_release() above.
-    //
-    // The earliest version is represented as the (otherwise illegal) DDDE
-    // value 0001 and snapshot_sn 0. Note that the earliest version is a final
-    // alpha pre-release.
     //
     bool empty () const noexcept {return version == 0;}
     bool stub () const noexcept {return version == std::uint64_t (~0);}
@@ -201,6 +202,16 @@ namespace butl
                       std::uint64_t snapshot_sn,
                       std::string snapshot_id,
                       std::uint16_t revision = 0);
+
+    // Create earliest version.
+    //
+    enum earliest_type {earliest_version};
+
+    standard_version (std::uint16_t epoch,
+                      std::uint32_t major,
+                      std::uint32_t minor,
+                      std::uint32_t patch,
+                      earliest_type);
 
     // Create empty version.
     //

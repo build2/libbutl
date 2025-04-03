@@ -191,8 +191,10 @@
   $* '1.2.3-a.1'   >'n' : alpha-final
   $* '1.2.3-a.0.1' >'n' : alpha-snapshot
   $* '1.2.3-b.0.1' >'n' : beta-snapshot
-  $* '1.2.3-'      >'y' : earliest
   $* '0+2'         >'n' : stub
+  $* '1.2.3-'      >'y' : earliest
+  $* '+2-1.2.3-'   >'y' : epoch-earliest
+
 }
 
 : snapshot

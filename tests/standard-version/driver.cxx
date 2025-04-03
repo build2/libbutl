@@ -68,6 +68,17 @@ version (const string& s,
       assert (r == v);
     }
 
+    if (r.earliest ())
+    {
+      standard_version v (r.epoch,
+                          r.major (),
+                          r.minor (),
+                          r.patch (),
+                          standard_version::earliest_version);
+
+      assert (r == v);
+    }
+
     // Test using the resulting version with shortcut operators.
     //
     if (!r.stub ())

@@ -134,6 +134,25 @@ namespace butl
   {
   }
 
+  inline standard_version::
+  standard_version (std::uint16_t ep,
+                    std::uint32_t mj,
+                    std::uint32_t mi,
+                    std::uint32_t pa,
+                    earliest_type)
+      : standard_version (ep,
+                          // AAAAABBBBBCCCCCDDDE
+                          (mj *  100000000000000ULL                +
+                           mi *       1000000000ULL                +
+                           pa *            10000ULL                +
+                                               1ULL /* earliest */ -
+                                           10000ULL),
+                          "" /* snapshot */,
+                          0 /* revision */,
+                          allow_earliest)
+  {
+  }
+
   inline standard_version::flags
   operator& (standard_version::flags x, standard_version::flags y)
   {
