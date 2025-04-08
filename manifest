@@ -14,5 +14,5 @@ email: users@build2.org
 build-warning-email: builds@build2.org
 builds: all : &host
 requires: c++14
-depends: * build2 >= 0.16.0
-depends: * bpkg >= 0.16.0
+depends: * build2 >= 0.18.0-
+depends: * bpkg >= 0.18.0-
