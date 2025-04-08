@@ -10,7 +10,7 @@ rmdir -u 2>"rmdir: unknown option '-u'" == 1
 
 : no-args
 :
-{
+{{
   : fail
   :
   : Removing with no arguments fails.
@@ -22,11 +22,11 @@ rmdir -u 2>"rmdir: unknown option '-u'" == 1
   : Removing with no arguments succeeds with -f option.
   :
   $* -f
-}
+}}
 
 : dir
 :
-{
+{{
   : empty-path
   :
   : Removing an empty path fails.
@@ -38,7 +38,7 @@ rmdir -u 2>"rmdir: unknown option '-u'" == 1
   : Removing existing directory succeeds.
   :
   {
-    mkdir a &!a;
+    mkdir a &!a
 
     $* a >>/~%EOO%
       %remove .+/a/ false true%
@@ -48,7 +48,7 @@ rmdir -u 2>"rmdir: unknown option '-u'" == 1
 
   : not-exists
   :
-  {
+  {{
     : fail
     : Removing non-existing directory fails.
     :
@@ -66,14 +66,14 @@ rmdir -u 2>"rmdir: unknown option '-u'" == 1
       %remove .+/a/ true true%
       %remove .+/a/ true false%
       EOO
-  }
+  }}
 
   : not-empty
   :
   : Removing non-empty directory fails.
   :
   {
-    mkdir -p a/b;
+    mkdir -p a/b
 
     $* a >/~'%remove .+/a/ false true%' 2>>/~%EOE% == 1
       %rmdir: unable to remove '.+/a': .+%
@@ -85,10 +85,10 @@ rmdir -u 2>"rmdir: unknown option '-u'" == 1
   : Removing not a directory path fails.
   :
   {
-    touch a;
+    touch a
 
     $* a >/~'%remove .+/a/ false true%' 2>>/~%EOE% == 1
       %rmdir: unable to remove '.+/a': .+%
       EOE
   }
-}
+}}

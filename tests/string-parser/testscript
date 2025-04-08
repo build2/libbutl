@@ -3,7 +3,7 @@
 
 : valid
 :
-{
+{{
   test.options += -l
   sp=' ' # For line-terminating spaces.
 
@@ -60,12 +60,12 @@
     "
     EOO
   }
-}
+}}
 
 : invalid
 :
-{
+{{
   : unterm-quoting
   :
   $* <'ab"c' 2>'4: unterminated quoted string' == 1
-}
+}}

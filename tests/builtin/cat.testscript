@@ -24,7 +24,7 @@ $* - <<EOF >>EOF
 : file
 :
 {
-  $* <<EOF >=out;
+  $* <<EOF >=out
     foo
     bar
     EOF
@@ -59,10 +59,10 @@ $* '' 2>"cat: invalid path ''" == 1
 : Cat a big file (about 100K) to test that the builtin is asynchronous.
 :
 {
-  s="--------------------------------";
-  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s";
-  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s";
-  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s";
+  s="--------------------------------"
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s"
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s"
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s"
   $* <"$s" | $* >"$s"
 }
 
@@ -73,9 +73,9 @@ $* '' 2>"cat: invalid path ''" == 1
 :
 if ($test.target == $build.host)
 {
-  test.options += -d $~/a;
-  mkdir a;
-  echo 'foo' >=a/b;
+  test.options += -d $~/a
+  mkdir a
+  echo 'foo' >=a/b
 
   $* b >'foo'
 }

@@ -6,11 +6,10 @@
 #
 #+if ($test.target != $build.host)
 #  exit
-#end
 
 : basic
 :
-{
+{{
   sys_dir = $canonicalize([dir_path] $~/build2)
   +mkdir -p $sys_dir/local
 
@@ -155,7 +154,7 @@
 
   : positions
   :
-  {
+  {{
     : success
     :
     $* -f foo -f bar -d $start_dir -m 36 -l 2 >!
@@ -171,12 +170,12 @@
     $* -f foo -f bar -d $start_dir -m 100 -l 10 2>>EOE != 0
       error: unable to load default options files: too many options files
       EOE
-  }
-}
+  }}
+}}
 
 : args
 :
-{
+{{
   home_dir = $canonicalize([dir_path] $~/home)
   +mkdir -p $home_dir/.build2
   +echo '--home' >=$home_dir/.build2/ops
@@ -213,11 +212,11 @@
     start4
     cmd
     EOO
-}
+}}
 
 : common-start
 :
-{
+{{
   home_dir = $canonicalize([dir_path] $~/home)
 
   work_dir = $home_dir/work
@@ -236,7 +235,7 @@
 
   : exists
   :
-  {
+  {{
     : single
     :
     $* -f ops -d $cfg3 -h $home_dir >>EOO
@@ -264,11 +263,11 @@
       --work
       --cfg2
       EOO
-  }
+  }}
 
   : not-exists
   :
-  {
+  {{
     : home-reached
     :
     $* -f ops -d $cfg1 -d $cfg2 -h $work_dir >>EOO
@@ -281,26 +280,26 @@
     {
       $* -f ops -d $cfg1 -d /non-existent-directory/cfg2
     }
-  }
-}
+  }}
+}}
 
 : extra-dir
 :
-{
+{{
   : after-traversal
   :
   {
-    home_dir = $canonicalize([dir_path] $~/home);
-    mkdir -p $home_dir/.build2;
-    echo '--home' >=$home_dir/.build2/ops;
+    home_dir = $canonicalize([dir_path] $~/home)
+    mkdir -p $home_dir/.build2
+    echo '--home' >=$home_dir/.build2/ops
 
-    extra_dir = $canonicalize([dir_path] $home_dir/extra);
-    mkdir -p $extra_dir;
-    echo '--extra' >=$extra_dir/ops;
+    extra_dir = $canonicalize([dir_path] $home_dir/extra)
+    mkdir -p $extra_dir
+    echo '--extra' >=$extra_dir/ops
 
-    start_dir = $canonicalize([dir_path] $home_dir/start);
-    mkdir -p $start_dir/.build2;
-    echo '--start' >=$start_dir/.build2/ops;
+    start_dir = $canonicalize([dir_path] $home_dir/start)
+    mkdir -p $start_dir/.build2
+    echo '--start' >=$start_dir/.build2/ops
 
     $* -e -f ops -d $start_dir -h $home_dir -x $extra_dir >>/~%EOO%d
       %\.+/home/.build2/ops,--home,false%
@@ -312,53 +311,53 @@
   : inside-traversal
   :
   {
-    home_dir = $canonicalize([dir_path] $~/home);
-    mkdir -p $home_dir/.build2;
-    echo '--home' >=$home_dir/.build2/ops;
+    home_dir = $canonicalize([dir_path] $~/home)
+    mkdir -p $home_dir/.build2
+    echo '--home' >=$home_dir/.build2/ops
 
-    d = $home_dir/project/.build2;
-    mkdir -p $d;
-    echo '--project' >=$d/ops;
+    d = $home_dir/project/.build2
+    mkdir -p $d
+    echo '--project' >=$d/ops
 
-    touch $home_dir/project/.git;
+    touch $home_dir/project/.git
 
-    d = $home_dir/project/package/.build2;
-    mkdir -p $d;
-    echo '--package' >=$d/ops;
+    d = $home_dir/project/package/.build2
+    mkdir -p $d
+    echo '--package' >=$d/ops
 
-    extra_dir = $canonicalize([dir_path] $home_dir/project/package/extra1);
-    mkdir -p $extra_dir;
-    echo '--extra1' >=$extra_dir/ops;
+    extra_dir = $canonicalize([dir_path] $home_dir/project/package/extra1)
+    mkdir -p $extra_dir
+    echo '--extra1' >=$extra_dir/ops
 
-    start_dir = $canonicalize([dir_path] $home_dir/project/package);
+    start_dir = $canonicalize([dir_path] $home_dir/project/package)
 
-    $* -e -f ops -d $start_dir -h $home_dir -x $extra_dir >>/~%EOO%d;
+    $* -e -f ops -d $start_dir -h $home_dir -x $extra_dir >>/~%EOO%d
       %\.+/home/.build2/ops,--home,false%
       %\.+/home/project/.build2/ops,--project,true%
       %\.+/home/project/package/.build2/ops,--package,true%
       %\.+/home/project/package/extra1/ops,--extra1,false%
       EOO
 
-    extra_dir = $canonicalize([dir_path] $home_dir/project/package/.build2);
+    extra_dir = $canonicalize([dir_path] $home_dir/project/package/.build2)
 
-    $* -e -f ops -d $start_dir -h $home_dir -x $extra_dir/ >>/~%EOO%d;
+    $* -e -f ops -d $start_dir -h $home_dir -x $extra_dir/ >>/~%EOO%d
       %\.+/home/.build2/ops,--home,false%
       %\.+/home/project/.build2/ops,--project,true%
       %\.+/home/project/package/.build2/ops,--package,false%
       EOO
 
-    extra_dir = $canonicalize([dir_path] $home_dir/project/extra2);
-    mkdir -p $extra_dir;
-    echo '--extra2' >=$extra_dir/ops;
+    extra_dir = $canonicalize([dir_path] $home_dir/project/extra2)
+    mkdir -p $extra_dir
+    echo '--extra2' >=$extra_dir/ops
 
-    $* -e -f ops -d $start_dir -h $home_dir -x $extra_dir >>/~%EOO%d;
+    $* -e -f ops -d $start_dir -h $home_dir -x $extra_dir >>/~%EOO%d
       %\.+/home/.build2/ops,--home,false%
       %\.+/home/project/.build2/ops,--project,true%
       %\.+/home/project/extra2/ops,--extra2,false%
       %\.+/home/project/package/.build2/ops,--package,true%
       EOO
 
-    extra_dir = $canonicalize([dir_path] $home_dir/project/.build2);
+    extra_dir = $canonicalize([dir_path] $home_dir/project/.build2)
 
     $* -e -f ops -d $start_dir -h $home_dir -x $extra_dir/ >>/~%EOO%d
       %\.+/home/.build2/ops,--home,false%
@@ -366,29 +365,29 @@
       %\.+/home/project/package/.build2/ops,--package,true%
       EOO
   }
-}
+}}
 
 : options-file
 :
 {
-  d = work/.build2;
-  mkdir -p work/.build2;
+  d = work/.build2
+  mkdir -p work/.build2
 
-  cat <<EOI >=$d/foo;
+  cat <<EOI >=$d/foo
     --foo
     --options-file
     bar
     --fox
     EOI
 
-  cat <<EOI >=$d/bar;
+  cat <<EOI >=$d/bar
     --bar
     --options-file
     baz
     --box
     EOI
 
-  cat <<EOI >=$d/baz;
+  cat <<EOI >=$d/baz
     --baz
     EOI
 

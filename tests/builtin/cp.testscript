@@ -10,7 +10,7 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
 
 : args
 :
-{
+{{
   : none
   :
   $* 2>"cp: missing arguments" == 1
@@ -25,7 +25,7 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
 
   : empty
   :
-  {
+  {{
     : dest
     :
     $* '' 2>"cp: invalid path ''" == 1
@@ -37,23 +37,23 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
     : src2
     :
     $* '' a b/ 2>"cp: invalid path ''" == 1
-  }
-}
+  }}
+}}
 
 : file
 :
 : Test synopsis 1: make a file copy at the specified path.
 :
-{
+{{
   : existing
   :
-  {
+  {{
     : to-non-existing
     :
     {
-      touch a;
+      touch a
 
-      $* a b >>/~%EOO% &b;
+      $* a b >>/~%EOO% &b
         %create .+/b true%
         %create .+/b false%
         EOO
@@ -64,7 +64,7 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
     : to-existing
     :
     {
-      touch a b;
+      touch a b
 
       $* a b >>/~%EOO%
         %create .+/b true%
@@ -75,8 +75,8 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
     : to-dir
     :
     {
-      touch a;
-      mkdir b;
+      touch a
+      mkdir b
 
       $* a b >>/~%EOO% 2>>/~%EOE% != 0
         %create .+/b true%
@@ -84,7 +84,7 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
         %cp: unable to copy file '.+/a' to '.+/b': .+%
         EOE
     }
-  }
+  }}
 
   : non-existing
   :
@@ -99,7 +99,7 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
   : non-file
   :
   {
-    mkdir a;
+    mkdir a
 
     $* a b >>/~%EOO% 2>>/~%EOE% != 0
       %create .+/b true%
@@ -107,22 +107,22 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
       %cp: unable to copy file '.+/a' to '.+/b': .+%
       EOE
   }
-}
+}}
 
 : dir
 :
 : Test synopsis 2: make a directory copy at the specified path.
 :
-{
+{{
   : existing
   :
-  {
+  {{
     : to-non-existing
     :
     {
-      mkdir a;
+      mkdir a
 
-      $* -r a b >>/~%EOO% &b/;
+      $* -r a b >>/~%EOO% &b/
         %create .+/b/ true%
         %create .+/b/ false%
         EOO
@@ -133,7 +133,7 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
     : to-existing
     :
     {
-      mkdir a b;
+      mkdir a b
 
       $* -R a b >>/~%EOO% 2>>/~%EOE% != 0
         %create .+/b/ true%
@@ -145,8 +145,8 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
     : to-file
     :
     {
-      mkdir a;
-      touch b;
+      mkdir a
+      touch b
 
       $* -r a b >>/~%EOO% 2>>/~%EOE% != 0
         %create .+/b/ true%
@@ -158,10 +158,10 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
     : recursively
     :
     {
-      mkdir -p a/b/c;
-      touch a/x a/b/y;
+      mkdir -p a/b/c
+      touch a/x a/b/y
 
-      $* -r a d >>/~%EOO% &d/ &d/x &d/b/ &d/b/y &d/b/c/;
+      $* -r a d >>/~%EOO% &d/ &d/x &d/b/ &d/b/y &d/b/c/
         %create .+/d/ true%
         %create .+/d/ false%
         %(
@@ -172,7 +172,7 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
 
       test -d d/b/c && test -f d/x && test -f d/b/y
     }
-  }
+  }}
 
   : non-existing
   :
@@ -188,7 +188,7 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
   : non-dir
   :
   {
-    touch a;
+    touch a
 
     $* -r a b >>/~%EOO% 2>>/~%EOE% &b/ != 0
       %create .+/b/ true%
@@ -197,26 +197,26 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
       %cp: unable to copy directory '.+/a' to '.+/b': .+%
       EOE
   }
-}
+}}
 
 : files
 :
 : Test synopsis 3: copy files into the specified directory.
 :
-{
+{{
   : existing
   :
-  {
+  {{
     : into-dir
     :
-    {
+    {{
       : over-non-existing
       :
       {
-        mkdir b;
-        touch a;
+        mkdir b
+        touch a
 
-        $* a b/ >>/~%EOO% &b/a;
+        $* a b/ >>/~%EOO% &b/a
           %create .+/b/a true%
           %create .+/b/a false%
           EOO
@@ -227,8 +227,8 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
       : over-dir
       :
       {
-        mkdir -p b/a;
-        touch a;
+        mkdir -p b/a
+        touch a
 
         $* a b/ >>/~%EOO% 2>>/~%EOE% != 0
           %create .+/b/a true%
@@ -240,10 +240,10 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
       : multiple
       :
       {
-        touch a b;
-        mkdir c;
+        touch a b
+        mkdir c
 
-        $* a b c/ >>/~%EOO% &c/a &c/b &c/;
+        $* a b c/ >>/~%EOO% &c/a &c/b &c/
           %create .+/c/a true%
           %create .+/c/a false%
           %create .+/c/b true%
@@ -252,12 +252,12 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
 
         test -f c/a && test -f c/b
       }
-    }
+    }}
 
     : into-non-existing-dir
     :
     {
-      touch a;
+      touch a
 
       $* a b/ >>/~%EOO% 2>>/~%EOE% != 0
         %create .+/b/a true%
@@ -269,7 +269,7 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
     : into-non-dir
     :
     {
-      touch a b;
+      touch a b
 
       $* a b/ >>/~%EOO% 2>>/~%EOE% != 0
         %create .+/b/a true%
@@ -277,12 +277,12 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
         %cp: unable to copy file '.+/a' to '.+/b/a': .+%
         EOE
     }
-  }
+  }}
 
   : non-existing
   :
   {
-    mkdir b;
+    mkdir b
 
     $* a b/ >>/~%EOO% 2>>/~%EOE% != 0
       %create .+/b/a true%
@@ -294,7 +294,7 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
   : non-file
   :
   {
-    mkdir a b;
+    mkdir a b
 
     $* a b/ >>/~%EOO% 2>>/~%EOE% != 0
       %create .+/b/a true%
@@ -302,20 +302,20 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
       %cp: unable to copy file '.+/a' to '.+/b/a': .+%
       EOE
   }
-}
+}}
 
 : filesystem-entries
 :
 : Test synopsis 4: copy filesystem entries into the specified directory.
 :
-{
+{{
   : file
   :
   {
-    mkdir b;
-    touch a;
+    mkdir b
+    touch a
 
-    $* -R a b/ >>/~%EOO% &b/a;
+    $* -R a b/ >>/~%EOO% &b/a
       %create .+/b/a true%
       %create .+/b/a false%
       EOO
@@ -325,14 +325,14 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
 
   : dir
   :
-  {
+  {{
     : over-non-existing
     :
     {
-      mkdir a b;
-      touch a/c;
+      mkdir a b
+      touch a/c
 
-      $* -R a b/ >>/~%EOO% &b/a/ &b/a/c;
+      $* -R a b/ >>/~%EOO% &b/a/ &b/a/c
         %create .+/b/a/ true%
         %create .+/b/a/ false%
         %create .+/b/a/c true%
@@ -345,7 +345,7 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
     : over-existing
     :
     {
-      mkdir -p a b/a;
+      mkdir -p a b/a
 
       $* -R a b/ >>/~%EOO% 2>>/~%EOE% != 0
         %create .+/b/a/ true%
@@ -353,25 +353,25 @@ $* -u >'option -u' 2>"cp: unknown option '-u'" == 1
         %cp: unable to copy directory '.+/a' to '.+/b/a': .+%
         EOE
     }
-  }
-}
+  }}
+}}
 
 : attrs
 :
 if ($cxx.target.class != 'windows')
-{
+{{
   fs = 's/.+ (\S+\s+\S+\s+\S+)\s+cp-file/\1/p'
   ds = 's/.+ (\S+\s+\S+\s+\S+)\s+cp-dir/\1/p'
 
   : copy
   :
-  {
+  {{
     : file
     :
     {
-      ls -l $src_base/cp-dir | sed -n -e "$fs" | set t;
+      ls -l $src_base/cp-dir | sed -n -e "$fs" | set t
 
-      $* -p $src_base/cp-dir/cp-file ./ >! &cp-file;
+      $* -p $src_base/cp-dir/cp-file ./ >! &cp-file
 
       ls -l | sed -n -e "$fs" >"$t"
     }
@@ -379,13 +379,13 @@ if ($cxx.target.class != 'windows')
     : dir
     :
     {
-      ls -l $src_base | sed -n -e "$ds" | set t;
+      ls -l $src_base | sed -n -e "$ds" | set t
 
-      $* -pr $src_base/cp-dir ./ >! &cp-dir/ &cp-dir/cp-file;
+      $* -pr $src_base/cp-dir ./ >! &cp-dir/ &cp-dir/cp-file
 
       ls -l | sed -n -e "$ds" >"$t"
     }
-  }
+  }}
 
   : no-copy
   :
@@ -396,36 +396,34 @@ if ($cxx.target.class != 'windows')
   : platforms where ls supports this option.
   :
   if ($cxx.target.class == 'linux')
-  {
+  {{
     : file
     :
     {
-      ls -l --full-time $src_base/cp-dir | sed -n -e "$fs" | set t;
+      ls -l --full-time $src_base/cp-dir | sed -n -e "$fs" | set t
 
-      $* $src_base/cp-dir/cp-file ./ >! &cp-file;
+      $* $src_base/cp-dir/cp-file ./ >! &cp-file
 
-      ls -l --full-time | sed -n -e "$fs" | set tn;
+      ls -l --full-time | sed -n -e "$fs" | set tn
 
       if ("$tn" == "$t")
         exit "unexpectedly copied timestamp \($t\)"
-      end
     }
 
     : dir
     :
     {
-      ls -l --full-time $src_base | sed -n -e "$ds" | set t;
+      ls -l --full-time $src_base | sed -n -e "$ds" | set t
 
-      $* -r $src_base/cp-dir ./ >! &cp-dir/ &cp-dir/cp-file;
+      $* -r $src_base/cp-dir ./ >! &cp-dir/ &cp-dir/cp-file
 
-      ls -l --full-time | sed -n -e "$ds" | set tn;
+      ls -l --full-time | sed -n -e "$ds" | set tn
 
       if ("$tn" == "$t")
         exit "unexpectedly copied timestamp \($t\)"
-      end
     }
-  }
-}
+  }}
+}}
 
 : cwd
 :
@@ -434,10 +432,10 @@ if ($cxx.target.class != 'windows')
 :
 if ($test.target == $build.host)
 {
-  test.options += -d $~/a;
-  mkdir -p a/b;
+  test.options += -d $~/a
+  mkdir -p a/b
 
-  $* -R b c >>/~%EOO% &a/c/;
+  $* -R b c >>/~%EOO% &a/c/
     %create .+/a/c/ true%
     %create .+/a/c/ false%
     EOO

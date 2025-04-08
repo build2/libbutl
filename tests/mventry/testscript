@@ -3,14 +3,14 @@
 
 : file
 :
-{
+{{
   : non-existing
   :
   $* a b 2>- == 1
 
   : over
   :
-  {
+  {{
     : non-existing
     :
     echo 'foo' >=a &!a;
@@ -31,7 +31,7 @@
     echo 'foo' >=a;
     mkdir b;
     $* a b 2>- == 1
-  }
+  }}
 
   : to-dir
   :
@@ -40,13 +40,13 @@
   $* a b/ &b/a;
   cat b/a >'foo';
   test -f a == 1
-}
+}}
 
 : dir
 :
-{
+{{
   : over
-  {
+  {{
     : non-existing
     :
     mkdir -p a/b &!a/b/ &!a/;
@@ -77,7 +77,7 @@
     mkdir a;
     touch b;
     $* a b 2>- == 1
-  }
+  }}
 
   : to-dir
   :
@@ -86,7 +86,7 @@
   $* a b/ &b/a/;
   test -d b/a;
   test -f a == 1
-}
+}}
 
 : symlink
 :
@@ -96,27 +96,32 @@
 : non-elevated console), then the test group will be silently skipped.
 :
 if ($test.target == $build.host)
-{
+{{
   +if ($cxx.target.class != 'windows')
+  {
     lnf = [cmdline] ^ln -s t l &l
     lnd = [cmdline] $lnf
+  }
   else
+  {
     echo 'yes' >=t
+
     if cmd /C 'mklink l t' >- 2>- &?l && cat l >'yes'
+    {
       lnf = [cmdline] cmd /C 'mklink l t' &l >-
       lnd = [cmdline] cmd /C 'mklink /D l t' &l >-
-    end
+    }
 
     jnc = [cmdline] cmd /C 'mklink /J l t' &l >-
-  end
+  }
 
   : symlink
   :
   if! $empty($lnf)
-  {
+  {{
     : file
     :
-    {
+    {{
       : from
       :
       : Make sure that if source is a symlink it refers the same target after
@@ -150,11 +155,11 @@ if ($test.target == $build.host)
       $lnf;
       mkdir d;
       $* t d 2>- == 1
-    }
+    }}
 
     : dir
     :
-    {
+    {{
       : from
       :
       : Make sure that if source is a symlink it refers the same target after
@@ -187,13 +192,13 @@ if ($test.target == $build.host)
       $lnd;
       mkdir d;
       $* l d 2>- == 1
-    }
-  }
+    }}
+  }}
 
   : junction
   :
   if! $empty($jnc)
-  {
+  {{
     : from
     :
     : Make sure that if source is a junction it refers the same target after
@@ -226,8 +231,8 @@ if ($test.target == $build.host)
     $jnc;
     mkdir d;
     $* l d 2>- == 1
-  }
-}
+  }}
+}}
 
 : different-fs
 :
@@ -236,54 +241,54 @@ if ($test.target == $build.host)
 : platforms.
 :
 if! $empty($config.libbutl.test.rename.dir)
-{
+{{
   wd = $config.libbutl.test.rename.dir/libbutl-rename
   +rm -rf $wd
   +mkdir $wd
 
   : file
   :
-  {
+  {{
     : over-non-existing
     :
     {
-      wd = "$wd/$@";
-      mkdir -p $wd;
-      b = $wd/b;
+      wd = "$wd/$@"
+      mkdir -p $wd
+      b = $wd/b
 
-      echo 'foo' >=a &!a;
-      $* a $b;
-      cat $b >'foo';
+      echo 'foo' >=a &!a
+      $* a $b
+      cat $b >'foo'
       test -f a == 1
     }
 
     : over-file
     :
     {
-      wd = "$wd/$@";
-      mkdir -p $wd;
-      b = $wd/b;
+      wd = "$wd/$@"
+      mkdir -p $wd
+      b = $wd/b
 
-      touch $b;
-      echo 'foo' >=a &!a;
-      $* a $b;
-      cat $b >'foo';
+      touch $b
+      echo 'foo' >=a &!a
+      $* a $b
+      cat $b >'foo'
       test -f a == 1
     }
-  }
+  }}
 
   : dir
   :
   : Test that renaming directory to different fs/drive expectedly fails.
   :
   {
-    wd = "$wd/$@";
-    mkdir -p $wd;
-    b = $wd/b;
+    wd = "$wd/$@"
+    mkdir -p $wd
+    b = $wd/b
 
-    mkdir a;
+    mkdir a
     $* a $b 2>- == 1
   }
 
   -rm -rf $wd
-}
+}}

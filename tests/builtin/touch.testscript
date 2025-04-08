@@ -12,7 +12,7 @@ $* a &a
 : Test that file is created. If it didn't then 'rm' would fail.
 :
 {
-  $* a &!a;
+  $* a &!a
 
   rm a
 }
@@ -22,7 +22,7 @@ $* a &a
 : Test that existing file touch doesn't fail.
 :
 {
-  cat <'' >=a;
+  cat <'' >=a
 
   $* a
 }
@@ -32,9 +32,9 @@ $* a &a
 : Test that the callback is not called for touching an existing file.
 :
 {
-  test.options += -c;
+  test.options += -c
 
-  $* a >>/~%EOO% &a;
+  $* a >>/~%EOO% &a
     %create .+/a true%
     %create .+/a false%
     EOO
@@ -66,18 +66,18 @@ $* '' 2>"touch: invalid path ''" != 0
 : Test touching an existing directory.
 :
 {
-  mkdir a;
+  mkdir a
 
   $* a 2>~'%touch: cannot create/update .+: .+%' != 0
 }
 
 : after
 :
-{
+{{
   : success
   :
   {
-    $* a &a;
+    $* a &a
     $* --after a b &b
   }
 
@@ -88,4 +88,4 @@ $* '' 2>"touch: invalid path ''" != 0
   : not-exists
   :
   touch --after a b 2>~"%touch: cannot obtain file '.+a' modification time: .+%" != 0
-}
+}}

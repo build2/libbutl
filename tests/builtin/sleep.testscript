@@ -9,18 +9,18 @@ $* -u 2>"sleep: unknown option '-u'" == 1
 
 : success
 :
-{
+{{
   : custom
   :
   {
-    test.options += -c;
+    test.options += -c
     $* 1 >'sleep 01 seconds'
   }
 
   : own
   :
   $* 1
-}
+}}
 
 : no-time
 :

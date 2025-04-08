@@ -2,7 +2,8 @@
 # license   : MIT; see accompanying LICENSE file
 
 : string
-{
+:
+{{
   test.arguments += 'string'
 
   : valid
@@ -26,11 +27,11 @@
   : illegal-last-char
   :
   $* <'a.' 2>'illegal last character (must be alphabetic, digit, or plus)' != 0
-}
+}}
 
 : base
 :
-{
+{{
   test.arguments += 'base'
 
   : no-ext
@@ -48,7 +49,7 @@
   : ext
   :
   {
-    test.arguments += bash;
+    test.arguments += bash
 
     $* <<EOI >>EOO
       libbutl
@@ -60,12 +61,12 @@
       libbutl.python
       EOO
   }
-}
+}}
 
 : extension
 :
 {
-  test.arguments += 'extension';
+  test.arguments += 'extension'
 
   $* <<EOI >>EOO
     libbutl
@@ -81,7 +82,7 @@
 : variable
 :
 {
-  test.arguments += 'variable';
+  test.arguments += 'variable'
 
   $* <<EOI >>EOO
     foo-bar

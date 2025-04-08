@@ -3,14 +3,14 @@
 
 : replace-search
 :
-{
+{{
   $*      abcbd /b/x/ >axcxd : all
   $* -ffo abcbd /b/x/ >axcbd : first-only
   $* -fnc abcbd /b/x/ >xx    : no-copy
 
   : ecma-escape
   :
-  {
+  {{
     $* xay '/a/$b/'      >'x$by'  : none
     $* xay '/a/$/'       >'x$y'   : none-term
     $* xay '/a/$$/'      >'x$y'   : self
@@ -20,15 +20,15 @@
 
     : capture
     :
-    {
+    {{
       $* abcdefghij '/(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)/$1$10/'  >aj : matched
       $* a          '/(a)|(b)/$1$2$3/'                        >a  : unmatched
-    }
-  }
+    }}
+  }}
 
   : perl-escape
   :
-  {
+  {{
     $* xay '/a/\b/' >'xby' : none
     $* xay '/a/\/'  >'xy'  : none-term
     $* xay '/a/\\/' >'x\y' : self
@@ -42,14 +42,14 @@
 
     : capture
     :
-    {
+    {{
       $* abcdefghij '/(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)/\1\10/'  >aa0 : matched
       $* a          '/(a)|(b)/\1\2\3/'                        >a   : unmatched
-    }
+    }}
 
     : upper
     :
-    {
+    {{
       $* xay '/a/\U/'        >xy   : none
       $* xay '/a/\Uvz/'      >xVZy : repl
       $* xay '/a/\Uv\Ez/'    >xVzy : end
@@ -57,12 +57,12 @@
       $* xay '/(a)/\U\1/'    >xAy  : capt
       $* x-y '/(a?)-/\U\1z/' >xZy  : capt-empty
       $* xay '/a/\uvz/'      >xVzy : once
-    }
+    }}
 
     : lower
     :
     $* xay '/a/\lVZ/' >xvZy
-  }
+  }}
 
   : empty-substring
   :
@@ -73,16 +73,16 @@
   :
   if (($cxx.id != 'gcc'   || $cxx.version.major >= 7) && \
       ($cxx.id != 'clang' || $cxx.version.major >= 6))
-  {
+  {{
     $* '' '/.*/x/' >'x'      : empty
     $* a  '/a*/x/' >'x'      : match
     $* aa '/b*/x/'      == 1 : no-match
-  }
-}
+  }}
+}}
 
 : replace-match
 :
-{
+{{
   test.options += -m
 
   $* abc  '/a(b)c/x\1y/'  >xby : match
@@ -90,16 +90,16 @@
 
   : empty-substring
   :
-  {
+  {{
     $* '' '/.*/x/'          >'x' : empty
     $* a  '/a*/x/'          >'x' : match
     $* ab '/a(c*)(b)/\1\2/' >'b' : match-mid
-  }
-}
+  }}
+}}
 
 : invalid-regex-fmt
 :
-{
+{{
   test.arguments += '' # Note: we will fail before the matching.
 
   $* ''        2> 'no leading delimiter'           != 0 : no-leading-delim
@@ -108,4 +108,4 @@
   $* '/a[b/c/' 2>~'/invalid regex.*/'              != 0 : regex
   $* '/a/b'    2> 'no delimiter after replacement' != 0 : no-trailing-delim
   $* '/a/b/s'  2> 'junk after trailing delimiter'  != 0 : junk
-}
+}}

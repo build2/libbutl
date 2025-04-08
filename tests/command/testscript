@@ -8,7 +8,6 @@ cmd="'$0' -C -A" # Command that prints its arguments to stdout.
 #
 +if ($test.target != $build.host)
   exit
-end
 
 : quioting
 :
@@ -18,7 +17,7 @@ end
 
 : substitution
 :
-{
+{{
   test.options += -s v1=abc -s v2=def
 
   : program
@@ -29,36 +28,36 @@ end
 
   : args
   :
-  {
+  {{
     $* "$cmd abc"         >~'%.+ abc%'       : none
     $* "$cmd x@v1@"       >~'%.+ xabc%'      : single
     $* "$cmd x@v1@y@v2@z" >~'%.+ xabcydefz%' : multiple
     $* "$cmd @v1@@v2@"    >~'%.+ abcdef%'    : adjacent
-  }
+  }}
 
   : redirect
   :
   {
-    $* -s v=f "$cmd abc >@v@" &f;
+    $* -s v=f "$cmd abc >@v@" &f
     cat f >~'%.+ abc%'
   }
-}
+}}
 
 : redirect
 :
-{
+{{
   : overwrite
   :
   {
-    $* -p "$cmd abc >f" >~'%.+driver.* -C -A abc >f%' &f;
+    $* -p "$cmd abc >f" >~'%.+driver.* -C -A abc >f%' &f
     cat f >~'%.+ abc%'
   }
 
   : append
   :
   {
-    echo 'xyz' >=f;
-    $* -p "$cmd abc >>f" >~'%.+driver.* -C -A abc >>f%';
+    echo 'xyz' >=f
+    $* -p "$cmd abc >>f" >~'%.+driver.* -C -A abc >>f%'
 
     cat f >>~%EOO%
       xyz
@@ -68,26 +67,26 @@ end
 
   : space-separated
   :
-  {
+  {{
     : overwrite
     :
     {
-      $* "$cmd abc > f" &f;
+      $* "$cmd abc > f" &f
       cat f >~'%.+ abc%'
     }
 
     : append
     :
     {
-      echo 'xyz' >=f;
-      $* "$cmd abc >> f";
+      echo 'xyz' >=f
+      $* "$cmd abc >> f"
 
       cat f >>~%EOO%
         xyz
         %.+ abc%
         EOO
     }
-  }
+  }}
 
   : not-redirect
   :
@@ -95,15 +94,15 @@ end
 
   : errors
   :
-  {
+  {{
     $* "$cmd >d/f" 2>~"%unable to open stdout redirect file 'd/f'.*%" != 0 : io-failure
     $* "$cmd > ''" 2>  'empty stdout redirect file path'              != 0 : empty-path
-  }
-}
+  }}
+}}
 
 : invalid-argument
 :
-{
+{{
   $* ""           2>'no program path specified'         != 0 : no-prog
   $* "p 'abc def" 2>'unterminated quoted string'        != 0 : unterminated
   $* "p >"        2>'no stdout redirect file specified' != 0 : no-redirect-file
@@ -111,22 +110,22 @@ end
 
   : substitution
   :
-  {
+  {{
     test.options += -s v=a
 
     $* 'p @a b@'   2>"unmatched substitution character '@'" != 0      : unterm-var
     $* "p '@a b@'" 2>"whitespace in substitution variable 'a b'" != 0 : ws-var
     $* 'p @x@'     2>"unknown substitution variable 'x'"         != 0 : unknown-var
-  }
-}
+  }}
+}}
 
 : process
 :
-{
+{{
   : cwd
   :
   {
-    mkdir abc;
+    mkdir abc
     $* -d abc "$cmd -D" >>/~%EOO%
       %.+/driver.*%
       %.+/abc%
@@ -144,37 +143,37 @@ end
 
   : error
   :
-  {
+  {{
     $* "''" 2>'no such file or directory' != 0 : empty-prog
-  }
+  }}
 
   : non-zero-status
   :
   $* "'$0' -C -S 10" 2>/~'%.+ exited with code 10%' == 10
-}
+}}
 
 : builtin
 :
-{
+{{
   : no-cwd
   :
   {
-    $* 'touch a' &a;
+    $* 'touch a' &a
     test -f a
   }
 
   : cwd
   :
   {
-    mkdir a;
-    $* -d a 'touch b' &a/b;
+    mkdir a
+    $* -d a 'touch b' &a/b
     test -f a/b
   }
 
   : redirect
   :
   {
-    $* 'echo abc >a' &a;
+    $* 'echo abc >a' &a
     cat a >'abc'
   }
 
@@ -190,7 +189,7 @@ end
   :
   if ($cxx.target.class != 'windows')
   {
-    echo 'abc' >=f;
+    echo 'abc' >=f
     $* '^sed -e s/a/b/ -e s/c/b/ f' >'bbb'
   }
-}
+}}

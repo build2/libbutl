@@ -10,7 +10,7 @@ $* -u >'option -u' 2>"mv: unknown option '-u'" == 1
 
 : args
 :
-{
+{{
   : none
   :
   $* 2>"mv: missing arguments" == 1
@@ -25,7 +25,7 @@ $* -u >'option -u' 2>"mv: unknown option '-u'" == 1
 
   : empty
   :
-  {
+  {{
     : dest
     :
     $* '' 2>"mv: invalid path ''" == 1
@@ -37,26 +37,26 @@ $* -u >'option -u' 2>"mv: unknown option '-u'" == 1
     : src2
     :
     $* '' a b/ 2>"mv: invalid path ''" == 1
-  }
-}
+  }}
+}}
 
 : synopsis-1
 :
 : Move an entity to the specified path.
 :
-{
+{{
   : file
   :
-  {
+  {{
     : existing
     :
-    {
+    {{
       : to-non-existing
       :
       {
-        touch a &!a;
+        touch a &!a
 
-        $* a b >>/~%EOO% &b;
+        $* a b >>/~%EOO% &b
           %move .+/a .+/b false true%
           %move .+/a .+/b false false%
           EOO
@@ -67,9 +67,9 @@ $* -u >'option -u' 2>"mv: unknown option '-u'" == 1
       : to-existing
       :
       {
-        touch a b &!a;
+        touch a b &!a
 
-        $* a b >>/~%EOO%;
+        $* a b >>/~%EOO%
           %move .+/a .+/b false true%
           %move .+/a .+/b false false%
           EOO
@@ -80,7 +80,7 @@ $* -u >'option -u' 2>"mv: unknown option '-u'" == 1
       : to-self
       :
       {
-        touch a;
+        touch a
 
         $* a a >/~'%move .+/a .+/a false true%' 2>>/~%EOE% != 0
           %mv: unable to move entry '.+/a' to itself%
@@ -90,28 +90,28 @@ $* -u >'option -u' 2>"mv: unknown option '-u'" == 1
       : to-dir
       :
       {
-        touch a;
-        mkdir b;
+        touch a
+        mkdir b
 
         $* a b >/~'%move .+/a .+/b false true%' 2>>/~%EOE% != 0
           %mv: unable to move entry '.+/a' to '.+/b': .+%
           EOE
       }
-    }
-  }
+    }}
+  }}
 
   : dir
   :
-  {
+  {{
     : existing
     :
-    {
+    {{
       : to-non-existing
       :
       {
-        mkdir a &!a/;
+        mkdir a &!a/
 
-        $* a b &b/ >>/~%EOO%;
+        $* a b &b/ >>/~%EOO%
           %move .+/a .+/b false true%
           %move .+/a .+/b false false%
           EOO
@@ -122,8 +122,8 @@ $* -u >'option -u' 2>"mv: unknown option '-u'" == 1
       : to-non-empty
       :
       {
-        mkdir a b;
-        touch b/c;
+        mkdir a b
+        touch b/c
 
         $* a b >/~'%move .+/a .+/b false true%' 2>>/~%EOE% != 0
           %mv: unable to move entry '.+/a' to '.+/b': .+%
@@ -133,25 +133,25 @@ $* -u >'option -u' 2>"mv: unknown option '-u'" == 1
       : to-non-dir
       :
       {
-        mkdir a;
-        touch b;
+        mkdir a
+        touch b
 
         $* a b >/~'%move .+/a .+/b false true%' 2>>/~%EOE% != 0
           %mv: unable to move entry '.+/a' to '.+/b': .+%
           EOE
       }
-    }
+    }}
 
     : overlap
     :
     {
-      mkdir a;
+      mkdir a
 
       $* a a/b >/~'%move .+/a .+/a/b false true%' 2>>/~%EOE% != 0
         %mv: unable to move entry '.+/a' to '.+/a/b': .+%
         EOE
     }
-  }
+  }}
 
   : non-existing
   :
@@ -160,17 +160,17 @@ $* -u >'option -u' 2>"mv: unknown option '-u'" == 1
       %mv: unable to move entry '.+/a' to '.+/b': .+%
       EOE
   }
-}
+}}
 
 : synopsis-2
 :
 : Move entities into the specified directory.
 :
 {
-  mkdir a c &!a/;
-  touch a/b b &!a/b &!b;
+  mkdir a c &!a/
+  touch a/b b &!a/b &!b
 
-  $* a b c/ >>/~%EOO% &c/a/ &c/a/b &c/b;
+  $* a b c/ >>/~%EOO% &c/a/ &c/a/b &c/b
     %move .+/a .+/c/a false true%
     %move .+/a .+/c/a false false%
     %move .+/b .+/c/b false true%

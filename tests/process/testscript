@@ -2,7 +2,7 @@
 # license   : MIT; see accompanying LICENSE file
 
 if ($cxx.target.class == 'windows')
-  cat <<EOI >=test.bat
+  cat <<EOI >=test.bat;
     @echo off
     setlocal
     goto end
@@ -12,5 +12,4 @@ if ($cxx.target.class == 'windows')
     :end
     endlocal
     EOI
-end;
 $*

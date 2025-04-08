@@ -6,7 +6,7 @@
 
 : existing
 :
-{
+{{
   : file
   :
   : Note that the newline character is translated into 2 characters being
@@ -14,7 +14,7 @@
   : both POSIX and Windows.
   :
   {
-    cat <:'abc' >=f;
+    cat <:'abc' >=f
     $* f >>~%EOO%
       type: regular
       size: 3
@@ -27,7 +27,7 @@
   : Note that the size value is meaningless for directory entries.
   :
   {
-    mkdir -p d;
+    mkdir -p d
     $* d >>~%EOO%
       type: directory
       %.+
@@ -37,8 +37,8 @@
   : followed-symlink
   :
   {
-    cat <:'abc' >=f;
-    ln -s f l;
+    cat <:'abc' >=f
+    ln -s f l
     $* -l l >>~%EOO%
       type: regular
       size: 3
@@ -55,36 +55,40 @@
   : skipped.
   :
   if ($test.target == $build.host)
-  {
+  {{
     +if ($cxx.target.class != 'windows')
+    {
       lnf = [cmdline] ^ln -s t l &l
       lnd = [cmdline] $lnf
+    }
     else
+    {
       echo 'yes' >=t
       if cmd /C 'mklink l t' >- 2>- &?l && cat l >'yes'
+      {
         lnf = [cmdline] cmd /C 'mklink l t' &l >-
         lnd = [cmdline] cmd /C 'mklink /D l t' &l >-
-      end
+      }
 
       jnc = [cmdline] cmd /C 'mklink /J l t' &l >-
-    end
+    }
 
     : symlink
     :
     if! $empty($lnf)
-    {
+    {{
       : file
       :
-      {
+      {{
         : get-info
         :
         : Test that the target type, size, permissions and file times are
         : obtained via a symlink.
         :
         {
-          cat <:'abc' >=t;
-          $lnf;
-          $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' t | set ti;
+          cat <:'abc' >=t
+          $lnf
+          $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' t | set ti
           $* -l l >"$ti"
         }
 
@@ -93,11 +97,11 @@
         : Test that permissions and file times are set via a symlink.
         :
         {
-          cat <:'abc' >=t;
-          $lnf;
-          $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' l | set ti;
-          sed -n -e 's/permissions: (.+)/\1/p' <"$ti" >~/'4.{2}'/;
-          sed -n -e 's/mtime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:00';
+          cat <:'abc' >=t
+          $lnf
+          $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' l | set ti
+          sed -n -e 's/permissions: (.+)/\1/p' <"$ti" >~/'4.{2}'/
+          sed -n -e 's/mtime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:00'
           sed -n -e 's/atime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:01'
         }
 
@@ -106,29 +110,28 @@
         : Test that a symlink touch touches the target.
         :
         {
-          cat <:'abc' >=t;
-          $lnf;
-          $* t | set ti;
-          sleep 2;
-          $* -t l | set li;
+          cat <:'abc' >=t
+          $lnf
+          $* t | set ti
+          sleep 2
+          $* -t l | set li
           if ("$ti" == "$li")
             exit "link touch doesn't change target"
-          end
         }
-      }
+      }}
 
       : dir
       :
-      {
+      {{
         : get-info
         :
         : Test that the target type, size, permissions and file times are
         : obtained via a symlink.
         :
         {
-          mkdir t;
-          $lnd;
-          $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' t | set ti;
+          mkdir t
+          $lnd
+          $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' t | set ti
           $* -l l >"$ti"
         }
 
@@ -137,33 +140,33 @@
         : Test that permissions and file times are set via a symlink.
         :
         {
-          mkdir t;
-          $lnd;
-          $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' l | set ti;
-          sed -n -e 's/permissions: (.+)/\1/p' <"$ti" >~/'4.{2}'/;
-          sed -n -e 's/mtime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:00';
+          mkdir t
+          $lnd
+          $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' l | set ti
+          sed -n -e 's/permissions: (.+)/\1/p' <"$ti" >~/'4.{2}'/
+          sed -n -e 's/mtime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:00'
           sed -n -e 's/atime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:01'
         }
-      }
-    }
+      }}
+    }}
 
     : junction
     :
     if! $empty($jnc)
-    {
+    {{
       : get-info
       :
       : Test that the target type, size, permissions and file times are
       : obtained via a junction.
       :
       {
-        mkdir t;
-        $jnc;
+        mkdir t
+        $jnc
 
         # Pass the absolute path so the junction's target path matches.
         #
         $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' $~/t | \
-        set ti;
+        set ti
 
         $* -l l >"$ti"
       }
@@ -173,16 +176,16 @@
       : Test that permissions and file times are set via a junction.
       :
       {
-        mkdir t;
-        $jnc;
-        $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' l | set ti;
-        sed -n -e 's/permissions: (.+)/\1/p' <"$ti" >~/'4.{2}'/;
-        sed -n -e 's/mtime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:00';
+        mkdir t
+        $jnc
+        $* -p 400 -m '2020-03-05 00:00:00' -a '2020-03-05 00:00:01' l | set ti
+        sed -n -e 's/permissions: (.+)/\1/p' <"$ti" >~/'4.{2}'/
+        sed -n -e 's/mtime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:00'
         sed -n -e 's/atime: (.+)/\1/p' <"$ti" >'2020-03-05 00:00:01'
       }
-    }
-  }
-}
+    }}
+  }}
+}}
 
 : non-existent
 :

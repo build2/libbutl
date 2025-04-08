@@ -5,7 +5,7 @@ test.arguments = "test"
 
 : file
 :
-{
+{{
   : exists
   :
   touch a;
@@ -18,11 +18,11 @@ test.arguments = "test"
   : not-file
   :
   $* -f . == 1
-}
+}}
 
 : dir
 :
-{
+{{
   : exists
   :
   $* -d .
@@ -35,11 +35,11 @@ test.arguments = "test"
   :
   touch a;
   $* -d a == 1
-}
+}}
 
 : options
 :
-{
+{{
   : unknown
   :
   $* -u 2>"test: unknown option '-u'" == 2
@@ -51,11 +51,11 @@ test.arguments = "test"
   : both-file-dir
   :
   $* -fd 2>"test: both -f|--file and -d|--directory specified" == 2
-}
+}}
 
 : args
 :
-{
+{{
   : none
   :
   $* -f 2>"test: missing path" == 2
@@ -67,7 +67,7 @@ test.arguments = "test"
   : empty-path
   :
   $* -d '' 2>"test: invalid path ''" == 2
-}
+}}
 
 : cwd
 :
@@ -76,8 +76,8 @@ test.arguments = "test"
 :
 if ($test.target == $build.host)
 {
-  test.options += -d $~/a;
-  mkdir -p a/b;
+  test.options += -d $~/a
+  mkdir -p a/b
 
   $* -d b
 }

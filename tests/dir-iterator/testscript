@@ -24,27 +24,31 @@ $* a >"dir     b"
 : non-elevated console), then the test group will be silently skipped.
 :
 if ($test.target == $build.host)
-{
+{{
   +if ($cxx.target.class != 'windows')
+  {
     lnf = [cmdline] ^ln -s t wd/l &wd/l
     lnd = [cmdline] $lnf
+  }
   else
+  {
     echo 'yes' >=t
     if cmd /C 'mklink l t' >- 2>- &?l && cat l >'yes'
+    {
       lnf = [cmdline] cmd /C 'mklink wd\l t' &wd/l >-
       lnd = [cmdline] cmd /C 'mklink /D wd\l t' &wd/l >-
-    end
+    }
 
     jnc = [cmdline] cmd /C 'mklink /J wd\l wd\t' &wd/l >-
-  end
+  }
 
   : symlink
   :
   if! $empty($lnf)
-  {
+  {{
     : file
     :
-    {
+    {{
       +mkdir wd
       +touch --no-cleanup wd/t
       +touch wd/f
@@ -62,11 +66,11 @@ if ($test.target == $build.host)
       $* -d ../wd >>~%EOO%
         %(reg     f|sym unk l)%{2}
         EOO
-    }
+    }}
 
     : dir
     :
-    {
+    {{
       +mkdir wd
       +mkdir --no-cleanup wd/t
       +mkdir wd/d
@@ -85,13 +89,13 @@ if ($test.target == $build.host)
       $* -d ../wd >>~%EOO%
         %(dir     d|sym unk l)%{2}
         EOO
-    }
-  }
+    }}
+  }}
 
   : junction
   :
   if! $empty($jnc)
-  {
+  {{
     +mkdir wd
     +mkdir --no-cleanup wd/t
     +mkdir wd/d
@@ -104,10 +108,10 @@ if ($test.target == $build.host)
     $*    ../wd >- 2>! != 0 : keep
     $* -i ../wd >'dir     d': skip
 
-      : detect
-      :
-      $* -d ../wd >>~%EOO%
-        %(dir     d|sym unk l)%{2}
-        EOO
-  }
-}
+    : detect
+    :
+    $* -d ../wd >>~%EOO%
+      %(dir     d|sym unk l)%{2}
+      EOO
+  }}
+}}

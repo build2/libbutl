@@ -10,7 +10,7 @@ $* -u >'option -u' 2>"ln: unknown option '-u'" == 1
 
 : args
 :
-{
+{{
   : -s-option
   :
   $* 2>"ln: missing -s|--symbolic option" == 1
@@ -29,7 +29,7 @@ $* -u >'option -u' 2>"ln: unknown option '-u'" == 1
 
   : empty
   :
-  {
+  {{
     : link
     :
     $* -s '' 2>"ln: invalid path ''" == 1
@@ -41,20 +41,20 @@ $* -u >'option -u' 2>"ln: unknown option '-u'" == 1
     : target2
     :
     $* -s '' a b/ 2>"ln: invalid path ''" == 1
-  }
-}
+  }}
+}}
 
 : file
 :
 : Test creating a file symlink.
 :
-{
+{{
   : non-existing-link-path
   :
   {
-    touch a;
+    touch a
 
-    $* -s a b >>/~%EOO% &b;
+    $* -s a b >>/~%EOO% &b
       %create .+/b true%
       %create .+/b false%
       EOO
@@ -64,11 +64,11 @@ $* -u >'option -u' 2>"ln: unknown option '-u'" == 1
 
   : existing-link
   :
-  {
+  {{
     : file
     :
     {
-      touch a b;
+      touch a b
 
       $* -s a b >>/~%EOO% 2>>/~%EOE% != 0
         %create .+/b true%
@@ -83,8 +83,8 @@ $* -u >'option -u' 2>"ln: unknown option '-u'" == 1
     : dir
     :
     {
-      touch a;
-      mkdir b;
+      touch a
+      mkdir b
 
       $* -s a b >>/~%EOO% 2>>/~%EOE% != 0
         %create .+/b true%
@@ -95,10 +95,11 @@ $* -u >'option -u' 2>"ln: unknown option '-u'" == 1
         %)
         EOE
     }
-  }
+  }}
 
   : non-existing
-  {
+  :
+  {{
     : target
     :
     {
@@ -110,7 +111,7 @@ $* -u >'option -u' 2>"ln: unknown option '-u'" == 1
     : link-dir
     :
     {
-      touch a;
+      touch a
 
       $* -s $~/a b/c >>/~%EOO% 2>>/~%EOE% != 0
         %create .+/b/c true%
@@ -121,21 +122,21 @@ $* -u >'option -u' 2>"ln: unknown option '-u'" == 1
         %)
         EOE
     }
-  }
-}
+  }}
+}}
 
 : dir
 :
 : Test creating a directory symlink.
 :
-{
+{{
   : non-existing-link-path
   :
   {
-    mkdir a;
-    touch a/b;
+    mkdir a
+    touch a/b
 
-    $* -s a c >>/~%EOO% &c;
+    $* -s a c >>/~%EOO% &c
       %create .+/c true%
       %create .+/c false%
       EOO
@@ -145,11 +146,11 @@ $* -u >'option -u' 2>"ln: unknown option '-u'" == 1
 
   : existing-link
   :
-  {
+  {{
     : dir
     :
     {
-      mkdir a b;
+      mkdir a b
 
       $* -s a b >>/~%EOO% 2>>/~%EOE% != 0
         %create .+/b true%
@@ -164,8 +165,8 @@ $* -u >'option -u' 2>"ln: unknown option '-u'" == 1
     : file
     :
     {
-      mkdir a;
-      touch b;
+      mkdir a
+      touch b
 
       $* -s a b >>/~%EOO% 2>>/~%EOE% != 0
         %create .+/b true%
@@ -176,14 +177,15 @@ $* -u >'option -u' 2>"ln: unknown option '-u'" == 1
         %)
         EOE
     }
-  }
+  }}
 
   : non-existing
-  {
+  :
+  {{
     : link-dir
     :
     {
-      mkdir a;
+      mkdir a
 
       $* -s $~/a b/c >>/~%EOO% 2>>/~%EOE% != 0
         %create .+/b/c true%
@@ -194,18 +196,18 @@ $* -u >'option -u' 2>"ln: unknown option '-u'" == 1
         %)
         EOE
     }
-  }
-}
+  }}
+}}
 
 : multiple-targets
 :
 : Test creating links for multiple targets in the specified directory.
 :
 {
-  touch a;
-  mkdir b c;
+  touch a
+  mkdir b c
 
-  $* -s ../a ../b c/ >>/~%EOO% &c/a &c/b;
+  $* -s ../a ../b c/ >>/~%EOO% &c/a &c/b
     %create .+/c/a true%
     %create .+/c/a false%
     %create .+/c/b true%

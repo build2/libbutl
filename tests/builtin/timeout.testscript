@@ -3,7 +3,7 @@
 
 : async-builtin
 :
-{
+{{
   : expired
   :
   $* -s 5 'cat' <'test' | $* -t 1 'cat' >=f 2>'timeout expired' != 0
@@ -11,11 +11,11 @@
   : not-expired
   :
   echo 'test' | $* -t 10000 'cat' >!
-}
+}}
 
 : pseudo-builtin
 :
-{
+{{
   : expired
   :
   $* -s 5 'cat' <'test' | $* -t 1 'roundtrip' >=f 2>'timeout expired' != 0
@@ -23,7 +23,7 @@
   : not-expired
   :
   echo 'test' | $* -t 10000 'roundtrip' >!
-}
+}}
 
 : sync-builtin
 :

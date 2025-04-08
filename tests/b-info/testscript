@@ -6,7 +6,6 @@
 #
 +if ($test.target != $build.host)
   exit
-end
 
 sp = ' '
 test.options += -b $recall($build.path)
@@ -14,9 +13,9 @@ test.options += -b $recall($build.path)
 : basic
 :
 {
-  mkdir -p prj/build;
+  mkdir -p prj/build
 
-  cat <<EOI >=prj/build/bootstrap.build;
+  cat <<EOI >=prj/build/bootstrap.build
     project = prj
 
     using version
@@ -24,11 +23,11 @@ test.options += -b $recall($build.path)
     using dist
     EOI
 
-  cat <<EOI >=prj/buildfile;
+  cat <<EOI >=prj/buildfile
     ./: subprj/
     EOI
 
-  cat <<EOI >=prj/manifest;
+  cat <<EOI >=prj/manifest
     : 1
     name: prj
     version: 1.2.3-a.0.z
@@ -36,21 +35,21 @@ test.options += -b $recall($build.path)
     license: MIT
     EOI
 
-  mkdir -p prj/subprj/build;
+  mkdir -p prj/subprj/build
 
-  cat <<EOI >=prj/subprj/build/bootstrap.build;
+  cat <<EOI >=prj/subprj/build/bootstrap.build
     project =
 
     using config
     using dist
     EOI
 
-  touch prj/subprj/buildfile;
+  touch prj/subprj/buildfile
 
   # Note: may produce an actual version snapshot id if the testscript runs
   # inside the libbutl project source directory.
   #
-  $* prj >>/~"%EOO%";
+  $* prj >>/~"%EOO%"
     project: prj
     %version: 1.2.3-a.0.\\.+%d
     summary: test project
