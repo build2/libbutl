@@ -37,30 +37,29 @@ $* . -mindepth 12a 2>"find: invalid value '12a' for primary '-mindepth'" == 1
 : path-not-exists
 :
 {
-  mkdir d;
+  mkdir d
   $* x d >'d' 2>"find: 'x' doesn't exists" != 0
 }
 
 : path
 :
-{
+{{
   : dir-symlink
   :
   {
-    mkdir -p a/c;
-    ln -s a c;
+    mkdir -p a/c
+    ln -s a c
 
     # If 'c' path is a symlink (may not be the case on Windows), then check
     # that the find builtin only dereferences it if it is terminated with the
     # directory separator.
     #
-    $* c -type l | set p;
+    $* c -type l | set p
 
     if ($p == 'c')
       $* c >>EOO
         c
         EOO
-    end;
 
     $* c/ -type d >>EOO
       c/
@@ -70,12 +69,12 @@ $* . -mindepth 12a 2>"find: invalid value '12a' for primary '-mindepth'" == 1
 
   : relative
   :
-  {
+  {{
     : no-cwd
     :
     {
-      mkdir a;
-      touch a/b;
+      mkdir a
+      touch a/b
 
       $* a >>/EOO
         a
@@ -90,9 +89,9 @@ $* . -mindepth 12a 2>"find: invalid value '12a' for primary '-mindepth'" == 1
     :
     if ($test.target == $build.host)
     {
-      test.options += -d $~/a;
-      mkdir a;
-      touch a/b;
+      test.options += -d $~/a
+      mkdir a
+      touch a/b
 
       $* b >'b'
     }
@@ -101,23 +100,23 @@ $* . -mindepth 12a 2>"find: invalid value '12a' for primary '-mindepth'" == 1
     :
     if ($test.target == $build.host)
     {
-      test.options += -d a;
-      mkdir a;
-      touch a/b;
+      test.options += -d a
+      mkdir a
+      touch a/b
 
       $* b >'b'
     }
-  }
+  }}
 
   : non-normalized
   :
   {
-    mkdir a;
-    touch a/b;
+    mkdir a
+    touch a/b
 
     # Note that the path specified on the command line is used unaltered.
     #
-    s = ($posix ? '/' : '\');
+    s = ($posix ? '/' : '\')
 
     $* ./a >>"EOO"
       ./a
@@ -128,8 +127,8 @@ $* . -mindepth 12a 2>"find: invalid value '12a' for primary '-mindepth'" == 1
   : absolute
   :
   {
-    mkdir a;
-    touch a/b;
+    mkdir a
+    touch a/b
 
     $* $~/a >>/"EOO"
       $~/a
@@ -140,7 +139,7 @@ $* . -mindepth 12a 2>"find: invalid value '12a' for primary '-mindepth'" == 1
   : non-existent
   :
   {
-    touch a b;
+    touch a b
 
     $* a x b >>EOO 2>"find: 'x' doesn't exists" != 0
       a
@@ -151,7 +150,7 @@ $* . -mindepth 12a 2>"find: invalid value '12a' for primary '-mindepth'" == 1
   : non-directory
   :
   {
-    touch a b c;
+    touch a b c
 
     $* a b/ c >>EOO 2>"find: 'b' is not a directory" != 0
       a
@@ -162,9 +161,9 @@ $* . -mindepth 12a 2>"find: invalid value '12a' for primary '-mindepth'" == 1
   : trailing-slash
   :
   {
-    mkdir -p a/b;
+    mkdir -p a/b
 
-    $* a >>/"EOO";
+    $* a >>/"EOO"
       a
       a/b
       EOO
@@ -174,23 +173,23 @@ $* . -mindepth 12a 2>"find: invalid value '12a' for primary '-mindepth'" == 1
       a/b
       EOO
   }
-}
+}}
 
 : name-primary
 :
-{
+{{
   : basic
   :
   {
-    mkdir a;
-    touch a/ab a/ba;
+    mkdir a
+    touch a/ab a/ba
 
-    $* . -name 'a*' >>/EOO;
+    $* . -name 'a*' >>/EOO
       ./a
       ./a/ab
       EOO
 
-    $* . -name 'b*' >>/EOO;
+    $* . -name 'b*' >>/EOO
       ./a/ba
       EOO
 
@@ -203,20 +202,20 @@ $* . -mindepth 12a 2>"find: invalid value '12a' for primary '-mindepth'" == 1
   : empty
   :
   {
-    touch a;
+    touch a
 
     $* . -name ''
   }
-}
+}}
 
 : type-primary
 :
-{
+{{
   : regular
   :
   {
-    mkdir -p a/b;
-    touch a/b/c;
+    mkdir -p a/b
+    touch a/b/c
 
     $* a -type f >>/EOO
       a/b/c
@@ -226,8 +225,8 @@ $* . -mindepth 12a 2>"find: invalid value '12a' for primary '-mindepth'" == 1
   : directory
   :
   {
-    mkdir -p a/b;
-    touch a/b/c;
+    mkdir -p a/b
+    touch a/b/c
 
     $* a -type d >>/EOO
       a
@@ -239,33 +238,33 @@ $* . -mindepth 12a 2>"find: invalid value '12a' for primary '-mindepth'" == 1
   :
   if $posix
   {
-    mkdir -p a/b;
-    touch a/b/c;
-    ln -s c a/b/d;
+    mkdir -p a/b
+    touch a/b/c
+    ln -s c a/b/d
 
     $* a -type l >>/EOO
       a/b/d
       EOO
   }
-}
+}}
 
 : mindepth-primary
 :
 {
-  mkdir -p a/b/c;
+  mkdir -p a/b/c
 
-  $* a -mindepth 0 >>/EOO;
+  $* a -mindepth 0 >>/EOO
     a
     a/b
     a/b/c
     EOO
 
-  $* a -mindepth 1 >>/EOO;
+  $* a -mindepth 1 >>/EOO
     a/b
     a/b/c
     EOO
 
-  $* a -mindepth 2 >>/EOO;
+  $* a -mindepth 2 >>/EOO
     a/b/c
     EOO
 
@@ -275,18 +274,18 @@ $* . -mindepth 12a 2>"find: invalid value '12a' for primary '-mindepth'" == 1
 : maxdepth-primary
 :
 {
-  mkdir -p a/b/c;
+  mkdir -p a/b/c
 
-  $* a -maxdepth 0 >>/EOO;
+  $* a -maxdepth 0 >>/EOO
     a
     EOO
 
-  $* a -maxdepth 1 >>/EOO;
+  $* a -maxdepth 1 >>/EOO
     a
     a/b
     EOO
 
-  $* a -maxdepth 2 >>/EOO;
+  $* a -maxdepth 2 >>/EOO
     a
     a/b
     a/b/c

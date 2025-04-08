@@ -7,7 +7,7 @@ $*
 
 : components
 :
-{
+{{
   : all
   :
   $* 'https://user@stage.b2.org:443/libbutl?f=full#description' >>EOO
@@ -30,14 +30,14 @@ $*
 
   : no-id
   :
-  {
+  {{
     $* 'file:#f'  2>'no authority, path or query' != 0 : fragment
     $* 'file:'    2>'no authority, path or query' != 0 : none
-  }
+  }}
 
   : scheme
   :
-  {
+  {{
     : detected
     :
     $* 'http://build2.org' >>EOO
@@ -62,10 +62,10 @@ $*
     $* 'http'          2>'no scheme'      != 0 : unterminated
     $* 'ht~tp://a.com' 2>'invalid scheme' != 0 : invalid-char
     $* '1http://a.com' 2>'invalid scheme' != 0 : invalid-first-char
-  }
+  }}
 
   : authority
-  {
+  {{
     : absent
     :
     $* 'file:/tmp/a' >>EOO
@@ -118,7 +118,7 @@ $*
 
     : user
     :
-    {
+    {{
       : non-empty
       :
       $* 'http://admin@localhost' >>EOO
@@ -138,14 +138,14 @@ $*
       <null>
       <null>
       EOO
-    }
+    }}
 
     : host
     :
-    {
+    {{
       : ipv6
       :
-      {
+      {{
         : port
         :
         $* 'http://[1:2:3:4:5:6:7:8]:443' >>EOO
@@ -220,7 +220,7 @@ $*
 
         : normalize
         :
-        {
+        {{
           test.options += -n -s
 
           $* 'http://[::01:0:002:00:0003]' >'http://[::1:0:2:0:3]' : strip-zeros
@@ -238,12 +238,12 @@ $*
           $* 'http://[0:0:2:0:0:0::]' >'http://[0:0:2::]'       : squash-trailing
 
           $* 'http://[::1:2:3:4:5:6:7]' >'http://[0:1:2:3:4:5:6:7]' : expand-zero
-        }
-      }
+        }}
+      }}
 
       : ipv4
       :
-      {
+      {{
         : valid
         :
         $* 'http://0.10.200.255' >>EOO
@@ -296,16 +296,16 @@ $*
 
         : normalize
         :
-        {
+        {{
           test.options += -n -s
 
           $* 'http://0.010.000.00' >'http://0.10.0.0' : strip-zeros
-        }
-      }
+        }}
+      }}
 
       : name
       :
-      {
+      {{
         : valid
         :
         $* 'https://www.b2.org' >>EOO
@@ -318,7 +318,7 @@ $*
 
         : encoded
         :
-        {
+        {{
           : valid
           :
           $* 'https://www.%62%32.org' >>EOO
@@ -332,26 +332,26 @@ $*
           $* 'https://www.%62%3.org'  2>'invalid URL-encoding' != 0 : short
           $* 'https://www.%62%3x.org' 2>'invalid URL-encoding' != 0 : invalid
           $* 'https://www.%62%.org'   2>'invalid URL-encoding' != 0 : absent
-        }
+        }}
 
         $* 'https://www.b|2.org' 2>'invalid host name' != 0 : invalid-char
 
         : normalize
         :
-        {
+        {{
           test.options += -n
 
           $* -s 'http://Build2.org' >'http://build2.org' : lower-case-char
           $* -w 'http://Build2.org' >'http://build2.org' : lower-case-wchar
-        }
-      }
+        }}
+      }}
 
       $* 'http://admin@:80?q=' 2>'no host' != 0: no-host
-    }
+    }}
 
     : port
     :
-    {
+    {{
       : valid
       :
       $* 'http://build2.org:443' >>EOO
@@ -365,12 +365,12 @@ $*
       $* 'http://build2.org:-433'  2>'invalid port' != 0 : invalid-char
       $* 'http://build2.org:70000' 2>'invalid port' != 0 : exceeds-max
       $* 'http://build2.org:0'     2>'invalid port' != 0 : zero
-    }
-  }
+    }}
+  }}
 
   : path
   :
-  {
+  {{
     : absent
     :
     $* 'http://b2.org' >>EOO
@@ -414,11 +414,11 @@ $*
     $* 'http:a/b/c'  2>'rootless path'    != 0 : rootless-path
     $* 'pkcs11:/abc' 2>'unexpected slash' != 0 : unexpected-slash1
     $* 'pkcs11:a/bc' 2>'unexpected slash' != 0 : unexpected-slash2
-  }
+  }}
 
   : rootless
   :
-  {
+  {{
     : non-empty
     :
     $* 'pkcs11:token=sign;object=SIGN%20key' >>EOO
@@ -428,11 +428,11 @@ $*
     <null>
     <null>
     EOO
-  }
+  }}
 
   : query
   :
-  {
+  {{
     : no-fragment
     :
     $* 'http://b2.org/a?x=foo&y=bar' >>EOO
@@ -452,7 +452,7 @@ $*
     foo
     bar
     EOO
-  }
+  }}
 
   : fragment
   :
@@ -465,28 +465,29 @@ $*
     foo
     EOO
   }
-}
+}}
 
 : string
-{
+:
+{{
   test.options += -s
 
   : authority
   :
-  {
+  {{
     : host
     :
-    {
+    {{
       $* 'file:///a'                 >'file:///a'                 : empty
       $* 'https://[1:2:3:4:5:6:7:8]' >'https://[1:2:3:4:5:6:7:8]' : ipv6
       $* 'http://1.1.1.1'            >'http://1.1.1.1'            : ipv4
       $* 'file://a%d1%84'            >'file://a%D1%84'            : name
-    }
+    }}
 
     $* 'http://admin@localhost' >'http://admin@localhost' : user
     $* 'http://localhost:8080'  >'http://localhost:8080'  : port
     $* 'file:/a'                >'file:/a'                : absent
-  }
+  }}
 
   $* ''            >''            : empty
   $* 'file:/b%7C2' >'file:/b%7C2' : path
@@ -494,7 +495,7 @@ $*
   $* 'http://a#f'  >'http://a#f'  : fragment
 
   $* 'pkcs11:object=SIGN%20key' >'pkcs11:object=SIGN%20key' : rootless
-}
+}}
 
 : wstring
 :

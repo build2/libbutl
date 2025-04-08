@@ -6,14 +6,14 @@ test.options += -c
 
 : unknown-option
 :
-{
+{{
   : unparsed
   :
   $* -u >'option -u' 2>"sed: unknown option '-u'" == 1
 
   : parsed
   :
-  {
+  {{
     test.options += -o -u
 
     : start
@@ -40,37 +40,37 @@ test.options += -c
     : before-args
     :
     {
-      echo 'a' >=f;
+      echo 'a' >=f
 
       $* -n -e 's/a/b/p' -u f >>EOO
         option -u
         b
         EOO
     }
-  }
+  }}
 
   : arg
   :
   {
-    echo 'a' >=-u;
+    echo 'a' >=-u
 
     $* -n -e 's/a/b/p' -- -u >'b'
   }
-}
+}}
 
 : arg
 :
-{
+{{
   : auto-prn
   :
-  {
+  {{
     $* -n -e 's/fox/bar/' <'foo'        : on
     $*    -e 's/fox/bar/' <'foo' >'foo' : off
-  }
+  }}
 
   : script
   :
-  {
+  {{
     : missed
     :
     $* 2>>EOE != 0
@@ -94,15 +94,15 @@ test.options += -c
     $* -e 'z' 2>>EOE != 0
       sed: unknown command in 'z': only 's' command supported
       EOE
-  }
+  }}
 
   : file
   :
-  {
+  {{
     : exist
     :
     {
-      cat <'foo' >=f;
+      cat <'foo' >=f
 
       $* -e 's/foo/bar/' f >'bar'
     }
@@ -126,27 +126,27 @@ test.options += -c
     $* -e 's/foo/bar/' '' 2>>EOE != 0
       sed: invalid path ''
       EOE
-  }
+  }}
 
   : unexpected
   :
   $* -e 's/a//' a b 2>>EOE != 0
     sed: unexpected argument 'b'
     EOE
-}
+}}
 
 : command
 :
-{
+{{
   : subst
   :
-  {
+  {{
     : parsing
     :
-    {
+    {{
       : delim
       :
-      {
+      {{
         : none
         :
         $* -e 's' 2>>EOE != 0
@@ -158,11 +158,11 @@ test.options += -c
         $* -e 's\\' 2>>EOE != 0
           sed: invalid delimiter for 's' command in 's\\'
           EOE
-      }
+      }}
 
       : regex
       :
-      {
+      {{
         : unterminated
         :
         $* -e 's/foo' 2>>EOE != 0
@@ -183,7 +183,7 @@ test.options += -c
         $* -e 's/foo[/bar/' 2>>~%EOE% != 0
           %sed: invalid regex 'foo\[' in 's/foo\[/bar/'.*%
           EOE
-      }
+      }}
 
       : unterminated-replacement
       :
@@ -196,63 +196,64 @@ test.options += -c
       $* -e 's/foo/bar/a' 2>>EOE != 0
         sed: invalid 's' command flag 'a' in 's/foo/bar/a'
         EOE
-    }
+    }}
 
     : exec
     :
-    {
+    {{
       : flags
       :
-      {
+      {{
         : global
         :
-        {
+        {{
           $* -e 's/o/a/g' <'foo' >'faa' : on
           $* -e 's/o/a/'  <'foo' >'fao' : off
-        }
+        }}
 
         : icase
         :
-        {
+        {{
           $* -e 's/O/a/i' <'foo' >'fao' : on
           $* -e 's/O/a/'  <'foo' >'foo' : off
-        }
+        }}
 
         : print
         :
-        {
+        {{
           $* -n -e 's/o/a/p' <'foo' >'fao' : on-match
           $* -n -e 's/o/a/'  <'foo'        : off-match
           $* -n -e 's/u/a/p' <'foo'        : on-no-match
-        }
-      }
+        }}
+      }}
 
       : search
-      {
+      :
+      {{
         : anchor
         :
-        {
+        {{
           $* -n -e 's/^o/a/gp'  <'oof' >'aof' : begin
           $* -n -e 's/o$/a/gp' <'foo' >'foa' : end
-        }
+        }}
 
         : match
         : Match corner cases
         :
-        {
+        {{
           $* -n -e 's/a/b/p'  <'a'    >'b'    : full
           $* -n -e 's/a/b/p'  <'ac'   >'bc'   : left
           $* -n -e 's/a/b/p'  <'ca'   >'cb'   : right
           $* -n -e 's/a/b/pg' <'xaax' >'xbbx' : adjacent
-        }
-      }
+        }}
+      }}
 
       : replacement
       :
-      {
+      {{
         : ecma-escape
         :
-        {
+        {{
           $* <'xay' -e 's/a/$b/'    >'x$by'  : none
           $* <'xay' -e 's/a/$/'     >'x$y'   : none-term
           $* <'xay' -e 's/a/$$/'    >'x$y'   : self
@@ -263,11 +264,11 @@ test.options += -c
           : capture
           :
           $* <'abcdefghij' -e 's/(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)/$1$10/' >'aj'
-        }
+        }}
 
         : perl-escape
         :
-        {
+        {{
           $* <'xay' -e 's/a/\b/'  >'xby' : none
           $* <'xay' -e 's/a/\/'   >'xy'  : none-term
           $* <'xay' -e 's/a/\\/' >'x\y'  : self
@@ -278,7 +279,7 @@ test.options += -c
 
           : upper
           :
-          {
+          {{
             $* <'xay' -e 's/a/\U/'        >'xy'   : none
             $* <'xay' -e 's/a/\Uvz/'      >'xVZy' : repl
             $* <'xay' -e 's/a/\Uv\Ez/'    >'xVzy' : end
@@ -286,15 +287,15 @@ test.options += -c
             $* <'xay' -e 's/(a)/\U\1/'    >'xAy'  : capt
             $* <'x-y' -e 's/(a?)-/\U\1z/' >'xZy'  : capt-empty
             $* <'xay' -e 's/a/\uvz/'      >'xVzy' : once
-          }
+          }}
 
           : lower
           :
-          {
+          {{
             $* <'xay' -e 's/a/\lVZ/' >'xvZy' : once
-          }
-        }
-      }
+          }}
+        }}
+      }}
 
       $* -e 's/a//' <:'b' >'b' : no-newline
       $* -e 's/a//' <:''       : empty-stdin
@@ -302,16 +303,16 @@ test.options += -c
       : empty-file
       :
       {
-        touch f;
+        touch f
 
         $* -e 's/a//' f
       }
-    }
-  }
+    }}
+  }}
 
   : multiple
   :
-  {
+  {{
     $* -e 's/b/x/' -e 's/x/y/' -e 's/c/z/' <'abc' >'ayz' : replace-replacement
 
     : new-cycle
@@ -336,12 +337,12 @@ test.options += -c
       axc
       dye
       EOO
-  }
-}
+  }}
+}}
 
 : in-place
 :
-{
+{{
   : no-file
   :
   $* -i -e 's/a/b/' 2>>EOE != 0
@@ -351,13 +352,13 @@ test.options += -c
   : edit
   :
   {
-    cat <'foo' >=f;
+    cat <'foo' >=f
 
-    $* -i -e 's/foo/bar/' f;
+    $* -i -e 's/foo/bar/' f
 
     cat f >'bar'
   }
-}
+}}
 
 : big
 :

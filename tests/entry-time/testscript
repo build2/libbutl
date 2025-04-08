@@ -12,33 +12,33 @@ t = ($cxx.target.class != 'macos' ? 1521456316789 : 1521456316000)
 
 : modification
 :
-{
+{{
   test.options += -m
 
   : dir
   :
   {
-    test.options += -d;
+    test.options += -d
 
-    mkdir d;
-    $* -s $t d;
+    mkdir d
+    $* -s $t d
     $* -p d >"$t"
   }
 
   : file
   :
   {
-    test.options += -f;
+    test.options += -f
 
-    touch f;
-    $* -s $t f;
+    touch f
+    $* -s $t f
     $* -p f >"$t"
   }
-}
+}}
 
 : access
 :
-{
+{{
   # Note that these tests may fail if running on a mount with noatime (for
   # example, this happens on NetBSD).
   #
@@ -47,20 +47,20 @@ t = ($cxx.target.class != 'macos' ? 1521456316789 : 1521456316000)
   : dir
   :
   {
-    test.options += -d;
+    test.options += -d
 
-    mkdir d;
-    $* -s $t d;
+    mkdir d
+    $* -s $t d
     $* -p d >"$t"
   }
 
   : file
   :
   {
-    test.options += -f;
+    test.options += -f
 
-    touch f;
-    $* -s $t f;
+    touch f
+    $* -s $t f
     $* -p f >"$t"
   }
-}
+}}

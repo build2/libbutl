@@ -5,7 +5,7 @@
 :
 : Roundtrip tab-files.
 :
-{
+{{
   : newline-term
   :
   $* <<EOF >>EOF
@@ -37,11 +37,11 @@
   k" l'"'m n"'
   xyz
   EOO
-}
+}}
 
 : invalid
 :
-{
+{{
   : unterm-quoting
   :
   $* <<EOI >'123' 2>'cin:3:5: error: unterminated quoted string' == 1
@@ -50,4 +50,4 @@
   ab"c
   xyz
   EOI
-}
+}}

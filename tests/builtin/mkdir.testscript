@@ -11,7 +11,7 @@ $* -u >'option -u' 2>"mkdir: unknown option '-u'" == 1
 : parent
 :
 {
-  $* -p a/b >>/~%EOO% &a/ &a/b/;
+  $* -p a/b >>/~%EOO% &a/ &a/b/
     %create .+/a/ true%
     %create .+/a/ false%
     %create .+/a/b/ true%
@@ -35,7 +35,7 @@ $* -u >'option -u' 2>"mkdir: unknown option '-u'" == 1
 : dirs
 :
 {
-  $* a b >>/~%EOO% &a/ &b/;
+  $* a b >>/~%EOO% &a/ &b/
     %create .+/a/ true%
     %create .+/a/ false%
     %create .+/b/ true%
@@ -50,7 +50,7 @@ $* -u >'option -u' 2>"mkdir: unknown option '-u'" == 1
 : Make sure '-p' directory is created.
 :
 {
-  $* -p -- -p >>/~%EOO% &-p/;
+  $* -p -- -p >>/~%EOO% &-p/
     %create .+/-p/ true%
     %create .+/-p/ false%
     EOO
