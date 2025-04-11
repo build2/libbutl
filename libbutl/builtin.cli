@@ -72,6 +72,13 @@ namespace butl
     std::vector<std::string> --expression|-e;
   };
 
+  class sha256sum_options
+  {
+    bool --binary|-b;
+    bool --text|-t;
+    bool --sum-only;
+  };
+
   class sleep_options
   {
     // No options so far.

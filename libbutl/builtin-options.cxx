@@ -3160,6 +3160,282 @@ namespace butl
     return r;
   }
 
+  // sha256sum_options
+  //
+
+  sha256sum_options::
+  sha256sum_options ()
+  : binary_ (),
+    text_ (),
+    sum_only_ ()
+  {
+  }
+
+  bool sha256sum_options::
+  parse (int& argc,
+         char** argv,
+         bool erase,
+         ::butl::cli::unknown_mode opt,
+         ::butl::cli::unknown_mode arg)
+  {
+    ::butl::cli::argv_scanner s (argc, argv, erase);
+    bool r = _parse (s, opt, arg);
+    return r;
+  }
+
+  bool sha256sum_options::
+  parse (int start,
+         int& argc,
+         char** argv,
+         bool erase,
+         ::butl::cli::unknown_mode opt,
+         ::butl::cli::unknown_mode arg)
+  {
+    ::butl::cli::argv_scanner s (start, argc, argv, erase);
+    bool r = _parse (s, opt, arg);
+    return r;
+  }
+
+  bool sha256sum_options::
+  parse (int& argc,
+         char** argv,
+         int& end,
+         bool erase,
+         ::butl::cli::unknown_mode opt,
+         ::butl::cli::unknown_mode arg)
+  {
+    ::butl::cli::argv_scanner s (argc, argv, erase);
+    bool r = _parse (s, opt, arg);
+    end = s.end ();
+    return r;
+  }
+
+  bool sha256sum_options::
+  parse (int start,
+         int& argc,
+         char** argv,
+         int& end,
+         bool erase,
+         ::butl::cli::unknown_mode opt,
+         ::butl::cli::unknown_mode arg)
+  {
+    ::butl::cli::argv_scanner s (start, argc, argv, erase);
+    bool r = _parse (s, opt, arg);
+    end = s.end ();
+    return r;
+  }
+
+  bool sha256sum_options::
+  parse (::butl::cli::scanner& s,
+         ::butl::cli::unknown_mode opt,
+         ::butl::cli::unknown_mode arg)
+  {
+    bool r = _parse (s, opt, arg);
+    return r;
+  }
+
+  typedef
+  std::map<std::string, void (*) (sha256sum_options&, ::butl::cli::scanner&)>
+  _cli_sha256sum_options_map;
+
+  static _cli_sha256sum_options_map _cli_sha256sum_options_map_;
+
+  struct _cli_sha256sum_options_map_init
+  {
+    _cli_sha256sum_options_map_init ()
+    {
+      _cli_sha256sum_options_map_["--binary"] =
+      &::butl::cli::thunk< sha256sum_options, &sha256sum_options::binary_ >;
+      _cli_sha256sum_options_map_["-b"] =
+      &::butl::cli::thunk< sha256sum_options, &sha256sum_options::binary_ >;
+      _cli_sha256sum_options_map_["--text"] =
+      &::butl::cli::thunk< sha256sum_options, &sha256sum_options::text_ >;
+      _cli_sha256sum_options_map_["-t"] =
+      &::butl::cli::thunk< sha256sum_options, &sha256sum_options::text_ >;
+      _cli_sha256sum_options_map_["--sum-only"] =
+      &::butl::cli::thunk< sha256sum_options, &sha256sum_options::sum_only_ >;
+    }
+  };
+
+  static _cli_sha256sum_options_map_init _cli_sha256sum_options_map_init_;
+
+  bool sha256sum_options::
+  _parse (const char* o, ::butl::cli::scanner& s)
+  {
+    _cli_sha256sum_options_map::const_iterator i (_cli_sha256sum_options_map_.find (o));
+
+    if (i != _cli_sha256sum_options_map_.end ())
+    {
+      (*(i->second)) (*this, s);
+      return true;
+    }
+
+    return false;
+  }
+
+  bool sha256sum_options::
+  _parse (::butl::cli::scanner& s,
+          ::butl::cli::unknown_mode opt_mode,
+          ::butl::cli::unknown_mode arg_mode)
+  {
+    // Can't skip combined flags (--no-combined-flags).
+    //
+    assert (opt_mode != ::butl::cli::unknown_mode::skip);
+
+    bool r = false;
+    bool opt = true;
+
+    while (s.more ())
+    {
+      const char* o = s.peek ();
+
+      if (std::strcmp (o, "--") == 0)
+      {
+        opt = false;
+      }
+
+      if (opt)
+      {
+        if (_parse (o, s))
+        {
+          r = true;
+          continue;
+        }
+
+        if (std::strncmp (o, "-", 1) == 0 && o[1] != '\0')
+        {
+          // Handle combined option values.
+          //
+          std::string co;
+          if (const char* v = std::strchr (o, '='))
+          {
+            co.assign (o, 0, v - o);
+            ++v;
+
+            int ac (2);
+            char* av[] =
+            {
+              const_cast<char*> (co.c_str ()),
+              const_cast<char*> (v)
+            };
+
+            ::butl::cli::argv_scanner ns (0, ac, av);
+
+            if (_parse (co.c_str (), ns))
+            {
+              // Parsed the option but not its value?
+              //
+              if (ns.end () != 2)
+                throw ::butl::cli::invalid_value (co, v);
+
+              s.next ();
+              r = true;
+              continue;
+            }
+            else
+            {
+              // Set the unknown option and fall through.
+              //
+              o = co.c_str ();
+            }
+          }
+
+          // Handle combined flags.
+          //
+          char cf[3];
+          {
+            const char* p = o + 1;
+            for (; *p != '\0'; ++p)
+            {
+              if (!((*p >= 'a' && *p <= 'z') ||
+                    (*p >= 'A' && *p <= 'Z') ||
+                    (*p >= '0' && *p <= '9')))
+                break;
+            }
+
+            if (*p == '\0')
+            {
+              for (p = o + 1; *p != '\0'; ++p)
+              {
+                std::strcpy (cf, "-");
+                cf[1] = *p;
+                cf[2] = '\0';
+
+                int ac (1);
+                char* av[] =
+                {
+                  cf
+                };
+
+                ::butl::cli::argv_scanner ns (0, ac, av);
+
+                if (!_parse (cf, ns))
+                  break;
+              }
+
+              if (*p == '\0')
+              {
+                // All handled.
+                //
+                s.next ();
+                r = true;
+                continue;
+              }
+              else
+              {
+                // Set the unknown option and fall through.
+                //
+                o = cf;
+              }
+            }
+          }
+
+          switch (opt_mode)
+          {
+            case ::butl::cli::unknown_mode::skip:
+            {
+              s.skip ();
+              r = true;
+              continue;
+            }
+            case ::butl::cli::unknown_mode::stop:
+            {
+              break;
+            }
+            case ::butl::cli::unknown_mode::fail:
+            {
+              throw ::butl::cli::unknown_option (o);
+            }
+          }
+
+          break;
+        }
+      }
+
+      switch (arg_mode)
+      {
+        case ::butl::cli::unknown_mode::skip:
+        {
+          s.skip ();
+          r = true;
+          continue;
+        }
+        case ::butl::cli::unknown_mode::stop:
+        {
+          break;
+        }
+        case ::butl::cli::unknown_mode::fail:
+        {
+          throw ::butl::cli::unknown_argument (o);
+        }
+      }
+
+      break;
+    }
+
+    return r;
+  }
+
   // sleep_options
   //
 

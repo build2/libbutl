@@ -23,6 +23,7 @@
 #endif
 
 #include <libbutl/regex.hxx>
+#include <libbutl/sha256.hxx>
 #include <libbutl/path-io.hxx>
 #include <libbutl/utility.hxx>      // operator<<(ostream,exception),
                                     // throw_generic_error()
@@ -277,7 +278,7 @@ namespace butl
   //
   // Note that POSIX doesn't specify if after I/O operation failure the
   // command should proceed with the rest of the arguments. The current
-  // implementation exits immediatelly in such a case.
+  // implementation exits immediately in such a case.
   //
   // @@ Shouldn't we check that we don't print a nonempty regular file to
   //    itself, as that would merely exhaust the output device? POSIX allows
@@ -375,6 +376,170 @@ namespace butl
       {
         error_record d (fail ());
         d << "unable to print ";
+
+        if (p.empty ())
+          d << "stdin";
+        else
+          d << "'" << p << "'";
+
+        d << ": " << e;
+      }
+
+      cin.close ();
+      cout.close ();
+      r = 0;
+    }
+    // Can be thrown while creating/closing cin, cout or writing to cerr.
+    //
+    catch (const io_error& e)
+    {
+      error () << e;
+    }
+    catch (const failed&)
+    {
+      // Diagnostics has already been issued.
+    }
+    catch (const cli::exception& e)
+    {
+      error () << e;
+    }
+
+    cerr.close ();
+    return r;
+  }
+  // In particular, handles io_error exception potentially thrown while
+  // creating, writing to, or closing cerr.
+  //
+  catch (const std::exception&)
+  {
+    return 1;
+  }
+
+  // sha256sum [(-b|--binary)|(-t|--text)] [--sum-only] <file>...
+  //
+  // Note that after I/O operation failure the original GNU's implementation
+  // issues diagnostics but proceeds with the rest of the arguments. The
+  // current implementation exits immediately in such a case.
+  //
+  // Also note that the original implementation only considers the last
+  // -b|--binary or -t|--text option specified on the command line. The
+  // current implementation issues diagnostics and returns with non-zero code
+  // if these options are both specified.
+  //
+  // Note: must be executed asynchronously.
+  //
+  static uint8_t
+  sha256sum (const strings& args,
+             auto_fd in, auto_fd out, auto_fd err,
+             const dir_path& cwd,
+             const builtin_callbacks& cbs) noexcept
+  try
+  {
+    uint8_t r (1);
+    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+
+    auto error = [&cerr] (bool fail = false)
+    {
+      return error_record (cerr, fail, "sha256sum");
+    };
+
+    auto fail = [&error] () {return error (true /* fail */);};
+
+    try
+    {
+      // Parse arguments.
+      //
+      cli::vector_scanner scan (args);
+
+      sha256sum_options ops (
+        parse<sha256sum_options> (scan, args, cbs.parse_option, fail));
+
+      if (ops.binary () && ops.text ())
+        fail () << "both -b|--binary and -t|--text specified";
+
+      ofdstream cout (out != nullfd ? move (out) : fddup (stdout_fd ()));
+
+      ifdstream cin (
+        in != nullfd ? move (in) : fddup (stdin_fd ()),
+        ops.binary () ? fdstream_mode::binary : fdstream_mode::text);
+
+      // Calculate SHA256 checksums of the specified files and print them to
+      // stdout. Unless --sum-only is specified, also print on the checksum
+      // lines the respective file paths and a character which indicates the
+      // input mode (see sha256sum(1) for details).
+      //
+
+      // Print the checksum line to stdout.
+      //
+      auto prn = [&cout, &ops] (sha256&& cs, const string& f)
+      {
+        cout << cs.string ();
+
+        if (!ops.sum_only ())
+          cout << ' ' << (ops.binary () ? '*' : ' ') << f;
+
+        cout << endl;
+      };
+
+      // Calculate checksum over the input stream and print the checksum line
+      // to stdout.
+      //
+      auto sum = [&prn] (istream& is, const string& f)
+      {
+        prn (sha256 (is), f);
+      };
+
+      // Path of a file being processed. An empty path represents stdin. Used
+      // in diagnostics.
+      //
+      path p;
+
+      try
+      {
+        // Calculate and print checksum of stdin.
+        //
+        if (!scan.more ())
+          sum (cin, "-");
+
+        dir_path wd;
+
+        // Calculate and print the file checksums.
+        //
+        fdopen_mode m (ops.binary () ? fdopen_mode::binary : fdopen_mode::none);
+
+        while (scan.more ())
+        {
+          string f (scan.next ());
+
+          if (f == "-")
+          {
+            p.clear ();
+
+            // If checksum of stdin is already printed, then print checksum of
+            // an empty stream, as the original implementation does.
+            //
+            if (!cin.eof ())
+              sum (cin, f);
+            else
+              prn (sha256 (), f);
+
+            continue;
+          }
+
+          if (wd.empty () && cwd.relative ())
+            wd = current_directory (cwd, fail);
+
+          p = parse_path (f, !wd.empty () ? wd : cwd, fail);
+
+          ifdstream is (p, m);
+          sum (is, f);
+          is.close ();
+        }
+      }
+      catch (const io_error& e)
+      {
+        error_record d (fail ());
+        d << "unable to calculate checksum of ";
 
         if (p.empty ())
           d << "stdin";
@@ -1402,7 +1567,7 @@ namespace butl
   //
   // Note that POSIX doesn't specify if after a directory creation failure the
   // command should proceed with the rest of the arguments. The current
-  // implementation exits immediatelly in such a case.
+  // implementation exits immediately in such a case.
   //
   // Note: can be executed synchronously.
   //
@@ -1652,7 +1817,7 @@ namespace butl
   // rm [-r|--recursive] [-f|--force] <path>...
   //
   // The implementation deviates from POSIX in a number of ways. It doesn't
-  // interact with a user and fails immediatelly if unable to process an
+  // interact with a user and fails immediately if unable to process an
   // argument. It doesn't check for dots containment in the path, and doesn't
   // consider files and directory permissions in any way just trying to remove
   // a filesystem entry. Always fails if empty path is specified.
@@ -2367,7 +2532,7 @@ namespace butl
   //
   // Also note that POSIX doesn't specify if after a file touch failure the
   // command should proceed with the rest of the arguments. The current
-  // implementation exits immediatelly in such a case.
+  // implementation exits immediately in such a case.
   //
   // Note: can be executed synchronously.
   //
@@ -2565,23 +2730,24 @@ namespace butl
 
   const builtin_map builtins
   {
-    {"cat",   {&async_impl<&cat>,  2}},
-    {"cp",    {&sync_impl<&cp>,    2}},
-    {"date",  {&async_impl<&date>, 2}},
-    {"diff",  {nullptr,            2}},
-    {"echo",  {&async_impl<&echo>, 2}},
-    {"false", {&false_,            0}},
-    {"find",  {&async_impl<&find>, 2}},
-    {"ln",    {&sync_impl<&ln>,    2}},
-    {"mkdir", {&sync_impl<&mkdir>, 2}},
-    {"mv",    {&sync_impl<&mv>,    2}},
-    {"rm",    {&sync_impl<&rm>,    1}},
-    {"rmdir", {&sync_impl<&rmdir>, 1}},
-    {"sed",   {&async_impl<&sed>,  2}},
-    {"sleep", {&sync_impl<&sleep>, 1}},
-    {"test",  {&sync_impl<&test>,  1}},
-    {"touch", {&sync_impl<&touch>, 2}},
-    {"true",  {&true_,             0}}
+    {"cat",       {&async_impl<&cat>,       2}},
+    {"cp",        {&sync_impl<&cp>,         2}},
+    {"date",      {&async_impl<&date>,      2}},
+    {"diff",      {nullptr,                 2}},
+    {"echo",      {&async_impl<&echo>,      2}},
+    {"false",     {&false_,                 0}},
+    {"find",      {&async_impl<&find>,      2}},
+    {"ln",        {&sync_impl<&ln>,         2}},
+    {"mkdir",     {&sync_impl<&mkdir>,      2}},
+    {"mv",        {&sync_impl<&mv>,         2}},
+    {"rm",        {&sync_impl<&rm>,         1}},
+    {"rmdir",     {&sync_impl<&rmdir>,      1}},
+    {"sed",       {&async_impl<&sed>,       2}},
+    {"sha256sum", {&async_impl<&sha256sum>, 2}},
+    {"sleep",     {&sync_impl<&sleep>,      1}},
+    {"test",      {&sync_impl<&test>,       1}},
+    {"touch",     {&sync_impl<&touch>,      2}},
+    {"true",      {&true_,                  0}}
   };
 
   // builtin
