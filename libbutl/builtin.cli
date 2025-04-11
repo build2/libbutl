@@ -88,4 +88,10 @@ namespace butl
   {
     std::string --after; // Path (see above).
   };
+
+  class sha256sum_options
+  {
+    bool --binary|-b;
+    bool --text|-t;
+  };
 }

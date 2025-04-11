@@ -1149,6 +1149,75 @@ namespace butl
     std::string after_;
     bool after_specified_;
   };
+
+  class sha256sum_options
+  {
+    public:
+    sha256sum_options ();
+
+    // Return true if anything has been parsed.
+    //
+    bool
+    parse (int& argc,
+           char** argv,
+           bool erase = false,
+           ::butl::cli::unknown_mode option = ::butl::cli::unknown_mode::fail,
+           ::butl::cli::unknown_mode argument = ::butl::cli::unknown_mode::stop);
+
+    bool
+    parse (int start,
+           int& argc,
+           char** argv,
+           bool erase = false,
+           ::butl::cli::unknown_mode option = ::butl::cli::unknown_mode::fail,
+           ::butl::cli::unknown_mode argument = ::butl::cli::unknown_mode::stop);
+
+    bool
+    parse (int& argc,
+           char** argv,
+           int& end,
+           bool erase = false,
+           ::butl::cli::unknown_mode option = ::butl::cli::unknown_mode::fail,
+           ::butl::cli::unknown_mode argument = ::butl::cli::unknown_mode::stop);
+
+    bool
+    parse (int start,
+           int& argc,
+           char** argv,
+           int& end,
+           bool erase = false,
+           ::butl::cli::unknown_mode option = ::butl::cli::unknown_mode::fail,
+           ::butl::cli::unknown_mode argument = ::butl::cli::unknown_mode::stop);
+
+    bool
+    parse (::butl::cli::scanner&,
+           ::butl::cli::unknown_mode option = ::butl::cli::unknown_mode::fail,
+           ::butl::cli::unknown_mode argument = ::butl::cli::unknown_mode::stop);
+
+    // Option accessors.
+    //
+    const bool&
+    binary () const;
+
+    const bool&
+    text () const;
+
+    // Implementation details.
+    //
+    protected:
+    bool
+    _parse (const char*, ::butl::cli::scanner&);
+
+    private:
+    bool
+    _parse (::butl::cli::scanner&,
+            ::butl::cli::unknown_mode option,
+            ::butl::cli::unknown_mode argument);
+
+    public:
+    bool binary_;
+    bool text_;
+  };
 }
 
 #include <libbutl/builtin-options.ixx>

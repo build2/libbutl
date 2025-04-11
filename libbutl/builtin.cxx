@@ -23,6 +23,7 @@
 #endif
 
 #include <libbutl/regex.hxx>
+#include <libbutl/sha256.hxx>
 #include <libbutl/path-io.hxx>
 #include <libbutl/utility.hxx>      // operator<<(ostream,exception),
                                     // throw_generic_error()
@@ -375,6 +376,153 @@ namespace butl
       {
         error_record d (fail ());
         d << "unable to print ";
+
+        if (p.empty ())
+          d << "stdin";
+        else
+          d << "'" << p << "'";
+
+        d << ": " << e;
+      }
+
+      cin.close ();
+      cout.close ();
+      r = 0;
+    }
+    // Can be thrown while creating/closing cin, cout or writing to cerr.
+    //
+    catch (const io_error& e)
+    {
+      error () << e;
+    }
+    catch (const failed&)
+    {
+      // Diagnostics has already been issued.
+    }
+    catch (const cli::exception& e)
+    {
+      error () << e;
+    }
+
+    cerr.close ();
+    return r;
+  }
+  // In particular, handles io_error exception potentially thrown while
+  // creating, writing to, or closing cerr.
+  //
+  catch (const std::exception&)
+  {
+    return 1;
+  }
+
+  // sha256sum [-b|--binary] [-t|--text] <file>...
+  //
+  // Note: must be executed asynchronously.
+  //
+  static uint8_t
+  sha256sum (const strings& args,
+             auto_fd in, auto_fd out, auto_fd err,
+             const dir_path& cwd,
+             const builtin_callbacks& cbs) noexcept
+  try
+  {
+    uint8_t r (1);
+    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+
+    auto error = [&cerr] (bool fail = false)
+    {
+      return error_record (cerr, fail, "sha256sum");
+    };
+
+    auto fail = [&error] () {return error (true /* fail */);};
+
+    try
+    {
+      // Parse arguments.
+      //
+      cli::vector_scanner scan (args);
+
+      sha256sum_options ops (
+        parse<sha256sum_options> (scan, args, cbs.parse_option, fail));
+
+      if (ops.binary () && ops.text ())
+        fail () << "both --binary|-b and --text|-t specified";
+
+      ofdstream cout (out != nullfd ? move (out) : fddup (stdout_fd ()));
+
+      bool binary (ops.binary ());
+
+      ifdstream cin (in != nullfd ? move (in) : fddup (stdin_fd ()),
+                     binary ? fdstream_mode::binary : fdstream_mode::text);
+
+      // Calculate SHA256 checksums of the specified files and print them to
+      // stdout together with the file names (see sha256sum(1) for the output
+      // format).
+      //
+
+      // Print the calculated file checksum to stdout.
+      //
+      auto prn = [&cout, binary] (sha256&& cs, const string& f)
+      {
+        cout << cs.string () << ' ' << (binary ? '*' : ' ') << f << endl;
+      };
+
+      // Calculate the checksum of the input stream and print it to stdout.
+      //
+      auto calc = [&prn] (istream& is, const string& f)
+      {
+        prn (sha256 (is), f);
+      };
+
+      // Path of a file being printed to stdout. An empty path represents
+      // stdin. Used in diagnostics.
+      //
+      path p;
+
+      try
+      {
+        // Calculate and print the checksum of stdin.
+        //
+        if (!scan.more ())
+          calc (cin, "-");
+
+        dir_path wd;
+
+        // Calculate and print the checksums of files.
+        //
+        while (scan.more ())
+        {
+          string f (scan.next ());
+
+          if (f == "-")
+          {
+            p.clear ();
+
+            // If stdin is already read out, then print checksum of an empty
+            // stream.
+            //
+            if (!cin.eof ())
+              calc (cin, f);
+            else
+              prn (sha256 (), f);
+
+            continue;
+          }
+
+          if (wd.empty () && cwd.relative ())
+            wd = current_directory (cwd, fail);
+
+          p = parse_path (f, !wd.empty () ? wd : cwd, fail);
+
+          ifdstream is (p, binary ? fdopen_mode::binary : fdopen_mode::none);
+          calc (is, f);
+          is.close ();
+        }
+      }
+      catch (const io_error& e)
+      {
+        error_record d (fail ());
+        d << "unable to read ";
 
         if (p.empty ())
           d << "stdin";
@@ -2565,23 +2713,24 @@ namespace butl
 
   const builtin_map builtins
   {
-    {"cat",   {&async_impl<&cat>,  2}},
-    {"cp",    {&sync_impl<&cp>,    2}},
-    {"date",  {&async_impl<&date>, 2}},
-    {"diff",  {nullptr,            2}},
-    {"echo",  {&async_impl<&echo>, 2}},
-    {"false", {&false_,            0}},
-    {"find",  {&async_impl<&find>, 2}},
-    {"ln",    {&sync_impl<&ln>,    2}},
-    {"mkdir", {&sync_impl<&mkdir>, 2}},
-    {"mv",    {&sync_impl<&mv>,    2}},
-    {"rm",    {&sync_impl<&rm>,    1}},
-    {"rmdir", {&sync_impl<&rmdir>, 1}},
-    {"sed",   {&async_impl<&sed>,  2}},
-    {"sleep", {&sync_impl<&sleep>, 1}},
-    {"test",  {&sync_impl<&test>,  1}},
-    {"touch", {&sync_impl<&touch>, 2}},
-    {"true",  {&true_,             0}}
+    {"cat",       {&async_impl<&cat>,       2}},
+    {"cp",        {&sync_impl<&cp>,         2}},
+    {"date",      {&async_impl<&date>,      2}},
+    {"diff",      {nullptr,                 2}},
+    {"echo",      {&async_impl<&echo>,      2}},
+    {"false",     {&false_,                 0}},
+    {"find",      {&async_impl<&find>,      2}},
+    {"ln",        {&sync_impl<&ln>,         2}},
+    {"mkdir",     {&sync_impl<&mkdir>,      2}},
+    {"mv",        {&sync_impl<&mv>,         2}},
+    {"rm",        {&sync_impl<&rm>,         1}},
+    {"rmdir",     {&sync_impl<&rmdir>,      1}},
+    {"sed",       {&async_impl<&sed>,       2}},
+    {"sha256sum", {&async_impl<&sha256sum>, 2}},
+    {"sleep",     {&sync_impl<&sleep>,      1}},
+    {"test",      {&sync_impl<&test>,       1}},
+    {"touch",     {&sync_impl<&touch>,      2}},
+    {"true",      {&true_,                  0}}
   };
 
   // builtin

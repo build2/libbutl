@@ -306,6 +306,21 @@ namespace butl
   {
     return this->after_specified_;
   }
+
+  // sha256sum_options
+  //
+
+  inline const bool& sha256sum_options::
+  binary () const
+  {
+    return this->binary_;
+  }
+
+  inline const bool& sha256sum_options::
+  text () const
+  {
+    return this->text_;
+  }
 }
 
 // Begin epilogue.
