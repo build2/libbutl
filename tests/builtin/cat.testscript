@@ -24,12 +24,12 @@ $* - <<EOF >>EOF
 : file
 :
 {
-  $* <<EOF >=out
+  cat <<EOF >=out
     foo
     bar
     EOF
 
-  cat out >>EOO
+  $* out >>EOO
     foo
     bar
     EOO

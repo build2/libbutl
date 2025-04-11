@@ -1,0 +1,114 @@
+# file      : tests/builtin/sha256sum.testscript
+# license   : MIT; see accompanying LICENSE file
+
+posix = ($cxx.target.class != 'windows')
+
+test.arguments = "sha256sum"
+
+: unknown-option
+:
+$* -u 2>"sha256sum: unknown option '-u'" == 1
+
+: in
+:
+$* <<EOI >>EOO
+  foo
+  bar
+  EOI
+  d78931fcf2660108eec0d6674ecb4e02401b5256a6b5ee82527766ef6d198c67  -
+  EOO
+
+: dash
+:
+$* - <<EOI >>EOO
+  foo
+  bar
+  EOI
+  d78931fcf2660108eec0d6674ecb4e02401b5256a6b5ee82527766ef6d198c67  -
+  EOO
+
+: file
+:
+cat <<EOI >=out;
+  foo
+  bar
+  EOI
+$* out >>EOO
+  d78931fcf2660108eec0d6674ecb4e02401b5256a6b5ee82527766ef6d198c67  out
+  EOO
+
+: sum-only
+:
+cat <<EOI | $* --sum-only >>EOO
+  foo
+  bar
+  EOI
+  d78931fcf2660108eec0d6674ecb4e02401b5256a6b5ee82527766ef6d198c67
+  EOO
+
+: in-repeat
+:
+$* - - <<EOI >>EOO
+  foo
+  bar
+  EOI
+  d78931fcf2660108eec0d6674ecb4e02401b5256a6b5ee82527766ef6d198c67  -
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  -
+  EOO
+
+: non-existent
+:
+$* in 2>>/~%EOE% != 0
+  %sha256sum: unable to calculate checksum of '.+/in': .+%
+  EOE
+
+: empty-path
+:
+$* '' 2>"sha256sum: invalid path ''" == 1
+
+: big
+:
+: Process a big file (about 100K) to test that the builtin is asynchronous.
+:
+{
+  s="--------------------------------"
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s"
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s"
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s"
+  $* <"$s" >>EOO
+  40b9d5afc219d37c4c5e17c42686f0c69a353c580a835acd871ba31d288cdf2a  -
+  EOO
+}
+
+: cwd
+:
+: When cross-testing we cannot guarantee that host absolute paths are
+: recognized by the target process.
+:
+if ($test.target == $build.host)
+{
+  test.options += -d $~/a
+  mkdir a
+  echo 'foo' >=a/b
+
+  $* b >>EOO
+    b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c  b
+    EOO
+}
+
+: binary
+:
+{
+  cat <<EOI >=out
+    foo
+    bar
+    EOI
+
+  cs = ($posix \
+        ? 'd78931fcf2660108eec0d6674ecb4e02401b5256a6b5ee82527766ef6d198c67' \
+        : '2452c55dbff1bfbd5baf32a4dc3775101473cc1d770f72e561a563f2c152cf42')
+
+  $* -b out >>"EOO"
+    $cs *out
+    EOO
+}
