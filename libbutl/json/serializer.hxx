@@ -183,8 +183,8 @@ namespace butl
       buffer_serializer (const buffer_serializer&) = delete;
       buffer_serializer& operator= (const buffer_serializer&) = delete;
 
-      buffer_serializer (buffer_serializer&&) = default;
-      buffer_serializer& operator= (buffer_serializer&&) = default;
+      buffer_serializer (buffer_serializer&&) = delete;
+      buffer_serializer& operator= (buffer_serializer&&) = delete;
 
       // Begin/end an object.
       //
