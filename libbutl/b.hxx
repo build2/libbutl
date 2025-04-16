@@ -55,8 +55,14 @@ namespace butl
   // (see process_run_callback() for details), build program search details,
   // and additional options.
   //
-  // Note that version_string is only parsed to standard_version if a project
-  // uses the version module. Otherwise, standard_version is empty.
+  // Note that if a project uses the version module, version_string can still
+  // be empty. That may happen if the version module uses the amalgamation
+  // manifest, which, for example, is the case for unnamed subprojects (tests,
+  // etc).
+  //
+  // Also note that version_string is only parsed to standard_version if it is
+  // not empty and a project uses the version module. Otherwise,
+  // standard_version is empty.
   //
   struct b_project_info
   {

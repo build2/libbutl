@@ -143,20 +143,23 @@ namespace butl
         b_project_info pi;
         auto add_project = [&r, &pi] ()
         {
-          // Parse version string to standard version if the project loaded
-          // the version module.
+          // Parse non-empty version string to standard version if the project
+          // loaded the version module.
           //
-          const auto& ms (pi.modules);
-          if (find (ms.begin (), ms.end (), "version") != ms.end ())
+          if (!pi.version_string.empty ())
           {
-            try
+            const auto& ms (pi.modules);
+            if (find (ms.begin (), ms.end (), "version") != ms.end ())
             {
-              pi.version = standard_version (pi.version_string,
-                                             standard_version::allow_stub);
-            }
-            catch (const invalid_argument& e)
-            {
-              bad_value ("version '" + pi.version_string + "': " + e.what ());
+              try
+              {
+                pi.version = standard_version (pi.version_string,
+                                               standard_version::allow_stub);
+              }
+              catch (const invalid_argument& e)
+              {
+                bad_value ("version '" + pi.version_string + "': " + e.what ());
+              }
             }
           }
 
