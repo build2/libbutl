@@ -6,6 +6,7 @@
 #include <errno.h>
 
 #ifndef _WIN32
+#  include <stdlib.h>    // setenv(), unsetenv()
 #  include <signal.h>    // SIG*, kill()
 #  include <unistd.h>    // execvp, fork, dup2, pipe, chdir, *_FILENO, getpid
 #  include <sys/wait.h>  // waitpid
@@ -95,7 +96,7 @@
 
 #include <ios>      // ios_base::failure
 #include <memory>   // unique_ptr
-#include <cstring>  // strlen(), strchr(), strpbrk(), strncmp()
+#include <cstring>  // strlen(), strchr(), strpbrk(), strncmp(), strncpy()
 #include <utility>  // move()
 #include <ostream>
 #include <cassert>
@@ -829,23 +830,27 @@ namespace butl
           {
             while (const char* v = *vs++)
             {
-              const char* e (strchr (v, '='));
+              // Use C API to avoid allocations (see the above note for the
+              // reasoning).
+              //
+              if (const char* e = strchr (v, '='))
+              {
+                char name[1024];
+                size_t n (e - v);
 
-              try
-              {
-                // @@ TODO: redo without allocation (PATH_MAX?) Maybe
-                //          also using C API to avoid exceptions.
-                //
-                if (e != nullptr)
-                  setenv (string (v, e - v), e + 1);
-                else
-                  unsetenv (v);
+                if (n >= 1024) // Extra byte is for terminating '\0'.
+                  throw process_child_error (E2BIG);
+
+                strncpy (name, v, n);
+                name[n] = '\0';
+
+                if (::setenv (name, e + 1, 1 /* overwrite */) == -1)
+                  throw process_child_error (errno);
               }
-              catch (const system_error& e)
+              else
               {
-                // @@ Should we assume this cannot throw?
-                //
-                throw process_child_error (e.code ().value ());
+                if (::unsetenv (v) == -1)
+                  throw process_child_error (errno);
               }
             }
           }
