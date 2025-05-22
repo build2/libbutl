@@ -6,7 +6,7 @@
 #include <errno.h>
 
 #ifndef _WIN32
-#  include <stdlib.h>    // setenv(), unsetenv()
+#  include <stdlib.h>    // getenv(), setenv(), unsetenv()
 #  include <signal.h>    // SIG*, kill()
 #  include <unistd.h>    // execvp, fork, dup2, pipe, chdir, *_FILENO, getpid
 #  include <sys/wait.h>  // waitpid
@@ -96,7 +96,7 @@
 
 #include <ios>      // ios_base::failure
 #include <memory>   // unique_ptr
-#include <cstring>  // strlen(), strchr(), strpbrk(), strncmp(), strncpy()
+#include <cstring>  // strlen(), strchr(), strpbrk(), str[n]cmp(), strncpy()
 #include <utility>  // move()
 #include <ostream>
 #include <cassert>
@@ -311,7 +311,6 @@ namespace butl
     } while (*p != nullptr);
   }
 
-#if defined(LIBBUTL_POSIX_SPAWN) || defined(_WIN32)
   // Return true if the NULL-terminated variable list contains an (un)set of
   // the specified variable. The NULL list argument denotes an empty list.
   //
@@ -338,7 +337,6 @@ namespace butl
 
     return false;
   }
-#endif
 
 #ifndef _WIN32
 
@@ -822,9 +820,10 @@ namespace butl
         if (cwd != nullptr && *cwd != '\0' && chdir (cwd) != 0)
           fail (true /* child */);
 
-        // Set/unset environment variables.
+        // Set/unset non-overridden environment variables.
         //
-        auto set_vars = [] (const char* const* vs)
+        auto set_vars = [] (const char* const* vs,
+                            const char* const* ovs = nullptr)
         {
           if (vs != nullptr)
           {
@@ -833,30 +832,52 @@ namespace butl
               // Use C API to avoid allocations (see the above note for the
               // reasoning).
               //
+              // @@ Note that since ::setenv() uses malloc(), things can still
+              //    go south (notably when use sanitizers).
+              //
               if (const char* e = strchr (v, '='))
               {
                 char name[1024];
                 size_t n (e - v);
 
-                if (n >= 1024) // Extra byte is for terminating '\0'.
-                  throw process_child_error (E2BIG);
+                // Skip overridden environment variables.
+                //
+                if (!contains_envvar (ovs, v, n))
+                {
+                  if (n >= 1024) // Extra byte is for terminating '\0'.
+                    throw process_child_error (E2BIG);
 
-                strncpy (name, v, n);
-                name[n] = '\0';
+                  strncpy (name, v, n);
+                  name[n] = '\0';
 
-                if (::setenv (name, e + 1, 1 /* overwrite */) == -1)
-                  throw process_child_error (errno);
+                  // Let's not reset environment variables to the current
+                  // values.
+                  //
+                  if (const char* ov = ::getenv (name))
+                  {
+                    if (strcmp (ov, e + 1) == 0)
+                      continue;
+                  }
+
+                  if (::setenv (name, e + 1, 1 /* overwrite */) == -1)
+                    throw process_child_error (errno);
+                }
               }
               else
               {
-                if (::unsetenv (v) == -1)
-                  throw process_child_error (errno);
+                // Skip overridden environment variables.
+                //
+                if (!contains_envvar (ovs, v, strlen (v)))
+                {
+                  if (::unsetenv (v) == -1)
+                    throw process_child_error (errno);
+                }
               }
             }
           }
         };
 
-        set_vars (tevars);
+        set_vars (tevars, evars);
         set_vars (evars);
 
         // Try to re-exec after the "text file busy" failure for 450ms.
