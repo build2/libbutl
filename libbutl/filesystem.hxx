@@ -252,7 +252,7 @@ namespace butl
     void
     cancel () {active = false;}
 
-    // Movable-only type. Move-assignment cancels the lhs object.
+    // Movable-only type. Move-assignment cancels the rhs object.
     //
     auto_rm (auto_rm&&) noexcept;
     auto_rm& operator= (auto_rm&&) noexcept;

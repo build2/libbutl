@@ -1656,6 +1656,9 @@ namespace butl
           }
           catch (system_error& e)
           {
+            // NOTE: don't forget to update pkg_fetch() in bpkg if changing
+            //       anything here.
+            //
             if (copy && e.code ().category () == generic_category ())
             {
               int c (e.code ().value ());
