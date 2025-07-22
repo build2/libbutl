@@ -38,7 +38,12 @@
 
 #  include <wchar.h> // wcsncmp(), wcsstr()
 
-#  include <thread>    // this_thread::yield()
+#ifndef LIBBUTL_MINGW_STDTHREAD
+#  include <thread> // this_thread::yield()
+#else
+#  include <libbutl/mingw-thread.hxx>
+#endif
+
 #  include <algorithm> // count()
 #endif
 
