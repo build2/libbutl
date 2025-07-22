@@ -40,8 +40,10 @@
 
 #ifndef LIBBUTL_MINGW_STDTHREAD
 #  include <thread> // this_thread::yield()
+namespace this_thread = std::this_thread;
 #else
 #  include <libbutl/mingw-thread.hxx>
+namespace this_thread = mingw_stdthread::this_thread;
 #endif
 
 #  include <algorithm> // count()
