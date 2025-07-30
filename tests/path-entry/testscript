@@ -18,6 +18,7 @@
     $* f >>~%EOO%
       type: regular
       size: 3
+      link count: 1
       %.+
       EOO
   }
@@ -185,6 +186,36 @@
       }
     }}
   }}
+
+  : hardlink
+  :
+  : If we are not cross-testing let's test hard links.
+  :
+  if ($test.target == $build.host)
+  {
+    cat <:'abc' >=f &!f
+    ln f h1
+    $* f >>~%EOO%
+      type: regular
+      size: 3
+      link count: 2
+      %.+
+      EOO
+    ln h1 h2
+    $* h2 >>~%EOO%
+      type: regular
+      size: 3
+      link count: 3
+      %.+
+      EOO
+    rm f
+    $* h1 >>~%EOO%
+      type: regular
+      size: 3
+      link count: 2
+      %.+
+      EOO
+  }
 }}
 
 : non-existent

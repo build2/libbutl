@@ -138,6 +138,19 @@ namespace butl
   path_entry (const path& p, bool fs = false, bool ie = false) {
     return path_entry (p.string ().c_str (), fs, ie);}
 
+  // Return the hard link count of a file entry or 0 if the entry does not
+  // exist. If the entry does exist, it must be a regular file. This function
+  // follows symlinks. Underlying OS errors are reported by throwing
+  // std::system_error, unless ignore_error is true (in which case erroneous
+  // entries are treated as non-existent).
+  //
+  // Note that it would have been more natural to include this information
+  // into entry_stat above. However, on Windows, retrieving this (rarely
+  // needed) information would have required a more expensive implementation.
+  //
+  LIBBUTL_SYMEXPORT std::uint64_t
+  file_link_count (const path&, bool ignore_error = false);
+
   // Return true if the directory is empty. Note that the path must exist
   // and be a directory. This function follows symlinks.
   //
