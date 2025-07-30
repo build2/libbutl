@@ -1320,8 +1320,8 @@ namespace butl
               bool pre = true,
               optional<bool> dir = nullopt)
   {
-    assert (link.absolute () && link.normalized () &&
-            target.absolute () && target.normalized ());
+    assert (link.absolute () && link.normalized ());
+    assert (target.absolute () && target.normalized ());
 
     if (!dir)
     try
@@ -1398,11 +1398,19 @@ namespace butl
 
     // Determine the target type, fail if the target doesn't exist. Note that
     // to do that we need to complete a relative target path using the link
-    // directory making the target path absolute.
+    // directory making the target path absolute. Also normalize the resulting
+    // path for the mkhardlink() fallback.
     //
-    const path& atp (target.relative ()
-                     ? link.directory () / target
-                     : target);
+    path atp;
+    try
+    {
+      atp = target.relative () ? link.directory () / target : target;
+      atp.normalize ();
+    }
+    catch (const invalid_path& e)
+    {
+      fail () << "invalid path '" << e.path << "'";
+    }
 
     bool dir (false);
 
