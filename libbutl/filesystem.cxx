@@ -109,6 +109,26 @@ namespace butl
     return make_pair (true, entry_stat {t, static_cast<uint64_t> (s.st_size)});
   }
 
+  uint64_t
+  file_link_count (const path& p, bool ie)
+  {
+    struct stat s;
+    if (stat (p.string ().c_str (), &s) != 0)
+    {
+      if (errno == ENOENT || errno == ENOTDIR || ie)
+        return 0;
+      else
+        throw_generic_error (errno);
+    }
+
+    if (S_ISREG (s.st_mode))
+      return s.st_nlink != 0 ? static_cast<uint64_t> (s.st_nlink) : 1;
+    else if (ie)
+      return 0;
+    else
+      throw_generic_error (EINVAL);
+  }
+
   permissions
   path_permissions (const path& p)
   {
@@ -777,6 +797,33 @@ namespace butl
   path_entry (const char* p, bool fl, bool ie)
   {
     return path_entry (p, fl, ie, nullptr /* entry_time */);
+  }
+
+  uint64_t
+  file_link_count (const path& p, bool ie)
+  {
+    // The link count information is not returned by GetFileAttributesEx(),
+    // only by GetFileInformationByHandle().
+    //
+    pair<bool, BY_HANDLE_FILE_INFORMATION> hi (
+      path_entry_handle_info (p, true /* follow_reparse_points */, ie));
+
+    if (!hi.first)
+      return 0;
+
+    auto& pi (hi.second);
+
+    if (directory (pi.dwFileAttributes))
+    {
+      if (ie)
+        return 0;
+      else
+        throw_generic_error (EINVAL);
+    }
+
+    return pi.nNumberOfLinks != 0
+      ? static_cast<uint64_t> (pi.nNumberOfLinks)
+      : 1;
   }
 
   permissions

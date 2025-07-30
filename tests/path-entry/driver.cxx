@@ -27,7 +27,7 @@ using namespace butl;
 // modification and access times to stdout, one value per line, and exit with
 // the zero code. Otherwise exit with the one code. Don't follow symlink by
 // default. On failure print the error description to stderr and exit with the
-// two code.
+// 2 error code.
 //
 // -l
 //    Follow symlinks.
@@ -144,6 +144,14 @@ main (int argc, const char* argv[])
       tdir = (ts.second.type == entry_type::directory);
     }
 
+    uint64_t link_count (0);
+    if (es.second.type == entry_type::regular)
+    {
+      stage = "link count entry";
+      link_count = file_link_count (p);
+      assert (link_count != 0);
+    }
+
     if (perms)
     {
       stage = "set permissions";
@@ -189,8 +197,12 @@ main (int argc, const char* argv[])
     }
     cout << endl;
 
-    cout << "size: " << es.second.size << endl
-         << "target: "
+    cout << "size: " << es.second.size << endl;
+
+    if (link_count != 0)
+      cout << "link count: " << link_count << endl;
+
+    cout << "target: "
          << (ls.second.type == entry_type::symlink
              ? readsymlink (p)
              : p) << endl;
