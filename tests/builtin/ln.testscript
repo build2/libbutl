@@ -11,10 +11,6 @@ $* -u >'option -u' 2>"ln: unknown option '-u'" == 1
 : args
 :
 {{
-  : -s-option
-  :
-  $* 2>"ln: missing -s|--symbolic option" == 1
-
   : none
   :
   $* -s 2>"ln: missing arguments" == 1
@@ -44,7 +40,7 @@ $* -u >'option -u' 2>"ln: unknown option '-u'" == 1
   }}
 }}
 
-: file
+: file-symlink
 :
 : Test creating a file symlink.
 :
@@ -125,7 +121,25 @@ $* -u >'option -u' 2>"ln: unknown option '-u'" == 1
   }}
 }}
 
-: dir
+: file-hardlink
+:
+: Test creating a file hard link.
+:
+{{
+  test.options = # Clear -c.
+
+  : basics
+  :
+  {
+    touch --no-cleanup a
+    $* a b &b
+    test -f b
+    rm a
+    test -f b
+  }
+}}
+
+: dir-symlink
 :
 : Test creating a directory symlink.
 :

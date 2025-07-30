@@ -589,14 +589,15 @@ namespace butl
           bool overwrite,
           bool attrs,
           const builtin_callbacks& cbs,
-          const function<error_record ()>& fail)
+          const function<error_record ()>& fail,
+          bool pre = true)
   {
     assert (from.absolute () && from.normalized ());
     assert (to.absolute () && to.normalized ());
 
     try
     {
-      if (cbs.create)
+      if (cbs.create && pre)
         call (fail, cbs.create, to, true /* pre */);
 
       cpflags f (overwrite
@@ -627,14 +628,15 @@ namespace butl
   cpdir (const dir_path& from, const dir_path& to,
          bool attrs,
          const builtin_callbacks& cbs,
-         const function<error_record ()>& fail)
+         const function<error_record ()>& fail,
+         bool pre = true)
   {
     assert (from.absolute () && from.normalized ());
     assert (to.absolute () && to.normalized ());
 
     try
     {
-      if (cbs.create)
+      if (cbs.create && pre)
         call (fail, cbs.create, to, true /* pre */);
 
       if (try_mkdir (to) == mkdir_status::already_exists)
@@ -1303,14 +1305,84 @@ namespace butl
     return 1;
   }
 
-  // Create a symlink to a file or directory at the specified path and calling
-  // the hook for the created filesystem entries. The paths must be absolute
-  // and normalized. Fall back to creating a hardlink, if symlink creation is
-  // not supported for the link path. If hardlink creation is not supported
-  // either, then fall back to copies. Fail if the target filesystem entry
+  // Create a hard link to a file or directory at the specified path and
+  // calling the hook for the created filesystem entries. The paths must be
+  // absolute and normalized. Fall back to copies, if hard link creation is
+  // not supported for the link path. Fail if the target filesystem entry
   // doesn't exist or an exception is thrown by the underlying filesystem
   // operation (specifically for an already existing filesystem entry at the
   // link path).
+  //
+  static void
+  mkhardlink (const path& target, const path& link,
+              const builtin_callbacks& cbs,
+              const function<error_record ()>& fail,
+              bool pre = true,
+              optional<bool> dir = nullopt)
+  {
+    assert (link.absolute () && link.normalized () &&
+            target.absolute () && target.normalized ());
+
+    if (!dir)
+    try
+    {
+      pair<bool, entry_stat> pe (path_entry (target));
+
+      if (!pe.first)
+        fail () << "unable to create hard link to '" << target << "': no such "
+                << "file or directory";
+
+      dir = pe.second.type == entry_type::directory;
+    }
+    catch (const system_error& e)
+    {
+      fail () << "unable to stat '" << target << "': " << e;
+    }
+
+    try
+    {
+      if (cbs.create && pre)
+        call (fail, cbs.create, link, true /* pre */);
+
+      mkhardlink (target, link, *dir);
+
+      if (cbs.create)
+        call (fail, cbs.create, link, false /* pre */);
+    }
+    catch (const system_error& e)
+    {
+      int c (e.code ().value ());
+      if (!(e.code ().category () == generic_category () &&
+            (c == ENOSYS || // Not implemented.
+             c == EPERM  || // Not supported by the filesystem(s).
+             c == EXDEV)))  // On different filesystems.
+        fail () << "unable to create hardlink '" << link << "' to '" << target
+                << "': " << e;
+
+      if (dir)
+        cpdir (path_cast<dir_path> (target), path_cast<dir_path> (link),
+               false /* attrs */,
+               cbs,
+               fail,
+               false /* pre */);
+      else
+        cpfile (target, link,
+                false /* overwrite */,
+                true  /* attrs */,
+                cbs,
+                fail,
+                false /* pre */);
+    }
+  }
+
+  // Create a symlink to a file or directory at the specified path and calling
+  // the hook for the created filesystem entries. The link path must be
+  // absolute and normalized. Fall back to creating a hardlink, if symlink
+  // creation is not supported for the link path. If hardlink creation is not
+  // supported either, then fall back to copies. Fail if the target filesystem
+  // entry doesn't exist or an exception is thrown by the underlying
+  // filesystem operation (specifically for an already existing filesystem
+  // entry at the link path).
   //
   // Note that supporting optional removal of an existing filesystem entry at
   // the link path (the -f option) tends to get hairy. Also removing non-empty
@@ -1381,40 +1453,12 @@ namespace butl
       // Note that for hardlinking/copying we need to use the complete
       // (absolute) target path.
       //
-      try
-      {
-        mkhardlink (atp, link, dir);
-
-        if (cbs.create)
-          call (fail, cbs.create, link, false /* pre */);
-      }
-      catch (const system_error& e)
-      {
-        c = e.code ().value ();
-        if (!(e.code ().category () == generic_category () &&
-              (c == ENOSYS || // Not implemented.
-               c == EPERM  || // Not supported by the filesystem(s).
-               c == EXDEV)))  // On different filesystems.
-          fail () << "unable to create hardlink '" << link << "' to '" << atp
-                  << "': " << e;
-
-        if (dir)
-          cpdir (path_cast<dir_path> (atp), path_cast<dir_path> (link),
-                 false /* attrs */,
-                 cbs,
-                 fail);
-        else
-          cpfile (atp, link,
-                  false /* overwrite */,
-                  true /* attrs */,
-                  cbs,
-                  fail);
-      }
+      mkhardlink (atp, link, cbs, fail, false /* pre */, dir);
     }
   }
 
-  // ln -s|--symbolic <target-path>    <link-path>
-  // ln -s|--symbolic <target-path>... <link-dir>/
+  // ln [-s|--symbolic] <target-path>    <link-path>
+  // ln [-s|--symbolic] <target-path>... <link-dir>/
   //
   // Note: can be executed synchronously.
   //
@@ -1445,9 +1489,6 @@ namespace butl
       cli::vector_scanner scan (args);
       ln_options ops (parse<ln_options> (scan, args, cbs.parse_option, fail));
 
-      if (!ops.symbolic ())
-        fail () << "missing -s|--symbolic option";
-
       // Create file or directory symlinks.
       //
       if (!scan.more ())
@@ -1472,16 +1513,22 @@ namespace butl
       if (i == e)
         fail () << "missing target path";
 
+      bool sym (ops.symbolic ());
+
       // If link is not a directory path (no trailing separator), then create
-      // a symlink to the target path at the specified link path (the only
-      // target path is allowed in such a case). Otherwise create links to the
-      // target paths inside the specified directory.
+      // a link to the target path at the specified link path (the only target
+      // path is allowed in such a case). Otherwise create links to the target
+      // paths inside the specified directory.
       //
       if (!link.to_directory ())
       {
-        // Don't complete a relative target and pass it to mksymlink() as is.
+        // Synopsis 1: create a target path link at the specified path.
         //
-        path target (parse_path (move (*i++), dir_path (), fail));
+        //
+        // Don't complete a relative target for a symlink and pass it to
+        // mksymlink() as is.
+        //
+        path target (parse_path (move (*i++), sym ? dir_path () : wd, fail));
 
         // If there are multiple targets but no trailing separator for the
         // link, then, most likelly, it is missing.
@@ -1489,23 +1536,26 @@ namespace butl
         if (i != e)
           fail () << "multiple target paths with non-directory link path";
 
-        // Synopsis 1: create a target path symlink at the specified path.
-        //
-        mksymlink (target, link, cbs, fail);
+        if (sym)
+          mksymlink (target, link, cbs, fail);
+        else
+          mkhardlink (target, link, cbs, fail);
       }
       else
       {
         for (; i != e; ++i)
         {
-          // Don't complete a relative target and pass it to mksymlink() as
-          // is.
+          // Synopsis 2: create a target path link in the specified directory.
           //
-          path target (parse_path (move (*i), dir_path (), fail));
+          // Don't complete a relative target for a symlink and pass it to
+          // mksymlink() as is.
+          //
+          path target (parse_path (move (*i), sym ? dir_path () : wd, fail));
 
-          // Synopsis 2: create a target path symlink in the specified
-          // directory.
-          //
-          mksymlink (target, link / target.leaf (), cbs, fail);
+          if (sym)
+            mksymlink (target, link / target.leaf (), cbs, fail);
+          else
+            mkhardlink (target, link / target.leaf (), cbs, fail);
         }
       }
 
