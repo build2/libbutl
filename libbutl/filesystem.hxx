@@ -352,20 +352,13 @@ namespace butl
   LIBBUTL_SYMEXPORT std::pair<path, bool>
   try_followsymlink (const path&);
 
-  // Remove a symbolic link to a file (default) or directory (third argument
-  // is true). Throw std::system_error on failures.
+  // Remove the symbolic link. Throw std::system_error on failures.
+  //
+  // Note that on all the supported platforms it doesn't matter whether the
+  // symlink target is a directory or a regular file.
   //
   LIBBUTL_SYMEXPORT rmfile_status
-  try_rmsymlink (const path&, bool dir = false, bool ignore_error = false);
-
-  // Remove a symbolic link to a directory. Throw std::system_error on
-  // failures.
-  //
-  inline rmfile_status
-  try_rmsymlink (const dir_path& link, bool ignore_error = false)
-  {
-    return try_rmsymlink (link, true /* dir */, ignore_error);
-  }
+  try_rmsymlink (const path&, bool ignore_error = false);
 
   // Create a hard link to a file (default) or directory (third argument is
   // true). Throw std::system_error on failures.

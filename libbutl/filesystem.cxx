@@ -1611,7 +1611,7 @@ namespace butl
   }
 
   rmfile_status
-  try_rmsymlink (const path& link, bool, bool ie)
+  try_rmsymlink (const path& link, bool ie)
   {
     return try_rmfile (link, ie);
   }
