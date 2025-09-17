@@ -3,6 +3,16 @@
 
 #include <libbutl/builtin.hxx>
 
+#ifdef LIBBUTL_BUILTIN_POSIX_THREADS
+#  include <pthread.h>
+#  if defined(__FreeBSD__)
+#    include <pthread_np.h> // pthread_attr_get_np() (in <pthread.h> on NetBSD)
+#  elif defined(__OpenBSD__)
+#    include <sys/signal.h>
+#    include <pthread_np.h> // pthread_stackseg_np()
+#  endif
+#endif
+
 #ifdef _WIN32
 #  include <libbutl/win32-utility.hxx>
 #endif
@@ -10,6 +20,7 @@
 #include <ios>
 #include <chrono>
 #include <cerrno>
+#include <memory>       // unique_ptr
 #include <cassert>
 #include <ostream>
 #include <sstream>
@@ -26,7 +37,7 @@
 #include <libbutl/sha256.hxx>
 #include <libbutl/path-io.hxx>
 #include <libbutl/utility.hxx>      // operator<<(ostream,exception),
-                                    // throw_generic_error()
+                                    // throw_*_error()
 #include <libbutl/optional.hxx>
 #include <libbutl/filesystem.hxx>
 #include <libbutl/small-vector.hxx>
@@ -970,7 +981,8 @@ namespace butl
           const strings&,
           auto_fd, auto_fd, auto_fd,
           const dir_path&,
-          const builtin_callbacks&)
+          const builtin_callbacks&,
+          optional<size_t> /* max_stack */)
   {
     return builtin (r = 1);
   }
@@ -986,7 +998,8 @@ namespace butl
          const strings&,
          auto_fd, auto_fd, auto_fd,
          const dir_path&,
-         const builtin_callbacks&)
+         const builtin_callbacks&,
+         optional<size_t> /* max_stack */)
   {
     return builtin (r = 0);
   }
@@ -2718,7 +2731,8 @@ namespace butl
               const strings& args,
               auto_fd in, auto_fd out, auto_fd err,
               const dir_path& cwd,
-              const builtin_callbacks& cbs)
+              const builtin_callbacks& cbs,
+              optional<size_t> max_stack)
   {
 #ifndef _WIN32
     // Retry to create the thread after the "resource temporarily unavailable"
@@ -2741,7 +2755,8 @@ namespace butl
                        move (in), move (out), move (err),
                        cwd,
                        cbs);
-          }));
+          },
+          max_stack));
 
       return builtin (r, move (s));
     }
@@ -2766,11 +2781,86 @@ namespace butl
               const strings& args,
               auto_fd in, auto_fd out, auto_fd err,
               const dir_path& cwd,
-              const builtin_callbacks& cbs)
+              const builtin_callbacks& cbs,
+              optional<size_t> max_stack)
   {
     return async_impl (
-      fn, r, args, move (in), move (out), move (err), cwd, cbs);
+      fn, r, args, move (in), move (out), move (err), cwd, cbs, max_stack);
   }
+
+#if defined(LIBBUTL_BUILTIN_POSIX_THREADS)
+  size_t builtin::async_state::
+  stack_size (optional<size_t> max_stack)
+  {
+    // NOTE: don't forget to update scheduler::create_helper() in libbuild2 if
+    //       changing anything here.
+    //
+    // See libbuild2's scheduler::create_helper() implementation for the notes
+    // on the default stack sizes for newly created threads on different
+    // platforms/compilers.
+    //
+#ifndef LIBBUTL_BUILTIN_DEFAULT_STACK_SIZE
+#  define LIBBUTL_BUILTIN_DEFAULT_STACK_SIZE 8388608 // 8MB
+#endif
+
+#ifndef LIBBUTL_BUILTIN_SANE_STACK_SIZE
+#  define LIBBUTL_BUILTIN_SANE_STACK_SIZE (\
+            sizeof(void*) * LIBBUTL_BUILTIN_DEFAULT_STACK_SIZE)
+#endif
+
+    size_t stack_size;
+    {
+      // Don't forget to update #if condition in builtin.hxx when adding the
+      // stack size customization for a new platforms/compilers.
+      //
+#ifdef __linux__
+      // Note that the attributes must not be initialized.
+      //
+      pthread_attr_t attr;
+      if (int r = pthread_getattr_np (pthread_self (), &attr))
+        throw_system_error (r);
+
+      unique_ptr<pthread_attr_t, pthread_attr_deleter> ad (&attr);
+      if (int r = pthread_attr_getstacksize (&attr, &stack_size))
+        throw_system_error (r);
+
+#elif defined(__FreeBSD__) || defined(__NetBSD__)
+      pthread_attr_t attr;
+      if (int r = pthread_attr_init (&attr))
+        throw_system_error (r);
+
+      unique_ptr<pthread_attr_t, pthread_attr_deleter> ad (&attr);
+      if (int r = pthread_attr_get_np (pthread_self (), &attr))
+        throw_system_error (r);
+
+      if (int r = pthread_attr_getstacksize (&attr, &stack_size))
+        throw_system_error (r);
+
+#elif defined(__OpenBSD__)
+      stack_t s;
+      if (int r = pthread_stackseg_np (pthread_self (), &s))
+        throw_system_error (r);
+
+      stack_size = s.ss_size;
+
+#else // defined(__APPLE__)
+      stack_size = pthread_get_stacksize_np (pthread_self ());
+#endif
+    }
+
+    // Cap the size if necessary.
+    //
+    if (max_stack)
+    {
+      if (*max_stack != 0 && stack_size > *max_stack)
+        stack_size = *max_stack;
+    }
+    else if (stack_size > LIBBUTL_BUILTIN_SANE_STACK_SIZE)
+      stack_size = LIBBUTL_BUILTIN_DEFAULT_STACK_SIZE;
+
+    return stack_size;
+  }
+#endif
 
   // Run builtin implementation synchronously.
   //
@@ -2780,7 +2870,8 @@ namespace butl
              const strings& args,
              auto_fd in, auto_fd out, auto_fd err,
              const dir_path& cwd,
-             const builtin_callbacks& cbs)
+             const builtin_callbacks& cbs,
+             optional<size_t> /* max_stack */)
   {
     r = fn (args, move (in), move (out), move (err), cwd, cbs);
     return builtin (r);

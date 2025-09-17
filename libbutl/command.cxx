@@ -99,7 +99,8 @@ namespace butl
                const optional<process_env>& env,
                const optional<command_substitution_map>& substitutions,
                char subst,
-               const function<command_callback>& callback)
+               const function<command_callback>& callback,
+               optional<std::size_t> max_stack)
   {
     // Split the command line into the program path, arguments, and redirects,
     // removing one level of quoting.
@@ -259,7 +260,8 @@ namespace butl
                                move (rd) /* stdout */,
                                nullfd    /* stderr */,
                                cwd,
-                               cb));
+                               cb,
+                               max_stack));
 
       return process_exit (b.wait ());
     }

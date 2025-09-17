@@ -237,7 +237,12 @@ main (int argc, char* argv[])
     sleep ();
 
     uint8_t r; // Storage.
-    builtin b (bi->function (r, args, nullfd, nullfd, nullfd, cwd, callbacks));
+    builtin b (bi->function (r,
+                             args,
+                             nullfd, nullfd, nullfd,
+                             cwd,
+                             callbacks,
+                             nullopt /* max_stack */));
     return wait (b);
   }
   else
@@ -263,7 +268,8 @@ main (int argc, char* argv[])
             cout << cin.rdbuf ();
 
           return 0;
-        });
+        },
+        nullopt /* max_stack */);
     };
 
     builtin b (run ());

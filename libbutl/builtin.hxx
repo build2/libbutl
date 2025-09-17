@@ -3,11 +3,26 @@
 
 #pragma once
 
+// On pthreads-based systems we will query the stack size of the current
+// thread and use it, potentially capping to a user-specified or predefined
+// value, for creating the asynchronous builtin thread.
+//
+#if 1 // For debugging.
+#if defined(__linux__)   || \
+    defined(__FreeBSD__) || \
+    defined(__NetBSD__)  || \
+    defined(__APPLE__)
+#  include <pthread.h>
+#  define LIBBUTL_BUILTIN_POSIX_THREADS
+#endif
+#endif
+
 #include <map>
 #include <string>
 #include <vector>
 #include <chrono>
 #include <memory>             // unique_ptr
+#include <cassert>
 #include <cstddef>            // size_t
 #include <utility>            // move()
 #include <cstdint>            // uint8_t
@@ -15,8 +30,10 @@
 
 #ifndef LIBBUTL_MINGW_STDTHREAD
 #  include <mutex>
-#  include <thread>
 #  include <condition_variable>
+#  ifndef LIBBUTL_BUILTIN_POSIX_THREADS
+#    include <thread>
+#  endif
 #else
 #  include <libbutl/mingw-mutex.hxx>
 #  include <libbutl/mingw-thread.hxx>
@@ -24,8 +41,13 @@
 #endif
 
 #include <libbutl/path.hxx>
+#include <libbutl/optional.hxx>
 #include <libbutl/fdstream.hxx>
 #include <libbutl/timestamp.hxx>
+
+#ifdef LIBBUTL_BUILTIN_POSIX_THREADS
+#  include <libbutl/utility.hxx> // throw_system_error()
+#endif
 
 #include <libbutl/export.hxx>
 
@@ -60,13 +82,18 @@ namespace butl
     optional<std::uint8_t>
     timed_wait (const std::chrono::duration<R, P>&);
 
-    ~builtin () {if (state_ != nullptr) state_->thread.join ();}
+    ~builtin () {if (state_ != nullptr) state_->join (false /* ignore_error */);}
 
   public:
 #ifndef LIBBUTL_MINGW_STDTHREAD
     using mutex_type = std::mutex;
     using condition_variable_type = std::condition_variable;
+
+#ifndef LIBBUTL_BUILTIN_POSIX_THREADS
     using thread_type = std::thread;
+#else
+    using thread_type = pthread_t;
+#endif
 
     using unique_lock = std::unique_lock<mutex_type>;
 #else
@@ -77,12 +104,12 @@ namespace butl
     using unique_lock = mingw_stdthread::unique_lock<mutex_type>;
 #endif
 
-    struct async_state
+    class async_state
     {
+    public:
       bool finished = false;
       mutex_type mutex;
       condition_variable_type condv;
-      thread_type thread;
 
       // Note that we can't use std::function as an argument type to get rid
       // of the template since std::function can only be instantiated with a
@@ -90,7 +117,61 @@ namespace butl
       // be able to capture auto_fd by value in a lambda, etc).
       //
       template <typename F>
-      async_state (uint8_t&, F);
+      async_state (std::uint8_t&, F, optional<std::size_t> max_stack);
+
+      // Join the thread. Throw std::system_error on the underlying OS error,
+      // unless ignore_error is true. This function can be called multiple
+      // times.
+      //
+      void
+      join (bool ignore_error);
+
+      ~async_state () {join (true /* ignore_error */);}
+
+    private:
+      template <typename F>
+      void
+      execute (std::uint8_t&, F&) noexcept;
+
+#ifdef LIBBUTL_BUILTIN_POSIX_THREADS
+      // Calculate the stack size for the being created thread.
+      //
+      static std::size_t
+      stack_size (optional<std::size_t> max_stack);
+
+      template <typename F>
+      struct async_thunk
+      {
+        async_state* s;
+        F f;
+        std::uint8_t* r;
+
+        static void*
+        execute (void*) noexcept;
+      };
+
+      struct pthread_attr_deleter
+      {
+        void
+        operator() (pthread_attr_t* a) const
+        {
+          int r (pthread_attr_destroy (a));
+
+          // We should be able to destroy the valid attributes object, unless
+          // something is severely damaged.
+          //
+          assert (r == 0);
+        }
+      };
+
+      // Note that PTHREAD_NULL constant is only introduced in the
+      // POSIX.1-2024 edition. Thus, let's use an additional member to track
+      // whether the thread is joinable or not.
+      //
+      bool thread_joinable_ = false;
+#endif
+
+      thread_type thread_;
     };
 
     builtin (std::uint8_t& r, std::unique_ptr<async_state>&& s = nullptr)
@@ -185,13 +266,20 @@ namespace butl
   // working directory unless an alternative is specified. Throw
   // std::system_error on failure.
   //
+  // Use the max_stack argument to cap the asynchronous builtin thread stack
+  // size on pthreads-based systems. Specify nullopt to use the current thread
+  // stack size capped to some reasonable predefined value, if too large.
+  // Specify 0 to use the current thread stack size uncapped. See build2
+  // driver's --max-stack option for details on the thread stack size capping.
+  //
   // Note that unlike argc/argv, args don't include the program name.
   //
   using builtin_function = builtin (std::uint8_t& result,
                                     const std::vector<std::string>& args,
                                     auto_fd in, auto_fd out, auto_fd err,
                                     const dir_path& cwd,
-                                    const builtin_callbacks&);
+                                    const builtin_callbacks&,
+                                    optional<std::size_t> max_stack);
 
   // Builtin function and weight.
   //
@@ -209,7 +297,7 @@ namespace butl
   struct builtin_info
   {
     builtin_function* function;
-    uint8_t           weight;
+    std::uint8_t      weight;
   };
 
   class builtin_map: public std::map<std::string, builtin_info>
@@ -227,14 +315,19 @@ namespace butl
   // Asynchronously run a function as if it was a builtin. The function must
   // have the std::uint8_t() signature and not throw exceptions.
   //
+  // Use the max_stack argument to cap the pseudo builtin thread stack size on
+  // pthreads-based systems (see builtin_function type for the details on the
+  // argument semantics).
+  //
   // Note that using std::function as an argument type would be too
   // restrictive (see above).
   //
   template <typename F>
   builtin
-  pseudo_builtin (std::uint8_t&, F);
+  pseudo_builtin (std::uint8_t&, F, optional<std::size_t> max_stack = nullopt);
 
   LIBBUTL_SYMEXPORT extern const builtin_map builtins;
 }
 
 #include <libbutl/builtin.ixx>
+#include <libbutl/builtin.txx>

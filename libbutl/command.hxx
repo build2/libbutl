@@ -61,6 +61,10 @@ namespace butl
   // space after '>'). The callback can be used, for example, for tracing the
   // resulting command line, etc.
   //
+  // Specify the max_stack argument to cap the asynchronous builtin thread
+  // stack size on pthreads-based systems (see builtin_function type for the
+  // details on the argument semantics).
+  //
   using command_substitution_map = std::map<std::string, std::string>;
   using command_callback = void (const char* const args[], std::size_t n);
 
@@ -69,7 +73,8 @@ namespace butl
                const optional<process_env>& = nullopt,
                const optional<command_substitution_map>& = nullopt,
                char subst = '@',
-               const std::function<command_callback>& = {});
+               const std::function<command_callback>& = {},
+               optional<std::size_t> max_stack = nullopt);
 
   // Reusable substitution utility functions.
   //

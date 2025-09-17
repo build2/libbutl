@@ -1,6 +1,10 @@
 // file      : libbutl/builtin.ixx -*- C++ -*-
 // license   : MIT; see accompanying LICENSE file
 
+#ifdef LIBBUTL_BUILTIN_POSIX_THREADS
+#  include <system_error>
+#endif
+
 namespace butl
 {
   // builtin
@@ -45,35 +49,78 @@ namespace butl
 
   // builtin::async_state
   //
+#ifndef LIBBUTL_BUILTIN_POSIX_THREADS
   template <typename F>
   inline builtin::async_state::
-  async_state (uint8_t& r, F f)
-      : thread ([this, &r, f = std::move (f)] () mutable noexcept
-                {
-                  uint8_t t (f ());
-
-                  {
-                    unique_lock l (this->mutex);
-                    r = t;
-                    finished = true;
-                  }
-
-                  condv.notify_all ();
-                })
+  async_state (std::uint8_t& r, F f, optional<std::size_t> /* max_stack */)
+      : thread_ ([this, &r, f = std::move (f)] () mutable noexcept
+                 {
+                   execute (r, f);
+                 })
   {
   }
+#endif
 
   template <typename F>
+  inline void builtin::async_state::
+  execute (std::uint8_t& r, F& f) noexcept
+  {
+    std::uint8_t t (f ());
+
+    {
+      unique_lock l (this->mutex);
+      r = t;
+      finished = true;
+    }
+
+    condv.notify_all ();
+  }
+
+  inline void builtin::async_state::
+  join (bool ignore_error)
+  {
+#ifndef LIBBUTL_BUILTIN_POSIX_THREADS
+    if (thread_.joinable ())
+    try
+    {
+      thread_.join ();
+    }
+    catch (const std::system_error&)
+    {
+      if (!ignore_error)
+        throw;
+    }
+#else
+    if (thread_joinable_)
+    {
+      // There is no reason to think that the thread can be joined after the
+      // failed attempt. Thus, let's always reset this flag.
+      //
+      thread_joinable_ = false;
+
+      if (int r = pthread_join (thread_, nullptr /* retval */))
+      {
+        if (!ignore_error)
+          throw_system_error (r);
+      }
+    }
+#endif
+  }
+
+  // pseudo_builtin()
+  //
+  template <typename F>
   inline builtin
-  pseudo_builtin (std::uint8_t& r, F f)
+  pseudo_builtin (std::uint8_t& r, F f, optional<std::size_t> max_stack)
   {
     std::unique_ptr<builtin::async_state> s (
       new builtin::async_state (
         r,
-        [f = std::move (f)] () mutable noexcept -> uint8_t
+        [f = std::move (f)] () mutable noexcept -> std::uint8_t
         {
           return f ();
-        }));
+        },
+        max_stack));
 
     return builtin (r, move (s));
   }

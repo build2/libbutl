@@ -371,3 +371,16 @@ test.options += -c
   s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s"
   cat <"$s" | $* -e 's/^x//' | cat >"$s"
 }
+
+: deep-recursion
+:
+: Test that sed doesn't crash on a potentially deep recursion (the file size
+: is about 4K), which may occur for the recursive implementations of regex
+: (GCC, etc).
+:
+{
+  s="--------------------------------"
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s"
+  s="$s$s$s$s$s$s$s$s"
+  cat <"$s" | $* -e 's/-*/x/' | cat >x
+}
