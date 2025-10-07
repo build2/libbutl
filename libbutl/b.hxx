@@ -108,6 +108,12 @@ namespace butl
     //
     subprojects = 0x2,
 
+    // Ignore any uncommitted or untracked changes while retrieving the
+    // project version information. Specifying this flag results in passing
+    // committed_version info meta-operation parameter to the build2 program.
+    //
+    committed_version = 0x4,
+
     none = 0
   };
 

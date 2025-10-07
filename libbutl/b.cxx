@@ -93,8 +93,24 @@ namespace butl
           spec += '\'' + projects[i].representation () + '\'';
         }
 
-        if ((fl & b_info_flags::subprojects) == b_info_flags::none)
-          spec += ",no_subprojects";
+        bool nsub ((fl & b_info_flags::subprojects) == b_info_flags::none);
+        bool cver ((fl & b_info_flags::committed_version) != b_info_flags::none);
+
+        if (nsub || cver)
+        {
+          spec += ',';
+
+          if (nsub)
+            spec += "no_subprojects";
+
+          if (cver)
+          {
+            if (spec.back () != ',')
+              spec += ' ';
+
+            spec += "committed_version";
+          }
+        }
 
         spec += ')';
 

@@ -51,7 +51,9 @@ try
 
   b_project_info pi (
     b_info (project,
-            b_info_flags::ext_mods | b_info_flags::subprojects,
+            (b_info_flags::ext_mods    |
+             b_info_flags::subprojects |
+             b_info_flags::committed_version),
             1    /* verb */,
             {}   /* cmd_callback */,
             b,
