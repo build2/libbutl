@@ -16,7 +16,7 @@
 
 #include <libbutl/json/event.hxx>
 
-#include <libbutl/json/pdjson.h> // Implementation details.
+#include <libbutl/json/pdjson5.h> // Implementation details.
 
 #include <libbutl/export.hxx>
 
@@ -48,6 +48,13 @@ namespace butl
                           const char* description);
     };
 
+    enum class language: std::uint8_t
+    {
+      json,   // Strict JSON.
+      json5,  // Strict JSON5.
+      json5e, // Extended JSON5.
+    };
+
     class LIBBUTL_SYMEXPORT parser
     {
     public:
@@ -65,6 +72,11 @@ namespace butl
       // If stream exceptions are enabled then the std::ios_base::failure
       // exception is used to report input/output errors (badbit and failbit).
       // Otherwise, those are reported as the invalid_json_input exception.
+      // Memory allocation failures are reported by throwing std::bad_alloc.
+      //
+      // By default the parser only accepts strict JSON but can be configured
+      // to accept JSON5 (which is a superset of JSON) or JSON5E (JSON5 with
+      // extensions).
       //
       // If multi_value is true, enable the multi-value mode in which case the
       // input stream may contain multiple JSON values (more precisely, zero
@@ -85,26 +97,32 @@ namespace butl
       // between JSON values).
       //
       // Note that a separator need not be valid JSON whitespace: any
-      // character is acceptable (though it probably shouldn't be an object,
+      // character is acceptable, though it probably shouldn't be an object,
       // array, or string delimiter and should not occur within a non-self-
       // delimited top-level value, such as `true`, `false`, `null`, or a
-      // number). All instances of required separators before and after a
+      // number, as well as characters that start comments in JSON5 ('/') and
+      // JSON5E (`#`). All instances of required separators before and after a
       // value are skipped. Therefore JSON Text Sequences (RFC 7464; AKA
       // Record Separator-delimited JSON), which requires the RS (0x1E)
-      // character before each value, can be handled as well.
+      // character before each value, can be handled as well. Note also that
+      // required separator characters that require multi-byte UTF-8 encoding
+      // are currently not supported.
       //
       parser (std::istream&,
               const std::string& name,
+              language = language::json,
               bool multi_value = false,
               const char* separators = nullptr) noexcept;
 
       parser (std::istream&,
               const char* name,
+              language = language::json,
               bool multi_value = false,
               const char* separators = nullptr) noexcept;
 
       parser (std::istream&,
               std::string&&,
+              language = language::json,
               bool = false,
               const char* = nullptr) = delete;
 
@@ -114,38 +132,49 @@ namespace butl
       // that the buffer, name, and separators are kept as references so they
       // must outlive the parser instance.
       //
+      // The rest of the arguments are the same as in the stream version
+      // above.
+      //
+      // Memory allocation failures are reported by throwing std::bad_alloc.
+      //
       parser (const void* text,
               std::size_t size,
               const std::string& name,
+              language = language::json,
               bool multi_value = false,
               const char* separators = nullptr) noexcept;
 
       parser (const void* text,
               std::size_t size,
               const char* name,
+              language = language::json,
               bool multi_value = false,
               const char* separators = nullptr) noexcept;
 
       parser (const void*,
               std::size_t,
               std::string&&,
+              language = language::json,
               bool = false,
               const char* = nullptr) = delete;
 
-      // Similar to the above but parse a string.
+      // Similar to the above but parse a std::string.
       //
       parser (const std::string& text,
               const std::string& name,
+              language = language::json,
               bool multi_value = false,
               const char* separators = nullptr) noexcept;
 
       parser (const std::string& text,
               const char* name,
+              language = language::json,
               bool multi_value = false,
               const char* separators = nullptr) noexcept;
 
       parser (const std::string&,
               std::string&&,
+              language = language::json,
               bool = false,
               const char* = nullptr) = delete;
 
@@ -153,16 +182,19 @@ namespace butl
       //
       parser (const char* text,
               const std::string& name,
+              language = language::json,
               bool multi_value = false,
               const char* separators = nullptr) noexcept;
 
       parser (const char* text,
               const char* name,
+              language = language::json,
               bool multi_value = false,
               const char* separators = nullptr) noexcept;
 
       parser (const char*,
               std::string&&,
+              language = language::json,
               bool = false,
               const char* = nullptr) = delete;
 
@@ -637,6 +669,7 @@ namespace butl
       struct stream
       {
         std::istream*                is;
+        bool                         eof;
         optional<std::exception_ptr> exception;
       };
 
@@ -648,16 +681,13 @@ namespace butl
     private:
       // Functionality shared by next() and peek().
       //
-      json_type
+      pdjson_type
       next_impl ();
 
       // Translate the event produced by the most recent call to next_impl().
       //
-      // Note that the underlying parser state determines whether name or
-      // value is returned when translating JSON_STRING.
-      //
       optional<event>
-      translate (json_type) const noexcept;
+      translate (pdjson_type) const noexcept;
 
       // Cache state (name/value) produced by the most recent call to
       // next_impl().
@@ -689,10 +719,10 @@ namespace butl
       std::string value_;                      bool value_p_    = false;
       std::uint64_t line_, column_, position_; bool location_p_ = false;
 
-      optional<json_type> parsed_; // Current parsed event if any.
-      optional<json_type> peeked_; // Current peeked event if any.
+      optional<pdjson_type> parsed_; // Current parsed event if any.
+      optional<pdjson_type> peeked_; // Current peeked event if any.
 
-      ::json_stream impl_[1];
+      ::pdjson_stream impl_[1];
 
       // Cached raw value.
       //

@@ -35,9 +35,10 @@ namespace butl
     inline parser::
     parser (std::istream& is,
             const std::string& n,
+            language l,
             bool mv,
             const char* sep) noexcept
-        : parser (is, n.c_str (), mv, sep)
+        : parser (is, n.c_str (), l, mv, sep)
     {
     }
 
@@ -45,46 +46,73 @@ namespace butl
     parser (const void* t,
             std::size_t s,
             const std::string& n,
+            language l,
             bool mv,
             const char* sep) noexcept
-        : parser (t, s, n.c_str (), mv, sep)
+        : parser (t, s, n.c_str (), l, mv, sep)
     {
     }
 
     inline parser::
     parser (const std::string& t,
             const std::string& n,
+            language l,
             bool mv,
             const char* sep) noexcept
-        : parser (t.data (), t.size (), n.c_str (), mv, sep)
+        : parser (t.data (), t.size (), n.c_str (), l, mv, sep)
     {
     }
 
     inline parser::
     parser (const std::string& t,
             const char* n,
+            language l,
             bool mv,
             const char* sep) noexcept
-        : parser (t.data (), t.size (), n, mv, sep)
+        : parser (t.data (), t.size (), n, l, mv, sep)
     {
     }
 
     inline parser::
     parser (const char* t,
             const std::string& n,
+            language l,
             bool mv,
             const char* sep) noexcept
-        : parser (t, std::strlen (t), n.c_str (), mv, sep)
+        : parser (t, std::strlen (t), n.c_str (), l, mv, sep)
     {
     }
 
     inline parser::
     parser (const char* t,
             const char* n,
+            language l,
             bool mv,
             const char* sep) noexcept
-        : parser (t, std::strlen (t), n, mv, sep)
+        : parser (t, std::strlen (t), n, l, mv, sep)
     {
+    }
+
+    inline optional<event> parser::
+    translate (pdjson_type e) const noexcept
+    {
+      switch (e)
+      {
+      case PDJSON_DONE:       return nullopt;
+      case PDJSON_OBJECT:     return event::begin_object;
+      case PDJSON_OBJECT_END: return event::end_object;
+      case PDJSON_ARRAY:      return event::begin_array;
+      case PDJSON_ARRAY_END:  return event::end_array;
+      case PDJSON_NAME:       return event::name;
+      case PDJSON_STRING:     return event::string;
+      case PDJSON_NUMBER:     return event::number;
+      case PDJSON_TRUE:       return event::boolean;
+      case PDJSON_FALSE:      return event::boolean;
+      case PDJSON_NULL:       return event::null;
+      case PDJSON_ERROR:      assert (false); // Handled by caller.
+      }
+
+      return nullopt; // Should never reach.
     }
 
     inline const std::string& parser::
