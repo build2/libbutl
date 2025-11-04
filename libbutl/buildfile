@@ -32,7 +32,7 @@ lib{butl}: hxx{mingw-*}: include = $mingw_stdthread
 # Our C-files are always included into C++-files that wrap the corresponding
 # API so treat them as files to exclude from the compilation.
 #
-lib{butl}: file{**.c **.h -byte-order.h}
+lib{butl}: file{**.c} file{**.h -byte-order.h}
 
 # Platform-specific UUID implementations.
 #
