@@ -1,3 +1,8 @@
+# Test executables.
+#
 driver
-test/
-test-*/
+
+# Testscript output directories (can be symlinks).
+#
+test
+test-*
