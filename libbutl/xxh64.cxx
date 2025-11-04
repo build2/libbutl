@@ -3,8 +3,9 @@
 
 #include <libbutl/xxh64.hxx>
 
-// @@ TODO: define endian (and in lz4.cxx)
+#include <libbutl/byte-order.h>
 
+#define XXH_CPU_LITTLE_ENDIAN (BYTE_ORDER == LITTLE_ENDIAN)
 #define XXH_PRIVATE_API // Makes API static and includes xxhash.c.
 #include "xxhash.h"
 

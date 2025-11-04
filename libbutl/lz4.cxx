@@ -533,6 +533,9 @@ namespace butl
 // This header is only include in the implementation so we can include it
 // here instead of the above.
 //
+#include <libbutl/byte-order.h>
+
+#define XXH_CPU_LITTLE_ENDIAN (BYTE_ORDER == LITTLE_ENDIAN)
 #define XXH_PRIVATE_API // Makes API static and includes xxhash.c.
 #include "xxhash.h"
 
