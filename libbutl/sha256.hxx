@@ -51,7 +51,8 @@ namespace butl
     sha256 (const char* s): sha256 () {append (s);}
 
     // Append an integral type with a fast path optimization (see
-    // SHA256_Update() for details).
+    // SHA256_Update() for details). Note that the resulting hash will be
+    // endian'ness-dependent.
     //
     void
     append (char c)
@@ -76,7 +77,7 @@ namespace butl
 
       if (len < 64 - r)
       {
-        std::memcpy (&ctx_.buf[r], &x, sizeof (x));
+        std::memcpy (&ctx_.buf[r], &x, len);
         ctx_.count += len << 3;
       }
       else
