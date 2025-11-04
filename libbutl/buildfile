@@ -6,7 +6,8 @@ lib{butl}: {hxx ixx txx cxx}{** -uuid-* +uuid-io         \
                                 -mingw-*                 \
                                 -version                 \
                                 -builtin-options}        \
-           {hxx}{version} {hxx ixx cxx}{builtin-options}
+           {hxx}{version} {hxx ixx cxx}{builtin-options} \
+           h{byte-order}
 
 tclass = $cxx.target.class
 tsys   = $cxx.target.system
@@ -31,7 +32,7 @@ lib{butl}: hxx{mingw-*}: include = $mingw_stdthread
 # Our C-files are always included into C++-files that wrap the corresponding
 # API so treat them as files to exclude from the compilation.
 #
-lib{butl}: file{**.c **.h}
+lib{butl}: file{**.c} file{**.h -byte-order.h}
 
 # Platform-specific UUID implementations.
 #
