@@ -13,13 +13,31 @@ $* foo bar >"foo bar"
 
 : big
 :
-: Echo a big string (about 100K) to test that the builtin is asynchronous.
+: Echo a big string (about 250K) to test that the builtin is asynchronous.
 :
 {
   s="--------------------------------"
   s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s"
   s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s"
   s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s"
-  test.options += -i # Pass the echo argument via the driver's stdin.
-  $* <"$s" | cat >"$s"
+  s="$s$s"
+
+  # Pass the echo argument via the driver's stdin.
+  #
+  test.options += -i
+
+  # Sleep for 2 seconds before executing `cat` builtin to make sure that
+  # `echo` builtin falls back to asynchronous implementation.
+  #
+  $* <"$s" | $0 -s 2 "cat" >"$s"
+
+  $* <<"EOI" | $0 -s 2 "cat" >"foo $s bar"
+    foo
+    $s
+    bar
+    EOI
 }
+
+: empty
+:
+$* >''

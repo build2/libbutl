@@ -21,6 +21,8 @@
 #include <chrono>
 #include <cerrno>
 #include <memory>       // unique_ptr
+#include <utility>      // pair
+#include <cstddef>      // size_t
 #include <cassert>
 #include <ostream>
 #include <sstream>
@@ -53,8 +55,11 @@
 // pipes without being blocked on I/O operations. However, as an optimization,
 // we allow builtins that only print diagnostics to STDERR to be synchronous
 // assuming that their output will always fit the pipe buffer. Synchronous
-// builtins must not read from STDIN and write to STDOUT. Later we may relax
-// this rule to allow a "short" output for such builtins.
+// builtins must not read from STDIN and write to STDOUT. Also, a builtin
+// implementation may choose to start synchronously using non-blocking mode
+// for streams and, if unable to complete without waiting for the data, fall
+// back to processing of the remaining data asynchronously. We will call such
+// implementations semi-synchronous.
 //
 using namespace std;
 
@@ -67,6 +72,45 @@ namespace butl
                                 auto_fd in, auto_fd out, auto_fd err,
                                 const dir_path& cwd,
                                 const builtin_callbacks&);
+
+  // Run builtin function asynchronously.
+  //
+  // Note that the fn argument can be either a full implementation of an
+  // asynchronous builtin or an asynchronous part of a semi-synchronous
+  // builtin. In the latter case it normally embeds the current processing
+  // state, left by the synchronous part.
+  //
+  template <typename F>
+  static inline builtin
+  run_async (uint8_t& r, F fn, optional<size_t> max_stack)
+  {
+#ifndef _WIN32
+    // Retry to create the thread after the "resource temporarily unavailable"
+    // (EAGAIN) failure for 1050ms.
+    //
+    for (size_t i (0);; ++i)
+    try
+#endif
+    {
+      unique_ptr<builtin::async_state> s (
+        new builtin::async_state (r, move (fn), max_stack));
+
+      return builtin (r, move (s));
+    }
+#ifndef _WIN32
+    catch (const system_error& e)
+    {
+      if (i != 15                                      &&
+          e.code ().category () == generic_category () &&
+          e.code ().value () == EAGAIN)
+      {
+        this_thread::sleep_for (i * 10ms);
+      }
+      else
+        throw;
+    }
+#endif
+  }
 
   // Operation failed, diagnostics has already been issued.
   //
@@ -755,7 +799,7 @@ namespace butl
         path src (parse_path (move (*i++), wd, fail));
 
         // If there are multiple sources but no trailing separator for the
-        // destination, then, most likelly, it is missing.
+        // destination, then, most likely, it is missing.
         //
         if (i != e)
           fail () << "multiple source paths without trailing separator for "
@@ -927,13 +971,32 @@ namespace butl
 
   // echo <string>...
   //
-  // Note: must be executed asynchronously.
+  // Note that in the common case the data which needs to be printed by echo
+  // builtin is small enough to fit the pipe buffer. It feels like a waste to
+  // always start a separate thread for every builtin call. Thus, we implement
+  // this builtin as semi-synchronous on POSIX and asynchronous on Windows,
+  // where it is not always possible to turn a file descriptor into
+  // non-blocking mode (see fdstream.cxx for details).
+  //
+  // Specifically, for the semi-synchronous implementation, we try to print as
+  // many arguments as we can synchronously and, if not all the data can be
+  // printed without waiting, we print the remaining data asynchronously. For
+  // the sake of implementation simplicity, we will always print a sequence of
+  // "<argument string><terminating character>" sequences, where a terminating
+  // character is either a newline (last argument) or a space (first or
+  // intermediate argument). We will also reduce the `no arguments` case to
+  // the `single empty argument` case.
+  //
+
+  // Common implementation of the asynchronous version of the builtin for
+  // Windows and the asynchronous part of the semi-synchronous version of it
+  // for POSIX.
   //
   static uint8_t
-  echo (const strings& args,
-        auto_fd in, auto_fd out, auto_fd err,
-        const dir_path&,
-        const builtin_callbacks&) noexcept
+  echo_ (const strings& args, pair<size_t, size_t> args_offset,
+         auto_fd in, auto_fd out, auto_fd err,
+         const dir_path&,
+         const builtin_callbacks&) noexcept
   try
   {
     uint8_t r (1);
@@ -944,10 +1007,32 @@ namespace butl
       in.close ();
       ofdstream cout (out != nullfd ? move (out) : fddup (stdout_fd ()));
 
-      for (auto b (args.begin ()), i (b), e (args.end ()); i != e; ++i)
-        cout << (i != b ? " " : "") << *i;
+      const string* as (args.data ());
+      size_t an (args.size ());
 
-      cout << '\n';
+      string empty;
+      if (an == 0)
+      {
+        as = &empty;
+        an = 1;
+      }
+
+      assert (args_offset.first < an); // Wouldn't be here otherwise.
+
+      for (size_t i (args_offset.first); i != an; ++i)
+      {
+        const string& a (as[i]);
+
+        size_t offset (i == args_offset.first ? args_offset.second : 0);
+
+        // Note: offset == a.size () if the argument string is already printed
+        // in full, but the argument-terminating character is not printed yet.
+        //
+        assert (offset <= a.size ());
+
+        cout << (a.c_str () + offset) << (i == an - 1 ? '\n' : ' ');
+      }
+
       cout.close ();
       r = 0;
     }
@@ -969,6 +1054,128 @@ namespace butl
   {
     return 1;
   }
+
+#ifndef _WIN32
+
+  // Semi-synchronous implementation.
+  //
+  static builtin
+  echo (uint8_t& r,
+        const strings& args,
+        auto_fd in, auto_fd out, auto_fd err,
+        const dir_path& cwd,
+        const builtin_callbacks& cbs,
+        optional<size_t> max_stack)
+  {
+    // Turn the output stream into the non-blocking mode. Note that we expect
+    // that initially this stream is in the blocking mode and throw
+    // std::system_error if that's not the case.
+    //
+    // Note that here and below we rely on the fact that std::ios::failure
+    // (may potentially be thrown by fdmode() and auto_fd::close()) is derived
+    // from std::system_error.
+    //
+    int fd (out != nullfd ? out.get () : stdout_fd ());
+    fdstream_mode prev_mode (fdmode (fd, fdstream_mode::non_blocking));
+
+    if ((prev_mode & fdstream_mode::blocking) != fdstream_mode::blocking)
+      throw_generic_error (EINVAL, "output stream is in non-blocking mode");
+
+    pair<size_t, size_t> args_offset;
+
+    const string* as (args.data ());
+    size_t an (args.size ());
+
+    string empty;
+    if (an == 0)
+    {
+      as = &empty;
+      an = 1;
+    }
+
+    for (size_t& i (args_offset.first); i != an; ++i)
+    {
+      const string& a (as[i]);
+      size_t n (a.size ());
+
+      // Try to write the whole argument.
+      //
+      streamsize wr (n != 0 ? fdwrite (fd, a.c_str (), n) : 0); // Doesn't throw.
+
+      // Fallback to asynchronous implementation if unable to write both the
+      // argument and the argument-terminating character. Record the position
+      // where we left off.
+      //
+      args_offset.second = 0;
+
+      if (wr == -1) // Error occured?
+        break;
+
+      args_offset.second = static_cast<size_t> (wr);
+
+      if (args_offset.second != n) // Partial write?
+        break;
+
+      // Try to write the argument-terminating character.
+      //
+      // Note that the successful write of this character is indicated by
+      // incrementing the args_offset.first position (via the 'i' reference).
+      //
+      char c (i == an - 1 ? '\n' : ' ');
+      wr = fdwrite (fd, &c, 1); // Doesn't throw.
+
+      if (wr != 1) // Unable to write the argument-terminating character?
+        break;
+    }
+
+    // Always turn the output stream back into the blocking mode, even if we
+    // are going to close it now. Note that this mode may be a part of the
+    // file information shared between all the related file descriptors.
+    //
+    fdmode (fd, fdstream_mode::blocking);
+
+    // If we are done printing, then close the streams and return the result.
+    // Otherwise, fallback to asynchronous implementation.
+    //
+    if (args_offset.first == an)
+    {
+      in.close ();
+      out.close ();
+      err.close ();
+
+      return builtin (r = 0);
+    }
+
+    return run_async (r,
+                      [&args, args_offset,
+                       in = move (in), out = move (out), err = move (err),
+                       &cwd,
+                       &cbs] () mutable noexcept -> uint8_t
+                      {
+                        return echo_ (args, args_offset,
+                                      move (in), move (out), move (err),
+                                      cwd,
+                                      cbs);
+                      },
+                      max_stack);
+  }
+
+#else
+
+  // Thunk for asynchronous implementation.
+  //
+  static uint8_t
+  echo (const strings& args,
+        auto_fd in, auto_fd out, auto_fd err,
+        const dir_path& cwd,
+        const builtin_callbacks& cbs) noexcept
+  {
+    return echo_ (args, {} /* args_offset */,
+                  move (in), move (out), move (err),
+                  cwd,
+                  cbs);
+  }
+#endif
 
   // false
   //
@@ -1552,7 +1759,7 @@ namespace butl
         path target (parse_path (move (*i++), sym ? dir_path () : wd, fail));
 
         // If there are multiple targets but no trailing separator for the
-        // link, then, most likelly, it is missing.
+        // link, then, most likely, it is missing.
         //
         if (i != e)
           fail () << "multiple target paths with non-directory link path";
@@ -1836,7 +2043,7 @@ namespace butl
         path src (parse_path (move (*i++), wd, fail));
 
         // If there are multiple sources but no trailing separator for the
-        // destination, then, most likelly, it is missing.
+        // destination, then, most likely, it is missing.
         //
         if (i != e)
           fail () << "multiple source paths without trailing separator for "
@@ -1949,7 +2156,7 @@ namespace butl
               fail () << "'" << p << "' is a directory";
 
             // The call can result in rmdir_status::not_exist. That's not very
-            // likelly but there is also nothing bad about it.
+            // likely but there is also nothing bad about it.
             //
             try_rmdir_r (d);
           }
@@ -2734,45 +2941,19 @@ namespace butl
               const builtin_callbacks& cbs,
               optional<size_t> max_stack)
   {
-#ifndef _WIN32
-    // Retry to create the thread after the "resource temporarily unavailable"
-    // (EAGAIN) failure for 1050ms.
-    //
-    for (size_t i (0);; ++i)
-    try
-#endif
-    {
-      unique_ptr<builtin::async_state> s (
-        new builtin::async_state (
-          r,
-          [fn,
-           &args,
-           in = move (in), out = move (out), err = move (err),
-           &cwd,
-           &cbs] () mutable noexcept -> uint8_t
-          {
-            return fn (args,
-                       move (in), move (out), move (err),
-                       cwd,
-                       cbs);
-          },
-          max_stack));
-
-      return builtin (r, move (s));
-    }
-#ifndef _WIN32
-    catch (const system_error& e)
-    {
-      if (i != 15                                      &&
-          e.code ().category () == generic_category () &&
-          e.code ().value () == EAGAIN)
-      {
-        this_thread::sleep_for (i * 10ms);
-      }
-      else
-        throw;
-    }
-#endif
+    return run_async (r,
+                      [fn,
+                       &args,
+                       in = move (in), out = move (out), err = move (err),
+                       &cwd,
+                       &cbs] () mutable noexcept -> uint8_t
+                      {
+                        return fn (args,
+                                   move (in), move (out), move (err),
+                                   cwd,
+                                   cbs);
+                      },
+                      max_stack);
   }
 
   template <builtin_impl fn>
@@ -2877,13 +3058,19 @@ namespace butl
     return builtin (r);
   }
 
+  // builtin
+  //
   const builtin_map builtins
   {
     {"cat",       {&async_impl<&cat>,       2}},
     {"cp",        {&sync_impl<&cp>,         2}},
     {"date",      {&async_impl<&date>,      2}},
     {"diff",      {nullptr,                 2}},
+#ifndef _WIN32
+    {"echo",      {&echo,                   2}}, // Semi-synchronous.
+#else
     {"echo",      {&async_impl<&echo>,      2}},
+#endif
     {"false",     {&false_,                 0}},
     {"find",      {&async_impl<&find>,      2}},
     {"ln",        {&sync_impl<&ln>,         2}},
@@ -2899,8 +3086,6 @@ namespace butl
     {"true",      {&true_,                  0}}
   };
 
-  // builtin
-  //
   uint8_t builtin::
   wait ()
   {

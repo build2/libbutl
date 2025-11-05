@@ -1799,7 +1799,7 @@ namespace butl
     }
     else
     {
-       r |= fdstream_mode::blocking;
+      r |= fdstream_mode::blocking;
     }
 
     return r;
