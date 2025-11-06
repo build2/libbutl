@@ -16,6 +16,9 @@ namespace butl
 {
   // SHA256 checksum calculator.
   //
+  // Note that if you don't need a cryptographic hash, rather use the much
+  // faster XXH64.
+  //
   // For a single chunk of data a sum can be obtained in one line, for
   // example:
   //
@@ -109,6 +112,9 @@ namespace butl
     //
     // It can be obtained as either a 32-byte binary digest or as a 64-
     // character hex-encoded C-string.
+    //
+    // Note that the binary and string representations are returned as
+    // references to the state of the sha256 instance.
     //
     using digest_type = std::uint8_t[32];
 

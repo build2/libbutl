@@ -49,6 +49,7 @@ main ()
   {
     xxh64 h ("123");
     assert (string (h.string ()) == "b7585f4d63630bd5");
+    assert (string (h.string ()) == xxh64::string ("123").data ());
   }
 
   {

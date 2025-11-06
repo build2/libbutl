@@ -19,12 +19,57 @@ using namespace std;
 
 namespace butl
 {
+  static const char hex_map[16] =
+  {
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+    'a', 'b', 'c', 'd', 'e', 'f'
+  };
+
+  static inline void
+  hex_encode (const uint8_t* b, char* s)
+  {
+    for (size_t i (0); i != 8; ++i)
+    {
+      s[i * 2]     = hex_map[b[i] >> 4];
+      s[i * 2 + 1] = hex_map[b[i] & 0x0f];
+    }
+
+    s[16] = '\0';
+  }
+
+  uint64_t xxh64::
+  hash (const void* b, size_t n)
+  {
+    return static_cast<uint64_t> (XXH64 (b, n, 0 /* seed */));
+  }
+
+  array<uint8_t, 8> xxh64::
+  binary (const void* b, size_t n)
+  {
+    array<uint8_t, 8> r;
+    XXH64_canonicalFromHash (reinterpret_cast<XXH64_canonical_t*> (r.data ()),
+                             XXH64 (b, n, 0 /* seed */));
+    return r;
+  }
+
+  array<char, 17> xxh64::
+  string (const void* b, size_t n)
+  {
+    array<uint8_t, 8> r;
+    XXH64_canonicalFromHash (reinterpret_cast<XXH64_canonical_t*> (r.data ()),
+                             XXH64 (b, n, 0 /* seed */));
+
+    array<char, 17> s;
+    hex_encode (r.data (), s.data ());
+    return s;
+  }
+
   void xxh64::
   reset ()
   {
     // Note: does not fail even though returns XXH_errorcode.
     //
-    XXH64_reset (reinterpret_cast<XXH64_state_t*> (buf_), 0);
+    XXH64_reset (reinterpret_cast<XXH64_state_t*> (buf_), 0 /* seed */);
     done_ = false;
     empty_ = true;
   }
@@ -85,24 +130,13 @@ namespace butl
     return bin_;
   }
 
-  static const char hex_map[16] = {
-    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-    'a', 'b', 'c', 'd', 'e', 'f'};
-
   const char* xxh64::
   string () const
   {
     if (!done_ || buf_[0] == '\0')
     {
       binary ();
-
-      for (size_t i (0); i != 8; ++i)
-      {
-        buf_[i * 2]     = hex_map[bin_[i] >> 4];
-        buf_[i * 2 + 1] = hex_map[bin_[i] & 0x0f];
-      }
-
-      buf_[16] = '\0';
+      hex_encode (bin_, buf_);
     }
 
     return buf_;

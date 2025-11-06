@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <array>
 #include <string>
 #include <iosfwd>      // istream
 #include <cstddef>     // size_t
@@ -21,8 +22,53 @@ namespace butl
   //
   // cerr << xxh64 ("123").string () << endl;
   //
+  // Or, using the faster stateless API:
+  //
+  // cerr << xxh64::string ("123").data () << endl;
+  //
   class LIBBUTL_SYMEXPORT xxh64
   {
+    // Fast one-shot stateless API.
+    //
+  public:
+    // The result can be obtained as either a uint64_t number, an 8-byte
+    // canonical binary representation (the same for LE/BE) or as a
+    // 16-character hex-encoded C-string (of the canonical binary
+    // representation).
+    //
+    static std::uint64_t
+    hash (const void*, std::size_t);
+
+    // Note that the hash of a string includes the '\0' terminator. Failed
+    // that, a call with an empty string will be indistinguishable from no
+    // call at all.
+    //
+    static std::uint64_t
+    hash (const std::string& s) {return hash (s.c_str (), s.size () + 1);}
+
+    static std::uint64_t
+    hash (const char* s) {return hash (s, std::strlen (s) + 1);}
+
+    static std::array<std::uint8_t, 8>
+    binary (const void*, std::size_t);
+
+    static std::array<std::uint8_t, 8>
+    binary (const std::string& s) {return binary (s.c_str (), s.size () + 1);}
+
+    static std::array<std::uint8_t, 8>
+    binary (const char* s) {return binary (s, std::strlen (s) + 1);}
+
+    static std::array<char, 17>
+    string (const void*, std::size_t);
+
+    static std::array<char, 17>
+    string (const std::string& s) {return string (s.c_str (), s.size () + 1);}
+
+    static std::array<char, 17>
+    string (const char* s) {return string (s, std::strlen (s) + 1);}
+
+    // Incremental stateful API.
+    //
   public:
     xxh64 () {reset ();}
 
@@ -105,11 +151,10 @@ namespace butl
     void
     reset ();
 
-    // Extract result.
+    // Extract result (see the one-shot API above for details).
     //
-    // It can be obtained as either a uint64_t number, an 8-byte canonical
-    // binary representation (the same for LE/BE) or as a 16-character
-    // hex-encoded C-string (of the canonical binary representation).
+    // Note that the binary and string representations are returned as
+    // references to the state of the xxh64 instance.
     //
     using digest_type = std::uint8_t[8];
 

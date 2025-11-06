@@ -75,6 +75,9 @@ namespace butl
     // It can be obtained as either a 20-byte binary digest or as a 40-
     // character hex-encoded C-string.
     //
+    // Note that the binary and string representations are returned as
+    // references to the state of the sha1 instance.
+    //
     using digest_type = std::uint8_t[20];
 
     const digest_type&
