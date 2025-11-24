@@ -1,0 +1,83 @@
+# file      : tests/builtin/xxh64sum.testscript
+# license   : MIT; see accompanying LICENSE file
+
+posix = ($cxx.target.class != 'windows')
+
+test.arguments = "xxh64sum"
+
+: unknown-option
+:
+$* -u 2>"xxh64sum: unknown option '-u'" == 1
+
+: in
+:
+$* <<EOI >>EOO
+  foo
+  bar
+  EOI
+  00010abd5af45a9f  -
+  EOO
+
+: file
+:
+cat <<EOI >=out;
+  foo
+  bar
+  EOI
+$* out >>EOO
+  00010abd5af45a9f  out
+  EOO
+
+: sum-only
+:
+cat <<EOI | $* --sum-only >>EOO
+  foo
+  bar
+  EOI
+  00010abd5af45a9f
+  EOO
+
+: in-repeat
+:
+$* - - <<EOI >>EOO
+  foo
+  bar
+  EOI
+  00010abd5af45a9f  -
+  ef46db3751d8e999  -
+  EOO
+
+: non-existent
+:
+$* in 2>>/~%EOE% != 0
+  %xxh64sum: unable to calculate checksum of '.+/in': .+%
+  EOE
+
+: big
+:
+: Process a big file (about 100K) to test that the builtin is asynchronous.
+:
+{
+  s="--------------------------------"
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s"
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s"
+  s="$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s$s"
+  $* <"$s" >>EOO
+  861d26a3ee095660  -
+  EOO
+}
+
+: binary
+:
+{
+  cat <<EOI >=out
+    foo
+    bar
+    EOI
+
+  cs = ($posix ? '00010abd5af45a9f' : 'cb9da13bb0dd2968')
+
+  $* -b out >>"EOO"
+    $cs *out
+    EOO
+}

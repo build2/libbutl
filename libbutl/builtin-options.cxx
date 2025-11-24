@@ -3160,18 +3160,18 @@ namespace butl
     return r;
   }
 
-  // sha256sum_options
+  // checksum_options
   //
 
-  sha256sum_options::
-  sha256sum_options ()
+  checksum_options::
+  checksum_options ()
   : binary_ (),
     text_ (),
     sum_only_ ()
   {
   }
 
-  bool sha256sum_options::
+  bool checksum_options::
   parse (int& argc,
          char** argv,
          bool erase,
@@ -3183,7 +3183,7 @@ namespace butl
     return r;
   }
 
-  bool sha256sum_options::
+  bool checksum_options::
   parse (int start,
          int& argc,
          char** argv,
@@ -3196,7 +3196,7 @@ namespace butl
     return r;
   }
 
-  bool sha256sum_options::
+  bool checksum_options::
   parse (int& argc,
          char** argv,
          int& end,
@@ -3210,7 +3210,7 @@ namespace butl
     return r;
   }
 
-  bool sha256sum_options::
+  bool checksum_options::
   parse (int start,
          int& argc,
          char** argv,
@@ -3225,7 +3225,7 @@ namespace butl
     return r;
   }
 
-  bool sha256sum_options::
+  bool checksum_options::
   parse (::butl::cli::scanner& s,
          ::butl::cli::unknown_mode opt,
          ::butl::cli::unknown_mode arg)
@@ -3235,36 +3235,36 @@ namespace butl
   }
 
   typedef
-  std::map<std::string, void (*) (sha256sum_options&, ::butl::cli::scanner&)>
-  _cli_sha256sum_options_map;
+  std::map<std::string, void (*) (checksum_options&, ::butl::cli::scanner&)>
+  _cli_checksum_options_map;
 
-  static _cli_sha256sum_options_map _cli_sha256sum_options_map_;
+  static _cli_checksum_options_map _cli_checksum_options_map_;
 
-  struct _cli_sha256sum_options_map_init
+  struct _cli_checksum_options_map_init
   {
-    _cli_sha256sum_options_map_init ()
+    _cli_checksum_options_map_init ()
     {
-      _cli_sha256sum_options_map_["--binary"] =
-      &::butl::cli::thunk< sha256sum_options, &sha256sum_options::binary_ >;
-      _cli_sha256sum_options_map_["-b"] =
-      &::butl::cli::thunk< sha256sum_options, &sha256sum_options::binary_ >;
-      _cli_sha256sum_options_map_["--text"] =
-      &::butl::cli::thunk< sha256sum_options, &sha256sum_options::text_ >;
-      _cli_sha256sum_options_map_["-t"] =
-      &::butl::cli::thunk< sha256sum_options, &sha256sum_options::text_ >;
-      _cli_sha256sum_options_map_["--sum-only"] =
-      &::butl::cli::thunk< sha256sum_options, &sha256sum_options::sum_only_ >;
+      _cli_checksum_options_map_["--binary"] =
+      &::butl::cli::thunk< checksum_options, &checksum_options::binary_ >;
+      _cli_checksum_options_map_["-b"] =
+      &::butl::cli::thunk< checksum_options, &checksum_options::binary_ >;
+      _cli_checksum_options_map_["--text"] =
+      &::butl::cli::thunk< checksum_options, &checksum_options::text_ >;
+      _cli_checksum_options_map_["-t"] =
+      &::butl::cli::thunk< checksum_options, &checksum_options::text_ >;
+      _cli_checksum_options_map_["--sum-only"] =
+      &::butl::cli::thunk< checksum_options, &checksum_options::sum_only_ >;
     }
   };
 
-  static _cli_sha256sum_options_map_init _cli_sha256sum_options_map_init_;
+  static _cli_checksum_options_map_init _cli_checksum_options_map_init_;
 
-  bool sha256sum_options::
+  bool checksum_options::
   _parse (const char* o, ::butl::cli::scanner& s)
   {
-    _cli_sha256sum_options_map::const_iterator i (_cli_sha256sum_options_map_.find (o));
+    _cli_checksum_options_map::const_iterator i (_cli_checksum_options_map_.find (o));
 
-    if (i != _cli_sha256sum_options_map_.end ())
+    if (i != _cli_checksum_options_map_.end ())
     {
       (*(i->second)) (*this, s);
       return true;
@@ -3273,7 +3273,7 @@ namespace butl
     return false;
   }
 
-  bool sha256sum_options::
+  bool checksum_options::
   _parse (::butl::cli::scanner& s,
           ::butl::cli::unknown_mode opt_mode,
           ::butl::cli::unknown_mode arg_mode)

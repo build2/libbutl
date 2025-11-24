@@ -274,22 +274,22 @@ namespace butl
     return this->expression_specified_;
   }
 
-  // sha256sum_options
+  // checksum_options
   //
 
-  inline const bool& sha256sum_options::
+  inline const bool& checksum_options::
   binary () const
   {
     return this->binary_;
   }
 
-  inline const bool& sha256sum_options::
+  inline const bool& checksum_options::
   text () const
   {
     return this->text_;
   }
 
-  inline const bool& sha256sum_options::
+  inline const bool& checksum_options::
   sum_only () const
   {
     return this->sum_only_;

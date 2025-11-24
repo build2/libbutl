@@ -36,6 +36,7 @@
 #endif
 
 #include <libbutl/regex.hxx>
+#include <libbutl/xxh64.hxx>
 #include <libbutl/sha256.hxx>
 #include <libbutl/path-io.hxx>
 #include <libbutl/utility.hxx>      // operator<<(ostream,exception),
@@ -471,31 +472,30 @@ namespace butl
   }
 
   // sha256sum [(-b|--binary)|(-t|--text)] [--sum-only] <file>...
+  // xxh64sum  [(-b|--binary)|(-t|--text)] [--sum-only] <file>...
   //
-  // Note that after I/O operation failure the original GNU's implementation
-  // issues diagnostics but proceeds with the rest of the arguments. The
-  // current implementation exits immediately in such a case.
+  // Common implementation of the sha256sum and xxh64sum builtins.
   //
-  // Also note that the original implementation only considers the last
-  // -b|--binary or -t|--text option specified on the command line. The
-  // current implementation issues diagnostics and returns with non-zero code
-  // if these options are both specified.
+  // Note that all the checksum builtins follow the sha256sum builtin in
+  // regards to the command line interface, output format, and error handling.
   //
-  // Note: must be executed asynchronously.
+  // Also note that the name argument is only used for diagnostics.
   //
+  template <typename C>
   static uint8_t
-  sha256sum (const strings& args,
-             auto_fd in, auto_fd out, auto_fd err,
-             const dir_path& cwd,
-             const builtin_callbacks& cbs) noexcept
+  checksum (const strings& args,
+            auto_fd in, auto_fd out, auto_fd err,
+            const dir_path& cwd,
+            const builtin_callbacks& cbs,
+            const char* name) noexcept
   try
   {
     uint8_t r (1);
     ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
 
-    auto error = [&cerr] (bool fail = false)
+    auto error = [&cerr, name] (bool fail = false)
     {
-      return error_record (cerr, fail, "sha256sum");
+      return error_record (cerr, fail, name);
     };
 
     auto fail = [&error] () {return error (true /* fail */);};
@@ -506,8 +506,8 @@ namespace butl
       //
       cli::vector_scanner scan (args);
 
-      sha256sum_options ops (
-        parse<sha256sum_options> (scan, args, cbs.parse_option, fail));
+      checksum_options ops (
+        parse<checksum_options> (scan, args, cbs.parse_option, fail));
 
       if (ops.binary () && ops.text ())
         fail () << "both -b|--binary and -t|--text specified";
@@ -518,7 +518,7 @@ namespace butl
         in != nullfd ? move (in) : fddup (stdin_fd ()),
         ops.binary () ? fdstream_mode::binary : fdstream_mode::text);
 
-      // Calculate SHA256 checksums of the specified files and print them to
+      // Calculate the checksums of the specified files and print them to
       // stdout. Unless --sum-only is specified, also print on the checksum
       // lines the respective file paths and a character which indicates the
       // input mode (see sha256sum(1) for details).
@@ -526,7 +526,7 @@ namespace butl
 
       // Print the checksum line to stdout.
       //
-      auto prn = [&cout, &ops] (sha256&& cs, const string& f)
+      auto prn = [&cout, &ops] (C&& cs, const string& f)
       {
         cout << cs.string ();
 
@@ -541,7 +541,7 @@ namespace butl
       //
       auto sum = [&prn] (istream& is, const string& f)
       {
-        prn (sha256 (is), f);
+        prn (C (is), f);
       };
 
       // Path of a file being processed. An empty path represents stdin. Used
@@ -571,12 +571,13 @@ namespace butl
             p.clear ();
 
             // If checksum of stdin is already printed, then print checksum of
-            // an empty stream, as the original implementation does.
+            // an empty stream, as the original sha256sum(1) implementation
+            // does.
             //
             if (!cin.eof ())
               sum (cin, f);
             else
-              prn (sha256 (), f);
+              prn (C (), f);
 
             continue;
           }
@@ -632,6 +633,50 @@ namespace butl
   catch (const std::exception&)
   {
     return 1;
+  }
+
+  // sha256sum [(-b|--binary)|(-t|--text)] [--sum-only] <file>...
+  //
+  // Note that after I/O operation failure the original GNU's implementation
+  // issues diagnostics but proceeds with the rest of the arguments. The
+  // current implementation exits immediately in such a case.
+  //
+  // Also note that the original implementation only considers the last
+  // -b|--binary or -t|--text option specified on the command line. The
+  // current implementation issues diagnostics and returns with non-zero code
+  // if these options are both specified.
+  //
+  // Note: must be executed asynchronously.
+  //
+  static uint8_t
+  sha256sum (const strings& args,
+             auto_fd in, auto_fd out, auto_fd err,
+             const dir_path& cwd,
+             const builtin_callbacks& cbs) noexcept
+  {
+    return checksum<sha256> (
+      args, move (in), move (out), move (err), cwd, cbs, "sha256sum");
+  }
+
+  // xxh64sum [(-b|--binary)|(-t|--text)] [--sum-only] <file>...
+  //
+  // The noticeable deviations from the xxh64sum utility are:
+  //
+  // - Use of '-' instead of 'stdin' while printing a path for stdin stream.
+  // - Support for text mode (-t|--text option) and using it by default.
+  // - Marking files read in the binary mode with '*' instead of ' '.
+  // - No support for the --little-endian option.
+  //
+  // Note: must be executed asynchronously.
+  //
+  static uint8_t
+  xxh64sum (const strings& args,
+            auto_fd in, auto_fd out, auto_fd err,
+            const dir_path& cwd,
+            const builtin_callbacks& cbs) noexcept
+  {
+    return checksum<xxh64> (
+      args, move (in), move (out), move (err), cwd, cbs, "xxh64sum");
   }
 
   // Make a copy of a file at the specified path, preserving permissions, and
@@ -3083,7 +3128,8 @@ namespace butl
     {"sleep",     {&sync_impl<&sleep>,      1}},
     {"test",      {&sync_impl<&test>,       1}},
     {"touch",     {&sync_impl<&touch>,      2}},
-    {"true",      {&true_,                  0}}
+    {"true",      {&true_,                  0}},
+    {"xxh64sum",  {&async_impl<&xxh64sum>,  2}}
   };
 
   uint8_t builtin::

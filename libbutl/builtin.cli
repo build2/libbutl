@@ -72,7 +72,9 @@ namespace butl
     std::vector<std::string> --expression|-e;
   };
 
-  class sha256sum_options
+  // Common options of the sha256sum and xxh64sum builtins.
+  //
+  class checksum_options
   {
     bool --binary|-b;
     bool --text|-t;

@@ -951,10 +951,10 @@ namespace butl
     bool expression_specified_;
   };
 
-  class sha256sum_options
+  class checksum_options
   {
     public:
-    sha256sum_options ();
+    checksum_options ();
 
     // Return true if anything has been parsed.
     //
