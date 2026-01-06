@@ -121,7 +121,7 @@ else
 
 # Generated options parser.
 #
-if $cli.configured
+if $cli.build.configured
 {
   cli.cxx{builtin-options}: cli{builtin}
 
