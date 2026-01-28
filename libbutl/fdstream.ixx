@@ -287,6 +287,20 @@ namespace butl
     return fdopen (f.string (), m, p);
   }
 
+  // fdopen_fifo()
+  //
+  inline void
+  fdopen_fifo (const std::string& f, permissions p)
+  {
+    fdopen_fifo (f.c_str (), p);
+  }
+
+  inline void
+  fdopen_fifo (const path& f, permissions p)
+  {
+    fdopen_fifo (f.string (), p);
+  }
+
   // fdstream_mode
   //
   inline fdstream_mode

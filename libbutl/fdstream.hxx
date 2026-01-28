@@ -875,6 +875,33 @@ namespace butl
   LIBBUTL_SYMEXPORT fdpipe
   fdopen_pipe (fdopen_mode = fdopen_mode::none);
 
+
+  // Create a named pipe (FIFO) at the specified path.
+  //
+  // See fdopen() for details on permissions.
+  //
+  // Once the named pipe is created, it can be opened for reading and/or
+  // writing with fdopen(). Note that this operation may block until the pipe
+  // is also opened for the other operation. See fifo(7) for details.
+  //
+  LIBBUTL_SYMEXPORT void
+  fdopen_fifo (const char*,
+               permissions = permissions::ru | permissions::wu |
+                             permissions::rg | permissions::wg |
+                             permissions::ro | permissions::wo);
+
+  void
+  fdopen_fifo (const std::string&,
+               permissions = permissions::ru | permissions::wu |
+                             permissions::rg | permissions::wg |
+                             permissions::ro | permissions::wo);
+
+  void
+  fdopen_fifo (const path&,
+               permissions = permissions::ru | permissions::wu |
+                             permissions::rg | permissions::wg |
+                             permissions::ro | permissions::wo);
+
   // Seeking.
   //
   enum class fdseek_mode {set, cur, end};

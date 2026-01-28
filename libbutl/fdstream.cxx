@@ -10,7 +10,7 @@
 #  include <unistd.h>     // close(), read(), write(), lseek(), dup(), pipe(),
                           // ftruncate(), isatty(), ssize_t, STD*_FILENO
 #  include <sys/uio.h>    // writev(), iovec
-#  include <sys/stat.h>   // stat(), fstat(), S_I*
+#  include <sys/stat.h>   // stat(), fstat(), S_I*, mkfifo()
 #  include <sys/time.h>   // timeval
 #  include <sys/types.h>  // stat, off_t
 #  include <sys/select.h>
@@ -1238,6 +1238,35 @@ namespace butl
     }
 
     return auto_fd (fd);
+  }
+
+  void
+  fdopen_fifo (
+#ifndef _WIN32
+    const char* f,
+#else
+    const char*,
+#endif
+    permissions p)
+  {
+    mode_t pf (S_IREAD | S_IWRITE | S_IEXEC);
+
+#ifdef S_IRWXG
+    pf |= S_IRWXG;
+#endif
+
+#ifdef S_IRWXO
+    pf |= S_IRWXO;
+#endif
+
+    pf &= static_cast<mode_t> (p);
+
+#ifndef _WIN32
+    if (mkfifo (f, pf) != 0)
+      throw_generic_ios_failure (errno);
+#else
+    throw_generic_ios_failure (ENOSYS);
+#endif
   }
 
   uint64_t
