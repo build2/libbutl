@@ -246,8 +246,12 @@ namespace butl
     P path;
     bool active;
 
+    auto_rm (): active (false) {}
+
     explicit
-    auto_rm (P p = P (), bool a = true): path (std::move (p)), active (a) {}
+    auto_rm (P p): path (std::move (p)), active (!path.empty ()) {}
+
+    auto_rm (P p, bool a): path (std::move (p)), active (a) {}
 
     void
     cancel () {active = false;}

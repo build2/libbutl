@@ -95,11 +95,11 @@ namespace butl
 
   template <>
   inline auto_rm<path>::
-  ~auto_rm () {if (active && !path.empty ()) try_rmfile (path, true);}
+  ~auto_rm () {if (active) try_rmfile (path, true);}
 
   template <>
   inline auto_rm<dir_path>::
-  ~auto_rm () {if (active && !path.empty ()) try_rmdir_r (path, true);}
+  ~auto_rm () {if (active) try_rmdir_r (path, true);}
 
   // cpflags
   //
