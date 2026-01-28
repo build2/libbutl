@@ -1081,6 +1081,9 @@ namespace butl
     of |= O_LARGEFILE;
 #endif
 
+    if (mode (fdopen_mode::non_blocking))
+      of |= O_NONBLOCK;
+
     // Unlike other platforms, *BSD allows opening a directory as a file which
     // will cause all kinds of problems upstream (e.g., cpfile()). So we
     // detect and diagnose this. Note: not certain this is the case for NetBSD
@@ -1096,7 +1099,7 @@ namespace butl
 
     int fd (open (f, of | O_CLOEXEC, pf));
 
-#else
+#else // _WIN32
 
     if (in && out)
       of |= _O_RDWR;
@@ -1123,6 +1126,12 @@ namespace butl
     }
 
     of |= mode (fdopen_mode::binary) ? _O_BINARY : _O_TEXT;
+
+    // On Windows non-blocking mode is currently only supported for anonymous
+    // popes, which are opened with fdopen_pipe().
+    //
+    if (mode (fdopen_mode::non_blocking))
+      throw_generic_ios_failure (ENOSYS);
 
     // According to Microsoft _sopen() should not change the permissions of an
     // existing file. However it does if we pass them (reproduced on Windows
@@ -1591,18 +1600,18 @@ namespace butl
   }
 
   streamsize
-  fdread (int fd, void* buf, size_t n)
+  fdread (int fd, void* buf, size_t n) noexcept
   {
-    return read (fd, buf, n);
+    return ::read (fd, buf, n);
   }
 
   streamsize
-  fdwrite (int fd, const void* buf, size_t n)
+  fdwrite (int fd, const void* buf, size_t n) noexcept
   {
-    return write (fd, buf, n);
+    return ::write (fd, buf, n);
   }
 
-#else
+#else // _WIN32
 
   auto_fd
   fddup (int fd)
@@ -2174,7 +2183,7 @@ namespace butl
   }
 
   streamsize
-  fdread (int fd, void* buf, size_t n)
+  fdread (int fd, void* buf, size_t n) noexcept
   {
     // The _read() call fails with the EINVAL errno code either because
     // something is wrong with the arguments or there is no data to read from
@@ -2211,7 +2220,7 @@ namespace butl
   }
 
   streamsize
-  fdwrite (int fd, const void* buf, size_t n)
+  fdwrite (int fd, const void* buf, size_t n) noexcept
   {
     return _write (fd, buf, static_cast<unsigned int> (n));
   }

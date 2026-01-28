@@ -293,14 +293,15 @@ namespace butl
   //
   enum class fdopen_mode: std::uint16_t
   {
-    in         = 0x01, // Open for reading.
-    out        = 0x02, // Open for writing.
-    append     = 0x04, // Seek to the end of file before each write.
-    truncate   = 0x08, // Discard the file contents on open.
-    create     = 0x10, // Create a file if not exists.
-    exclusive  = 0x20, // Fail if the file exists and the create flag is set.
-    binary     = 0x40, // Set binary translation mode.
-    at_end     = 0x80, // Seek to the end of stream immediately after open.
+    in           = 0x001, // Open for reading.
+    out          = 0x002, // Open for writing.
+    append       = 0x004, // Seek to the end of file before each write.
+    truncate     = 0x008, // Discard the file contents on open.
+    create       = 0x010, // Create a file if not exists.
+    exclusive    = 0x020, // Fail if the file exists and the create flag is set.
+    binary       = 0x040, // Set binary translation mode.
+    at_end       = 0x080, // Seek to the end of stream immediately after open.
+    non_blocking = 0x100, // Open in the non-blocking mode.
 
     none = 0           // Usefull when building the mode incrementally.
   };
@@ -730,14 +731,14 @@ namespace butl
                         permissions::rg | permissions::wg |
                         permissions::ro | permissions::wo);
 
-  LIBBUTL_SYMEXPORT auto_fd
+  auto_fd
   fdopen (const std::string&,
           fdopen_mode,
           permissions = permissions::ru | permissions::wu |
                         permissions::rg | permissions::wg |
                         permissions::ro | permissions::wo);
 
-  LIBBUTL_SYMEXPORT auto_fd
+  auto_fd
   fdopen (const path&,
           fdopen_mode,
           permissions = permissions::ru | permissions::wu |
@@ -978,19 +979,21 @@ namespace butl
     return fdselect (ifds, ofds, timeout).second;
   }
 
-  // POSIX read() function wrapper. In particular, it supports the semantics
-  // of non-blocking read for pipes on Windows.
+  // POSIX read() function wrapper. Note that it does not translate errors
+  // to exceptions, instead leaving them in errno.
   //
-  // Note that on Wine currently pipes always behave as blocking regardless of
-  // the mode.
+  // In particular, this function supports the semantics of non-blocking read
+  // for pipes on Windows. Note, however, that on Wine currently pipes always
+  // behave as blocking regardless of the mode.
   //
   LIBBUTL_SYMEXPORT std::streamsize
-  fdread (int, void*, std::size_t);
+  fdread (int, void*, std::size_t) noexcept;
 
-  // POSIX write() function wrapper, for uniformity.
+  // POSIX write() function wrapper, for uniformity. Note that it does not
+  // translate errors to exceptions, instead leaving them in errno.
   //
   LIBBUTL_SYMEXPORT std::streamsize
-  fdwrite (int, const void*, std::size_t);
+  fdwrite (int, const void*, std::size_t) noexcept;
 }
 
 #include <libbutl/fdstream.ixx>
