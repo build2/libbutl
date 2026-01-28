@@ -1244,11 +1244,14 @@ namespace butl
   fdopen_fifo (
 #ifndef _WIN32
     const char* f,
+    permissions p
 #else
     const char*,
+    permissions
 #endif
-    permissions p)
+  )
   {
+#ifndef _WIN32
     mode_t pf (S_IREAD | S_IWRITE | S_IEXEC);
 
 #ifdef S_IRWXG
@@ -1261,7 +1264,6 @@ namespace butl
 
     pf &= static_cast<mode_t> (p);
 
-#ifndef _WIN32
     if (mkfifo (f, pf) != 0)
       throw_generic_ios_failure (errno);
 #else
