@@ -7,7 +7,8 @@
 
 #ifndef _WIN32
 #  include <stdlib.h>    // getenv(), setenv(), unsetenv()
-#  include <signal.h>    // SIG*, kill()
+#  include <signal.h>    // SIG*, kill(), sigemptyset(), sigfillset(),
+                         // pthread_sigmask(), sigaction()
 #  include <unistd.h>    // execvp, fork, dup2, pipe, chdir, *_FILENO, getpid
 #  include <sys/wait.h>  // waitpid
 #  include <sys/types.h> // _stat
@@ -67,6 +68,21 @@
 #  ifdef LIBBUTL_POSIX_SPAWN
 #    include <spawn.h>
 #  endif
+
+// _NSIG is Linux-specific but *BSD and MacOS appear to have NSIG/_NSIG.
+//
+#  if defined(__FreeBSD__) || \
+      defined(__OpenBSD__) || \
+      defined(__NetBSD__)  || \
+      defined(__APPLE__)
+#    ifndef _NSIG
+#      ifdef NSIG
+#        define _NSIG NSIG
+#      else
+#        error neither _NSIG nor NSIG defined
+#      endif
+#    endif
+#  endif
 #else // _WIN32
 #  include <libbutl/win32-utility.hxx>
 
@@ -96,7 +112,8 @@
 
 #include <ios>      // ios_base::failure
 #include <memory>   // unique_ptr
-#include <cstring>  // strlen(), strchr(), strpbrk(), str[n]cmp(), strncpy()
+#include <cstring>  // strlen(), strchr(), strpbrk(), str[n]cmp(), strncpy(),
+                    // memset()
 #include <utility>  // move()
 #include <ostream>
 #include <cassert>
@@ -555,18 +572,21 @@ namespace butl
     if (cwd == nullptr || *cwd == '\0') // Not changing CWD.
 #endif
     {
+      // Reimplement the child process housekeeping actions of the fork-based
+      // implementation (see below) into the equivalent file action sequence
+      // and the child process attributes for the posix_spawn() call.
+      //
       auto fail = [] (int error) {throw process_error (error);};
 
       // Setup the file-related actions to be performed in the child process.
       // Note that the actions will be performed in the order they are set up.
       //
       posix_spawn_file_actions_t fa;
-      int r (posix_spawn_file_actions_init (&fa));
-      if (r != 0)
+      if (int r = posix_spawn_file_actions_init (&fa))
         fail (r);
 
       unique_ptr<posix_spawn_file_actions_t,
-                 void (*)(posix_spawn_file_actions_t*)> deleter (
+                 void (*)(posix_spawn_file_actions_t*)> fa_deleter (
         &fa,
         [] (posix_spawn_file_actions_t* fa)
         {
@@ -581,10 +601,6 @@ namespace butl
 
       // Redirect the standard streams.
       //
-      // Note that here we convert the child process housekeeping actions for
-      // the fork-based implementation (see below) into the file action
-      // sequence for the posix_spawn() call.
-      //
       auto duplicate = [&fa, &fail] (int sd, int fd, fdpipe& pd)
       {
         if (fd == -1 || fd == -2)
@@ -592,8 +608,7 @@ namespace butl
 
         assert (fd > -1);
 
-        int r (posix_spawn_file_actions_adddup2 (&fa, fd, sd));
-        if (r != 0)
+        if (int r = posix_spawn_file_actions_adddup2 (&fa, fd, sd))
           fail (r);
 
         auto reset = [&fa, &fail] (const auto_fd& fd)
@@ -627,13 +642,67 @@ namespace butl
           duplicate (STDERR_FILENO, err, in_efd);
       }
 
+      // Prepare the attributes for the child process.
+      //
+      posix_spawnattr_t attr;
+      if (int r = posix_spawnattr_init (&attr))
+        fail (r);
+
+      unique_ptr<posix_spawnattr_t,
+                 void (*)(posix_spawnattr_t*)> attr_deleter (
+        &attr,
+        [] (posix_spawnattr_t* attr)
+        {
+          int r (posix_spawnattr_destroy (attr));
+
+          // The only possible error for posix_spawnattr_destroy() is EINVAL,
+          // which shouldn't happen unless something is severely broken.
+          //
+          assert (r == 0);
+        });
+
+      // For the child process reset to the default handlers the signals with
+      // the overridden handlers. Note that by default the custom handlers
+      // stay inherited by the child process until it calls exec() and the
+      // ignored ones even after the call.
+      //
+      short flags (0);
+      {
+        sigset_t sigdef;
+        sigfillset (&sigdef);
+
+        if (int r = posix_spawnattr_setsigdefault (&attr, &sigdef))
+          fail (r);
+
+        flags |= POSIX_SPAWN_SETSIGDEF;
+      }
+
+      // Also, for the child process unblock all the signals that may
+      // potentially be blocked in the current thread. Note that by default,
+      // the blocked signals are inherited by the child process and stays as
+      // such after the child process calls exec().
+      //
+      {
+        sigset_t sigmask;
+        sigemptyset (&sigmask);
+
+        if (int r = posix_spawnattr_setsigmask (&attr, &sigmask))
+          fail (r);
+
+        flags |= POSIX_SPAWN_SETSIGMASK;
+      }
+
+      if (int r = posix_spawnattr_setflags (&attr, flags))
+        fail (r);
+
       // Change the current working directory if requested.
       //
 #ifdef LIBBUTL_POSIX_SPAWN_CHDIR
-      if (cwd != nullptr &&
-          *cwd != '\0'   &&
-          (r = LIBBUTL_POSIX_SPAWN_CHDIR (&fa, cwd)) != 0)
-        fail (r);
+      if (cwd != nullptr && *cwd != '\0')
+      {
+        if (int r = LIBBUTL_POSIX_SPAWN_CHDIR (&fa, cwd))
+          fail (r);
+      }
 #endif
 
       // Set/unset the child process environment variables if requested.
@@ -692,14 +761,14 @@ namespace butl
         // code below): due to the process_spawn_mutex lock the execution of
         // the script is delayed until the child closes the descriptor.
         //
-        r = posix_spawn (&handle,
-                         pp.effect_string (),
-                         &fa,
-                         nullptr /* attrp */,
-                         const_cast<char* const*> (&args[0]),
-                         new_env.empty ()
-                         ? environ
-                         : const_cast<char* const*> (new_env.data ()));
+        int r (posix_spawn (&handle,
+                            pp.effect_string (),
+                            &fa,
+                            &attr,
+                            const_cast<char* const*> (&args[0]),
+                            (new_env.empty ()
+                             ? environ
+                             : const_cast<char* const*> (new_env.data ()))));
 
         l.unlock (); // Release the lock in parent.
 
@@ -737,8 +806,39 @@ namespace butl
       //
       ulock l (process_spawn_mutex); // Note: should not be released in child.
 
+      // For the child process unblock all the signals and reset to the
+      // default handlers the signals with the overridden handlers.
+      //
+      // Note that the signal mask (list of currently blocked signals for the
+      // current thread) and the overridden handlers (shared by all the
+      // threads) are inherited by the child process started by fork(). The
+      // blocked and ignored signals stays inherited even after the exec()
+      // call. We, however, will make sure that none of that is inherited by
+      // the child at any stage. The overall plan is as follows:
+      //
+      // 1. In the current process stash the current signal mask and block the
+      //    currently unblocked signals.
+      //
+      // 2. In the child process reset all the signals to the default handlers
+      //    and unblock them afterwards.
+      //
+      // 3. In the current process, after the fork() call, restore the signal
+      //    mask.
+      //
       for (size_t i (0);; ++i)
       {
+        // Block all the signals and stash the current (per-thread) signal
+        // mask.
+        //
+        sigset_t prev_sigblock;
+        {
+          sigset_t sigblock;
+          sigfillset (&sigblock);
+
+          if (int r = pthread_sigmask (SIG_SETMASK, &sigblock, &prev_sigblock))
+            fail (r);
+        }
+
         // Note that the file descriptors with the FD_CLOEXEC flag stay open
         // in the child process between fork() and exec() calls. This may
         // cause the "text file busy" issue: if some other thread creates a
@@ -750,20 +850,37 @@ namespace butl
         //
         handle = fork ();
 
-        if (handle != 0) // Parent.
+        // Note that POSIX doesn't specify whether pthread_sigmask() (called
+        // below) changes errno or not. Thus, let's stash it for good measure.
+        //
+        int err (errno);
+
+        if (handle != 0) // Parent?
+        {
           l.unlock ();
+
+          // Unblock the signals we have blocked previously.
+          //
+          // Note that it is not necessary to do that under the mutex lock,
+          // since the mask is local for the current thread and there is no
+          // reason (unless something is severely damaged) for the above
+          // ulock::unlock() call to throw.
+          //
+          if (int r = pthread_sigmask (SIG_SETMASK, &prev_sigblock, nullptr))
+            fail (r);
+        }
 
         if (handle != -1)
           break;
 
-        if (i != 15 && errno == EAGAIN)
+        if (i != 15 && err == EAGAIN)
         {
           this_thread::sleep_for (i * 10ms);
           l.lock ();
         }
         else
           fail (false /* child */);
-      } // Release the lock in parent.
+      }
 
       if (handle == 0)
       {
@@ -772,6 +889,42 @@ namespace butl
         // NOTE: make sure not to call anything that may acquire a mutex that
         //       could be already acquired in another thread, most notably
         //       malloc(). @@ What about exceptions (all the fail() calls)?
+
+        // Reset all the signals to the default handlers and unblock them.
+        //
+        // Note that sigaction(), sigfillset(), and pthread_sigmask() are all
+        // async signal-safe while malloc() is not. That, in particular, means
+        // that the former may not use malloc().
+        {
+          // Reset handlers for all the signals.
+          //
+          // There doesn't seem to be any portable way to iterate over the
+          // valid signal numbers. The most commonly recommended way is to
+          // just iterate over integers in the [1, _NSIG) range. Let's however
+          // ignore the sigaction() errors since there is no guarantee that
+          // all these numbers are valid signals.
+          //
+          struct sigaction sa;
+          memset (&sa, 0, sizeof (sa));
+          sigemptyset (&sa.sa_mask);
+          sa.sa_handler = SIG_DFL;
+
+          for (int s (1); s != _NSIG; ++s)
+          {
+            // Skip the signals which cannot be overridden.
+            //
+            if (s != SIGKILL && s != SIGSTOP)
+              sigaction (s, &sa, nullptr /* oldact */); // Ignore errors.
+          }
+
+          // Unblock all the signals.
+          //
+          sigset_t sigunblock;
+          sigfillset (&sigunblock);
+
+          if (int r = pthread_sigmask (SIG_UNBLOCK, &sigunblock, nullptr))
+            fail (r);
+        }
 
         // Duplicate the user-supplied (fd > -1) or the created pipe descriptor
         // to the standard stream descriptor (read end for STDIN_FILENO, write
@@ -896,7 +1049,7 @@ namespace butl
 
         fail (true /* child */);
       }
-    }
+    }  // Release the lock in parent.
 #endif // LIBBUTL_POSIX_SPAWN_CHDIR
 
     assert (handle != 0); // Shouldn't get here unless in the parent process.
