@@ -101,6 +101,9 @@ if! $sys_sqlite
 
     if ($c.id == 'gcc' && $c.version.major >= 14)
       c.coptions += -Wno-stringop-overread
+
+    if ($c.id == 'gcc' && $c.version.major >= 16)
+      c.coptions += -Wno-dangling-pointer
   }
 
   if! $windows
