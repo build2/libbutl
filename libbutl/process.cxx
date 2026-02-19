@@ -8,7 +8,8 @@
 #ifndef _WIN32
 #  include <stdlib.h>    // getenv(), setenv(), unsetenv()
 #  include <signal.h>    // SIG*, kill(), sigemptyset(), sigfillset(),
-                         // pthread_sigmask(), sigaction()
+                         // sigismember(), pthread_sigmask(), sigaction(),
+                         // sigpending()
 #  include <unistd.h>    // execvp, fork, dup2, pipe, chdir, *_FILENO, getpid
 #  include <sys/wait.h>  // waitpid
 #  include <sys/types.h> // _stat
@@ -1059,6 +1060,28 @@ namespace butl
     this->in_efd = move (in_efd.in);
   }
 
+  // Wait while the specified signal is pending for the current process.
+  //
+  static void
+  wait_pending_signal (int sig)
+  {
+    while (true)
+    {
+      sigset_t sigmask;
+      sigemptyset (&sigmask);
+
+      if (sigpending (&sigmask) != 0)
+        throw process_error (errno);
+
+      if (sigismember (&sigmask, sig) == 0)
+        break;
+
+      // Sleep for 10 microseconds before the next iteration.
+      //
+      this_thread::sleep_for (10us);
+    }
+  }
+
   bool process::
   wait (bool ie)
   {
@@ -1084,7 +1107,46 @@ namespace butl
           throw process_error (errno);
       }
       else
+      {
         exit = process_exit (es, process_exit::as_status);
+
+        // If the child process terminated abnormally due to the SIGINT or
+        // SIGTERM signal, then wait if/while this signal stays pending for
+        // the parent process.
+        //
+        // The idea here is that if the child process was terminated due to
+        // such a signal, it's likely that the same signal will be received by
+        // the parent process as well. The reason for such an assumption is
+        // that these signals are normally sent for the whole process group
+        // (SIGINT by the terminal on Ctrl+C, etc). Note that while the
+        // signals are delivered to the group's processes simultaneously, they
+        // are handled by these processes with random delays in arbitrary
+        // order. This causes a race condition, when the parent process may
+        // complain on the abnormally terminated children before being
+        // terminated itself due to the same signal. This normally happens
+        // when the parent process installs a custom signal handler which
+        // performs some cleanups before terminating the process. Thus, to
+        // decrease the probability of such an unwanted (though perfectly
+        // valid) scenario, we will wait while the signal which terminated the
+        // child process stays pending for the parent. Here we assume that
+        // from the moment the signal stopped being pending, the execution of
+        // the signal handler begins and it's now the handler's responsibility
+        // to prevent the described scenario (it, for example, may disable
+        // issuing diagnostics before starting cleanups, etc).
+        //
+        // Note, however, that since that "passing of responsibility" is not
+        // atomic, the implemented approach doesn't resolve the problem
+        // completely but, as it was said above, just decreases the
+        // probability of the unwanted scenario.
+        //
+        if (!exit->normal ())
+        {
+          int s (exit->signal ());
+
+          if (s == SIGINT || s == SIGTERM)
+            wait_pending_signal (s);
+        }
+      }
     }
 
     return exit && exit->normal () && exit->code () == 0;
@@ -1107,6 +1169,18 @@ namespace butl
         throw process_error (errno);
 
       exit = process_exit (es, process_exit::as_status);
+
+      // If the child process terminated abnormally due to the SIGINT or
+      // SIGTERM signal, then wait while this signal stays pending (see above
+      // for the reasoning)
+      //
+      if (!exit->normal ())
+      {
+        int s (exit->signal ());
+
+        if (s == SIGINT || s == SIGTERM)
+          wait_pending_signal (s);
+      }
     }
 
     return exit ? static_cast<bool> (*exit) : optional<bool> ();
