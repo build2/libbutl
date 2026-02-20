@@ -37,6 +37,12 @@ cat <<EOI | $* --sum-only >>EOO
   00010abd5af45a9f
   EOO
 
+: empty
+:
+$* - <:'' >>EOO
+  ef46db3751d8e999  -
+  EOO
+
 : in-repeat
 :
 $* - - <<EOI >>EOO

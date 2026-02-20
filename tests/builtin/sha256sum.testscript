@@ -46,6 +46,12 @@ cat <<EOI | $* --sum-only >>EOO
   d78931fcf2660108eec0d6674ecb4e02401b5256a6b5ee82527766ef6d198c67
   EOO
 
+: empty
+:
+$* - <:'' >>EOO
+  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  -
+  EOO
+
 : in-repeat
 :
 $* - - <<EOI >>EOO
