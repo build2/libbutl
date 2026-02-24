@@ -31,7 +31,14 @@ namespace butl
   get (std::string* what) -> xchar
   {
     if (ungetn_ != 0)
-      return ungetb_[--ungetn_];
+    {
+      const xchar& uc (ungetb_[--ungetn_]);
+
+      if (save_ != nullptr && !eos (uc))
+        save_->push_back (static_cast<char_type> (uc));
+
+      return uc;
+    }
     else
     {
       xchar c (peek (what));
@@ -64,6 +71,13 @@ namespace butl
     assert (ungetn_ != N); // Make sure the buffer is not filled.
 
     ungetb_[ungetn_++] = c;
+
+    if (save_ != nullptr && !eos (c))
+    {
+      assert (!save_->empty ()); // By definition.
+
+      save_->pop_back ();
+    }
   }
 
   template <typename V, std::size_t N>

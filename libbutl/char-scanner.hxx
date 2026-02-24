@@ -131,6 +131,10 @@ namespace butl
     void
     get (const xchar& peeked); // Get previously peeked character (faster).
 
+    // If the save_* facility is enabled, then the function cannot be called
+    // for characters got before the facility was enabled (see save_* facility
+    // for the reasoning).
+    //
     void
     unget (const xchar&);
 
@@ -162,6 +166,11 @@ namespace butl
 
     // Ability to save raw data as it is being scanned. Note that the
     // character is only saved when it is got, not peeked.
+    //
+    // Also note that if the save_* facility is enabled, then unget() strips
+    // the last saved character from the save_ buffer and get(), if returns an
+    // ungot character, saves it back. Thus, as a consequence, it is not
+    // allowed to unget characters got before the facility was enabled.
     //
   public:
     void

@@ -29,7 +29,7 @@ namespace butl
   auto char_scanner<V, N>::
   peek (std::string* what) -> xchar
   {
-    if (ungetn_ > 0)
+    if (ungetn_ != 0)
       return ungetb_[ungetn_ - 1];
 
     if (unpeek_)
@@ -111,8 +111,13 @@ namespace butl
   void char_scanner<V, N>::
   get (const xchar& c)
   {
-    if (ungetn_ > 0)
+    if (ungetn_ != 0)
+    {
       --ungetn_;
+
+      if (save_ != nullptr && !eos (c))
+        save_->push_back (static_cast<char_type> (c));
+    }
     else
     {
       if (unpeek_)
