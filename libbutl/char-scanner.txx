@@ -111,18 +111,7 @@ namespace butl
   void char_scanner<V, N>::
   get (const xchar& c)
   {
-    if (ungetn_ != 0)
-    {
-      const unget_char& uc (ungetb_[--ungetn_]);
-
-      line     = uc.scanner_line;
-      column   = uc.scanner_column;
-      position = uc.scanner_position;
-
-      if (save_ != nullptr && !eos (c))
-        save_->push_back (static_cast<char_type> (c));
-    }
-    else
+    if (ungetn_ == 0)
     {
       if (unpeek_)
       {
@@ -149,6 +138,17 @@ namespace butl
 
         position = pos_ ();
       }
+    }
+    else
+    {
+      const unget_char& uc (ungetb_[--ungetn_]);
+
+      line     = uc.scanner_line;
+      column   = uc.scanner_column;
+      position = uc.scanner_position;
+
+      if (save_ != nullptr && !eos (c))
+        save_->push_back (static_cast<char_type> (c));
     }
   }
 }

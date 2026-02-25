@@ -30,25 +30,23 @@ namespace butl
   inline auto char_scanner<V, N>::
   get (std::string* what) -> xchar
   {
-    if (ungetn_ != 0)
-    {
-      const unget_char& uc (ungetb_[--ungetn_]);
-
-      line     = uc.scanner_line;
-      column   = uc.scanner_column;
-      position = uc.scanner_position;
-
-      if (save_ != nullptr && !eos (uc))
-        save_->push_back (static_cast<char_type> (uc));
-
-      return uc;
-    }
-    else
+    if (ungetn_ == 0)
     {
       xchar c (peek (what));
       get (c);
       return c;
     }
+
+    const unget_char& uc (ungetb_[--ungetn_]);
+
+    line     = uc.scanner_line;
+    column   = uc.scanner_column;
+    position = uc.scanner_position;
+
+    if (save_ != nullptr && !eos (uc))
+      save_->push_back (static_cast<char_type> (uc));
+
+    return uc;
   }
 
   template <typename V, std::size_t N>
