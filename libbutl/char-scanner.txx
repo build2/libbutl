@@ -113,7 +113,11 @@ namespace butl
   {
     if (ungetn_ != 0)
     {
-      --ungetn_;
+      const unget_char& uc (ungetb_[--ungetn_]);
+
+      line     = uc.scanner_line;
+      column   = uc.scanner_column;
+      position = uc.scanner_position;
 
       if (save_ != nullptr && !eos (c))
         save_->push_back (static_cast<char_type> (c));

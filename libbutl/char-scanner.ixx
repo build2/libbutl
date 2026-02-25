@@ -32,7 +32,11 @@ namespace butl
   {
     if (ungetn_ != 0)
     {
-      const xchar& uc (ungetb_[--ungetn_]);
+      const unget_char& uc (ungetb_[--ungetn_]);
+
+      line     = uc.scanner_line;
+      column   = uc.scanner_column;
+      position = uc.scanner_position;
 
       if (save_ != nullptr && !eos (uc))
         save_->push_back (static_cast<char_type> (uc));
@@ -70,7 +74,11 @@ namespace butl
     //
     assert (ungetn_ != N); // Make sure the buffer is not filled.
 
-    ungetb_[ungetn_++] = c;
+    ungetb_[ungetn_++] = unget_char (c, line, column, position);
+
+    line = c.line;
+    column = c.column;
+    position = c.position;
 
     if (save_ != nullptr && !eos (c))
     {

@@ -245,8 +245,37 @@ namespace butl
     bool crlf_;
     bool eos_ = false;
 
+    // Unget buffer.
+    //
+    // Extend xchar with the position counters the scanner needs to be
+    // restored to when get() returns a previously ungot character.
+    //
+    struct unget_char: xchar
+    {
+      // Scanner's position at the time of unget(). Refers to the position
+      // which follows the ungot character position in the stream.
+      //
+      std::uint64_t scanner_line;
+      std::uint64_t scanner_column;
+      std::uint64_t scanner_position;
+
+      unget_char ()
+          : scanner_line (0),
+            scanner_column (0),
+            scanner_position (0) {}
+
+      unget_char (xchar xc,
+                  std::uint64_t sl,
+                  std::uint64_t sc,
+                  std::uint64_t sp)
+          : xchar (xc),
+            scanner_line (sl),
+            scanner_column (sc),
+            scanner_position (sp) {}
+    };
+
     std::size_t ungetn_ = 0;
-    xchar ungetb_[N];
+    unget_char ungetb_[N];
 
     bool unpeek_ = false;
     xchar unpeekc_ = '\0';
