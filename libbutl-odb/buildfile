@@ -49,7 +49,9 @@ if! $sys_sqlite
     # @@ TMP: add -DSQLITE_DQS=0, -DSQLITE_OMIT_DEPRECATED=1
     # @@ TODO: maybe use -DSQLITE_OMIT_AUTOINIT?
 
-    # Omit -DSQLITE_ENABLE_RTREE=1, -DSQLITE_ENABLE_GEOPOLY=1: unused & warnings.
+    # Omit -DSQLITE_ENABLE_RTREE=1,
+    #      -DSQLITE_ENABLE_GEOPOLY=1: unused & warnings,
+    #      -DSQLITE_ENABLE_SESSION: unused & warnings.
     #
     c.poptions += \
       -DSQLITE_ALLOW_ROWID_IN_VIEW=1 \
@@ -66,7 +68,6 @@ if! $sys_sqlite
       -DSQLITE_ENABLE_LOAD_EXTENSION=1 \
       -DSQLITE_ENABLE_MATH_FUNCTIONS=1 \
       -DSQLITE_ENABLE_PREUPDATE_HOOK=1 \
-      -DSQLITE_ENABLE_SESSION=1 \
       -DSQLITE_ENABLE_STMTVTAB=1 \
       -DSQLITE_ENABLE_UPDATE_DELETE_LIMIT=1 \
       -DSQLITE_LIKE_DOESNT_MATCH_BLOBS=1 \
