@@ -3034,6 +3034,10 @@ namespace butl
             sizeof(void*) * LIBBUTL_BUILTIN_DEFAULT_STACK_SIZE)
 #endif
 
+#ifndef LIBBUTL_BUILTIN_MIN_STACK_SIZE
+#  define LIBBUTL_BUILTIN_MIN_STACK_SIZE 1048576 // 1MB
+#endif
+
     size_t stack_size;
     {
       // Don't forget to update #if condition in builtin.hxx when adding the
@@ -3074,7 +3078,13 @@ namespace butl
 #endif
     }
 
-    // Cap the size if necessary.
+    // Clamp the size if necessary.
+    //
+    if (stack_size < LIBBUTL_BUILTIN_MIN_STACK_SIZE)
+      stack_size = LIBBUTL_BUILTIN_MIN_STACK_SIZE;
+
+    // Note that --max-stack can be used set the stack size below
+    // LIBBUTL_BUILTIN_MIN_STACK_SIZE
     //
     if (max_stack)
     {
