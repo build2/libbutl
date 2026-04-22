@@ -9,7 +9,6 @@
 #include <functional> // hash
 
 #include <libbutl/export.hxx>
-#include <libbutl/version.hxx>
 
 #ifdef _WIN32
 struct _GUID; // GUID and UUID.
