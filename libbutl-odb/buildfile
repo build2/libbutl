@@ -30,8 +30,8 @@ objs{*}: cxx.poptions += -DLIBODB_SHARED_BUILD -DLIBODB_SQLITE_SHARED_BUILD
 
 if! $sys_sqlite
 {
-  # Note: copy of libsqlite3/buildfile except for SQLITE_THREADSAFE=0,
-  # -DSQLITE_OMIT_SHARED_CACHE, and removed ENABLE_UNLOCK_NOTIFY=1.
+  # Note: copy of libsqlite3/buildfile except with some changes to the SQLite
+  # configuration below.
   #
   # We also add -Wno-unused-variable and -Wno-unused-but-set-variable.
   #
@@ -46,10 +46,14 @@ if! $sys_sqlite
 
   sqlite/
   {
-    # @@ TMP: add -DSQLITE_DQS=0, -DSQLITE_OMIT_DEPRECATED=1
-    # @@ TODO: maybe use -DSQLITE_OMIT_AUTOINIT?
-
-    # Omit -DSQLITE_ENABLE_RTREE=1, -DSQLITE_ENABLE_GEOPOLY=1: unused & warnings.
+    # Changes compared to the upstream configuration:
+    #
+    # -DSQLITE_THREADSAFE=0
+    # -DSQLITE_OMIT_SHARED_CACHE=1
+    # -DSQLITE_DQS=0
+    # -DSQLITE_OMIT_DEPRECATED=1
+    # no -DENABLE_UNLOCK_NOTIFY=1
+    # no -DSQLITE_ENABLE_RTREE=1 -DSQLITE_ENABLE_GEOPOLY=1 (unused & warnings)
     #
     c.poptions += \
       -DSQLITE_ALLOW_ROWID_IN_VIEW=1 \
@@ -77,7 +81,9 @@ if! $sys_sqlite
       -DSQLITE_SOUNDEX=1 \
       -DSQLITE_THREADSAFE=0 \
       -DSQLITE_USE_URI=1 \
-      -DSQLITE_OMIT_SHARED_CACHE=1
+      -DSQLITE_OMIT_SHARED_CACHE=1 \
+      -DSQLITE_DQS=0 \
+      -DSQLITE_OMIT_DEPRECATED=1
 
     c.poptions += -DSQLITE_MAX_ATTACHED=125
 
