@@ -86,6 +86,14 @@ main ()
                 "x86_64-linux-gnu",
                 "x86_64", "", "linux-gnu", "", "linux"));
 
+  assert (test ("x86_64-alpine-linux-musl",
+                "x86_64-alpine-linux-musl",
+                "x86_64", "alpine", "linux-musl", "", "linux"));
+
+  assert (test ("x86_64-linux-musl",
+                "x86_64-linux-musl",
+                "x86_64", "", "linux-musl", "", "linux"));
+
   assert (test ("x86_64-redhat-linux",
                 "x86_64-redhat-linux-gnu",
                 "x86_64", "redhat", "linux-gnu", "", "linux"));
