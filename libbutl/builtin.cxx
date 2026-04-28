@@ -11,6 +11,9 @@
 #    include <sys/signal.h>
 #    include <pthread_np.h> // pthread_stackseg_np()
 #  endif
+#  ifdef __MUSL__
+#    include <sys/resource.h> // getrlimit()
+#  endif
 #endif
 
 #ifdef _WIN32
@@ -3040,6 +3043,7 @@ namespace butl
       // stack size customization for a new platforms/compilers.
       //
 #ifdef __linux__
+#  ifndef __MUSL__
       // Note that the attributes must not be initialized.
       //
       pthread_attr_t attr;
@@ -3049,7 +3053,16 @@ namespace butl
       unique_ptr<pthread_attr_t, pthread_attr_deleter> ad (&attr);
       if (int r = pthread_attr_getstacksize (&attr, &stack_size))
         throw_system_error (r);
+#  else
+      // Musl's pthread_getattr_np() reports bogus stack size (GH issue #526)
+      // so use getrlimit(RLIMIT_STACK) as a workaround.
+      //
+      struct rlimit stack_rlimit;
+      if (getrlimit (RLIMIT_STACK, &stack_rlimit) != 0)
+        throw_generic_error (errno);
 
+      stack_size = static_cast<size_t> (stack_rlimit.rlim_cur);
+#  endif
 #elif defined(__FreeBSD__) || defined(__NetBSD__)
       pthread_attr_t attr;
       if (int r = pthread_attr_init (&attr))
