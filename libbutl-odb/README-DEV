@@ -1,10 +1,7 @@
 Excluded/replaced/relocated ODB upstream files/directories:
-  - libodb/odb/tr1/
   - libodb/odb/buildfile
-  - libodb/odb/details/{condition.cxx lock.cxx mutex.cxx thread.cxx}
+  - libodb/odb/details/{condition.cxx lock.cxx mutex.cxx}
   - libodb/odb/details/posix/
-  - libodb/odb/details/win32/* except for windows.hxx
-
 
   - libodb/odb/sqlite/buildfile
   - libodb/odb/sqlite/details/.gitignore
@@ -38,4 +35,4 @@ third-party package):
 
 3. Replace TWO verison.hxx with pre-generated for this submodule commit.
 
-4. Review .gitattributes for any symlink=dir changes.
+4. Review .gitattributes for any symlink=dir entries to add/remove.

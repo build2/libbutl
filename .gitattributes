@@ -19,6 +19,4 @@
 #*.png binary
 *.lz4 binary
 
-libbutl-odb/odb/details/meta symlink=dir
-libbutl-odb/odb/details/shared-ptr symlink=dir
 
