@@ -162,3 +162,5 @@ else
   install         = include/libbutl/
   install.subdirs = true
 }
+
+h{byte-order}@./: install = false # Implementation detail.
