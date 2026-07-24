@@ -5,6 +5,10 @@
 
 #include <string>
 #include <cassert>
+#include <sstream>
+
+#include <libbutl/utf8.hxx>
+#include <libbutl/char-scanner.hxx>
 
 using namespace std;
 
@@ -297,6 +301,40 @@ namespace butl
 
       r.name += c;
       get (c);
+    }
+  }
+
+  void manifest_parser::
+  validate_value_utf8 (const string& s,
+                       const string& name,
+                       uint64_t line,
+                       uint64_t column,
+                       const string& what)
+  {
+    // Note that if we decide to optimize the validation one day, we could use
+    // the UTF-8 validator only for string regions which contain characters
+    // other than printable ASCII, newlines, etc. Also we could only use the
+    // scanner when the error is detected, to calculate its location for the
+    // exception object.
+    //
+    istringstream is (s);
+
+    using scanner = char_scanner<utf8_validator>;
+    scanner cs (is,
+                utf8_validator (codepoint_types::graphic, U"\n\r\t"),
+                true /* crlf */,
+                line,
+                column);
+
+    string ebuf;
+    for (scanner::xchar c; !scanner::eos (c = cs.get (ebuf)); )
+    {
+      if (scanner::invalid (c))
+        throw manifest_parsing (name,
+                                c.line, c.column,
+                                (!what.empty ()
+                                 ? "invalid " + what + ": " + ebuf
+                                 : move (ebuf)));
     }
   }
 

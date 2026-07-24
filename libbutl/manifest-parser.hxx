@@ -53,6 +53,10 @@ namespace butl
                      const std::string& name,
                      std::function<filter_function> filter = {})
       : char_scanner (is,
+                      //
+                      // NOTE: don't forget to update validate_value_utf8() if
+                      //       changing anything here.
+                      //
                       utf8_validator (codepoint_types::graphic, U"\n\r\t")),
         name_ (name),
         filter_ (std::move (filter)) {}
@@ -81,6 +85,21 @@ namespace butl
     //
     static std::pair<std::string, std::string>
     split_comment (const std::string&);
+
+    // Verify that a manifest value, which may potentially come from some
+    // external source, is a valid UTF-8 encoded byte string which complies
+    // with the manifest specification. If it is not, then throw
+    // manifest_parsing, specifying the location of the first encountered
+    // invalid character. If the 'what' argument is specified, then prefix the
+    // description of a potential exception with the 'invalid <what>: '
+    // string.
+    //
+    static void
+    validate_value_utf8 (const std::string&,
+                         const std::string& name,
+                         std::uint64_t line = 1,
+                         std::uint64_t column = 1,
+                         const std::string& what = "");
 
   private:
     using base = char_scanner<utf8_validator, 2>;
