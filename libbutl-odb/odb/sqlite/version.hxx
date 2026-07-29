@@ -22,15 +22,15 @@
 // 3.0.0-b.2    0000299999999995020
 // 2.2.0-a.1.z  0000200001999990011
 //
-#define LIBODB_SQLITE_VERSION_FULL  200005999995020ULL
-#define LIBODB_SQLITE_VERSION_STR   "2.6.0-b.2"
-#define LIBODB_SQLITE_VERSION_ID    "2.6.0-b.2"
+#define LIBODB_SQLITE_VERSION_FULL  200006000000000ULL
+#define LIBODB_SQLITE_VERSION_STR   "2.6.0"
+#define LIBODB_SQLITE_VERSION_ID    "2.6.0"
 
 #define LIBODB_SQLITE_VERSION_MAJOR 2
 #define LIBODB_SQLITE_VERSION_MINOR 6
 #define LIBODB_SQLITE_VERSION_PATCH 0
 
-#define LIBODB_SQLITE_PRE_RELEASE   true
+#define LIBODB_SQLITE_PRE_RELEASE   false
 
 #define LIBODB_SQLITE_SNAPSHOT      0ULL
 #define LIBODB_SQLITE_SNAPSHOT_ID   ""
@@ -38,8 +38,8 @@
 #include <odb/version.hxx>
 
 #ifdef LIBODB_VERSION_FULL
-#  if !(LIBODB_VERSION_FULL == 200005999995020ULL)
-#    error incompatible libodb version, libodb == 2.6.0-b.2 is required
+#  if !(LIBODB_VERSION_FULL == 200006000000000ULL)
+#    error incompatible libodb version, libodb == 2.6.0 is required
 #  endif
 #endif
 
@@ -60,6 +60,6 @@
 // 2.2.0.a1    02019901
 // 3.0.0.b2    02999952
 //
-#define LIBODB_SQLITE_VERSION 2059952
+#define LIBODB_SQLITE_VERSION 2060000
 
 #endif // LIBODB_SQLITE_VERSION
