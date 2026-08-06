@@ -223,9 +223,11 @@ source_peek (pdjson_stream *json)
 {
   struct pdjson_source *source = &json->source;
 
+  // Make sure we don't sign-extend 0xFF to EOF.
+  //
   return source->tag == PDJSON_SOURCE_BUFFER
     ? (source->position != source->source.buffer.length
-       ? source->source.buffer.buffer[source->position]
+       ? (int)(uint8_t)source->source.buffer.buffer[source->position]
        : EOF)
     : source_peek_slow (json, source);
 }
@@ -274,9 +276,11 @@ source_get (pdjson_stream *json)
 {
   struct pdjson_source *source = &json->source;
 
+  // Make sure we don't sign-extend 0xFF to EOF.
+  //
   return source->tag == PDJSON_SOURCE_BUFFER
     ? (source->position != source->source.buffer.length
-       ? source->source.buffer.buffer[source->position++]
+       ? (int)(uint8_t)source->source.buffer.buffer[source->position++]
        : EOF)
     : source_get_slow (json, source);
 }
@@ -2259,13 +2263,18 @@ pdjson_get_name (const pdjson_stream *json, size_t *size)
 const char *
 pdjson_get_value (const pdjson_stream *json, size_t *size)
 {
-  if (size != NULL)
-    *size = json->data.string_fill;
+  if (!(json->flags & FLAG_ERROR) && json->data.string != NULL)
+  {
+    if (size != NULL)
+      *size = json->data.string_fill;
 
-  if (json->data.string == NULL)
-    return "";
-  else
     return json->data.string;
+  }
+
+  if (size != NULL)
+    *size = 0;
+
+  return "";
 }
 
 const char *
