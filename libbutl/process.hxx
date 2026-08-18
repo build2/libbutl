@@ -16,6 +16,7 @@
 #include <system_error>
 
 #include <libbutl/path.hxx>
+#include <libbutl/mutex.hxx>
 #include <libbutl/optional.hxx>
 #include <libbutl/fdstream.hxx>     // auto_fd, fdpipe
 #include <libbutl/vector-view.hxx>
@@ -199,6 +200,10 @@ namespace butl
     // Return the signal number that caused the termination or 0 if no such
     // information is available.
     //
+    // Note that on POSIX we use the SIGCHLD signal to indicate abnormal
+    // termination of a process group leader due to running/unreaped members
+    // of the group (see the process constructor for details).
+    //
     int
     signal () const;
 
@@ -303,6 +308,24 @@ namespace butl
     // NULL. Note that all other variables are inherited from the parent
     // process.
     //
+    // If the new_group argument is true, then execute the process as a leader
+    // of a newly created process group. By default, all its (grand)child
+    // processes will automatically become members of this group. While
+    // reaping the group leader, we make sure that no group members stay
+    // running and treat the presence of any running/unreaped members as
+    // abnormal termination of the group leader (see the wait(), kill(), and
+    // term() functions for details on the process groups handling).
+    //
+    // Note that on POSIX we use the native process groups mechanism to
+    // support this functionality and so the related terms (process group
+    // leader, etc) are directly mapped to the corresponding POSIX notions. On
+    // Windows, we are using the job objects for that purpose, referring to
+    // the processes assigned to a common job object as a process group and to
+    // the initial process in the newly created job (new_group is true) as a
+    // process group leader for short (or, in the implementation, as a job
+    // leader not to confuse with the Windows console process groups and their
+    // root processes).
+    //
     // Throw process_error if anything goes wrong. Note that some of the
     // exceptions (e.g., if exec() failed) can be thrown in the child
     // version of us (as process_child_error).
@@ -313,22 +336,26 @@ namespace butl
     process (const char**,
              int in = 0, int out = 1, int err = 2,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     process (const process_path&, const char* const*,
              int in = 0, int out = 1, int err = 2,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     process (std::vector<const char*>&,
              int in = 0, int out = 1, int err = 2,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     process (const process_path&, const std::vector<const char*>&,
              int in = 0, int out = 1, int err = 2,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     // If the descriptors are pipes that you have created, then you should use
     // this constructor instead to communicate this information (the parent
@@ -371,42 +398,50 @@ namespace butl
     process (const char**,
              pipe in, pipe out, pipe err,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     process (const char**,
              int in, int out, pipe err,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     process (const process_path&, const char* const*,
              pipe in, pipe out, pipe err,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     process (const process_path&, const char* const*,
              int in, int out, pipe err,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     process (std::vector<const char*>&,
              pipe in, pipe out, pipe err,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     process (std::vector<const char*>&,
              int in, int out, pipe err,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     process (const process_path&, const std::vector<const char*>&,
              pipe in, pipe out, pipe err,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     process (const process_path&, const std::vector<const char*>&,
              int in, int out, pipe err,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     // The "piping" constructor, for example:
     //
@@ -419,38 +454,54 @@ namespace butl
     process (const char**,
              process&, int out = 1, int err = 2,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     process (const process_path&, const char* const*,
              process&, int out = 1, int err = 2,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     process (const char**,
              process&, pipe out, pipe err,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     process (const char**,
              process&, int out, pipe err,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     process (const process_path&, const char* const*,
              process&, pipe out, pipe err,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     process (const process_path&, const char* const*,
              process&, int out, pipe err,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     // Wait for the process to terminate. Return true if the process
     // terminated normally and with the zero exit code. Unless ignore_error
     // is true, throw process_error if anything goes wrong. This function can
     // be called multiple times with subsequent calls simply returning the
     // status.
+    //
+    // If the process is a process group leader, then, upon the process
+    // termination, check if any members of the group are still running or
+    // left unreaped. If there are any, then assume that the group leader has
+    // terminated abnormally. Also, kill the remaining running members of the
+    // group, if present. Note, however, that while the killing part is
+    // guaranteed, the detection that a process group member is unreaped by
+    // its original parent is not since the operating system may automatically
+    // reap a terminated orphan process before we even notice or, as on
+    // Windows, may have no notion of process reaping altogether.
     //
     bool
     wait (bool ignore_errors = false);
@@ -472,14 +523,15 @@ namespace butl
     // Note that the destructor will wait for the process but will ignore
     // any errors and the exit status.
     //
-    ~process () { if (handle != 0) wait (true); }
+    ~process ();
 
     // Process termination.
     //
 
-    // Send SIGKILL to the process on POSIX and call TerminateProcess() with
-    // DBG_TERMINATE_PROCESS exit code on Windows. Noop for an already
-    // terminated process.
+    // On POSIX, send SIGKILL to the process or, for a process group leader,
+    // to the whole process group. On Windows, call TerminateProcess() or, for
+    // a job leader, TerminateJobObject() with the DBG_TERMINATE_PROCESS exit
+    // code. Noop for an already terminated process.
     //
     // Note that if the process is killed, it terminates as if it has called
     // abort() (functions registered with atexit() are not called, etc).
@@ -490,9 +542,10 @@ namespace butl
     void
     kill ();
 
-    // Send SIGTERM to the process on POSIX and call kill() on Windows (where
-    // there is no general way to terminate a console process gracefully).
-    // Noop for an already terminated process.
+    // On POSIX, send SIGTERM to the process or, for a process group leader,
+    // to the whole process group. On Windows (where there is no general way
+    // to terminate a console process gracefully), call kill(). Noop for an
+    // already terminated process.
     //
     void
     term ();
@@ -629,6 +682,29 @@ namespace butl
   public:
     handle_type handle;
 
+#ifndef _WIN32
+    // If non-zero, then the process is a leader of this process group.
+    //
+    handle_type group;
+
+    // List of the currently active (started but no yet reaped) process
+    // groups.
+    //
+    // Normally used by handlers of the program-terminating (SIGINT, etc) and
+    // the job control (SIGTSTP, etc) signals to forward the handled signal to
+    // the child process groups, as if the parent and children are all members
+    // of the same group. It should be treated as read-only and, for
+    // multi-threaded processes, after acquiring the shared lock for the
+    // process spawn mutex (which implies the use of sigwait(); see the
+    // tests/process-group/ test for the usage examples).
+    //
+    static std::vector<handle_type> groups;
+#else
+    // If non-NULL, then the process is a leader of this job.
+    //
+    handle_type job;
+#endif
+
     static handle_type
     current_handle ();
 
@@ -643,6 +719,13 @@ namespace butl
     auto_fd out_fd; // Write to it to send to stdin.
     auto_fd in_ofd; // Read from it to receive from stdout.
     auto_fd in_efd; // Read from it to receive from stderr.
+
+    // The process spawn mutex which is acquired to make a sequence of
+    // operations atomic in regards to child process spawning. It is acquired
+    // for exclusive access for child process startup and reaping, and for
+    // shared access otherwise.
+    //
+    static shared_mutex mutex;
   };
 
   // Higher-level process running interface that aims to make executing a
@@ -814,6 +897,23 @@ namespace butl
   to_stream (std::ostream&,
              const process_env&,
              process_env_format = process_env_format::all);
+
+  // @@ Should we add the process_*() functions overloads, which accept the
+  //    new_group argument, rather than add new_group flag to the process_env
+  //    structure? Feels like process_env is a better option (rarely used).
+  //    For example:
+  //
+  // template <typename I,
+  //           typename O,
+  //           typename E,
+  //           typename... A>
+  // process_exit
+  // process_run (I&& in,
+  //              O&& out,
+  //              E&& err,
+  //              bool new_group,
+  //              const process_env&,
+  //              A&&... args);
 
   // Run process.
   //

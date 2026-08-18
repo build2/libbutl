@@ -214,19 +214,40 @@ namespace butl
 
   inline process::
   process (optional<process_exit> e)
-      : handle (0), exit (std::move (e))
+      :
+#ifndef _WIN32
+        handle (0),
+        group (0),
+#else
+        handle (nullptr),
+        job (nullptr),
+#endif
+        exit (std::move (e))
   {
+  }
+
+  inline process::
+  ~process ()
+  {
+#ifndef _WIN32
+    if (handle != 0)
+#else
+    if (handle != nullptr)
+#endif
+      wait (true);
   }
 
   inline process::
   process (const process_path& pp, const char* const* args,
            int in, int out, int err,
            const char* cwd,
-           const char* const* envvars)
+           const char* const* envvars,
+           bool new_group)
       : process (pp, args,
                  pipe (in, -1), pipe (-1, out), pipe (-1, err),
                  cwd,
-                 envvars)
+                 envvars,
+                 new_group)
   {
   }
 
@@ -234,8 +255,13 @@ namespace butl
   process (const char** args,
            int in, int out, int err,
            const char* cwd,
-           const char* const* envvars)
-      : process (path_search (args[0]), args, in, out, err, cwd, envvars)
+           const char* const* envvars,
+           bool new_group)
+      : process (path_search (args[0]), args,
+                 in, out, err,
+                 cwd,
+                 envvars,
+                 new_group)
   {
   }
 
@@ -243,11 +269,13 @@ namespace butl
   process (const process_path& pp, const std::vector<const char*>& args,
            int in, int out, int err,
            const char* cwd,
-           const char* const* envvars)
+           const char* const* envvars,
+           bool new_group)
       : process (pp, args.data (),
                  pipe (in, -1), pipe (-1, out), pipe (-1, err),
                  cwd,
-                 envvars)
+                 envvars,
+                 new_group)
   {
   }
 
@@ -255,11 +283,13 @@ namespace butl
   process (std::vector<const char*>& args,
            int in, int out, int err,
            const char* cwd,
-           const char* const* envvars)
+           const char* const* envvars,
+           bool new_group)
       : process (path_search (args[0]), args.data (),
                  in, out, err,
                  cwd,
-                 envvars)
+                 envvars,
+                 new_group)
   {
   }
 
@@ -267,10 +297,13 @@ namespace butl
   process (const char** args,
            pipe in, pipe out, pipe err,
            const char* cwd,
-           const char* const* envvars)
+           const char* const* envvars,
+           bool new_group)
       : process (path_search (args[0]), args,
                  std::move (in), std::move (out), std::move (err),
-                 cwd, envvars)
+                 cwd,
+                 envvars,
+                 new_group)
   {
   }
 
@@ -278,10 +311,13 @@ namespace butl
   process (const char** args,
            int in, int out, pipe err,
            const char* cwd,
-           const char* const* envvars)
+           const char* const* envvars,
+           bool new_group)
       : process (path_search (args[0]), args,
                  pipe (in, -1), pipe (-1, out), std::move (err),
-                 cwd, envvars)
+                 cwd,
+                 envvars,
+                 new_group)
   {
   }
 
@@ -289,11 +325,13 @@ namespace butl
   process (const process_path& pp, const char* const* args,
            int in, int out, pipe err,
            const char* cwd,
-           const char* const* envvars)
+           const char* const* envvars,
+           bool new_group)
       : process (pp, args,
                  pipe (in, -1), pipe (-1, out), std::move (err),
                  cwd,
-                 envvars)
+                 envvars,
+                 new_group)
   {
   }
 
@@ -301,11 +339,13 @@ namespace butl
   process (std::vector<const char*>& args,
            pipe in, pipe out, pipe err,
            const char* cwd,
-           const char* const* envvars)
+           const char* const* envvars,
+           bool new_group)
       : process (path_search (args[0]), args.data (),
                  std::move (in), std::move (out), std::move (err),
                  cwd,
-                 envvars)
+                 envvars,
+                 new_group)
   {
   }
 
@@ -313,11 +353,13 @@ namespace butl
   process (std::vector<const char*>& args,
            int in, int out, pipe err,
            const char* cwd,
-           const char* const* envvars)
+           const char* const* envvars,
+           bool new_group)
       : process (path_search (args[0]), args.data (),
                  pipe (in, -1), pipe (-1, out), std::move (err),
                  cwd,
-                 envvars)
+                 envvars,
+                 new_group)
   {
   }
 
@@ -325,11 +367,13 @@ namespace butl
   process (const process_path& pp, const std::vector<const char*>& args,
            pipe in, pipe out, pipe err,
            const char* cwd,
-           const char* const* envvars)
+           const char* const* envvars,
+           bool new_group)
       : process (pp, args.data (),
                  std::move (in), std::move (out), std::move (err),
                  cwd,
-                 envvars)
+                 envvars,
+                 new_group)
   {
   }
 
@@ -337,11 +381,13 @@ namespace butl
   process (const process_path& pp, const std::vector<const char*>& args,
            int in, int out, pipe err,
            const char* cwd,
-           const char* const* envvars)
+           const char* const* envvars,
+           bool new_group)
       : process (pp, args.data (),
                  pipe (in, -1), pipe (-1, out), std::move (err),
                  cwd,
-                 envvars)
+                 envvars,
+                 new_group)
   {
   }
 
@@ -349,7 +395,8 @@ namespace butl
   process (const process_path& pp, const char* const* args,
            process& in, pipe out, pipe err,
            const char* cwd,
-           const char* const* envvars)
+           const char* const* envvars,
+           bool new_group)
       : process (pp, args,
                  [&in] ()
                  {
@@ -357,7 +404,9 @@ namespace butl
                    return process::pipe (std::move (in.in_ofd), -1);
                  } (),
                  std::move (out), std::move (err),
-                 cwd, envvars)
+                 cwd,
+                 envvars,
+                 new_group)
   {
   }
 
@@ -365,8 +414,13 @@ namespace butl
   process (const process_path& pp, const char* const* args,
            process& in, int out, int err,
            const char* cwd,
-           const char* const* envvars)
-      : process (pp, args, in, pipe (-1, out), pipe (-1, err), cwd, envvars)
+           const char* const* envvars,
+           bool new_group)
+      : process (pp, args,
+                 in, pipe (-1, out), pipe (-1, err),
+                 cwd,
+                 envvars,
+                 new_group)
   {
   }
 
@@ -374,8 +428,13 @@ namespace butl
   process (const char** args,
            process& in, int out, int err,
            const char* cwd,
-           const char* const* envvars)
-      : process (path_search (args[0]), args, in, out, err, cwd, envvars)
+           const char* const* envvars,
+           bool new_group)
+      : process (path_search (args[0]), args,
+                 in, out, err,
+                 cwd,
+                 envvars,
+                 new_group)
   {
   }
 
@@ -383,10 +442,13 @@ namespace butl
   process (const char** args,
            process& in, pipe out, pipe err,
            const char* cwd,
-           const char* const* envvars)
+           const char* const* envvars,
+           bool new_group)
       : process (path_search (args[0]), args,
                  in, std::move (out), std::move (err),
-                 cwd, envvars)
+                 cwd,
+                 envvars,
+                 new_group)
   {
   }
 
@@ -394,10 +456,13 @@ namespace butl
   process (const char** args,
            process& in, int out, pipe err,
            const char* cwd,
-           const char* const* envvars)
+           const char* const* envvars,
+           bool new_group)
       : process (path_search (args[0]), args,
                  in, pipe (-1, out), std::move (err),
-                 cwd, envvars)
+                 cwd,
+                 envvars,
+                 new_group)
   {
   }
 
@@ -405,20 +470,34 @@ namespace butl
   process (const process_path& pp, const char* const* args,
            process& in, int out, pipe err,
            const char* cwd,
-           const char* const* envvars)
-      : process (pp, args, in, pipe (-1, out), std::move (err), cwd, envvars)
+           const char* const* envvars,
+           bool new_group)
+      : process (pp, args,
+                 in, pipe (-1, out), std::move (err),
+                 cwd,
+                 envvars,
+                 new_group)
   {
   }
 
   inline process::
   process (process&& p) noexcept
       : handle (p.handle),
+#ifndef _WIN32
+        group (p.group),
+#else
+        job (p.job),
+#endif
         exit   (std::move (p.exit)),
         out_fd (std::move (p.out_fd)),
         in_ofd (std::move (p.in_ofd)),
         in_efd (std::move (p.in_efd))
   {
+#ifndef _WIN32
     p.handle = 0;
+#else
+    p.handle = nullptr;
+#endif
   }
 
   inline process& process::
@@ -426,16 +505,31 @@ namespace butl
   {
     if (this != &p)
     {
+#ifndef _WIN32
       if (handle != 0)
+#else
+      if (handle != nullptr)
+#endif
         wait ();
 
       handle = p.handle;
+
+#ifndef _WIN32
+      group = p.group;
+#else
+      job = p.job;
+#endif
+
       exit   = std::move (p.exit);
       out_fd = std::move (p.out_fd);
       in_ofd = std::move (p.in_ofd);
       in_efd = std::move (p.in_efd);
 
+#ifndef _WIN32
       p.handle = 0;
+#else
+      p.handle = nullptr;
+#endif
     }
 
     return *this;
