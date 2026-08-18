@@ -214,7 +214,11 @@ namespace butl
 
   inline process::
   process (optional<process_exit> e)
-      : handle (0), exit (std::move (e))
+      : handle (0),
+#ifndef _WIN32
+        group (0),
+#endif
+        exit (std::move (e))
   {
   }
 
@@ -222,11 +226,13 @@ namespace butl
   process (const process_path& pp, const char* const* args,
            int in, int out, int err,
            const char* cwd,
-           const char* const* envvars)
+           const char* const* envvars,
+           bool new_group)
       : process (pp, args,
                  pipe (in, -1), pipe (-1, out), pipe (-1, err),
                  cwd,
-                 envvars)
+                 envvars,
+                 new_group)
   {
   }
 
@@ -255,11 +261,13 @@ namespace butl
   process (std::vector<const char*>& args,
            int in, int out, int err,
            const char* cwd,
-           const char* const* envvars)
+           const char* const* envvars,
+           bool new_group)
       : process (path_search (args[0]), args.data (),
                  in, out, err,
                  cwd,
-                 envvars)
+                 envvars,
+                 new_group)
   {
   }
 
@@ -413,6 +421,9 @@ namespace butl
   inline process::
   process (process&& p) noexcept
       : handle (p.handle),
+#ifndef _WIN32
+        group (p.group),
+#endif
         exit   (std::move (p.exit)),
         out_fd (std::move (p.out_fd)),
         in_ofd (std::move (p.in_ofd)),
@@ -430,6 +441,11 @@ namespace butl
         wait ();
 
       handle = p.handle;
+
+#ifndef _WIN32
+      group = p.group;
+#endif
+
       exit   = std::move (p.exit);
       out_fd = std::move (p.out_fd);
       in_ofd = std::move (p.in_ofd);

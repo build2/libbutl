@@ -1,0 +1,9 @@
+# file      : tests/process-group/buildfile
+# license   : MIT; see accompanying LICENSE file
+
+import libs = libbutl%lib{butl}
+
+exe{driver}: {hxx cxx}{*} $libs testscript
+
+if ($cxx.target.class != 'windows')
+  cxx.libs += -pthread

@@ -1,0 +1,4 @@
+# file      : tests/process-group/testscript
+# license   : MIT; see accompanying LICENSE file
+
+$*

@@ -16,6 +16,7 @@
 #include <system_error>
 
 #include <libbutl/path.hxx>
+#include <libbutl/mutex.hxx>
 #include <libbutl/optional.hxx>
 #include <libbutl/fdstream.hxx>     // auto_fd, fdpipe
 #include <libbutl/vector-view.hxx>
@@ -199,6 +200,10 @@ namespace butl
     // Return the signal number that caused the termination or 0 if no such
     // information is available.
     //
+    // Note that on POSIX we use the SIGCHLD signal to indicate abnormal
+    // termination of a process group leader due to unreaped members of the
+    // group (see the process type constructor for details).
+    //
     int
     signal () const;
 
@@ -303,12 +308,24 @@ namespace butl
     // NULL. Note that all other variables are inherited from the parent
     // process.
     //
+    // If new_group is true, then execute the process as a leader of the newly
+    // created process group. By default, all its (grand)child processes will
+    // automatically become members of this group. While reaping the group
+    // leader, we make sure that no group members stay running and treat the
+    // presence of any unreaped member as abnormal termination of the group
+    // lead (see wait(), kill(), term(), and signal() functions for details).
+    // Note that on POSIX the native process groups are used to support this
+    // functionality.
+    //
     // Throw process_error if anything goes wrong. Note that some of the
     // exceptions (e.g., if exec() failed) can be thrown in the child
     // version of us (as process_child_error).
     //
     // Note that the versions without the the process_path argument may
     // temporarily change args[0] (see path_search() for details).
+    //
+    // @@ Add the new_group argument to all the constructor overloads and the
+    //    process_env type.
     //
     process (const char**,
              int in = 0, int out = 1, int err = 2,
@@ -318,12 +335,14 @@ namespace butl
     process (const process_path&, const char* const*,
              int in = 0, int out = 1, int err = 2,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     process (std::vector<const char*>&,
              int in = 0, int out = 1, int err = 2,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     process (const process_path&, const std::vector<const char*>&,
              int in = 0, int out = 1, int err = 2,
@@ -381,7 +400,8 @@ namespace butl
     process (const process_path&, const char* const*,
              pipe in, pipe out, pipe err,
              const char* cwd = nullptr,
-             const char* const* envvars = nullptr);
+             const char* const* envvars = nullptr,
+             bool new_group = false);
 
     process (const process_path&, const char* const*,
              int in, int out, pipe err,
@@ -452,6 +472,15 @@ namespace butl
     // be called multiple times with subsequent calls simply returning the
     // status.
     //
+    // If the process is a process group leader, then, upon the process
+    // termination, also kill all the remaining running members of the group,
+    // if present, and assume abnormal termination if any of the group members
+    // stay unreaped. Note, however, that the implementation does not
+    // guarantee that a process group member unreaped by its original parent
+    // will always result in abnormal termination, since the operating system
+    // may automatically reap a terminated orphan process before we even
+    // notice.
+    //
     bool
     wait (bool ignore_errors = false);
 
@@ -474,10 +503,17 @@ namespace butl
     //
     ~process () { if (handle != 0) wait (true); }
 
+    // Detach the object from the potentially running child process.
+    //
+    // NOTE: used for testing.
+    //
+    void detach () {handle = 0;}
+
     // Process termination.
     //
 
-    // Send SIGKILL to the process on POSIX and call TerminateProcess() with
+    // Send SIGKILL to the process or, for a group leader, to the whole
+    // process group on POSIX and call TerminateProcess() with
     // DBG_TERMINATE_PROCESS exit code on Windows. Noop for an already
     // terminated process.
     //
@@ -490,9 +526,10 @@ namespace butl
     void
     kill ();
 
-    // Send SIGTERM to the process on POSIX and call kill() on Windows (where
-    // there is no general way to terminate a console process gracefully).
-    // Noop for an already terminated process.
+    // Send SIGTERM to the process or, for a group leader, to the whole
+    // process group on POSIX and call kill() on Windows (where there is no
+    // general way to terminate a console process gracefully). Noop for an
+    // already terminated process.
     //
     void
     term ();
@@ -629,6 +666,23 @@ namespace butl
   public:
     handle_type handle;
 
+#ifndef _WIN32
+    // If non-zero, then the process is a leader of this process group.
+    //
+    handle_type group;
+
+    // List of the currently running process groups.
+    //
+    // Normally used by handlers of the program-terminating and job control
+    // signals (SIGINT, SIGTSTP, etc) to forward the handled signal to the
+    // child process groups, as if we are all members of the same group. It is
+    // supposed to be accessed read-only after acquiring the shared lock for
+    // the process spawn mutex (see the tests/process-group/ test for the
+    // usage example).
+    //
+    static std::vector<handle_type> groups;
+#endif
+
     static handle_type
     current_handle ();
 
@@ -643,6 +697,13 @@ namespace butl
     auto_fd out_fd; // Write to it to send to stdin.
     auto_fd in_ofd; // Read from it to receive from stdout.
     auto_fd in_efd; // Read from it to receive from stderr.
+
+    // The process spawn mutex, that is acquired to make a sequence of
+    // operations atomic in regards to child process spawning. It is acquired
+    // for exclusive access for child process startup and reaping, and for
+    // shared access otherwise.
+    //
+    static shared_mutex mutex;
   };
 
   // Higher-level process running interface that aims to make executing a

@@ -61,7 +61,9 @@ namespace this_thread = mingw_stdthread::this_thread;
 #include <system_error>
 
 #include <libbutl/ft/exception.hxx>    // uncaught_exceptions
-#include <libbutl/process-details.hxx>
+
+#include <libbutl/mutex.hxx>
+#include <libbutl/process.hxx> // process::mutex
 
 #include <libbutl/utility.hxx>   // throw_*_ios_failure(), function_cast()
 #include <libbutl/timestamp.hxx>
@@ -1304,12 +1306,12 @@ namespace butl
   fddup (int fd, bool no_inherit)
   {
     // dup() doesn't copy FD_CLOEXEC flag, so we need to do it ourselves. Note
-    // that the new descriptor can leak into child processes before we copy the
-    // flag. To prevent this we will acquire the process_spawn_mutex (see
-    // process-details header) prior to duplicating the descriptor. Also note
-    // there is dup3() (available on Linux and FreeBSD but not on Max OS) that
-    // takes flags, but it's usage tends to be hairy (need to preopen a dummy
-    // file descriptor to pass as a second argument).
+    // that the new descriptor can leak into child processes before we copy
+    // the flag. To prevent this we will acquire the process spawn mutex prior
+    // to duplicating the descriptor. Also note there is dup3() (available on
+    // Linux and FreeBSD but not on Max OS) that takes flags, but it's usage
+    // tends to be hairy (need to preopen a dummy file descriptor to pass as a
+    // second argument).
     //
     auto dup = [fd] () -> auto_fd
     {
@@ -1333,7 +1335,7 @@ namespace butl
         return dup ();
     }
 
-    slock l (process_spawn_mutex);
+    slock l (process::mutex);
     auto_fd r (dup ());
 
     int f (fcntl (r.get (), F_GETFD));
@@ -1421,13 +1423,13 @@ namespace butl
   {
     assert (m == fdopen_mode::none || m == fdopen_mode::binary);
 
-    // Note that the pipe file descriptors can leak into child processes before
-    // we set FD_CLOEXEC flag for them. To prevent this we will acquire the
-    // process_spawn_mutex (see process-details header) prior to creating the
-    // pipe. Also note there is pipe2() (available on Linux and FreeBSD but not
-    // on Max OS) that takes flags.
+    // Note that the pipe file descriptors can leak into child processes
+    // before we set FD_CLOEXEC flag for them. To prevent this we will acquire
+    // the process spawn mutex prior to creating the pipe. Also note there is
+    // pipe2() (available on Linux and FreeBSD but not on Max OS) that takes
+    // flags.
     //
-    slock l (process_spawn_mutex);
+    slock l (process::mutex);
 
     int pd[2];
     if (pipe (pd) == -1)
@@ -1652,8 +1654,8 @@ namespace butl
   {
     // _dup() doesn't copy _O_NOINHERIT flag, so we need to do it ourselves.
     // Note that the new descriptor can leak into child processes before we
-    // copy the flag. To prevent this we will acquire the process_spawn_mutex
-    // (see process-details header) prior to duplicating the descriptor.
+    // copy the flag. To prevent this we will acquire the process spawn mutex
+    // prior to duplicating the descriptor.
     //
     auto dup = [fd] () -> auto_fd
     {
@@ -1681,7 +1683,7 @@ namespace butl
         return dup ();
     }
 
-    slock l (process_spawn_mutex);
+    slock l (process::mutex);
 
     auto_fd r (dup ());
     if (!SetHandleInformation (fd_to_handle (r.get ()),

@@ -10,8 +10,9 @@
 #  include <signal.h>    // SIG*, kill(), sigemptyset(), sigfillset(),
                          // sigismember(), pthread_sigmask(), sigaction(),
                          // sigpending()
-#  include <unistd.h>    // execvp, fork, dup2, pipe, chdir, *_FILENO, getpid
-#  include <sys/wait.h>  // waitpid
+#  include <unistd.h>    // execvp(), fork(), dup2(), pipe(), chdir(),
+                         // *_FILENO, getpid(), setpgid()
+#  include <sys/wait.h>  // waitpid(), waitid()
 #  include <sys/types.h> // _stat
 #  include <sys/stat.h>  // _stat(), S_IS*
 
@@ -127,13 +128,6 @@
 #  include <cstdlib>   // __argv[]
 #  include <algorithm> // find()
 #endif
-
-#include <libbutl/process-details.hxx>
-
-namespace butl
-{
-  shared_mutex process_spawn_mutex; // Out of module purview.
-}
 
 #include <libbutl/path-io.hxx>
 #include <libbutl/utility.hxx>  // icasecmp()
@@ -262,6 +256,12 @@ namespace butl
 
   // process
   //
+#ifndef _WIN32
+  vector<process::handle_type> process::groups;
+#endif
+
+  shared_mutex process::mutex;
+
   static process_path
   path_search (const char*, const dir_path&, bool, const char*);
 
@@ -487,7 +487,9 @@ namespace butl
   process (const process_path& pp, const char* const* args,
            pipe pin, pipe pout, pipe perr,
            const char* cwd,
-           const char* const* evars)
+           const char* const* evars,
+           bool new_group)
+      : group (0)
   {
     int in  (pin.in);
     int out (pout.out);
@@ -693,6 +695,18 @@ namespace butl
         flags |= POSIX_SPAWN_SETSIGMASK;
       }
 
+      // If requested, execute the child process in a new process group.
+      //
+      if (new_group)
+      {
+        // Use the child's own PID as a group id.
+        //
+        if (int r = posix_spawnattr_setpgroup (&attr, 0))
+          fail (r);
+
+        flags |= POSIX_SPAWN_SETPGROUP;
+      }
+
       if (int r = posix_spawnattr_setflags (&attr, flags))
         fail (r);
 
@@ -752,14 +766,14 @@ namespace butl
       // Retry to create the child process after the "resource temporarily
       // unavailable" (EAGAIN) failure for 1050ms.
       //
-      ulock l (process_spawn_mutex);
+      ulock l (mutex);
 
       for (size_t i (0);; ++i)
       {
         // Note that in most non-fork based implementations this call suspends
         // the parent thread until the child process calls exec() or
         // terminates. This avoids "text file busy" issue (see the fork-based
-        // code below): due to the process_spawn_mutex lock the execution of
+        // code below): due to the process spawn mutex lock the execution of
         // the script is delayed until the child closes the descriptor.
         //
         int r (posix_spawn (&handle,
@@ -771,7 +785,26 @@ namespace butl
                              ? environ
                              : const_cast<char* const*> (new_env.data ()))));
 
-        l.unlock (); // Release the lock in parent.
+        // Release the lock in parent, but first record the new process group,
+        // if created.
+        //
+        if (new_group && r == 0)
+        {
+          // Note that for the older fork-based implementations, the child
+          // process can still be in the parent's process group. Handle this
+          // race condition in the same way as the fork-based implementation
+          // below.
+          //
+          if (setpgid (handle, handle) != 0 &&
+              errno != EACCES               &&
+              errno != ESRCH)
+            fail (errno);
+
+          group = handle;
+          groups.push_back (group);
+        }
+
+        l.unlock ();
 
         if (r == 0)
           break;
@@ -805,7 +838,7 @@ namespace butl
       // Retry to create the child process after the "resource temporarily
       // unavailable" (EAGAIN) failure for 1050ms.
       //
-      ulock l (process_spawn_mutex); // Note: should not be released in child.
+      ulock l (mutex); // Note: should not be released in child.
 
       // For the child process unblock all the signals and reset to the
       // default handlers the signals with the overridden handlers.
@@ -858,6 +891,39 @@ namespace butl
 
         if (handle != 0) // Parent?
         {
+          // Release the lock in parent, but first record the new process
+          // group, if created.
+          //
+          if (new_group && handle != -1)
+          {
+            // Note that if we only set the child's process group in the
+            // parent process, it may happen that the child has already called
+            // exec() by this time, in which case we will fail (EACCES). If we
+            // only set it in the child process (before exec()), then the
+            // parent process may start handling the child as the process
+            // group leader before it has actually become as such. To prevent
+            // this race condition, we set the child's process group in both
+            // the parent and the child processes. We also ignore EACCES in
+            // parent, which indicates that the child has called exec()
+            // already and thus the group id must already be set.
+            //
+            // Also note that for some platforms (for example, FreeBSD as of
+            // version 14; see FreeBSD issue #251227 for details) setpgid()
+            // may return ESRCH instead of EACCES. This, for example, can
+            // happen if the child has already terminated by the time we call
+            // setpgid() in the parent process. Thus, let's always treat ESRCH
+            // in the same way as EACCES here, since we know for sure that
+            // this process exists (potentially as defunct).
+            //
+            if (setpgid (handle, handle) != 0 &&
+                errno != EACCES               &&
+                errno != ESRCH)
+              fail (false /* child */);
+
+            group = handle;
+            groups.push_back (group);
+          }
+
           l.unlock ();
 
           // Unblock the signals we have blocked previously.
@@ -890,6 +956,39 @@ namespace butl
         // NOTE: make sure not to call anything that may acquire a mutex that
         //       could be already acquired in another thread, most notably
         //       malloc(). @@ What about exceptions (all the fail() calls)?
+
+        // Note that we set the child's process group in both the parent and
+        // child processes (see above for the reasoning).
+        //
+        // Also note that while we change the group id before unblocking the
+        // signals in the child process, there is still a possibility that the
+        // child have got a pending signal, broadcasted to the parent's
+        // process group by the controlling terminal, before the child's group
+        // change. This signal will be delivered, right after the signals are
+        // unblocked, to the child process which already have a different
+        // process group id. Sounds like a race condition. This, however,
+        // feels harmless for the terminating signals (SIGINT, etc), since the
+        // parent process, before terminating itself, will normally disable
+        // issuing diagnostics (see the wait() function implementation for
+        // details) and terminate the child process groups anyway. For the job
+        // control signals this may potentially become a problem. If, for
+        // example, we forward the SIGTSTP and SIGCONT to the child process
+        // groups from a custom signal handler (rather than from a dedicated
+        // thread which uses sigwait() and acquires the process spawn mutex),
+        // then we won't be able to resume the child if SIGTSTP is handled by
+        // the parent right after the fork() but before the group is added to
+        // the list. In this case, at the time the parent handles SIGCONT, the
+        // child's group is not in the list yet and so the child will not be
+        // resumed.
+        //
+        if (new_group)
+        {
+          // Note: 0 has the "use the calling process PID" semantics for both
+          //       arguments.
+          //
+          if (setpgid (0, 0) != 0)
+            fail (true /* child */);
+        }
 
         // Reset all the signals to the default handlers and unblock them.
         //
@@ -1102,57 +1201,215 @@ namespace butl
       in_ofd.reset ();
       in_efd.reset ();
 
-      int es;
-      int r (waitpid (handle, &es, 0));
-      handle = 0; // We have tried.
-
-      if (r == -1)
+      if (group == 0) // Not a process group leader?
       {
-        // If ignore errors then just leave exit nullopt, so it has "no exit
-        // information available" semantics.
-        //
-        if (!ie)
-          throw process_error (errno);
+        while (true) // Retry waitpid() if it was interrupted by a signal.
+        {
+          int es;
+          int r (waitpid (handle, &es, 0));
+
+          if (r == -1 && errno == EINTR)
+            continue;
+
+          handle = 0; // We have tried.
+
+          if (r == -1)
+          {
+            // If ignore errors then just leave exit nullopt, so it has "no
+            // exit information available" semantics.
+            //
+            if (!ie)
+              throw process_error (errno);
+          }
+          else
+          {
+            exit = process_exit (es, process_exit::as_status);
+
+            // If the child process terminated abnormally due to the SIGINT or
+            // SIGTERM signal, then wait if/while this signal stays pending
+            // for the parent process.
+            //
+            // The idea here is that if the child process was terminated due
+            // to such a signal, it's likely that the same signal will be
+            // received by the parent process as well. The reason for such an
+            // assumption is that these signals are normally sent for the
+            // whole process group (SIGINT by the terminal on Ctrl+C,
+            // etc). Note that while the signals are delivered to the group's
+            // processes simultaneously, they are handled by these processes
+            // with random delays in arbitrary order. This causes a race
+            // condition, when the parent process may complain on the
+            // abnormally terminated children before being terminated itself
+            // due to the same signal. This normally happens when the parent
+            // process installs a custom signal handler which performs some
+            // cleanups before terminating the process. Thus, to decrease the
+            // probability of such an unwanted (though perfectly valid)
+            // scenario, we will wait while the signal which terminated the
+            // child process stays pending for the parent. Here we assume that
+            // from the moment the signal stopped being pending, the execution
+            // of the signal handler begins and it's now the handler's
+            // responsibility to prevent the described scenario (it, for
+            // example, may disable issuing diagnostics before starting
+            // cleanups, etc).
+            //
+            // Note, however, that since that "passing of responsibility" is
+            // not atomic, the implemented approach doesn't resolve the
+            // problem completely but, as it was said above, just decreases
+            // the probability of the unwanted scenario.
+            //
+            if (!exit->normal ())
+            {
+              int s (exit->signal ());
+
+              if (s == SIGINT || s == SIGTERM)
+                wait_pending_signal (s, ie);
+            }
+          }
+
+          break;
+        }
       }
+      //
+      // If this is a process group leader, then kill all the other
+      // potentially unterminated members of the lead group. Do this after the
+      // child has terminated but before it is reaped, not to kill some
+      // unrelated process due to the group id reuse.
+      //
       else
       {
-        exit = process_exit (es, process_exit::as_status);
+        handle_type gr (group);
 
-        // If the child process terminated abnormally due to the SIGINT or
-        // SIGTERM signal, then wait if/while this signal stays pending for
-        // the parent process.
-        //
-        // The idea here is that if the child process was terminated due to
-        // such a signal, it's likely that the same signal will be received by
-        // the parent process as well. The reason for such an assumption is
-        // that these signals are normally sent for the whole process group
-        // (SIGINT by the terminal on Ctrl+C, etc). Note that while the
-        // signals are delivered to the group's processes simultaneously, they
-        // are handled by these processes with random delays in arbitrary
-        // order. This causes a race condition, when the parent process may
-        // complain on the abnormally terminated children before being
-        // terminated itself due to the same signal. This normally happens
-        // when the parent process installs a custom signal handler which
-        // performs some cleanups before terminating the process. Thus, to
-        // decrease the probability of such an unwanted (though perfectly
-        // valid) scenario, we will wait while the signal which terminated the
-        // child process stays pending for the parent. Here we assume that
-        // from the moment the signal stopped being pending, the execution of
-        // the signal handler begins and it's now the handler's responsibility
-        // to prevent the described scenario (it, for example, may disable
-        // issuing diagnostics before starting cleanups, etc).
-        //
-        // Note, however, that since that "passing of responsibility" is not
-        // atomic, the implemented approach doesn't resolve the problem
-        // completely but, as it was said above, just decreases the
-        // probability of the unwanted scenario.
-        //
-        if (!exit->normal ())
+        while (true) // Retry waitid() if it was interrupted by a signal.
         {
-          int s (exit->signal ());
+          siginfo_t info;
+          int r (waitid (P_PID, handle, &info, WEXITED | WNOWAIT));
 
-          if (s == SIGINT || s == SIGTERM)
-            wait_pending_signal (s, ie);
+          if (r == -1 && errno == EINTR)
+            continue;
+
+          // Note that on MacOS waitid() may erroneously return on the child
+          // process suspension and resuming (with the CLD_STOPPED or
+          // CLD_CONTINUED status, respectively) for the WEXITED|WNOWAIT flags
+          // combination. Let's retry waitid() on unexpected statuses there.
+          //
+#ifdef __APPLE__
+          if (r == 0                     &&
+              info.si_code != CLD_EXITED &&
+              info.si_code != CLD_KILLED &&
+              info.si_code != CLD_DUMPED)
+            continue;
+#endif
+
+          group = 0; // We have tried.
+
+          if (r == -1)
+          {
+            // If ignore errors then give up on trying to kill the
+            // unterminated members of the lead group, but still remove the
+            // group from the list, reap the process, and check for the
+            // unreaped members afterwards.
+            //
+            if (!ie)
+              throw process_error (errno);
+          }
+          else
+          {
+            // Note that at this point, after the process is terminated and
+            // before we reaped it, its immediate children are adopted by the
+            // init process (or alike) and, if terminated, can potentially be
+            // already reaped by their new parent.
+            //
+
+            // Note that this doesn't harm the process group leader since it
+            // has already terminated. Also note that kill() should always
+            // return 0 here, since the leader is still present in the group
+            // (since it is not reaped yet). For this very reason, we cannot
+            // say here if there are any unterminated or unreaped members of
+            // the group.
+            //
+            r = ::kill (-gr, SIGKILL);
+
+            // Note that in contrast to Linux and FreeBSD, it looks like MacOS
+            // may deny sending a signal to already terminated process(es).
+            // Note that such a behavior is actually permitted by POSIX.
+            //
+            //assert (r == 0 || (r == -1 && errno == EPERM));
+          }
+
+          break;
+        }
+
+        // Remove the already terminated but still existing group from the
+        // list. Keep the lock until the check for the unreaped group members
+        // is complete, to decrease the chances of the erroneous failure due
+        // to the group id reuse (see below for details).
+        //
+        // Note that we assume that since the process has already terminated,
+        // waitpid() will return immediately.
+        //
+        ulock l (mutex);
+        groups.erase (find (groups.begin (), groups.end (), gr));
+
+        int es;
+        int r (waitpid (handle, &es, 0));
+        handle = 0; // We have tried.
+
+        if (r == -1)
+        {
+          if (!ie)
+            throw process_error (errno);
+        }
+        else
+        {
+          exit = process_exit (es, process_exit::as_status);
+
+          if (!exit->normal ())
+          {
+            l.unlock ();
+
+            int s (exit->signal ());
+
+            if (s == SIGINT || s == SIGTERM)
+              wait_pending_signal (s, ie);
+          }
+          else
+          {
+            // Now, after the process group leader has been reaped, check if
+            // there are still any members left in the group and, if that's
+            // the case, assume the child terminated abnormally by marking the
+            // exit status with the SIGCHLD signal (it feels safe to use
+            // SIGCHLD since a process may not be terminated with this
+            // signal).
+            //
+            // Note that this check is really racy, with the following false
+            // positive and negative:
+            //
+            // - By this time, the group id can potentially be reused for some
+            //   unrelated processes (BSDs are at pretty high risk here due to
+            //   using randomized reuse strategies (fully randomized for
+            //   OpenBSD, randomized increment for FreeBSD, etc) in contrast
+            //   to the linear roll on Linux). In this case, we may mistakenly
+            //   report a failure. Quite unpleasant, but the probability of
+            //   the reuse still feels really low. So let's wait and see.
+            //
+            // - By this time the detached grandchildren could have been
+            //   adopted by the init process (or alike), terminated, and
+            //   reaped by init. In this case, we can mistakenly report a
+            //   success. Probably, not a big deal.
+            //
+            // While it's tempting to just drop this check altogether due to
+            // its flakiness, probably a flaky check is still better than no
+            // check here.
+            //
+            int r (::kill (-gr, 0));
+
+            // It looks like MacOS may deny sending the null signal to already
+            // terminated process(es) (see above for details). Anyway, if the
+            // system denies to send the signal, then there is still some
+            // process in the group.
+            //
+            if (r == 0 || (r == -1 && errno == EPERM))
+              exit->status = SIGCHLD; // See process_exit() for the bits layout.
+          }
         }
       }
     }
@@ -1165,29 +1422,108 @@ namespace butl
   {
     if (handle != 0)
     {
-      int es;
-      int r (waitpid (handle, &es, WNOHANG));
-
-      if (r == 0) // Not exited yet.
-        return nullopt;
-
-      handle = 0; // We have tried.
-
-      if (r == -1)
-        throw process_error (errno);
-
-      exit = process_exit (es, process_exit::as_status);
-
-      // If the child process terminated abnormally due to the SIGINT or
-      // SIGTERM signal, then wait while this signal stays pending (see above
-      // for the reasoning)
-      //
-      if (!exit->normal ())
+      if (group == 0) // Not a process group leader?
       {
-        int s (exit->signal ());
+        int es;
+        int r (waitpid (handle, &es, WNOHANG));
 
-        if (s == SIGINT || s == SIGTERM)
-          wait_pending_signal (s);
+        if (r == 0) // Not exited yet.
+          return nullopt;
+
+        handle = 0; // We have tried.
+
+        if (r == -1)
+          throw process_error (errno);
+
+        exit = process_exit (es, process_exit::as_status);
+
+        // If the child process terminated abnormally due to the SIGINT or
+        // SIGTERM signal, then wait while this signal stays pending (see
+        // above for the reasoning)
+        //
+        if (!exit->normal ())
+        {
+          int s (exit->signal ());
+
+          if (s == SIGINT || s == SIGTERM)
+            wait_pending_signal (s);
+        }
+      }
+      //
+      // If this is a process group leader, then kill all the other
+      // potentially unterminated members of the lead group, as we do in the
+      // wait() function implementation.
+      //
+      else
+      {
+        // Zero-initialize the status information (and disambiguate with the
+        // function declaration) before the call, to make sure that si_pid
+        // member is 0 if the process didn't terminate yet. Note that while
+        // the latter POSIX standard editions require waitid() to set this
+        // member to 0, it's widely recommended to not rely on that.
+        //
+        siginfo_t info ((siginfo_t ()));
+        int r (waitid (P_PID, handle, &info, WEXITED | WNOWAIT | WNOHANG));
+
+        if (r == 0 && info.si_pid == 0) // Not exited yet.
+          return nullopt;
+
+        // Let's check that waitid() didn't succeed for the wrong event on
+        // MacOS (see wait() implementation for details).
+        //
+#ifdef __APPLE__
+        if (r == 0                     &&
+            info.si_code != CLD_EXITED &&
+            info.si_code != CLD_KILLED &&
+            info.si_code != CLD_DUMPED)
+          return nullopt;
+#endif
+
+        handle_type gr (group);
+        group = 0; // We have tried.
+
+        if (r == -1)
+          throw process_error (errno);
+
+        r = ::kill (-gr, SIGKILL);
+
+        //assert (r == 0 || (r == -1 && errno == EPERM));
+
+        ulock l (mutex);
+        groups.erase (find (groups.begin (), groups.end (), gr));
+
+        int es;
+        r = waitpid (handle, &es, WNOHANG);
+
+        assert (r != 0); // Should have exited, as per waitid() call above.
+
+        handle = 0; // We have tried.
+
+        if (r == -1)
+          throw process_error (errno);
+
+        exit = process_exit (es, process_exit::as_status);
+
+        if (!exit->normal ())
+        {
+          l.unlock ();
+
+          int s (exit->signal ());
+
+          if (s == SIGINT || s == SIGTERM)
+            wait_pending_signal (s);
+        }
+        else
+        {
+          // Check if there are still any members left in the group and, if
+          // that's the case, assume the child terminated abnormally (see the
+          // wait() function implementation for details).
+          //
+          int r (::kill (-gr, 0));
+
+          if (r == 0 || (r == -1 && errno == EPERM))
+            exit->status = SIGCHLD;
+        }
       }
     }
 
@@ -1217,14 +1553,18 @@ namespace butl
   void process::
   kill ()
   {
-    if (handle != 0 && ::kill (handle, SIGKILL) == -1)
+    // Kill the whole process group, if this is a group leader.
+    //
+    if (handle != 0 && ::kill (group != 0 ? -group : handle, SIGKILL) == -1)
       throw process_error (errno);
   }
 
   void process::
   term ()
   {
-    if (handle != 0 && ::kill (handle, SIGTERM) == -1)
+    // Terminate the whole process group, if this is a group leader.
+    //
+    if (handle != 0 && ::kill (group != 0 ? -group : handle, SIGTERM) == -1)
       throw process_error (errno);
   }
 
@@ -1347,7 +1687,7 @@ namespace butl
     case SIGTERM:   return "terminated (SIGTERM)";
     case SIGUSR1:   return "user defined signal 1 (SIGUSR1)";
     case SIGUSR2:   return "user defined signal 2 (SIGUSR2)";
-    case SIGCHLD:   return "child exited (SIGCHLD)";
+    case SIGCHLD:   return "unreaped process group";
     case SIGCONT:   return "continued (SIGCONT)";
     case SIGSTOP:   return "stopped (process; SIGSTOP)";
     case SIGTSTP:   return "stopped (typed at terminal; SIGTSTP)";
@@ -1606,8 +1946,8 @@ namespace butl
     return process_path ();
   }
 
-  // Make handles inheritable. The process_spawn_mutex must be pre-acquired for
-  // exclusive access. Revert handles inheritability state in destructor.
+  // Make handles inheritable. The process spawn mutex must be pre-acquired
+  // for exclusive access. Revert handles inheritability state in destructor.
   //
   // There is a period of time when the process ctor makes file handles it
   // passes to the child to be inheritable, that otherwise are not inheritable
@@ -1618,7 +1958,7 @@ namespace butl
   // into, terminate. To prevent this behavior the specific sequence of steps
   // (that involves making handles inheritable, spawning process and reverting
   // handles to non-inheritable state back) will be performed after aquiring
-  // the process_spawn_mutex (that is released afterwards).
+  // the process spawn mutex (that is released afterwards).
   //
   class inheritability_lock
   {
@@ -1761,7 +2101,7 @@ namespace butl
     return s.c_str ();
   }
 
-  // Protected by process_spawn_mutex. See below for the gory details.
+  // Protected by the process spawn mutex. See below for the gory details.
   //
   static map<string, bool> detect_msys_cache_;
 
@@ -1769,7 +2109,8 @@ namespace butl
   process (const process_path& pp, const char* const* args,
            pipe pin, pipe pout, pipe perr,
            const char* cwd,
-           const char* const* evars)
+           const char* const* evars,
+           bool /*new_group*/)
   {
     int in  (pin.in);
     int out (pout.out);
@@ -1989,7 +2330,7 @@ namespace butl
     si.dwFlags |= STARTF_USESTDHANDLES;
 
     {
-      ulock l (process_spawn_mutex);
+      ulock l (mutex);
       inheritability_lock il (l);
 
       // Resolve file descriptor to HANDLE and make sure it is inherited (if
@@ -2109,7 +2450,7 @@ namespace butl
       // Notes:
       //
       // 1. The ImageLoad() API is not thread-safe so we do this while holding
-      //    process_spawn_mutex.
+      //    the process spawn mutex.
       //
       // 2. We can only load an image of the same width as us (32/64-bit).
       //
