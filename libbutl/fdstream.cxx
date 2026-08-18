@@ -1301,7 +1301,7 @@ namespace butl
 #ifndef _WIN32
 
   auto_fd
-  fddup (int fd)
+  fddup (int fd, bool no_inherit)
   {
     // dup() doesn't copy FD_CLOEXEC flag, so we need to do it ourselves. Note
     // that the new descriptor can leak into child processes before we copy the
@@ -1320,20 +1320,23 @@ namespace butl
       return r;
     };
 
-    int f (fcntl (fd, F_GETFD));
-    if (f == -1)
-      throw_generic_ios_failure (errno);
+    if (!no_inherit)
+    {
+      int f (fcntl (fd, F_GETFD));
+      if (f == -1)
+        throw_generic_ios_failure (errno);
 
-    // If the source descriptor has no FD_CLOEXEC flag set then no flag copy is
-    // required (as the duplicate will have no flag by default).
-    //
-    if ((f & FD_CLOEXEC) == 0)
-      return dup ();
+      // If the source descriptor has no FD_CLOEXEC flag set then no flag copy
+      // is required (as the duplicate will have no flag by default).
+      //
+      if ((f & FD_CLOEXEC) == 0)
+        return dup ();
+    }
 
     slock l (process_spawn_mutex);
     auto_fd r (dup ());
 
-    f = fcntl (r.get (), F_GETFD);
+    int f (fcntl (r.get (), F_GETFD));
     if (f == -1 || fcntl (r.get (), F_SETFD, f | FD_CLOEXEC) == -1)
       throw_generic_ios_failure (errno);
 
@@ -1645,7 +1648,7 @@ namespace butl
 #else // _WIN32
 
   auto_fd
-  fddup (int fd)
+  fddup (int fd, bool no_inherit)
   {
     // _dup() doesn't copy _O_NOINHERIT flag, so we need to do it ourselves.
     // Note that the new descriptor can leak into child processes before we
@@ -1665,15 +1668,18 @@ namespace butl
     // so need to resolve them to Windows HANDLE first. Note that we don't
     // need to close them (see fd_to_handle()).
     //
-    DWORD f;
-    if (!GetHandleInformation (fd_to_handle (fd), &f))
-      throw_system_ios_failure (GetLastError ());
+    if (!no_inherit)
+    {
+      DWORD f;
+      if (!GetHandleInformation (fd_to_handle (fd), &f))
+        throw_system_ios_failure (GetLastError ());
 
-    // If the source handle is inheritable then no flag copy is required (as
-    // the duplicate handle will be inheritable by default).
-    //
-    if (f & HANDLE_FLAG_INHERIT)
-      return dup ();
+      // If the source handle is inheritable then no flag copy is required (as
+      // the duplicate handle will be inheritable by default).
+      //
+      if (f & HANDLE_FLAG_INHERIT)
+        return dup ();
+    }
 
     slock l (process_spawn_mutex);
 

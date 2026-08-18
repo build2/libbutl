@@ -748,22 +748,26 @@ namespace butl
   // Duplicate an open file descriptor. Throw ios::failure on the underlying
   // OS error.
   //
-  // Note that on POSIX the FD_CLOEXEC flag is set for the new descriptor if it
-  // is present for the source one. That's in contrast to POSIX dup() that
-  // doesn't copy file descriptor flags. Also note that duplicating descriptor
-  // and setting the flag is not an atomic operation generally, but it is in
-  // regards to child process spawning (to prevent file descriptor leakage into
-  // a child process).
-  //
-  // Note that on Windows the _O_NOINHERIT flag is set for the new descriptor
-  // if it is present for the source one. That's in contrast to Windows _dup()
-  // that doesn't copy the flag. Also note that duplicating descriptor and
+  // On POSIX, by default, set the FD_CLOEXEC flag for the new descriptor if
+  // it is present for the source one. That's in contrast to POSIX dup() that
+  // doesn't copy file descriptor flags. Note that duplicating descriptor and
   // setting the flag is not an atomic operation generally, but it is in
-  // regards to child process spawning (to prevent file descriptor leakage into
-  // a child process).
+  // regards to child process spawning (to prevent file descriptor leakage
+  // into a child process).
+  //
+  // On Windows, by default, set the _O_NOINHERIT flag for the new descriptor
+  // if it is present for the source one. That's in contrast to Windows _dup()
+  // that doesn't copy the flag. Note that duplicating descriptor and setting
+  // the flag is not an atomic operation generally, but it is in regards to
+  // child process spawning (to prevent file descriptor leakage into a child
+  // process).
+  //
+  // If the no_inherit argument is true, then set the FD_CLOEXEC flag on POSIX
+  // and _O_NOINHERIT flag on Windows for the new descriptor, regardless of
+  // the source descriptor flags.
   //
   LIBBUTL_SYMEXPORT auto_fd
-  fddup (int fd);
+  fddup (int fd, bool no_inherit = false);
 
   // Set the translation and/or blocking modes for the file descriptor. Throw
   // invalid_argument for an invalid combination of flags. Return the previous

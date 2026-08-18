@@ -2245,7 +2245,7 @@ namespace butl
 
             // No reading end, so make sure that the file descriptor is a pipe.
             //
-            return GetFileType (get_osfhandle (p.out, false)) ==
+            return GetFileType (get_osfhandle (p.out, false /* inherit */)) ==
                    FILE_TYPE_PIPE;
           };
 
@@ -2277,7 +2277,7 @@ namespace butl
 
             char c;
             DWORD n;
-            HANDLE h (get_osfhandle (fd != -1 ? fd : ufd, false));
+            HANDLE h (get_osfhandle (fd != -1 ? fd : ufd, false /* inherit */));
             return PeekNamedPipe (h, &c, 1, &n, nullptr, nullptr) && n == 1;
           };
 

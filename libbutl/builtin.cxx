@@ -330,6 +330,33 @@ namespace butl
     return wd;
   }
 
+  static inline auto_fd
+  fddup_stdin ()
+  {
+    // Avoid leaking the resulting file descriptor into the potential child
+    // processes.
+    //
+    return fddup (stdin_fd (), true /* no_inherit */);
+  }
+
+  static inline auto_fd
+  fddup_stdout ()
+  {
+    // Avoid leaking the resulting file descriptor into the potential child
+    // processes.
+    //
+    return fddup (stdout_fd (), true /* no_inherit */);
+  }
+
+  static inline auto_fd
+  fddup_stderr ()
+  {
+    // Avoid leaking the resulting file descriptor into the potential child
+    // processes.
+    //
+    return fddup (stderr_fd (), true /* no_inherit */);
+  }
+
   // Builtin commands functions.
   //
 
@@ -356,7 +383,7 @@ namespace butl
   try
   {
     uint8_t r (1);
-    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+    ofdstream cerr (err != nullfd ? move (err) : fddup_stderr ());
 
     auto error = [&cerr] (bool fail = false)
     {
@@ -367,10 +394,10 @@ namespace butl
 
     try
     {
-      ifdstream cin (in != nullfd ? move (in) : fddup (stdin_fd ()),
+      ifdstream cin (in != nullfd ? move (in) : fddup_stdin (),
                      fdstream_mode::binary);
 
-      ofdstream cout (out != nullfd ? move (out) : fddup (stdout_fd ()),
+      ofdstream cout (out != nullfd ? move (out) : fddup_stdout (),
                       fdstream_mode::binary);
 
       // Parse arguments.
@@ -494,7 +521,7 @@ namespace butl
   try
   {
     uint8_t r (1);
-    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+    ofdstream cerr (err != nullfd ? move (err) : fddup_stderr ());
 
     auto error = [&cerr, name] (bool fail = false)
     {
@@ -515,10 +542,10 @@ namespace butl
       if (ops.binary () && ops.text ())
         fail () << "both -b|--binary and -t|--text specified";
 
-      ofdstream cout (out != nullfd ? move (out) : fddup (stdout_fd ()));
+      ofdstream cout (out != nullfd ? move (out) : fddup_stdout ());
 
       ifdstream cin (
-        in != nullfd ? move (in) : fddup (stdin_fd ()),
+        in != nullfd ? move (in) : fddup_stdin (),
         ops.binary () ? fdstream_mode::binary : fdstream_mode::text);
 
       // Calculate the checksums of the specified files and print them to
@@ -794,7 +821,7 @@ namespace butl
   try
   {
     uint8_t r (1);
-    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+    ofdstream cerr (err != nullfd ? move (err) : fddup_stderr ());
 
     auto error = [&cerr] (bool fail = false)
     {
@@ -933,7 +960,7 @@ namespace butl
   try
   {
     uint8_t r (1);
-    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+    ofdstream cerr (err != nullfd ? move (err) : fddup_stderr ());
 
     auto error = [&cerr] (bool fail = false)
     {
@@ -945,7 +972,7 @@ namespace butl
     try
     {
       in.close ();
-      ofdstream cout (out != nullfd ? move (out) : fddup (stdout_fd ()));
+      ofdstream cout (out != nullfd ? move (out) : fddup_stdout ());
 
       // Parse arguments.
       //
@@ -1048,12 +1075,12 @@ namespace butl
   try
   {
     uint8_t r (1);
-    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+    ofdstream cerr (err != nullfd ? move (err) : fddup_stderr ());
 
     try
     {
       in.close ();
-      ofdstream cout (out != nullfd ? move (out) : fddup (stdout_fd ()));
+      ofdstream cout (out != nullfd ? move (out) : fddup_stdout ());
 
       const string* as (args.data ());
       size_t an (args.size ());
@@ -1274,7 +1301,7 @@ namespace butl
   try
   {
     uint8_t r (1);
-    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+    ofdstream cerr (err != nullfd ? move (err) : fddup_stderr ());
 
     // Note that on some errors we will issue diagnostics but continue the
     // search and return with non-zero code at the end. This is consistent
@@ -1292,7 +1319,7 @@ namespace butl
     try
     {
       in.close ();
-      ofdstream cout (out != nullfd ? move (out) : fddup (stdout_fd ()));
+      ofdstream cout (out != nullfd ? move (out) : fddup_stdout ());
 
       // Parse arguments.
       //
@@ -1746,7 +1773,7 @@ namespace butl
   try
   {
     uint8_t r (1);
-    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+    ofdstream cerr (err != nullfd ? move (err) : fddup_stderr ());
 
     auto error = [&cerr] (bool fail = false)
     {
@@ -1905,7 +1932,7 @@ namespace butl
   try
   {
     uint8_t r (1);
-    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+    ofdstream cerr (err != nullfd ? move (err) : fddup_stderr ());
 
     auto error = [&cerr] (bool fail = false)
     {
@@ -2005,7 +2032,7 @@ namespace butl
   try
   {
     uint8_t r (1);
-    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+    ofdstream cerr (err != nullfd ? move (err) : fddup_stderr ());
 
     auto error = [&cerr] (bool fail = false)
     {
@@ -2158,7 +2185,7 @@ namespace butl
   try
   {
     uint8_t r (1);
-    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+    ofdstream cerr (err != nullfd ? move (err) : fddup_stderr ());
 
     auto error = [&cerr] (bool fail = false)
     {
@@ -2261,7 +2288,7 @@ namespace butl
   try
   {
     uint8_t r (1);
-    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+    ofdstream cerr (err != nullfd ? move (err) : fddup_stderr ());
 
     auto error = [&cerr] (bool fail = false)
     {
@@ -2357,7 +2384,7 @@ namespace butl
   try
   {
     uint8_t r (1);
-    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+    ofdstream cerr (err != nullfd ? move (err) : fddup_stderr ());
 
     auto error = [&cerr] (bool fail = false)
     {
@@ -2374,10 +2401,10 @@ namespace butl
       auto_rmfile rm;
 
       if (in == nullfd)
-        in = fddup (stdin_fd ());
+        in = fddup_stdin ();
 
       if (out == nullfd)
-        out = fddup (stdout_fd ());
+        out = fddup_stdout ();
 
       // Turn the streams into the binary mode to preserve the original line
       // endings.
@@ -2672,7 +2699,7 @@ namespace butl
   try
   {
     uint8_t r (1);
-    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+    ofdstream cerr (err != nullfd ? move (err) : fddup_stderr ());
 
     auto error = [&cerr] (bool fail = false)
     {
@@ -2777,7 +2804,7 @@ namespace butl
   try
   {
     uint8_t r (2);
-    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+    ofdstream cerr (err != nullfd ? move (err) : fddup_stderr ());
 
     auto error = [&cerr] (bool fail = false)
     {
@@ -2870,7 +2897,7 @@ namespace butl
   try
   {
     uint8_t r (1);
-    ofdstream cerr (err != nullfd ? move (err) : fddup (stderr_fd ()));
+    ofdstream cerr (err != nullfd ? move (err) : fddup_stderr ());
 
     auto error = [&cerr] (bool fail = false)
     {
