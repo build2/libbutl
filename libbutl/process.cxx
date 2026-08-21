@@ -1063,15 +1063,23 @@ namespace butl
   // Wait while the specified signal is pending for the current process.
   //
   static void
-  wait_pending_signal (int sig)
+  wait_pending_signal (int sig, bool ie = false)
   {
     while (true)
     {
       sigset_t sigmask;
       sigemptyset (&sigmask);
 
+      // Shouldn't fail, unless something is severely damaged. However, if it
+      // does and we ignore errors, then just stop waiting.
+      //
       if (sigpending (&sigmask) != 0)
-        throw process_error (errno);
+      {
+        if (!ie)
+          throw process_error (errno);
+
+        break;
+      }
 
       if (sigismember (&sigmask, sig) == 0)
         break;
@@ -1144,7 +1152,7 @@ namespace butl
           int s (exit->signal ());
 
           if (s == SIGINT || s == SIGTERM)
-            wait_pending_signal (s);
+            wait_pending_signal (s, ie);
         }
       }
     }
