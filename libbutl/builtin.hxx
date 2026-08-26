@@ -29,18 +29,17 @@
 #include <functional>
 
 #ifndef LIBBUTL_MINGW_STDTHREAD
-#  include <mutex>
 #  include <condition_variable>
 #  ifndef LIBBUTL_BUILTIN_POSIX_THREADS
 #    include <thread>
 #  endif
 #else
-#  include <libbutl/mingw-mutex.hxx>
 #  include <libbutl/mingw-thread.hxx>
 #  include <libbutl/mingw-condition_variable.hxx>
 #endif
 
 #include <libbutl/path.hxx>
+#include <libbutl/mutex.hxx>
 #include <libbutl/optional.hxx>
 #include <libbutl/fdstream.hxx>
 #include <libbutl/timestamp.hxx>
@@ -85,23 +84,19 @@ namespace butl
     ~builtin () {if (state_ != nullptr) state_->join (false /* ignore_error */);}
 
   public:
+    using mutex_type = mutex;
+
 #ifndef LIBBUTL_MINGW_STDTHREAD
-    using mutex_type = std::mutex;
     using condition_variable_type = std::condition_variable;
 
-#ifndef LIBBUTL_BUILTIN_POSIX_THREADS
+#  ifndef LIBBUTL_BUILTIN_POSIX_THREADS
     using thread_type = std::thread;
-#else
+#  else
     using thread_type = pthread_t;
-#endif
-
-    using unique_lock = std::unique_lock<mutex_type>;
+#  endif
 #else
-    using mutex_type = mingw_stdthread::mutex;
     using condition_variable_type = mingw_stdthread::condition_variable;
     using thread_type = mingw_stdthread::thread;
-
-    using unique_lock = mingw_stdthread::unique_lock<mutex_type>;
 #endif
 
     class async_state

@@ -29,7 +29,7 @@ namespace butl
   {
     if (state_ != nullptr)
     {
-      unique_lock l (state_->mutex);
+      mlock l (state_->mutex);
 
       if (!state_->finished)
         return nullopt;
@@ -68,7 +68,7 @@ namespace butl
     std::uint8_t t (f ());
 
     {
-      unique_lock l (this->mutex);
+      mlock l (this->mutex);
       r = t;
       finished = true;
     }

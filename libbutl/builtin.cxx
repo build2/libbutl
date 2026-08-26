@@ -40,6 +40,7 @@
 
 #include <libbutl/regex.hxx>
 #include <libbutl/xxh64.hxx>
+#include <libbutl/mutex.hxx>
 #include <libbutl/sha256.hxx>
 #include <libbutl/path-io.hxx>
 #include <libbutl/utility.hxx>      // operator<<(ostream,exception),
@@ -3177,7 +3178,7 @@ namespace butl
   {
     if (state_ != nullptr)
     {
-      unique_lock l (state_->mutex);
+      mlock l (state_->mutex);
 
       if (!state_->finished)
         state_->condv.wait (l, [this] {return state_->finished;});
@@ -3192,7 +3193,7 @@ namespace butl
   {
     if (state_ != nullptr)
     {
-      unique_lock l (state_->mutex);
+      mlock l (state_->mutex);
 
       if (!state_->finished &&
           !state_->condv.wait_for (l, tm, [this] {return state_->finished;}))
