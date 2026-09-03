@@ -1981,13 +1981,12 @@ namespace butl
     // Prepare other process information.
     //
     STARTUPINFO si;
-    PROCESS_INFORMATION pi;
     memset (&si, 0, sizeof (STARTUPINFO));
-    memset (&pi, 0, sizeof (PROCESS_INFORMATION));
 
     si.cb = sizeof (STARTUPINFO);
     si.dwFlags |= STARTF_USESTDHANDLES;
 
+    auto_handle process;
     {
       ulock l (process_spawn_mutex);
       inheritability_lock il (l);
@@ -2209,6 +2208,9 @@ namespace butl
       system_clock::duration timeout (1h);
       for (size_t i (0);; ++i)
       {
+        PROCESS_INFORMATION pi;
+        memset (&pi, 0, sizeof (PROCESS_INFORMATION));
+
         if (!CreateProcess (
               batch ? batch->c_str () : pp.effect_string (),
               const_cast<char*> (cmd_line.c_str ()),
@@ -2221,6 +2223,8 @@ namespace butl
               &si,
               &pi))
           fail ();
+
+        process.reset (pi.hProcess);
 
         auto_handle (pi.hThread).reset (); // Close.
 
@@ -2310,7 +2314,7 @@ namespace butl
           {
             milli_duration wd (100);
 
-            r = WaitForSingleObject (pi.hProcess, wd.count ());
+            r = WaitForSingleObject (process.get (), wd.count ());
             twd += wd;
 
             if (r != WAIT_TIMEOUT ||
@@ -2320,8 +2324,8 @@ namespace butl
               break;
           }
 
-          if (r == WAIT_OBJECT_0                   &&
-              GetExitCodeProcess (pi.hProcess, &r) &&
+          if (r == WAIT_OBJECT_0                      &&
+              GetExitCodeProcess (process.get (), &r) &&
               r == STATUS_DLL_INIT_FAILED)
           {
             // Use exponential backoff with the up to a second delay. This
@@ -2346,7 +2350,7 @@ namespace butl
               timeout -= d;
               l.lock ();
               il.lock ();
-              continue;
+              continue; // Retry CreateProcess().
             }
           }
         }
@@ -2357,7 +2361,7 @@ namespace butl
 
     // 0 has a special meaning denoting a terminated process handle.
     //
-    this->handle = pi.hProcess;
+    this->handle = process.release ();
     assert (this->handle != 0 && this->handle != INVALID_HANDLE_VALUE);
 
     this->out_fd = move (out_fd.out);
