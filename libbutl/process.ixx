@@ -234,7 +234,7 @@ namespace butl
 #else
     if (handle != nullptr)
 #endif
-      wait (true);
+      wait (true /* ignore_errors */, group_wait::kill_no_check);
   }
 
   inline process::
@@ -510,7 +510,7 @@ namespace butl
 #else
       if (handle != nullptr)
 #endif
-        wait ();
+        wait (false /* ignore_errors */, group_wait::kill_no_check);
 
       handle = p.handle;
 
@@ -540,14 +540,14 @@ namespace butl
   //
   template <>
   LIBBUTL_SYMEXPORT optional<bool> process::
-  timed_wait (const std::chrono::milliseconds&);
+  timed_wait (const std::chrono::milliseconds&, group_wait);
 
   template <typename R, typename P>
   inline optional<bool> process::
-  timed_wait (const std::chrono::duration<R, P>& d)
+  timed_wait (const std::chrono::duration<R, P>& d, group_wait gw)
   {
     using namespace std::chrono;
-    return timed_wait (duration_cast<milliseconds> (d));
+    return timed_wait (duration_cast<milliseconds> (d), gw);
   }
 
   // process_env

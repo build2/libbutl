@@ -494,23 +494,43 @@ namespace butl
     // status.
     //
     // If the process is a process group leader, then, upon the process
-    // termination, check if any members of the group are still running or
-    // left unreaped. If there are any, then assume that the group leader has
-    // terminated abnormally. Also, kill the remaining running members of the
-    // group, if present. Note, however, that while the killing part is
+    // termination, take action against remaining group members according to
+    // the group_wait argument. Note, however, that while the killing part is
     // guaranteed, the detection that a process group member is unreaped by
     // its original parent is not since the operating system may automatically
-    // reap a terminated orphan process before we even notice or, as on
-    // Windows, may have no notion of process reaping altogether.
+    // reap a terminated orphan process before we even notice.
     //
+    enum class group_wait
+    {
+      // Kill members and check for unreaped if leader terminated normally.
+      // If present, then change the leader's exit status to abnormal.
+      //
+      kill_check_unreaped_normal,
+
+      // Kill members and check for unreaped if leader terminated normally
+      // with 0 exit code. If present, then change the leader's exit status
+      // to abnormal.
+      //
+      kill_check_unreaped_zero,
+
+      // Kill members and don't check for unreaped.
+      //
+      kill_no_check
+
+      // Don't kill members (and don't check for unreaped).
+      //
+      //no_kill
+    };
+
     bool
-    wait (bool ignore_errors = false);
+    wait (bool ignore_errors = false,
+          group_wait = group_wait::kill_check_unreaped_zero);
 
     // Return the same result as wait() if the process has already terminated
     // and nullopt otherwise.
     //
     optional<bool>
-    try_wait ();
+    try_wait (group_wait = group_wait::kill_check_unreaped_zero);
 
     // Wait for the process to terminate for up to the specified time
     // duration. Return the same result as wait() if the process has
@@ -518,7 +538,8 @@ namespace butl
     //
     template <typename R, typename P>
     optional<bool>
-    timed_wait (const std::chrono::duration<R, P>&);
+    timed_wait (const std::chrono::duration<R, P>&,
+                group_wait = group_wait::kill_check_unreaped_zero);
 
     // Note that the destructor will wait for the process but will ignore
     // any errors and the exit status.

@@ -705,7 +705,7 @@ exec_tests (const path& p)
   // process::wait() implementation for details).
   //
 #ifndef __OpenBSD__
-  // Group leader starts the detached long-running child and exits.
+  // Group leader starts the detached long-running child and exits with code 0.
   //
   {
     strings args ({"{", "-s", "10000", "}"});
@@ -717,6 +717,20 @@ exec_tests (const path& p)
     process pr2 (start (p, args));
     assert (started (pr2));
     assert (wait_abnormal (pr2, SIGCHLD, p, args, true /* use_try_wait */));
+  }
+
+  // As above but exits with code 3.
+  //
+  {
+    strings args ({"{", "-s", "10000", "}", "-e", "3"});
+
+    process pr1 (start (p, args));
+    assert (started (pr1));
+    assert (wait_normal (pr1, 3, p, args));
+
+    process pr2 (start (p, args));
+    assert (started (pr2));
+    assert (wait_normal (pr2, 3, p, args, true /* use_try_wait */));
   }
 
   // Group leader starts the child, which starts the detached long-running
@@ -944,7 +958,7 @@ exec_tests (const path& p)
 
 #else // _WIN32
 
-  // Job leader starts the detached long-running child and exits.
+  // Job leader starts the detached long-running child and exits with code 0.
   //
   {
     strings args ({"{", "-s", "5000", "}"});
@@ -957,6 +971,21 @@ exec_tests (const path& p)
 
     assert (wait_abnormal (pr2, STATUS_JOB_NOT_EMPTY, p, args, true /* use_try_wait */));
     assert (wait_abnormal (pr1, STATUS_JOB_NOT_EMPTY, p, args));
+  }
+
+  // As above but exits with code 3.
+  //
+  {
+    strings args ({"{", "-s", "5000", "}", "-e", "3"});
+
+    process pr1 (start (p, args));
+    assert (started (pr1));
+
+    process pr2 (start (p, args));
+    assert (started (pr2));
+
+    assert (wait_normal (pr2, 3, p, args, true /* use_try_wait */));
+    assert (wait_normal (pr1, 3, p, args));
   }
 
   // As above but start multiple detached long-running children.

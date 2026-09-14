@@ -1227,7 +1227,7 @@ namespace butl
   }
 
   bool process::
-  wait (bool ie)
+  wait (bool ie, group_wait gw)
   {
     if (handle != 0)
     {
@@ -1404,11 +1404,11 @@ namespace butl
           if (WIFEXITED (es)) // Exited normally?
           {
             // Now, after the process group leader has exited and been reaped,
-            // check if there are still any members left in the group and, if
-            // that's the case, assume the group leader has terminated
-            // abnormally and mark its exit status with the SIGCHLD signal (it
-            // feels safe to use SIGCHLD since a process may not be terminated
-            // with this signal).
+            // if requested, check if there are still any members left in the
+            // group and, if that's the case, assume the group leader has
+            // terminated abnormally and mark its exit status with the SIGCHLD
+            // signal (it feels safe to use SIGCHLD since a process may not be
+            // terminated with this signal).
             //
             // Note that this check is really racy, with the following false
             // positive and negative:
@@ -1432,15 +1432,20 @@ namespace butl
             // other as possible, with a minimum code in between.
             //
 #ifndef __OpenBSD__
-            int r (::kill (-gr, 0)); // Ignore errors.
+            if ((WEXITSTATUS (es) == 0 &&
+                 gw == group_wait::kill_check_unreaped_zero) ||
+                gw == group_wait::kill_check_unreaped_normal)
+            {
+              int r (::kill (-gr, 0)); // Ignore errors.
 
-            // It looks like MacOS may deny sending the null signal to already
-            // terminated process(es) (see above for details). Anyway, if the
-            // system denies to send the signal, then there is still some
-            // process in the group.
-            //
-            if (r == 0 || (r == -1 && errno == EPERM))
-              es = SIGCHLD; // See process_exit() for the bits layout.
+              // It looks like MacOS may deny sending the null signal to
+              // already terminated process(es) (see above for details).
+              // Anyway, if the system denies to send the signal, then there
+              // is still some process in the group.
+              //
+              if (r == 0 || (r == -1 && errno == EPERM))
+                es = SIGCHLD; // See process_exit() for the bits layout.
+            }
 #endif
           }
           else                // Terminated on signal?
@@ -1464,7 +1469,7 @@ namespace butl
   }
 
   optional<bool> process::
-  try_wait ()
+  try_wait (group_wait gw)
   {
     if (handle != 0)
     {
@@ -1554,15 +1559,20 @@ namespace butl
 
         if (WIFEXITED (es)) // Exited normally?
         {
-          // Check if there are still any members left in the group and, if
-          // that's the case, assume the child terminated abnormally (see the
-          // wait() function implementation for details).
+          // If requested, check if there are still any members left in the
+          // group and, if that's the case, assume the child terminated
+          // abnormally (see the wait() function implementation for details).
           //
 #ifndef __OpenBSD__
-          int r (::kill (-gr, 0));
+          if ((WEXITSTATUS (es) == 0 &&
+               gw == group_wait::kill_check_unreaped_zero) ||
+              gw == group_wait::kill_check_unreaped_normal)
+          {
+            int r (::kill (-gr, 0));
 
-          if (r == 0 || (r == -1 && errno == EPERM))
-            es = SIGCHLD;
+            if (r == 0 || (r == -1 && errno == EPERM))
+              es = SIGCHLD;
+          }
 #endif
         }
         else                // Terminated on signal?
@@ -1586,14 +1596,14 @@ namespace butl
 
   template <>
   optional<bool> process::
-  timed_wait (const chrono::milliseconds& tm)
+  timed_wait (const chrono::milliseconds& tm, group_wait gw)
   {
     using namespace chrono;
 
     // On POSIX this seems to be the best way for multi-threaded processes.
     //
     const milliseconds sd (10);
-    for (milliseconds d (tm); !try_wait (); d -= sd)
+    for (milliseconds d (tm); !try_wait (gw); d -= sd)
     {
       this_thread::sleep_for (d < sd ? d : sd);
 
@@ -1601,7 +1611,7 @@ namespace butl
         break;
     }
 
-    return try_wait ();
+    return try_wait (gw);
   }
 
   void process::
@@ -2830,7 +2840,7 @@ namespace butl
   }
 
   bool process::
-  wait (bool ie)
+  wait (bool ie, group_wait gw)
   {
     if (handle != nullptr)
     {
@@ -2878,11 +2888,12 @@ namespace butl
 
           if (exit->normal ())
           {
-            // Now, after the job leader has exited and been reaped, check if
-            // there are still any processes in the job and, if that's the
-            // case, assume the job leader has terminated abnormally and mark
-            // its exit status with the STATUS_JOB_NOT_EMPTY error code (which
-            // feels semantically appropriate).
+            // Now, after the job leader has exited and been reaped, if
+            // requested, check if there are still any processes in the job
+            // and, if that's the case, assume the job leader has terminated
+            // abnormally and mark its exit status with the
+            // STATUS_JOB_NOT_EMPTY error code (which feels semantically
+            // appropriate).
             //
             // Note that the job object accounting is updated asynchronously
             // and the terminated job leader may well still be present in the
@@ -2891,43 +2902,50 @@ namespace butl
             // it is the job leader, then we assume that there are no more
             // processes in the job.
             //
-            JOBOBJECT_BASIC_PROCESS_ID_LIST pl; // Note: has a slot for 1 pid.
-
-            // Ignore errors.
-            //
-            // Note that in contrast to POSIX we may only have the false
-            // negative here:
-            //
-            // - At this time, the job and process objects are still alive in
-            //   the kernel (since we keep open handles to them) and so the
-            //   process pid cannot be reused.
-            //
-            // - By this time, the detached grandchildren could have been
-            //   terminated and all their traces removed from the kernel. In
-            //   this case, we can mistakenly report a success, which is not a
-            //   big deal.
-            //
-            // And, as for POSIX, a flaky check is still better than no check
-            // here.
-            //
-            if (QueryInformationJobObject (j.get (),
-                                           JobObjectBasicProcessIdList,
-                                           &pl,
-                                           sizeof (pl),
-                                           0 /* returnedLength */))
+            if ((exit->code () == 0 &&
+                 gw == group_wait::kill_check_unreaped_zero) ||
+                gw == group_wait::kill_check_unreaped_normal)
             {
-              if (pl.NumberOfProcessIdsInList != 0)
+              JOBOBJECT_BASIC_PROCESS_ID_LIST pl; // Note: has a slot for 1 pid.
+
+              // Ignore errors.
+              //
+              // Note that in contrast to POSIX we may only have the false
+              // negative here:
+              //
+              // - At this time, the job and process objects are still alive
+              //   in the kernel (since we keep open handles to them) and so
+              //   the process pid cannot be reused.
+              //
+              // - By this time, the detached grandchildren could have been
+              //   terminated and all their traces removed from the kernel. In
+              //   this case, we can mistakenly report a success, which is not
+              //   a big deal.
+              //
+              // And, as for POSIX, a flaky check is still better than no
+              // check here.
+              //
+              if (QueryInformationJobObject (j.get (),
+                                             JobObjectBasicProcessIdList,
+                                             &pl,
+                                             sizeof (pl),
+                                             0 /* returnedLength */))
               {
-                assert (pl.NumberOfProcessIdsInList == 1);
+                if (pl.NumberOfProcessIdsInList != 0)
+                {
+                  assert (pl.NumberOfProcessIdsInList == 1);
 
-                if (pl.ProcessIdList[0] != GetProcessId (h.get ()))
-                  exit->status = STATUS_JOB_NOT_EMPTY;
+                  if (pl.ProcessIdList[0] != GetProcessId (h.get ()))
+                    exit->status = STATUS_JOB_NOT_EMPTY;
+                }
               }
-            }
-            else if (GetLastError() == ERROR_MORE_DATA) // More than 1 process?
-              exit->status = STATUS_JOB_NOT_EMPTY;
+              else if (GetLastError() == ERROR_MORE_DATA) // More than 1 process?
+                exit->status = STATUS_JOB_NOT_EMPTY;
 
-            if (exit->status == STATUS_JOB_NOT_EMPTY)
+              if (exit->status == STATUS_JOB_NOT_EMPTY)
+                TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
+            }
+            else
               TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
           }
           else
@@ -2950,14 +2968,14 @@ namespace butl
   }
 
   optional<bool> process::
-  try_wait ()
+  try_wait (group_wait gw)
   {
-    return timed_wait (chrono::milliseconds (0));
+    return timed_wait (chrono::milliseconds (0), gw);
   }
 
   template <>
   optional<bool> process::
-  timed_wait (const chrono::milliseconds& t)
+  timed_wait (const chrono::milliseconds& t, group_wait gw)
   {
     if (handle != nullptr)
     {
@@ -2991,26 +3009,33 @@ namespace butl
 
           if (exit->normal ())
           {
-            JOBOBJECT_BASIC_PROCESS_ID_LIST pl;
-
-            if (QueryInformationJobObject (j.get (),
-                                           JobObjectBasicProcessIdList,
-                                           &pl,
-                                           sizeof (pl),
-                                           0 /* returnedLength */))
+            if ((exit->code () == 0 &&
+                 gw == group_wait::kill_check_unreaped_zero) ||
+                gw == group_wait::kill_check_unreaped_normal)
             {
-              if (pl.NumberOfProcessIdsInList != 0)
+              JOBOBJECT_BASIC_PROCESS_ID_LIST pl;
+
+              if (QueryInformationJobObject (j.get (),
+                                             JobObjectBasicProcessIdList,
+                                             &pl,
+                                             sizeof (pl),
+                                             0 /* returnedLength */))
               {
-                assert (pl.NumberOfProcessIdsInList == 1);
+                if (pl.NumberOfProcessIdsInList != 0)
+                {
+                  assert (pl.NumberOfProcessIdsInList == 1);
 
-                if (pl.ProcessIdList[0] != GetProcessId (h.get ()))
-                  exit->status = STATUS_JOB_NOT_EMPTY;
+                  if (pl.ProcessIdList[0] != GetProcessId (h.get ()))
+                    exit->status = STATUS_JOB_NOT_EMPTY;
+                }
               }
-            }
-            else if (GetLastError() == ERROR_MORE_DATA)
-              exit->status = STATUS_JOB_NOT_EMPTY;
+              else if (GetLastError() == ERROR_MORE_DATA)
+                exit->status = STATUS_JOB_NOT_EMPTY;
 
-            if (exit->status == STATUS_JOB_NOT_EMPTY)
+              if (exit->status == STATUS_JOB_NOT_EMPTY)
+                TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
+            }
+            else
               TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
           }
           else
@@ -3049,7 +3074,7 @@ namespace butl
       // Handle the case when the process has already terminated or is still
       // exiting (potentially after being killed).
       //
-      if (!try_wait ())
+      if (!try_wait (group_wait::kill_no_check))
         throw process_error (error_msg (e), EPERM);
     }
   }
