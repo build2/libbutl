@@ -1436,6 +1436,13 @@ namespace butl
                  gw == group_wait::kill_check_unreaped_zero) ||
                 gw == group_wait::kill_check_unreaped_normal)
             {
+              // @@ TMP Make sure that there is no race, so that the process
+              //        pid stays valid for a while after the waitpid() call.
+              //
+              //        Note: here we assume that group id == process id.
+              //
+              assert (::kill (gr, 0) != 0);
+
               int r (::kill (-gr, 0)); // Ignore errors.
 
               // It looks like MacOS may deny sending the null signal to
@@ -1568,6 +1575,8 @@ namespace butl
                gw == group_wait::kill_check_unreaped_zero) ||
               gw == group_wait::kill_check_unreaped_normal)
           {
+            assert (::kill (gr, 0) != 0); // @@ TMP
+
             int r (::kill (-gr, 0));
 
             if (r == 0 || (r == -1 && errno == EPERM))
