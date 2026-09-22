@@ -1854,7 +1854,7 @@ namespace butl
     DWORD ec;
     for (size_t i (0); i < 41; ++i)
     {
-      // Sleep 100 milliseconds before the move retry.
+      // Sleep 50 milliseconds before the move retry.
       //
       if (i != 0)
         Sleep (50);

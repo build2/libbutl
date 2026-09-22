@@ -119,21 +119,23 @@
 #  endif // _MSC_VER
 #endif
 
-#include <ios>      // ios_base::failure
-#include <memory>   // unique_ptr
-#include <cstring>  // strlen(), strchr(), strpbrk(), str[n]cmp(), strncpy(),
-                    // memset()
-#include <utility>  // move()
+#include <ios>       // ios_base::failure
+#include <memory>    // unique_ptr
+#include <vector>
+#include <cstring>   // strlen(), strchr(), strpbrk(), str[n]cmp(), strncpy(),
+                     // memset()
+#include <utility>   // move()
 #include <ostream>
 #include <cassert>
+#include <algorithm> // find()
 
 #ifndef _WIN32
 #  include <thread> // this_thread::sleep_for()
 #else
 #  include <map>
-#  include <ratio>     // milli
-#  include <cstdlib>   // __argv[]
-#  include <algorithm> // find()
+#  include <ratio>   // milli
+#  include <limits>  // numeric_limits
+#  include <cstdlib> // __argv[]
 #endif
 
 #include <libbutl/path-io.hxx>
@@ -1438,10 +1440,18 @@ namespace butl
             {
               // @@ TMP Make sure that there is no race, so that the process
               //        pid stays valid for a while after the waitpid() call.
+              //        If any of these assertions ever fail, then we probably
+              //        need to re-iterate with the kill() call while it
+              //        returns 0 or ends up with EPERM:
               //
-              //        Note: here we assume that group id == process id.
+              //        while (::kill (handle, 0) == 0 || errno == EPERM)
+              //          sleep (1ms);
+              //
+              //        Note: here we assume that group id == process id. Need
+              //              to use the process id in the production code.
               //
               assert (::kill (gr, 0) != 0);
+              assert (errno != EPERM);
 
               int r (::kill (-gr, 0)); // Ignore errors.
 
@@ -1450,7 +1460,7 @@ namespace butl
               // Anyway, if the system denies to send the signal, then there
               // is still some process in the group.
               //
-              if (r == 0 || (r == -1 && errno == EPERM))
+              if (r == 0 || errno == EPERM)
                 es = SIGCHLD; // See process_exit() for the bits layout.
             }
 #endif
@@ -1575,11 +1585,14 @@ namespace butl
                gw == group_wait::kill_check_unreaped_zero) ||
               gw == group_wait::kill_check_unreaped_normal)
           {
-            assert (::kill (gr, 0) != 0); // @@ TMP
+            // @@ TMP
+            //
+            assert (::kill (gr, 0) != 0);
+            assert (errno != EPERM);
 
             int r (::kill (-gr, 0));
 
-            if (r == 0 || (r == -1 && errno == EPERM))
+            if (r == 0 || errno == EPERM)
               es = SIGCHLD;
           }
 #endif
@@ -2848,6 +2861,196 @@ namespace butl
     this->in_efd = move (in_efd.in);
   }
 
+  // Return true if no running processes are associated with the job. Return
+  // nullopt on failure (API function call failure, etc). Note that the job
+  // leader process must be terminated.
+  //
+  static optional<bool>
+  job_empty (HANDLE job, HANDLE job_leader)
+  {
+    DWORD leader_id (GetProcessId (job_leader));
+
+    // Notes:
+    //
+    // - Job object accounting is updated asynchronously and so the job
+    //   process ids list may contain already terminated processes, which are
+    //   not easily distinguished from the running ones. That makes this
+    //   function pretty racy with the following false positive and negative:
+    //
+    //   - A newly spawned (grand)child process has not been added to the
+    //     process list yet. In this case, we may return true for a non empty
+    //     job and, as a result, not report a failure. Probably, not a big
+    //     deal.
+    //
+    //   - All processes in the list has terminated. As a result we return
+    //     false for an empty job and mistakenly report a failure.
+    //
+    //   To decrease the probability of the latter (false negative), we will
+    //   be re-querying the job information until the (terminated) job leader
+    //   disappears from the job processes list or ends up there alone. If
+    //   such a final list is empty or contains only the job leader, then we
+    //   consider the job empty. The thinking here is that it is probably safe
+    //   to assume, that if the job leader is removed from the list, then its
+    //   properly reaped (grand)children should be removed even more so, since
+    //   they terminated earlier. Thus, the processes remaining in the list
+    //   are most likely either still running or terminated after the job
+    //   leader (unreaped).
+    //
+    //   @@ If the above heuristics fails and we continue to observe false
+    //      negatives, then the best next option will probably be to
+    //      distinguish the running and terminated processes in the final list
+    //      by resolving process ids to handles and calling
+    //      WaitForSingleObject(handle, 0) for them or some such.
+    //
+    // - If QueryInformationJobObject() returns true, then
+    //   NumberOfAssignedProcesses may potentially be less than
+    //   NumberOfProcessIdsInList due to the kernel race condition which
+    //   occurs when a new job process is spawned after
+    //   NumberOfAssignedProcesses is calculated but before the process list
+    //   is populated and if the buffer is big enough to accommodate this new
+    //   process.
+    //
+    // - If QueryInformationJobObject() returns false with the ERROR_MORE_DATA
+    //   error, then NumberOfAssignedProcesses may or may not be filled
+    //   properly due to some kernel bugs. The recommended approach is to use
+    //   the buffer size exponential growth for ERROR_MORE_DATA.
+
+    // Let's avoid allocations for the common case, when the first call of
+    // QueryInformationJobObject() returns the empty process list or the job
+    // leader alone. If it doesn't, calculate the buffer size for the next
+    // QueryInformationJobObject() call. Also, let's always skip inconclusive
+    // job snapshots when either NumberOfAssignedProcesses is less than
+    // NumberOfProcessIdsInList for any reason or not all the job processes
+    // are listed (NumberOfAssignedProcesses is greater than
+    // NumberOfProcessIdsInList).
+    //
+    size_t nbuf;
+    {
+      JOBOBJECT_BASIC_PROCESS_ID_LIST pl; // Note: has a slot for 1 pid.
+
+      if (QueryInformationJobObject (job,
+                                     JobObjectBasicProcessIdList,
+                                     &pl,
+                                     sizeof (pl),
+                                     0 /* returnedLength */))
+      {
+        if (pl.NumberOfProcessIdsInList == pl.NumberOfAssignedProcesses)
+        {
+          if (pl.NumberOfProcessIdsInList == 0)
+            return true;
+
+          assert (pl.NumberOfProcessIdsInList == 1);
+          return pl.ProcessIdList[0] == leader_id;
+        }
+        else
+        {
+          size_t n (pl.NumberOfAssignedProcesses < 16
+                    ? 16
+                    : pl.NumberOfAssignedProcesses);
+
+          nbuf = sizeof (JOBOBJECT_BASIC_PROCESS_ID_LIST) +
+                 (n - 1) * sizeof(ULONG_PTR);
+        }
+      }
+      else if (GetLastError() == ERROR_MORE_DATA)
+      {
+        nbuf = sizeof (JOBOBJECT_BASIC_PROCESS_ID_LIST) +
+               (16 - 1) * sizeof(ULONG_PTR);
+      }
+      else
+        return nullopt;
+    }
+
+    // Iterate until the job leader disappears from the process list or ends
+    // up there alone.
+    //
+    vector<char> buf (nbuf);
+
+    // For good measure, restrict the number of iterations for the case when
+    // the kernel is too busy to remove the terminated job leader from the
+    // list for too long. Return nullopt if the iterations limit is reached,
+    // as we fail to give a definite answer.
+    //
+    const size_t n (1000);
+    for (size_t i (0); i != n; ++i)
+    {
+      // It seems pointless to use a buffer smaller than the one we have
+      // already allocated.
+      //
+      if (nbuf > buf.size ())
+      {
+        // For good measure, check that we don't exceed the maximum acceptable
+        // buffer size for QueryInformationJobObject() and bail out in this
+        // unlikely event.
+        //
+        if (nbuf > numeric_limits<DWORD>::max ())
+          return nullopt;
+
+        // We probably don't need to worry about over-allocations here, since
+        // in the common case it's all about several kilobytes at most.
+        //
+        buf.resize (nbuf);
+      }
+
+      JOBOBJECT_BASIC_PROCESS_ID_LIST* pl (
+        reinterpret_cast<JOBOBJECT_BASIC_PROCESS_ID_LIST*> (buf.data()));
+
+      if (QueryInformationJobObject (job,
+                                     JobObjectBasicProcessIdList,
+                                     pl,
+                                     static_cast<DWORD> (buf.size ()),
+                                     0 /* returnedLength */))
+      {
+        if (pl->NumberOfProcessIdsInList == pl->NumberOfAssignedProcesses)
+        {
+          if (pl->NumberOfProcessIdsInList == 0) // Process list is empty?
+            return true;
+
+          const ULONG_PTR* b (pl->ProcessIdList);
+          const ULONG_PTR* e (b + pl->NumberOfProcessIdsInList);
+
+          if (find (b, e, leader_id) == e) // No job leader in (non-empty) list?
+            return false;
+
+          if (pl->NumberOfProcessIdsInList == 1) // Only job leader in the list?
+            return true;
+
+          // If the job leader is present in the list along with some other
+          // processes, then just re-query the info with a short delay.
+          //
+          // Note that no buffer resize is required. Also note that in the
+          // future we may consider exponential backoff for the delay. Let's,
+          // however, keep it simple for now.
+          //
+          if (i != n - 1) // Not the last iteration?
+            Sleep (1 /* milliseconds */);
+        }
+        else
+        {
+          size_t n (pl->NumberOfAssignedProcesses < 16
+                    ? 16
+                    : pl->NumberOfAssignedProcesses);
+
+          nbuf = sizeof (JOBOBJECT_BASIC_PROCESS_ID_LIST) +
+                 (n - 1) * sizeof(ULONG_PTR);
+        }
+      }
+      else if (GetLastError() == ERROR_MORE_DATA)
+      {
+        // For good measure, let's keep the buffer size equal to the header
+        // size plus multiple of the process id size.
+        //
+        assert (buf.size () > sizeof (JOBOBJECT_BASIC_PROCESS_ID_LIST));
+
+        nbuf = 2 * buf.size () - sizeof (JOBOBJECT_BASIC_PROCESS_ID_LIST);
+      }
+      else
+        return nullopt;
+    }
+
+    return nullopt;
+  }
+
   bool process::
   wait (bool ie, group_wait gw)
   {
@@ -2904,54 +3107,16 @@ namespace butl
             // STATUS_JOB_NOT_EMPTY error code (which feels semantically
             // appropriate).
             //
-            // Note that the job object accounting is updated asynchronously
-            // and the terminated job leader may well still be present in the
-            // job processes list at this point. Thus, we will query a single
-            // job process and, if there are none or there is exactly one and
-            // it is the job leader, then we assume that there are no more
-            // processes in the job.
-            //
             if ((exit->code () == 0 &&
                  gw == group_wait::kill_check_unreaped_zero) ||
                 gw == group_wait::kill_check_unreaped_normal)
             {
-              JOBOBJECT_BASIC_PROCESS_ID_LIST pl; // Note: has a slot for 1 pid.
+              optional<bool> je (job_empty (j.get (), h.get ()));
 
-              // Ignore errors.
-              //
-              // Note that in contrast to POSIX we may only have the false
-              // negative here:
-              //
-              // - At this time, the job and process objects are still alive
-              //   in the kernel (since we keep open handles to them) and so
-              //   the process pid cannot be reused.
-              //
-              // - By this time, the detached grandchildren could have been
-              //   terminated and all their traces removed from the kernel. In
-              //   this case, we can mistakenly report a success, which is not
-              //   a big deal.
-              //
-              // And, as for POSIX, a flaky check is still better than no
-              // check here.
-              //
-              if (QueryInformationJobObject (j.get (),
-                                             JobObjectBasicProcessIdList,
-                                             &pl,
-                                             sizeof (pl),
-                                             0 /* returnedLength */))
-              {
-                if (pl.NumberOfProcessIdsInList != 0)
-                {
-                  assert (pl.NumberOfProcessIdsInList == 1);
-
-                  if (pl.ProcessIdList[0] != GetProcessId (h.get ()))
-                    exit->status = STATUS_JOB_NOT_EMPTY;
-                }
-              }
-              else if (GetLastError() == ERROR_MORE_DATA) // More than 1 process?
+              if (je && !*je)
                 exit->status = STATUS_JOB_NOT_EMPTY;
 
-              if (exit->status == STATUS_JOB_NOT_EMPTY)
+              if (!je || !*je)
                 TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
             }
             else
@@ -3022,26 +3187,12 @@ namespace butl
                  gw == group_wait::kill_check_unreaped_zero) ||
                 gw == group_wait::kill_check_unreaped_normal)
             {
-              JOBOBJECT_BASIC_PROCESS_ID_LIST pl;
+              optional<bool> je (job_empty (j.get (), h.get ()));
 
-              if (QueryInformationJobObject (j.get (),
-                                             JobObjectBasicProcessIdList,
-                                             &pl,
-                                             sizeof (pl),
-                                             0 /* returnedLength */))
-              {
-                if (pl.NumberOfProcessIdsInList != 0)
-                {
-                  assert (pl.NumberOfProcessIdsInList == 1);
-
-                  if (pl.ProcessIdList[0] != GetProcessId (h.get ()))
-                    exit->status = STATUS_JOB_NOT_EMPTY;
-                }
-              }
-              else if (GetLastError() == ERROR_MORE_DATA)
+              if (je && !*je)
                 exit->status = STATUS_JOB_NOT_EMPTY;
 
-              if (exit->status == STATUS_JOB_NOT_EMPTY)
+              if (!je || !*je)
                 TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
             }
             else
