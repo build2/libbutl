@@ -109,6 +109,9 @@ lib{butl}: cxx.export.poptions = "-I$out_root" "-I$src_root"
 if $mingw_stdthread
   lib{butl}: cxx.export.poptions += -D_WIN32_WINNT=0x0601 -DLIBBUTL_MINGW_STDTHREAD
 
+cxx.poptions += -DLIBBUTL_INSTRUMENT_UNREAPED_CHECK
+lib{butl}: cxx.export.poptions += -DLIBBUTL_INSTRUMENT_UNREAPED_CHECK
+
 liba{butl}: cxx.export.poptions += -DLIBBUTL_STATIC
 libs{butl}: cxx.export.poptions += -DLIBBUTL_SHARED
 

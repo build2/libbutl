@@ -218,6 +218,10 @@ namespace butl
     //
     std::string
     description () const;
+
+#ifdef LIBBUTL_INSTRUMENT_UNREAPED_CHECK
+    optional<std::string> extra_info;
+#endif
   };
 
   // Canonical exit status description:

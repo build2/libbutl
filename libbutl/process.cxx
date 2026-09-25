@@ -119,6 +119,14 @@
 #  endif // _MSC_VER
 #endif
 
+#ifdef LIBBUTL_INSTRUMENT_UNREAPED_CHECK
+#  if defined(__FreeBSD__)
+#    include <sys/user.h>   // kinfo_proc
+#    include <sys/proc.h>   // P_SYSTEM
+#    include <sys/sysctl.h> // sysctl(), CTL_KERN, KERN_*
+#  endif
+#endif
+
 #include <ios>       // ios_base::failure
 #include <memory>    // unique_ptr
 #include <vector>
@@ -176,6 +184,11 @@ namespace butl
       if (pe.core ())
         r += " (core dumped)";
     }
+
+#ifdef LIBBUTL_INSTRUMENT_UNREAPED_CHECK
+    if (pe.extra_info)
+      r += *pe.extra_info;
+#endif
 
     return r;
   }
@@ -1228,6 +1241,162 @@ namespace butl
     }
   }
 
+#ifdef LIBBUTL_INSTRUMENT_UNREAPED_CHECK
+#if defined(__FreeBSD__)
+  // Return sysctl() call result as a vector of POD types. Return nullopt on
+  // sysctl() failure.
+  //
+  template <typename T>
+  static optional<vector<T>>
+  system_info (const int* name, unsigned int name_len)
+  {
+    // Note that we need to query the buffer size first and then make the
+    // sysctl() call which returns the requested information into this buffer.
+    // By the time of the second call the buffer may become too small, though.
+    // In this case we re-iterate.
+    //
+    vector<T> r;
+
+    while (true)
+    {
+      size_t len (0);
+      if (sysctl (name, name_len, NULL, &len, NULL, 0) != 0)
+        return nullopt;
+
+      assert (len % sizeof (T) == 0);
+
+      size_t n (len / sizeof (T));
+
+      // It seems pointless to use a buffer smaller than the one we have
+      // already allocated.
+      //
+      if (n > r.size ())
+        r.resize (n);
+      else
+        len = r.size () * sizeof (T);
+
+      size_t new_len (len);
+      if (sysctl (name, name_len, r.data (), &new_len, NULL, 0) != 0)
+      {
+        if (errno == ENOMEM) // Need bigger buffer?
+          continue;
+
+        return nullopt;
+      }
+
+      assert (new_len % sizeof (T) == 0);
+      assert (new_len <= len);
+
+      if (new_len < len)
+        r.resize (new_len / sizeof (T));
+
+      break;
+    }
+
+    return move (r);
+  }
+
+  static optional<string>
+  group_processes (process::handle_type pg)
+  {
+    using std::to_string;
+
+    string r;
+
+    // Query the group processes.
+    //
+    vector<kinfo_proc> gps;
+    {
+      const int mib[] = {CTL_KERN, KERN_PROC, KERN_PROC_PGRP, pg};
+
+      if (optional<vector<kinfo_proc>> ps = system_info<kinfo_proc> (mib, 4))
+        gps = move (*ps);
+      else
+        return "\n>  error: failed to query processes for group " +
+               to_string (pg);
+    }
+
+    // Add the group information to the resulting string.
+    //
+    r += "\n>  " + to_string (gps.size ()) + " processes in group " +
+         to_string (pg) + ":";
+
+    // Add the processes information to the resulting string.
+    //
+    for (const kinfo_proc& gp: gps)
+    {
+      // Add the process name, id and parent pid.
+      //
+      pid_t pid (gp.ki_pid);
+      string pname (gp.ki_comm);
+
+      r += "\n>    " + pname + " " + to_string (pid) + "<" +
+           to_string (gp.ki_ppid);
+
+      // Add the indication if the process is a core system component.
+      //
+      if ((gp.ki_flag & P_SYSTEM) != 0)
+        r += " SYS";
+
+      // Add the process absolute path, if available and differs from the
+      // process name.
+      //
+      {
+        const int mib[] = {CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, pid};
+
+        if (optional<vector<char>> p = system_info<char> (mib, 4))
+        {
+          if (p->size () > 1 && pname != p->data ())
+            r += string (" (") + p->data () + ")";
+        }
+      }
+
+      // Add the process arguments.
+      //
+      // Note that the format of the returned string is:
+      //
+      // <arg0>\0<arg1>\0...<argN>\0
+      //
+      vector<char> args;
+      {
+        const int mib[] = {CTL_KERN, KERN_PROC, KERN_PROC_ARGS, pid};
+
+        if (optional<vector<char>> as = system_info<char> (mib, 4))
+        {
+          args = move (*as);
+        }
+        else
+        {
+          r += ": error: failed to query args";
+          continue;
+        }
+      }
+
+      r += ":";
+
+      for (size_t i (0); i != args.size (); )
+      {
+        const char* a (&args[i]);
+
+        r += " '";
+        r += a;
+        r += "'";
+
+        i += strlen (a) + 1;
+      }
+    }
+
+    return r;
+  }
+#else
+  static optional<string>
+  group_processes (process::handle_type)
+  {
+    return nullopt;
+  }
+#endif
+#endif
+
   bool process::
   wait (bool ie, group_wait gw)
   {
@@ -1403,6 +1572,10 @@ namespace butl
         }
         else
         {
+#ifdef LIBBUTL_INSTRUMENT_UNREAPED_CHECK
+          optional<string> extra_info;
+#endif
+
           if (WIFEXITED (es)) // Exited normally?
           {
             // Now, after the process group leader has exited and been reaped,
@@ -1461,7 +1634,13 @@ namespace butl
               // is still some process in the group.
               //
               if (r == 0 || errno == EPERM)
+              {
                 es = SIGCHLD; // See process_exit() for the bits layout.
+
+#ifdef LIBBUTL_INSTRUMENT_UNREAPED_CHECK
+                extra_info = group_processes (gr);
+#endif
+              }
             }
 #endif
           }
@@ -1478,6 +1657,10 @@ namespace butl
           }
 
           exit = process_exit (es, process_exit::as_status);
+
+#ifdef LIBBUTL_INSTRUMENT_UNREAPED_CHECK
+          exit->extra_info = move (extra_info);
+#endif
         }
       }
     }
@@ -1574,6 +1757,10 @@ namespace butl
         if (r == -1)
           throw process_error (errno);
 
+#ifdef LIBBUTL_INSTRUMENT_UNREAPED_CHECK
+        optional<string> extra_info;
+#endif
+
         if (WIFEXITED (es)) // Exited normally?
         {
           // If requested, check if there are still any members left in the
@@ -1593,7 +1780,13 @@ namespace butl
             int r (::kill (-gr, 0));
 
             if (r == 0 || errno == EPERM)
+            {
               es = SIGCHLD;
+
+#ifdef LIBBUTL_INSTRUMENT_UNREAPED_CHECK
+              extra_info = group_processes (gr);
+#endif
+            }
           }
 #endif
         }
@@ -1610,6 +1803,10 @@ namespace butl
         }
 
         exit = process_exit (es, process_exit::as_status);
+
+#ifdef LIBBUTL_INSTRUMENT_UNREAPED_CHECK
+        exit->extra_info = move (extra_info);
+#endif
       }
     }
 
