@@ -1438,20 +1438,20 @@ namespace butl
                  gw == group_wait::kill_check_unreaped_zero) ||
                 gw == group_wait::kill_check_unreaped_normal)
             {
-              // @@ TMP Make sure that there is no race, so that the process
-              //        pid stays valid for a while after the waitpid() call.
-              //        If any of these assertions ever fail, then we probably
-              //        need to re-iterate with the kill() call while it
-              //        returns 0 or ends up with EPERM:
+              // @@ Note that we have never observed the below assertions
+              //    failing on any platform. This, in particular, means that
+              //    reaping a child process with waitpid() always atomically
+              //    removes the process metadata from the kernel. However, on
+              //    MacOS, we periodically observe a situation, when the
+              //    subsequent ::kill(-gr, 0) call either succeeds or fails
+              //    with EPERM for a process group leader which didn't spawn
+              //    any child processes. It feels like the most probable
+              //    reason for that is a race condition, when waitpid() may
+              //    not remove the group metadata and the kernel removes it
+              //    asynchronously. Anyway, more research is required.
               //
-              //        while (::kill (handle, 0) == 0 || errno == EPERM)
-              //          sleep (1ms);
-              //
-              //        Note: here we assume that group id == process id. Need
-              //              to use the process id in the production code.
-              //
-              assert (::kill (gr, 0) != 0);
-              assert (errno != EPERM);
+              //assert (::kill (gr, 0) != 0);
+              //assert (errno != EPERM);
 
               int r (::kill (-gr, 0)); // Ignore errors.
 
@@ -1585,10 +1585,13 @@ namespace butl
                gw == group_wait::kill_check_unreaped_zero) ||
               gw == group_wait::kill_check_unreaped_normal)
           {
-            // @@ TMP
+            // @@ Note that we have never observed the below assertions
+            //    failing on any platform. However, on MacOS, the subsequent
+            //    kill() call may succeed or fail with EPERM (see wait() for
+            //    gory details).
             //
-            assert (::kill (gr, 0) != 0);
-            assert (errno != EPERM);
+            //assert (::kill (gr, 0) != 0);
+            //assert (errno != EPERM);
 
             int r (::kill (-gr, 0));
 
@@ -2896,11 +2899,12 @@ namespace butl
     //   are most likely either still running or terminated after the job
     //   leader (unreaped).
     //
-    //   @@ If the above heuristics fails and we continue to observe false
-    //      negatives, then the best next option will probably be to
-    //      distinguish the running and terminated processes in the final list
-    //      by resolving process ids to handles and calling
-    //      WaitForSingleObject(handle, 0) for them or some such.
+    //   @@ Note that the above heuristics still fails and we continue to
+    //      observe false negatives. It seems that our next step could be an
+    //      attempt to determine whether there are any unterminated processes
+    //      in the final list. For that we could resolve process ids to
+    //      handles and call WaitForSingleObject(handle, 0) for them or some
+    //      such (note: more research is required).
     //
     // - If QueryInformationJobObject() returns true, then
     //   NumberOfAssignedProcesses may potentially be less than
