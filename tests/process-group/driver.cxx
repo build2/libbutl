@@ -702,9 +702,12 @@ exec_tests (const path& p)
   }
 
   // Note: check for the unreaped members is disabled for OpenBSD (see
-  // process::wait() implementation for details).
+  //       process::wait() implementation for details).
   //
-#ifndef __OpenBSD__
+  // Note: check for the unreaped members is disabled for now for MacOS (see
+  //       process::wait() implementation for details).
+  //
+#if !defined(__OpenBSD__) && !defined(__APPLE__)
   // Group leader starts the detached long-running child and exits with code 0.
   //
   {
@@ -958,22 +961,7 @@ exec_tests (const path& p)
 
 #else // _WIN32
 
-  // Job leader starts the detached long-running child and exits with code 0.
-  //
-  {
-    strings args ({"{", "-s", "5000", "}"});
-
-    process pr1 (start (p, args));
-    assert (started (pr1));
-
-    process pr2 (start (p, args));
-    assert (started (pr2));
-
-    assert (wait_abnormal (pr2, STATUS_JOB_NOT_EMPTY, p, args, true /* use_try_wait */));
-    assert (wait_abnormal (pr1, STATUS_JOB_NOT_EMPTY, p, args));
-  }
-
-  // As above but exits with code 3.
+  // Job leader starts the detached long-running child and exits with code 3.
   //
   {
     strings args ({"{", "-s", "5000", "}", "-e", "3"});
@@ -986,6 +974,25 @@ exec_tests (const path& p)
 
     assert (wait_normal (pr2, 3, p, args, true /* use_try_wait */));
     assert (wait_normal (pr1, 3, p, args));
+  }
+
+  // Note: check for the unreaped members is disabled for now for Windows (see
+  //       process::wait() implementation for details).
+  //
+#if 0
+  // As above but exits with code 0.
+  //
+  {
+    strings args ({"{", "-s", "5000", "}"});
+
+    process pr1 (start (p, args));
+    assert (started (pr1));
+
+    process pr2 (start (p, args));
+    assert (started (pr2));
+
+    assert (wait_abnormal (pr2, STATUS_JOB_NOT_EMPTY, p, args, true /* use_try_wait */));
+    assert (wait_abnormal (pr1, STATUS_JOB_NOT_EMPTY, p, args));
   }
 
   // As above but start multiple detached long-running children.
@@ -1020,6 +1027,7 @@ exec_tests (const path& p)
     assert (wait_abnormal (pr2, STATUS_JOB_NOT_EMPTY, p, args, true /* use_try_wait */));
     assert (wait_abnormal (pr1, STATUS_JOB_NOT_EMPTY, p, args));
   }
+#endif
 
   // Job leader starts the new detached job members and exits. We reap the
   // leader long after these job members are terminated. Thus, we don't notice

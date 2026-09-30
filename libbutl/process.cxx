@@ -1438,21 +1438,30 @@ namespace butl
                  gw == group_wait::kill_check_unreaped_zero) ||
                 gw == group_wait::kill_check_unreaped_normal)
             {
-              // @@ Note that we have never observed the below assertions
-              //    failing on any platform. This, in particular, means that
-              //    reaping a child process with waitpid() always atomically
-              //    removes the process metadata from the kernel. However, on
-              //    MacOS, we periodically observe a situation, when the
-              //    subsequent ::kill(-gr, 0) call either succeeds or fails
-              //    with EPERM for a process group leader which didn't spawn
-              //    any child processes. It feels like the most probable
-              //    reason for that is a race condition, when waitpid() may
-              //    not remove the group metadata and the kernel removes it
-              //    asynchronously. Anyway, more research is required.
+              // NOTE: We have never observed the below assertions failing on
+              //       any platform. This, in particular, means that reaping a
+              //       child process with waitpid() always atomically removes
+              //       the process metadata from the kernel. However, on
+              //       MacOS, we periodically observe a situation, when the
+              //       subsequent ::kill(-gr, 0) call either succeeds or fails
+              //       with EPERM for a process group leader which didn't
+              //       spawn any child processes. It feels like the most
+              //       probable reason for that is a race condition, when
+              //       waitpid() may not remove the group metadata and the
+              //       kernel removes it asynchronously. Anyway, more research
+              //       is required.
               //
               //assert (::kill (gr, 0) != 0);
               //assert (errno != EPERM);
 
+              // Let's, on MacOS, reduce kill_check_unreaped_* to
+              // kill_no_check for now, due to the false positives described
+              // above.
+              //
+              // NOTE: if ever enabled, don't forget to also enable the
+              //       respective tests in tests/process-group/driver.cxx.
+              //
+#ifndef __APPLE__
               int r (::kill (-gr, 0)); // Ignore errors.
 
               // It looks like MacOS may deny sending the null signal to
@@ -1462,6 +1471,7 @@ namespace butl
               //
               if (r == 0 || errno == EPERM)
                 es = SIGCHLD; // See process_exit() for the bits layout.
+#endif
             }
 #endif
           }
@@ -1585,18 +1595,23 @@ namespace butl
                gw == group_wait::kill_check_unreaped_zero) ||
               gw == group_wait::kill_check_unreaped_normal)
           {
-            // @@ Note that we have never observed the below assertions
-            //    failing on any platform. However, on MacOS, the subsequent
-            //    kill() call may succeed or fail with EPERM (see wait() for
-            //    gory details).
+            // NOTE: We have never observed the below assertions failing on
+            //       any platform. However, on MacOS, the subsequent kill()
+            //       call may succeed or fail with EPERM (see wait() for gory
+            //       details).
             //
             //assert (::kill (gr, 0) != 0);
             //assert (errno != EPERM);
 
+            // Let's, on MacOS, reduce kill_check_unreaped_* to kill_no_check
+            // for now (see wait() for the reasoning).
+            //
+#ifndef __APPLE__
             int r (::kill (-gr, 0));
 
             if (r == 0 || errno == EPERM)
               es = SIGCHLD;
+#endif
           }
 #endif
         }
@@ -2868,6 +2883,9 @@ namespace butl
   // nullopt on failure (API function call failure, etc). Note that the job
   // leader process must be terminated.
   //
+  // Note: currently unused (see process::wait() for details).
+  //
+#if 0
   static optional<bool>
   job_empty (HANDLE job, HANDLE job_leader)
   {
@@ -2899,12 +2917,12 @@ namespace butl
     //   are most likely either still running or terminated after the job
     //   leader (unreaped).
     //
-    //   @@ Note that the above heuristics still fails and we continue to
-    //      observe false negatives. It seems that our next step could be an
-    //      attempt to determine whether there are any unterminated processes
-    //      in the final list. For that we could resolve process ids to
-    //      handles and call WaitForSingleObject(handle, 0) for them or some
-    //      such (note: more research is required).
+    //   NOTE: The above heuristics still fails and we continue to observe
+    //         false negatives. It seems that our next step could be an
+    //         attempt to determine whether there are any unterminated
+    //         processes in the final list. For that we could resolve process
+    //         ids to handles and call WaitForSingleObject(handle, 0) for them
+    //         or some such (note: more research is required).
     //
     // - If QueryInformationJobObject() returns true, then
     //   NumberOfAssignedProcesses may potentially be less than
@@ -3054,6 +3072,7 @@ namespace butl
 
     return nullopt;
   }
+#endif
 
   bool process::
   wait (bool ie, group_wait gw)
@@ -3115,6 +3134,14 @@ namespace butl
                  gw == group_wait::kill_check_unreaped_zero) ||
                 gw == group_wait::kill_check_unreaped_normal)
             {
+              // Let's reduce kill_check_unreaped_* to kill_no_check for now,
+              // due to the job_empty() false negatives (see job_empty()
+              // implementation for details).
+              //
+              // NOTE: if ever enabled, don't forget to also enable the
+              //       respective tests in tests/process-group/driver.cxx.
+              //
+#if 0
               optional<bool> je (job_empty (j.get (), h.get ()));
 
               if (je && !*je)
@@ -3122,6 +3149,9 @@ namespace butl
 
               if (!je || !*je)
                 TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
+#else
+              TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
+#endif
             }
             else
               TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
@@ -3191,6 +3221,10 @@ namespace butl
                  gw == group_wait::kill_check_unreaped_zero) ||
                 gw == group_wait::kill_check_unreaped_normal)
             {
+              // Let's reduce kill_check_unreaped_* to kill_no_check for now
+              // (see wait() for the reasoning).
+              //
+#if 0
               optional<bool> je (job_empty (j.get (), h.get ()));
 
               if (je && !*je)
@@ -3198,6 +3232,9 @@ namespace butl
 
               if (!je || !*je)
                 TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
+#else
+              TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
+#endif
             }
             else
               TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
