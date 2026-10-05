@@ -1309,8 +1309,9 @@ namespace butl
       }
       //
       // If this is a process group leader, then kill all the other
-      // potentially unterminated members of the lead group. Do this after the
-      // child terminated but before it is reaped, not to kill some unrelated
+      // potentially unterminated members of the lead group, unless no_kill is
+      // specified as the group_wait argument. Do this after the child
+      // terminated but before it is reaped, not to kill some unrelated
       // process due to the group id reuse.
       //
       else
@@ -1366,7 +1367,7 @@ namespace butl
           if (!ie)
             throw process_error (err);
         }
-        else
+        else if (gw != group_wait::no_kill)
         {
           // Note that at this point, after the process is terminated and
           // before we reaped it, its immediate children are adopted by the
@@ -1528,9 +1529,9 @@ namespace butl
         }
       }
       //
-      // If this is a process group leader, then kill all the other
-      // potentially unterminated members of the lead group, as we do in the
-      // wait() function implementation.
+      // If this is a process group leader, then, if requested, kill all the
+      // other potentially unterminated members of the lead group, as we do in
+      // the wait() function implementation.
       //
       else
       {
@@ -1570,9 +1571,12 @@ namespace butl
         if (r == -1)
           throw process_error (err);
 
-        r = ::kill (-gr, SIGKILL);
+        if (gw != group_wait::no_kill)
+        {
+          r = ::kill (-gr, SIGKILL);
 
-        //assert (r == 0 || (r == -1 && errno == EPERM));
+          //assert (r == 0 || (r == -1 && errno == EPERM));
+        }
 
         int es;
         r = waitpid (handle, &es, WNOHANG);
@@ -1652,6 +1656,26 @@ namespace butl
     }
 
     return try_wait (gw);
+  }
+
+  void process::
+  detach ()
+  {
+    if (handle != 0)
+    {
+      out_fd.reset ();
+      in_ofd.reset ();
+      in_efd.reset ();
+
+      if (group != 0)
+      {
+        ulock l (mutex);
+        groups.erase (find (groups.begin (), groups.end (), group));
+        group = 0;
+      }
+
+      handle = 0;
+    }
   }
 
   void process::
@@ -2456,7 +2480,10 @@ namespace butl
       // retrieve the job handle (antivirus tool, etc), can interfere with
       // that. By using the JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE flag we make
       // sure that if our own process get killed or crashed, the child
-      // processes will also be terminated, eventually.
+      // processes will also be terminated, eventually. Note, though, that we
+      // will need to reset this flag prior to closing the job handle, if we
+      // reap the job leader with the no_kill group action or detach such a
+      // process.
       //
       // Also, similar to nextest, let's add the JOB_OBJECT_LIMIT_BREAKAWAY_OK
       // flag, so that a grandchild process can escape our job object. That
@@ -3074,6 +3101,43 @@ namespace butl
   }
 #endif
 
+  // Close the job handle. If the terminate argument is true, then explicitly
+  // terminate all the job processes first. Otherwise, reset the job's
+  // JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE flag to prevent automatic termination
+  // of the job processes. Ignore potential errors of the underlying API
+  // function calls.
+  //
+  static void
+  close_job (HANDLE job, bool terminate)
+  {
+    if (terminate)
+    {
+      TerminateJobObject (job, DBG_TERMINATE_PROCESS);
+    }
+    else
+    {
+      JOBOBJECT_EXTENDED_LIMIT_INFORMATION li;
+      memset (&li, 0, sizeof (JOBOBJECT_EXTENDED_LIMIT_INFORMATION));
+
+      if (QueryInformationJobObject(job,
+                                    JobObjectExtendedLimitInformation,
+                                    &li,
+                                    sizeof (li),
+                                    nullptr /* lpReturnLength*/))
+      {
+        li.BasicLimitInformation.LimitFlags &=
+          ~JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+
+        SetInformationJobObject (job,
+                                 JobObjectExtendedLimitInformation,
+                                 &li,
+                                 sizeof (li));
+      }
+    }
+
+    CloseHandle (job);
+  }
+
   bool process::
   wait (bool ie, group_wait gw)
   {
@@ -3110,12 +3174,18 @@ namespace butl
       //
       // If this is a job leader, then terminate all the remaining job
       // processes, if present, regardless whether the leader reaping
-      // succeeded or not.
+      // succeeded or not, unless no_kill is specified as the group_wait
+      // argument.
       //
       else
       {
         auto_handle j (job);
         job = nullptr; // We have tried.
+
+        auto close_job = [&j, gw] ()
+        {
+          butl::close_job (j.release (), gw != group_wait::no_kill);
+        };
 
         if (e == NO_ERROR)
         {
@@ -3147,21 +3217,25 @@ namespace butl
               if (je && !*je)
                 exit->status = STATUS_JOB_NOT_EMPTY;
 
+              // Note: if the job is empty the job handle is just closed by
+              //       the auto_handle destructor (not terminating the job nor
+              //       messing with its flags).
+              //
               if (!je || !*je)
-                TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
+                close_job ();
 #else
-              TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
+              close_job ();
 #endif
             }
             else
-              TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
+              close_job ();
           }
           else
-            TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
+            close_job ();
         }
         else
         {
-          TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
+          close_job ();
 
           // If ignore errors then just leave exit nullopt, so it has "no exit
           // information available" semantics.
@@ -3211,6 +3285,11 @@ namespace butl
         auto_handle j (job);
         job = nullptr; // We have tried.
 
+        auto close_job = [&j, gw] ()
+        {
+          butl::close_job (j.release (), gw != group_wait::no_kill);
+        };
+
         if (e == NO_ERROR)
         {
           exit = process_exit (es, process_exit::as_status);
@@ -3231,20 +3310,20 @@ namespace butl
                 exit->status = STATUS_JOB_NOT_EMPTY;
 
               if (!je || !*je)
-                TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
+                close_job ();
 #else
-              TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
+              close_job ();
 #endif
             }
             else
-              TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
+              close_job ();
           }
           else
-            TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
+            close_job ();
         }
         else
         {
-          TerminateJobObject (j.get (), DBG_TERMINATE_PROCESS);
+          close_job ();
 
           throw process_error (error_msg (e));
         }
@@ -3252,6 +3331,26 @@ namespace butl
     }
 
     return exit ? static_cast<bool> (*exit) : optional<bool> ();
+  }
+
+  void process::
+  detach ()
+  {
+    if (handle != nullptr)
+    {
+      out_fd.reset ();
+      in_ofd.reset ();
+      in_efd.reset ();
+
+      auto_handle h (handle); // Deleter.
+      handle = nullptr;
+
+      if (job != nullptr)
+      {
+        close_job (job, false /* terminate */);
+        job = nullptr;
+      }
+    }
   }
 
   void process::

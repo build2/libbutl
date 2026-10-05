@@ -227,14 +227,14 @@ child_info (const path& p,
 }
 
 static bool
-wait (process& pr, bool use_try_wait)
+wait (process& pr, bool use_try_wait, process::group_wait gw)
 {
   if (!use_try_wait)
-    return pr.wait ();
+    return pr.wait (false /* ignore_errors */, gw);
 
   while (true)
   {
-    if (optional<bool> r = pr.try_wait ())
+    if (optional<bool> r = pr.try_wait (gw))
       return *r;
 
     sleep_ms (1);
@@ -297,12 +297,14 @@ wait_abnormal (process& pr,
                int sig,
                const path& p,
                const strings& args,
-               bool use_try_wait = false)
+               bool use_try_wait = false,
+               process::group_wait gw =
+                 process::group_wait::kill_check_unreaped_zero)
 {
   try
   {
-    bool r (!wait (pr, use_try_wait) &&
-            !pr.exit->normal ()      &&
+    bool r (!wait (pr, use_try_wait, gw) &&
+            !pr.exit->normal ()          &&
             pr.exit->signal () == sig);
 
     if (!r)
@@ -341,12 +343,14 @@ wait_abnormal (process& pr,
                DWORD s,
                const path& p,
                const strings& args,
-               bool use_try_wait = false)
+               bool use_try_wait = false,
+               process::group_wait gw =
+                 process::group_wait::kill_check_unreaped_zero)
 {
   try
   {
-    bool r (!wait (pr, use_try_wait) &&
-            !pr.exit->normal ()      &&
+    bool r (!wait (pr, use_try_wait, gw) &&
+            !pr.exit->normal ()          &&
             pr.exit->status == s);
 
     if (!r)
@@ -375,11 +379,13 @@ wait_normal (process& pr,
              uint64_t code,
              const path& p,
              const strings& args,
-             bool use_try_wait = false)
+             bool use_try_wait = false,
+             process::group_wait gw =
+               process::group_wait::kill_check_unreaped_zero)
 {
   try
   {
-    wait (pr, use_try_wait);
+    wait (pr, use_try_wait, gw);
 
     bool r (pr.exit->normal () && pr.exit->code () == code);
 
@@ -524,20 +530,7 @@ exec_child (const path& p, int argc, const char* argv[])
                 // Detach the running child process from the process object,
                 // so that it will never be reaped by us.
                 //
-#ifdef _WIN32
-                // Note that closing the job handle for the job leader would
-                // terminate all the job processes due to the
-                // JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE flag (see the process
-                // constructor implementation for details). We can actually
-                // reset this flag to avoid this limitation, but let's keep it
-                // simple until required.
-                //
-                assert (pr.job == 0); // Deny detaching the job leaders.
-
-                win32::auto_handle h (pr.handle); // Deleter.
-#endif
-
-                pr.handle = 0;
+                pr.detach ();
                 break;
               }
             }
@@ -734,6 +727,35 @@ exec_tests (const path& p)
     process pr2 (start (p, args));
     assert (started (pr2));
     assert (wait_normal (pr2, 3, p, args, true /* use_try_wait */));
+  }
+
+  // Group leader starts the detached long-running child and exits with code
+  // 0. We reap it not killing group members nor checking for unreaped ones.
+  //
+  {
+    strings args ({"{", "-s", "10000", "}"});
+
+    process pr1 (start (p, args));
+    assert (started (pr1));
+
+    process::handle_type gr1 (pr1.group);
+
+    assert (
+      wait_normal (
+        pr1, 0, p, args, false  /* use_try_wait */, process::group_wait::no_kill));
+
+    assert (kill (-gr1, SIGKILL) == 0);
+
+    process pr2 (start (p, args));
+    assert (started (pr2));
+
+    process::handle_type gr2 (pr2.group);
+
+    assert (
+      wait_normal (
+        pr2, 0, p, args, true  /* use_try_wait */, process::group_wait::no_kill));
+
+    assert (kill (-gr2, SIGKILL) == 0);
   }
 
   // Group leader starts the child, which starts the detached long-running
@@ -961,6 +983,22 @@ exec_tests (const path& p)
 
 #else // _WIN32
 
+  using namespace butl::win32;
+
+  auto dup_handle = [] (HANDLE h)
+  {
+    HANDLE ph (GetCurrentProcess ()); // Should not be closed.
+
+    HANDLE r;
+    assert (DuplicateHandle (ph, h,
+                             ph, &r,
+                             0 /* dwDesiredAccess */,
+                             false /* bInheritHandle */,
+                             DUPLICATE_SAME_ACCESS));
+
+    return auto_handle (r);
+  };
+
   // Job leader starts the detached long-running child and exits with code 3.
   //
   {
@@ -976,11 +1014,43 @@ exec_tests (const path& p)
     assert (wait_normal (pr1, 3, p, args));
   }
 
+  // Group leader starts the detached long-running child and exits with code
+  // 0. We reap it not killing job processes nor checking for unreaped ones.
+  //
+  {
+    strings args ({"{", "-s", "5000", "}"});
+
+    process pr1 (start (p, args));
+    assert (started (pr1));
+
+    // Note that we still need to terminate the remaining job process
+    // ourselves, after reaping the job leader.
+    //
+    auto_handle j1 (dup_handle (pr1.job));
+
+    assert (
+      wait_normal (
+        pr1, 0, p, args, false /* use_try_wait */, process::group_wait::no_kill));
+
+    assert (TerminateJobObject (j1.get (), DBG_TERMINATE_PROCESS));
+
+    process pr2 (start (p, args));
+    assert (started (pr2));
+
+    auto_handle j2 (dup_handle (pr2.job));
+
+    assert (
+      wait_normal (
+        pr2, 0, p, args, true /* use_try_wait */, process::group_wait::no_kill));
+
+    assert (TerminateJobObject (j2.get (), DBG_TERMINATE_PROCESS));
+  }
+
   // Note: check for the unreaped members is disabled for now for Windows (see
   //       process::wait() implementation for details).
   //
 #if 0
-  // As above but exits with code 0.
+  // Job leader starts the detached long-running child and exits with code 0.
   //
   {
     strings args ({"{", "-s", "5000", "}"});

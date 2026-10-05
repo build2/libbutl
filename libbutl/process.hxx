@@ -311,7 +311,8 @@ namespace butl
     // If the new_group argument is true, then execute the process as a leader
     // of a newly created process group. By default, all its (grand)child
     // processes will automatically become members of this group. While
-    // reaping the group leader, we make sure that no group members stay
+    // reaping the group leader, we may take some action against the remaining
+    // group members. For example, we may make sure that no group members stay
     // running and treat the presence of any running/unreaped members as
     // abnormal termination of the group leader (see the wait(), kill(), and
     // term() functions for details on the process groups handling).
@@ -500,6 +501,14 @@ namespace butl
     // its original parent is not since the operating system may automatically
     // reap a terminated orphan process before we even notice.
     //
+    // Also note that, generally, there is nothing wrong in leaving a child
+    // process unreaped (think of daemons, shared workers, etc). On POSIX,
+    // after original parent terminates, such child processes are silently
+    // adopted by a special subreaper process with no errors or warnings
+    // logged. This process tracks the adopted processes and reaps them
+    // eventually. Use the datach() function to stop tracking the running
+    // child process.
+    //
     enum class group_wait
     {
       // Kill members and check for unreaped if leader terminated normally.
@@ -515,31 +524,61 @@ namespace butl
 
       // Kill members and don't check for unreaped.
       //
-      kill_no_check
+      kill_no_check,
+
+      // Kill member only if the leader terminates abnormally and don't check
+      // for unreaped.
+      //
+      // Note that while it may seem like a good idea to have this as the
+      // default in wait() below, this can cause some spooky, hard to
+      // understand failures since we don't know at what point exactly the
+      // leader encountered trouble (it could have been after successfully
+      // dealing with the child; think a "server" process that is shared by
+      // multiple instances of the "client" processes -- if one of such
+      // clients terminated abnormally after dealing with the server, we could
+      // cause an unexpected failure to parallel and otherwise perfectly
+      // normal client executions).
+      //
+      //kill_abnormal_no_check,
 
       // Don't kill members (and don't check for unreaped).
       //
-      //no_kill
+      no_kill
     };
 
+    // Close the opened pipe ends, ignoring any errors, to avoid the potential
+    // deadlock when the child is blocked on IO operation and we indefinitely
+    // wait for its termination.
+    //
     bool
-    wait (bool ignore_errors = false,
-          group_wait = group_wait::kill_check_unreaped_zero);
+    wait (bool ignore_errors = false, group_wait = group_wait::no_kill);
 
     // Return the same result as wait() if the process has already terminated
     // and nullopt otherwise.
     //
+    // Note: in contrast to wait() the opened pipe ends are not closed.
+    //
     optional<bool>
-    try_wait (group_wait = group_wait::kill_check_unreaped_zero);
+    try_wait (group_wait = group_wait::no_kill);
 
     // Wait for the process to terminate for up to the specified time
     // duration. Return the same result as wait() if the process has
     // terminated in this timeframe and nullopt otherwise.
     //
+    // Note: in contrast to wait() the opened pipe ends are not closed.
+    //
     template <typename R, typename P>
     optional<bool>
     timed_wait (const std::chrono::duration<R, P>&,
-                group_wait = group_wait::kill_check_unreaped_zero);
+                group_wait = group_wait::no_kill);
+
+    // Stop tracking the running process, turning the object into the "already
+    // terminated" state (handle is 0/NULL) with the unknown termination
+    // status (exit is nullopt). Close the opened pipe ends, ignoring any
+    // errors. Noop if the process is already terminated.
+    //
+    void
+    detach ();
 
     // Note that the destructor will wait for the process but will ignore
     // any errors and the exit status.
