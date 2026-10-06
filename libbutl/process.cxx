@@ -1380,6 +1380,7 @@ namespace butl
           // reaped yet). For this very reason, we cannot say here if there
           // are any unterminated or unreaped members of the group.
           //
+          this_thread::yield (); // See below for the reasoning.
           r = ::kill (-gr, SIGKILL);
 
           // Note that in contrast to Linux and FreeBSD, it looks like MacOS
@@ -1428,6 +1429,20 @@ namespace butl
             //   adopted by the init process (or alike), terminated, and
             //   reaped by init. In this case, we can mistakenly report a
             //   success. Probably, not a big deal.
+            //
+            //   Note that while this is not a big deal generally, it may
+            //   result in flaky tests in the tests/process-group driver,
+            //   which supposes that if the group leader spawned a
+            //   long-running detached child and exited normally afterwards,
+            //   then the test will observe the SIGCHLD status for the reaped
+            //   group leader. While this is true most of the time, once in a
+            //   while that grandchild get reaped by the init process between
+            //   the above kill(SIGKILL) and below kill(0) calls, probably
+            //   because the thread was preempted between the calls. It seems
+            //   that the only way to decrease the chances of such an
+            //   unfortunate situation is to yield before kill(SIGKILL), with
+            //   the hope that this thread, when awaken, will not be preempted
+            //   too soon.
             //
             // While it's tempting to just drop this check altogether due to
             // its flakiness, probably a flaky check is still better than no
@@ -1573,6 +1588,7 @@ namespace butl
 
         if (gw != group_wait::no_kill)
         {
+          this_thread::yield ();
           r = ::kill (-gr, SIGKILL);
 
           //assert (r == 0 || (r == -1 && errno == EPERM));
