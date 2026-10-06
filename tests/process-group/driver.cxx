@@ -598,6 +598,25 @@ exec_tests (const path& p)
     assert (wait_normal (pr1, 0, p, args));
   }
 
+  // Repeatedly run the group/job leader which recursively runs and reaps
+  // group/job members, to make sure we never mistakenly report unreaped
+  // (grand)children.
+  //
+  {
+    strings args ({"{", "{", "}=0", "}=0"});
+
+    for (size_t i (0); i != 1000; ++i)
+    {
+      process pr1 (start (p, args));
+      assert (started (pr1));
+      assert (wait_normal (pr1, 0, p, args));
+
+      process pr2 (start (p, args));
+      assert (started (pr2));
+      assert (wait_normal (pr2, 0, p, args, true /* use_try_wait */));
+    }
+  }
+
 #ifndef _WIN32
   // Make sure SIGCHLD, which we use to indicate unreaped members of the
   // process group, is ignored by default.
