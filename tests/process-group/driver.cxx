@@ -9,7 +9,6 @@
 #  include <string.h> // memset()
 
 #  include <thread>
-#  include <chrono>
 #  include <algorithm> // copy()
 #  include <exception> // terminate()
 #else
@@ -23,6 +22,7 @@
 #  endif
 #endif
 
+#include <chrono>
 #include <string>
 #include <vector>
 #include <utility>      // move()
@@ -36,6 +36,7 @@
 
 #include <libbutl/path.hxx>
 #include <libbutl/process.hxx>
+#include <libbutl/timestamp.hxx>
 
 #undef NDEBUG
 #include <cassert>
@@ -205,37 +206,166 @@ number (const char* s)
   return r;
 };
 
-// Return the process information in the `<path> -c <arg>...`[ <exit-info>]
-// form.
+// Let's extend the process type with the test related information for the
+// diagnostics purposes.
 //
-static string
-child_info (const path& p,
-            const strings& as,
-            optional<process_exit> e = nullopt)
+struct proc: process
 {
-  string r ('`' + p.string () + " -c");
+  const butl::path* path;
+  const strings*    args;
+
+  timestamp starting_at;
+  timestamp started_at;
+  timestamp reaping_at;
+  timestamp reaped_at;
+  uint64_t wait_retries;
+
+  // Start a child process with the specified arguments (see the below usage
+  // description for details). On failure, issue diagnostics and construct the
+  // already terminated process object.
+  //
+  // NOTE: the process path and arguments are stored by reference.
+  //
+  proc (const butl::path&, const strings& args, bool new_group = true);
+
+  // Return true, if the process was started successfully and was not reaped
+  // yet.
+  //
+  bool
+  started () const {return handle != 0;}
+
+  // Return the process information in the `<path> -c <arg>...`[ <exit-info>]
+  // form.
+  //
+  string
+  info () const;
+
+  static string
+  info (const butl::path&, const strings&);
+
+  // Return the process handling statistics (execution phases duration, etc).
+  //
+  string
+  stat () const;
+};
+
+proc::
+proc (const butl::path& p, const strings& as, bool new_group)
+    : path (&p),
+      args (&as),
+      wait_retries (0)
+{
+  using namespace chrono;
+
+  cstrings args {p.string ().c_str (), "-c"};
 
   for (const string& a: as)
+    args.push_back (a.c_str ());
+
+  args.push_back (nullptr);
+
+  try
+  {
+    starting_at = system_clock::now ();
+
+    static_cast <process&> (*this) =
+      process (args,
+               0 /* in */, 1 /* out */, 2 /* err */,
+               nullptr /* cwd */,
+               nullptr /* envvars */,
+               new_group);
+
+    started_at = system_clock::now ();
+  }
+  catch (const process_error& e)
+  {
+    cerr << "error: process starting failed: " << e.what () << endl
+         << "  info: " << info (p, as) << endl;
+  }
+}
+
+string proc::
+info (const butl::path& path, const strings& args)
+{
+  string r ('`' + path.string () + " -c");
+
+  for (const string& a: args)
     r += ' ' + a;
 
   r += '`';
 
-  if (e)
-    r += ' ' + to_string (*e);
+  return r;
+}
+
+string proc::
+info () const
+{
+  assert (path != nullptr && args != nullptr);
+
+  string r (info (*path, *args));
+
+  if (exit)
+    r += ' ' + to_string (*exit);
+
+  return r;
+}
+
+string proc::
+stat () const
+{
+  string r;
+
+  if (starting_at != timestamp_nonexistent &&
+      started_at != timestamp_nonexistent)
+  {
+    r += "started: ";
+    r += to_string (started_at - starting_at, true /* nanoseconds */);
+
+    if (reaping_at != timestamp_nonexistent)
+    {
+      r += ", tested: ";
+      r += to_string (reaping_at - started_at, true);
+
+      if (reaped_at != timestamp_nonexistent)
+      {
+        r += ", reaped: ";
+        r += to_string (reaped_at - reaping_at, true);
+      }
+    }
+  }
+
+  if (wait_retries != 0)
+  {
+    assert (!r.empty ()); // Must have been started.
+
+    r += ", wait retries: ";
+    r += to_string (wait_retries);
+  }
 
   return r;
 }
 
 static bool
-wait (process& pr, bool use_try_wait, process::group_wait gw)
+wait (proc& pr, bool use_try_wait, process::group_wait gw)
 {
+  pr.reaping_at = system_clock::now ();
+
   if (!use_try_wait)
-    return pr.wait (false /* ignore_errors */, gw);
+  {
+    bool r (pr.wait (false /* ignore_errors */, gw));
+    pr.reaped_at = system_clock::now ();
+    return r;
+  }
 
   while (true)
   {
     if (optional<bool> r = pr.try_wait (gw))
+    {
+      pr.reaped_at = system_clock::now ();
       return *r;
+    }
+
+    ++pr.wait_retries;
 
     sleep_ms (1);
   }
@@ -293,10 +423,8 @@ signal_to_string (int sig)
 // and return false.
 //
 static bool
-wait_abnormal (process& pr,
+wait_abnormal (proc& pr,
                int sig,
-               const path& p,
-               const strings& args,
                bool use_try_wait = false,
                process::group_wait gw =
                  process::group_wait::kill_check_unreaped_zero)
@@ -310,14 +438,16 @@ wait_abnormal (process& pr,
     if (!r)
       cerr << "error: process should have terminated on signal "
            << signal_to_string (sig) << endl
-           << "  info: " << child_info (p, args, *pr.exit) << endl;
+           << "  info: " << pr.info () << endl
+           << "  info: " << pr.stat () << endl;
 
     return r;
   }
   catch (const process_error& e)
   {
     cerr << "error: process reaping failed: " << e.what () << endl
-         << "  info: " << child_info (p, args) << endl;
+         << "  info: " << pr.info () << endl
+         << "  info: " << pr.stat () << endl;
   }
 
   return false;
@@ -339,10 +469,8 @@ abnormal_status_to_string (DWORD status)
 // diagnostics and return false.
 //
 static bool
-wait_abnormal (process& pr,
+wait_abnormal (proc& pr,
                DWORD s,
-               const path& p,
-               const strings& args,
                bool use_try_wait = false,
                process::group_wait gw =
                  process::group_wait::kill_check_unreaped_zero)
@@ -356,14 +484,16 @@ wait_abnormal (process& pr,
     if (!r)
       cerr << "error: process should have terminated with status 0x" << hex
            << s << dec << " (" << abnormal_status_to_string (s) << ")" << endl
-           << "  info: " << child_info (p, args, *pr.exit) << endl;
+           << "  info: " << pr.info () << endl
+           << "  info: " << pr.stat () << endl;
 
     return r;
   }
   catch (const process_error& e)
   {
     cerr << "error: process reaping failed: " << e.what () << endl
-         << "  info: " << child_info (p, args) << endl;
+         << "  info: " << pr.info () << endl
+         << "  info: " << pr.stat () << endl;
   }
 
   return false;
@@ -375,10 +505,8 @@ wait_abnormal (process& pr,
 // diagnostics and return false.
 //
 static bool
-wait_normal (process& pr,
+wait_normal (proc& pr,
              uint64_t code,
-             const path& p,
-             const strings& args,
              bool use_try_wait = false,
              process::group_wait gw =
                process::group_wait::kill_check_unreaped_zero)
@@ -391,56 +519,19 @@ wait_normal (process& pr,
 
     if (!r)
       cerr << "error: process should have exited with code " << code << endl
-           << "  info: " << child_info (p, args, *pr.exit) << endl;
+           << "  info: " << pr.info () << endl
+           << "  info: " << pr.stat () << endl;
 
     return r;
   }
   catch (const process_error& e)
   {
     cerr << "error: process reaping failed: " << e.what () << endl
-         << "  info: " << child_info (p, args) << endl;
+         << "  info: " << pr.info () << endl
+         << "  info: " << pr.stat () << endl;
   }
 
   return false;
-}
-
-// Start a child process with the specified arguments (see the below usage
-// description for details). On failure, issue diagnostics and return the
-// already terminated process object.
-//
-static process
-start (const path& p, const strings& as = {}, bool new_group = true)
-{
-  cstrings args {p.string ().c_str (), "-c"};
-
-  for (const string& a: as)
-    args.push_back (a.c_str ());
-
-  args.push_back (nullptr);
-
-  try
-  {
-    return process (args,
-                    0 /* in */, 1 /* out */, 2 /* err */,
-                    nullptr /* cwd */,
-                    nullptr /* envvars */,
-                    new_group);
-  }
-  catch (const process_error& e)
-  {
-    cerr << "error: process starting failed: " << e.what () << endl
-         << "  info: " << child_info (p, as) << endl;
-  }
-
-  return process ();
-}
-
-// Return true, if the process was started successfully.
-//
-static inline bool
-started (const process& pr)
-{
-  return pr.handle != 0;
 }
 
 // Execute the child process actions based on the specified arguments (see the
@@ -506,20 +597,20 @@ exec_child (const path& p, int argc, const char* argv[])
           }
           else
           {
-            process pr (start (p, args, new_group));
-            assert (started (pr));
+            proc pr (p, args, new_group);
+            assert (pr.started ());
 
             switch (o[1])
             {
             case '=': // {...}=<code>
               {
-                assert (wait_normal (pr, number (o.c_str () + 2), p, args));
+                assert (wait_normal (pr, number (o.c_str () + 2)));
                 break;
               }
             case '~': // {...}~<signal>
               {
 #ifndef _WIN32
-                assert (wait_abnormal (pr, to_signal (o.c_str () + 2), p, args));
+                assert (wait_abnormal (pr, to_signal (o.c_str () + 2)));
 #else
                 assert (false);
 #endif
@@ -572,14 +663,14 @@ exec_tests (const path& p)
   {
     strings args ({"-e", "3"});
 
-    process pr1 (start (p, args));
-    assert (started (pr1));
+    proc pr1 (p, args);
+    assert (pr1.started ());
 
-    process pr2 (start (p, args));
-    assert (started (pr2));
+    proc pr2 (p, args);
+    assert (pr2.started ());
 
-    assert (wait_normal (pr2, 3, p, args, true /* use_try_wait */));
-    assert (wait_normal (pr1, 3, p, args));
+    assert (wait_normal (pr2, 3, true /* use_try_wait */));
+    assert (wait_normal (pr1, 3));
   }
 
   // Group/job leader starts new group/job members, recursively, which are all
@@ -588,14 +679,14 @@ exec_tests (const path& p)
   {
     strings args ({"{", "{", "-e", "2", "}=2", "-e", "3", "}=3"});
 
-    process pr1 (start (p, args));
-    assert (started (pr1));
+    proc pr1 (p, args);
+    assert (pr1.started ());
 
-    process pr2 (start (p, args));
-    assert (started (pr2));
+    proc pr2 (p, args);
+    assert (pr2.started ());
 
-    assert (wait_normal (pr2, 0, p, args, true /* use_try_wait */));
-    assert (wait_normal (pr1, 0, p, args));
+    assert (wait_normal (pr2, 0, true /* use_try_wait */));
+    assert (wait_normal (pr1, 0));
   }
 
   // Repeatedly run the group/job leader which recursively runs and reaps
@@ -607,13 +698,13 @@ exec_tests (const path& p)
 
     for (size_t i (0); i != 1000; ++i)
     {
-      process pr1 (start (p, args));
-      assert (started (pr1));
-      assert (wait_normal (pr1, 0, p, args));
+      proc pr1 (p, args);
+      assert (pr1.started ());
+      assert (wait_normal (pr1, 0));
 
-      process pr2 (start (p, args));
-      assert (started (pr2));
-      assert (wait_normal (pr2, 0, p, args, true /* use_try_wait */));
+      proc pr2 (p, args);
+      assert (pr2.started ());
+      assert (wait_normal (pr2, 0, true /* use_try_wait */));
     }
   }
 
@@ -624,17 +715,17 @@ exec_tests (const path& p)
   {
     strings args ({"-s", "5000", "-e", "3"});
 
-    process pr1 (start (p, args));
-    assert (started (pr1));
+    proc pr1 (p, args);
+    assert (pr1.started ());
 
-    process pr2 (start (p, args));
-    assert (started (pr2));
+    proc pr2 (p, args);
+    assert (pr2.started ());
 
     assert (kill (pr1.handle, SIGCHLD) == 0);
     assert (kill (pr2.handle, SIGCHLD) == 0);
 
-    assert (wait_normal (pr2, 3, p, args, true /* use_try_wait */));
-    assert (wait_normal (pr1, 3, p, args));
+    assert (wait_normal (pr2, 3, true /* use_try_wait */));
+    assert (wait_normal (pr1, 3));
   }
 
   // Terminate a group leader, which doesn't start any new group members, with
@@ -646,17 +737,17 @@ exec_tests (const path& p)
 
     for (int s: ss)
     {
-      process pr1 (start (p, args));
-      assert (started (pr1));
+      proc pr1 (p, args);
+      assert (pr1.started ());
 
-      process pr2 (start (p, args));
-      assert (started (pr2));
+      proc pr2 (p, args);
+      assert (pr2.started ());
 
       assert (kill (pr1.handle, s) == 0);
       assert (kill (pr2.handle, s) == 0);
 
-      assert (wait_abnormal (pr2, s, p, args, true /* use_try_wait */));
-      assert (wait_abnormal (pr1, s, p, args));
+      assert (wait_abnormal (pr2, s, true /* use_try_wait */));
+      assert (wait_abnormal (pr1, s));
     }
   }
 
@@ -676,17 +767,17 @@ exec_tests (const path& p)
 
     for (int s: ss)
     {
-      process pr1 (start (p, args));
-      assert (started (pr1));
+      proc pr1 (p, args);
+      assert (pr1.started ());
 
-      process pr2 (start (p, args));
-      assert (started (pr2));
+      proc pr2 (p, args);
+      assert (pr2.started ());
 
       assert (kill (-pr1.group, s) == 0);
       assert (kill (-pr2.group, s) == 0);
 
-      assert (wait_abnormal (pr2, s, p, args, true /* use_try_wait */));
-      assert (wait_abnormal (pr1, s, p, args));
+      assert (wait_abnormal (pr2, s, true /* use_try_wait */));
+      assert (wait_abnormal (pr1, s));
     }
   }
 
@@ -702,14 +793,14 @@ exec_tests (const path& p)
         "{", "{", "-s", "10000", "}", "-s", "10000", "}",
         "-s", "10000"});
 
-      process pr1 (start (p, args));
-      assert (started (pr1));
+      proc pr1 (p, args);
+      assert (pr1.started ());
 
-      process pr2 (start (p, args));
-      assert (started (pr2));
+      proc pr2 (p, args);
+      assert (pr2.started ());
 
-      assert (wait_abnormal (pr2, s, p, args, true /* use_try_wait */));
-      assert (wait_abnormal (pr1, s, p, args));
+      assert (wait_abnormal (pr2, s, true /* use_try_wait */));
+      assert (wait_abnormal (pr1, s));
     }
   }
 
@@ -725,13 +816,13 @@ exec_tests (const path& p)
   {
     strings args ({"{", "-s", "10000", "}"});
 
-    process pr1 (start (p, args));
-    assert (started (pr1));
-    assert (wait_abnormal (pr1, SIGCHLD, p, args));
+    proc pr1 (p, args);
+    assert (pr1.started ());
+    assert (wait_abnormal (pr1, SIGCHLD));
 
-    process pr2 (start (p, args));
-    assert (started (pr2));
-    assert (wait_abnormal (pr2, SIGCHLD, p, args, true /* use_try_wait */));
+    proc pr2 (p, args);
+    assert (pr2.started ());
+    assert (wait_abnormal (pr2, SIGCHLD, true /* use_try_wait */));
   }
 
   // As above but exits with code 3.
@@ -739,13 +830,13 @@ exec_tests (const path& p)
   {
     strings args ({"{", "-s", "10000", "}", "-e", "3"});
 
-    process pr1 (start (p, args));
-    assert (started (pr1));
-    assert (wait_normal (pr1, 3, p, args));
+    proc pr1 (p, args);
+    assert (pr1.started ());
+    assert (wait_normal (pr1, 3));
 
-    process pr2 (start (p, args));
-    assert (started (pr2));
-    assert (wait_normal (pr2, 3, p, args, true /* use_try_wait */));
+    proc pr2 (p, args);
+    assert (pr2.started ());
+    assert (wait_normal (pr2, 3, true /* use_try_wait */));
   }
 
   // Group leader starts the detached long-running child and exits with code
@@ -754,25 +845,25 @@ exec_tests (const path& p)
   {
     strings args ({"{", "-s", "10000", "}"});
 
-    process pr1 (start (p, args));
-    assert (started (pr1));
+    proc pr1 (p, args);
+    assert (pr1.started ());
 
     process::handle_type gr1 (pr1.group);
 
     assert (
       wait_normal (
-        pr1, 0, p, args, false  /* use_try_wait */, process::group_wait::no_kill));
+        pr1, 0, false /* use_try_wait */, process::group_wait::no_kill));
 
     assert (kill (-gr1, SIGKILL) == 0);
 
-    process pr2 (start (p, args));
-    assert (started (pr2));
+    proc pr2 (p, args);
+    assert (pr2.started ());
 
-    process::handle_type gr2 (pr2.group);
+    proc::handle_type gr2 (pr2.group);
 
     assert (
       wait_normal (
-        pr2, 0, p, args, true  /* use_try_wait */, process::group_wait::no_kill));
+        pr2, 0, true /* use_try_wait */, process::group_wait::no_kill));
 
     assert (kill (-gr2, SIGKILL) == 0);
   }
@@ -783,13 +874,13 @@ exec_tests (const path& p)
   {
     strings args ({"{", "{", "-s", "10000", "}", "}=0"});
 
-    process pr1 (start (p, args));
-    assert (started (pr1));
-    assert (wait_abnormal (pr1, SIGCHLD, p, args));
+    proc pr1 (p, args);
+    assert (pr1.started ());
+    assert (wait_abnormal (pr1, SIGCHLD));
 
-    process pr2 (start (p, args));
-    assert (started (pr2));
-    assert (wait_abnormal (pr2, SIGCHLD, p, args, true /* use_try_wait */));
+    proc pr2 (p, args);
+    assert (pr2.started ());
+    assert (wait_abnormal (pr2, SIGCHLD, true /* use_try_wait */));
   }
 
   // Note that under the load the terminated child can be reaped by the init
@@ -803,14 +894,14 @@ exec_tests (const path& p)
   {
     strings args ({"{", "}", "-s", "10000"});
 
-    process pr1 (start (p, args));
-    assert (started (pr1));
+    proc pr1 (p, args);
+    assert (pr1.started ());
 
-    process pr2 (start (p, args));
-    assert (started (pr2));
+    proc pr2 (p, args);
+    assert (pr2.started ());
 
-    assert (wait_abnormal (pr2, SIGCHLD, p, args, true /* use_try_wait */));
-    assert (wait_abnormal (pr1, SIGCHLD, p, args));
+    assert (wait_abnormal (pr2, SIGCHLD, true /* use_try_wait */));
+    assert (wait_abnormal (pr1, SIGCHLD));
   }
 
   // Group leader starts the detached child and exits after the child has
@@ -819,14 +910,14 @@ exec_tests (const path& p)
   {
     strings args ({"{", "-k", "SIGTERM", "}", "-s", "10000"});
 
-    process pr1 (start (p, args));
-    assert (started (pr1));
+    proc pr1 (p, args);
+    assert (pr1.started ());
 
-    process pr2 (start (p, args));
-    assert (started (pr2));
+    proc pr2 (p, args);
+    assert (pr2.started ());
 
-    assert (wait_abnormal (pr2, SIGCHLD, p, args, true /* use_try_wait */));
-    assert (wait_abnormal (pr1, SIGCHLD, p, args));
+    assert (wait_abnormal (pr2, SIGCHLD, true /* use_try_wait */));
+    assert (wait_abnormal (pr1, SIGCHLD));
   }
 #endif
 #endif
@@ -845,11 +936,11 @@ exec_tests (const path& p)
                    "{", "-s", "1000", "-k", "SIGKILL", "}",
                    "{", "-s", "1000", "-k", "SIGTSTP", "}"});
 
-    process pr1 (start (p, args));
-    assert (started (pr1));
+    proc pr1 (p, args);
+    assert (pr1.started ());
 
-    process pr2 (start (p, args));
-    assert (started (pr2));
+    proc pr2 (p, args);
+    assert (pr2.started ());
 
     sleep_ms (5000); // Wait until grandchildren are dead/stopped.
 
@@ -862,8 +953,8 @@ exec_tests (const path& p)
 
     // We shouldn't notice any unreaped grandchildren.
     //
-    assert (wait_normal (pr2, 0, p, args, true /* use_try_wait */));
-    assert (wait_normal (pr1, 0, p, args));
+    assert (wait_normal (pr2, 0, true /* use_try_wait */));
+    assert (wait_normal (pr1, 0));
   }
 
   // Test the signal forwarding in the signal handlers.
@@ -875,21 +966,21 @@ exec_tests (const path& p)
   {
     strings args1 ({"{", "-G", "-s", "10000", "}=0"});
 
-    process pr1 (start (p, args1));
-    assert (started (pr1));
+    proc pr1 (p, args1);
+    assert (pr1.started ());
 
-    process pr2 (start (p, args1));
-    assert (started (pr2));
+    proc pr2 (p, args1);
+    assert (pr2.started ());
 
     // As above, but use the sigwait() based signals handling.
     //
     strings args2 ({"-S", "{", "-S", "-G", "-s", "10000", "}=0"});
 
-    process pr3 (start (p, args2));
-    assert (started (pr3));
+    proc pr3 (p, args2);
+    assert (pr3.started ());
 
-    process pr4 (start (p, args2));
-    assert (started (pr4));
+    proc pr4 (p, args2);
+    assert (pr4.started ());
 
     sleep_ms (3000);
 
@@ -898,10 +989,10 @@ exec_tests (const path& p)
     assert (kill (-pr3.group, SIGTERM) == 0);
     assert (kill (-pr4.group, SIGTERM) == 0);
 
-    assert (wait_abnormal (pr4, SIGTERM, p, args2, true /* use_try_wait */));
-    assert (wait_abnormal (pr2, SIGTERM, p, args1, true /* use_try_wait */));
-    assert (wait_abnormal (pr1, SIGTERM, p, args1));
-    assert (wait_abnormal (pr3, SIGTERM, p, args2));
+    assert (wait_abnormal (pr4, SIGTERM, true /* use_try_wait */));
+    assert (wait_abnormal (pr2, SIGTERM, true /* use_try_wait */));
+    assert (wait_abnormal (pr1, SIGTERM));
+    assert (wait_abnormal (pr3, SIGTERM));
   }
 
   // Group leader starts another group leader and waits/reaps it. We suspend
@@ -910,21 +1001,21 @@ exec_tests (const path& p)
   {
     strings args1 ({"{", "-G", "-s", "10000", "}=0"});
 
-    process pr1 (start (p, args1));
-    assert (started (pr1));
+    proc pr1 (p, args1);
+    assert (pr1.started ());
 
-    process pr2 (start (p, args1));
-    assert (started (pr2));
+    proc pr2 (p, args1);
+    assert (pr2.started ());
 
     // As above, but use the sigwait() based signals handling.
     //
     strings args2 ({"-S", "{", "-S", "-G", "-s", "10000", "}=0"});
 
-    process pr3 (start (p, args1));
-    assert (started (pr3));
+    proc pr3 (p, args1);
+    assert (pr3.started ());
 
-    process pr4 (start (p, args1));
-    assert (started (pr4));
+    proc pr4 (p, args1);
+    assert (pr4.started ());
 
     sleep_ms (3000);
 
@@ -947,10 +1038,10 @@ exec_tests (const path& p)
     assert (kill (-pr3.group, SIGCONT) == 0);
     assert (kill (-pr4.group, SIGCONT) == 0);
 
-    assert (wait_normal (pr4, 0, p, args2, true /* use_try_wait */));
-    assert (wait_normal (pr2, 0, p, args1, true /* use_try_wait */));
-    assert (wait_normal (pr1, 0, p, args1));
-    assert (wait_normal (pr3, 0, p, args2));
+    assert (wait_normal (pr4, 0, true /* use_try_wait */));
+    assert (wait_normal (pr2, 0, true /* use_try_wait */));
+    assert (wait_normal (pr1, 0));
+    assert (wait_normal (pr3, 0));
   }
 
   // Group leader starts another group leader and waits/reaps it. We suspend,
@@ -959,21 +1050,21 @@ exec_tests (const path& p)
   {
     strings args1 ({"{", "-G", "-s", "10000", "}=0"});
 
-    process pr1 (start (p, args1));
-    assert (started (pr1));
+    proc pr1 (p, args1);
+    assert (pr1.started ());
 
-    process pr2 (start (p, args1));
-    assert (started (pr2));
+    proc pr2 (p, args1);
+    assert (pr2.started ());
 
     // As above, but use the sigwait() based signals handling.
     //
     strings args2 ({"-S", "{", "-S", "-G", "-s", "10000", "}=0"});
 
-    process pr3 (start (p, args1));
-    assert (started (pr3));
+    proc pr3 (p, args1);
+    assert (pr3.started ());
 
-    process pr4 (start (p, args1));
-    assert (started (pr4));
+    proc pr4 (p, args1);
+    assert (pr4.started ());
 
     sleep_ms (3000);
 
@@ -994,10 +1085,10 @@ exec_tests (const path& p)
     assert (kill (-pr3.group, SIGCONT) == 0);
     assert (kill (-pr4.group, SIGCONT) == 0);
 
-    assert (wait_abnormal (pr4, SIGTERM, p, args2, true /* use_try_wait */));
-    assert (wait_abnormal (pr2, SIGTERM, p, args1, true /* use_try_wait */));
-    assert (wait_abnormal (pr1, SIGTERM, p, args1));
-    assert (wait_abnormal (pr3, SIGTERM, p, args2));
+    assert (wait_abnormal (pr4, SIGTERM, true /* use_try_wait */));
+    assert (wait_abnormal (pr2, SIGTERM, true /* use_try_wait */));
+    assert (wait_abnormal (pr1, SIGTERM));
+    assert (wait_abnormal (pr3, SIGTERM));
   }
 
 #else // _WIN32
@@ -1023,14 +1114,14 @@ exec_tests (const path& p)
   {
     strings args ({"{", "-s", "5000", "}", "-e", "3"});
 
-    process pr1 (start (p, args));
-    assert (started (pr1));
+    proc pr1 (p, args);
+    assert (pr1.started ());
 
-    process pr2 (start (p, args));
-    assert (started (pr2));
+    proc pr2 (p, args);
+    assert (pr2.started ());
 
-    assert (wait_normal (pr2, 3, p, args, true /* use_try_wait */));
-    assert (wait_normal (pr1, 3, p, args));
+    assert (wait_normal (pr2, 3, true /* use_try_wait */));
+    assert (wait_normal (pr1, 3));
   }
 
   // Group leader starts the detached long-running child and exits with code
@@ -1039,8 +1130,8 @@ exec_tests (const path& p)
   {
     strings args ({"{", "-s", "5000", "}"});
 
-    process pr1 (start (p, args));
-    assert (started (pr1));
+    proc pr1 (p, args);
+    assert (pr1.started ());
 
     // Note that we still need to terminate the remaining job process
     // ourselves, after reaping the job leader.
@@ -1049,18 +1140,18 @@ exec_tests (const path& p)
 
     assert (
       wait_normal (
-        pr1, 0, p, args, false /* use_try_wait */, process::group_wait::no_kill));
+        pr1, 0, false /* use_try_wait */, process::group_wait::no_kill));
 
     assert (TerminateJobObject (j1.get (), DBG_TERMINATE_PROCESS));
 
-    process pr2 (start (p, args));
-    assert (started (pr2));
+    proc pr2 (p, args);
+    assert (pr2.started ());
 
     auto_handle j2 (dup_handle (pr2.job));
 
     assert (
       wait_normal (
-        pr2, 0, p, args, true /* use_try_wait */, process::group_wait::no_kill));
+        pr2, 0, true /* use_try_wait */, process::group_wait::no_kill));
 
     assert (TerminateJobObject (j2.get (), DBG_TERMINATE_PROCESS));
   }
@@ -1074,14 +1165,14 @@ exec_tests (const path& p)
   {
     strings args ({"{", "-s", "5000", "}"});
 
-    process pr1 (start (p, args));
-    assert (started (pr1));
+    proc pr1 (p, args);
+    assert (pr1.started ());
 
-    process pr2 (start (p, args));
-    assert (started (pr2));
+    proc pr2 (p, args);
+    assert (pr2.started ());
 
-    assert (wait_abnormal (pr2, STATUS_JOB_NOT_EMPTY, p, args, true /* use_try_wait */));
-    assert (wait_abnormal (pr1, STATUS_JOB_NOT_EMPTY, p, args));
+    assert (wait_abnormal (pr2, STATUS_JOB_NOT_EMPTY, true /* use_try_wait */));
+    assert (wait_abnormal (pr1, STATUS_JOB_NOT_EMPTY));
   }
 
   // As above but start multiple detached long-running children.
@@ -1091,14 +1182,14 @@ exec_tests (const path& p)
                    "{", "-s", "5000", "}",
                    "{", "-s", "5000", "}"});
 
-    process pr1 (start (p, args));
-    assert (started (pr1));
+    proc pr1 (p, args);
+    assert (pr1.started ());
 
-    process pr2 (start (p, args));
-    assert (started (pr2));
+    proc pr2 (p, args);
+    assert (pr2.started ());
 
-    assert (wait_abnormal (pr2, STATUS_JOB_NOT_EMPTY, p, args, true /* use_try_wait */));
-    assert (wait_abnormal (pr1, STATUS_JOB_NOT_EMPTY, p, args));
+    assert (wait_abnormal (pr2, STATUS_JOB_NOT_EMPTY, true /* use_try_wait */));
+    assert (wait_abnormal (pr1, STATUS_JOB_NOT_EMPTY));
   }
 
   // Job leader starts the child, which starts the detached long-running child
@@ -1107,14 +1198,14 @@ exec_tests (const path& p)
   {
     strings args ({"{", "{", "-s", "5000", "}", "}=0"});
 
-    process pr1 (start (p, args));
-    assert (started (pr1));
+    proc pr1 (p, args);
+    assert (pr1.started ());
 
-    process pr2 (start (p, args));
-    assert (started (pr2));
+    proc pr2 (p, args);
+    assert (pr2.started ());
 
-    assert (wait_abnormal (pr2, STATUS_JOB_NOT_EMPTY, p, args, true /* use_try_wait */));
-    assert (wait_abnormal (pr1, STATUS_JOB_NOT_EMPTY, p, args));
+    assert (wait_abnormal (pr2, STATUS_JOB_NOT_EMPTY, true /* use_try_wait */));
+    assert (wait_abnormal (pr1, STATUS_JOB_NOT_EMPTY));
   }
 #endif
 
@@ -1128,18 +1219,18 @@ exec_tests (const path& p)
                    "{", "-s", "1000", "}",
                    "{", "-s", "1000", "}"});
 
-    process pr1 (start (p, args));
-    assert (started (pr1));
+    proc pr1 (p, args);
+    assert (pr1.started ());
 
-    process pr2 (start (p, args));
-    assert (started (pr2));
+    proc pr2 (p, args);
+    assert (pr2.started ());
 
     sleep_ms (5000); // Wait until grandchildren are exited.
 
     // We shouldn't notice any unreaped grandchildren.
     //
-    assert (wait_normal (pr2, 0, p, args, true /* use_try_wait */));
-    assert (wait_normal (pr1, 0, p, args));
+    assert (wait_normal (pr2, 0, true /* use_try_wait */));
+    assert (wait_normal (pr1, 0));
   }
 
   // Job leader starts another job leader and waits/reaps it. We terminate
@@ -1148,19 +1239,19 @@ exec_tests (const path& p)
   {
     strings args1 ({"{", "-G", "-s", "10000", "}=0"});
 
-    process pr1 (start (p, args1));
-    assert (started (pr1));
+    proc pr1 (p, args1);
+    assert (pr1.started ());
 
-    process pr2 (start (p, args1));
-    assert (started (pr2));
+    proc pr2 (p, args1);
+    assert (pr2.started ());
 
     sleep_ms (3000);
 
     pr1.term ();
     pr2.term ();
 
-    assert (wait_abnormal (pr2, DBG_TERMINATE_PROCESS, p, args1, true /* use_try_wait */));
-    assert (wait_abnormal (pr1, DBG_TERMINATE_PROCESS, p, args1));
+    assert (wait_abnormal (pr2, DBG_TERMINATE_PROCESS, true /* use_try_wait */));
+    assert (wait_abnormal (pr1, DBG_TERMINATE_PROCESS));
   }
 
 #endif
