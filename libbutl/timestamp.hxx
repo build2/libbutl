@@ -39,15 +39,16 @@ namespace butl
   // Generally-useful special values.
   //
   // Note that unknown is less than nonexistent which in turn is less than
-  // unreal and all of them are less than any non-special value (strictly
-  // speaking unreal is no greater (older) than any real value).
+  // unreal and all of them are less than any non-special value. Note also
+  // that 0 is no special and there can be, say, files with mtime set to
+  // Unix epoch (e.g., for reproducible builds).
   //
-  const timestamp::rep timestamp_unknown_rep     = -1;
-  const timestamp      timestamp_unknown         = timestamp (duration (-1));
-  const timestamp::rep timestamp_nonexistent_rep = 0;
-  const timestamp      timestamp_nonexistent     = timestamp (duration (0));
-  const timestamp::rep timestamp_unreal_rep      = 1;
-  const timestamp      timestamp_unreal          = timestamp (duration (1));
+  const timestamp::rep timestamp_unknown_rep     = -3;
+  const timestamp      timestamp_unknown         = timestamp (duration (-3));
+  const timestamp::rep timestamp_nonexistent_rep = -2;
+  const timestamp      timestamp_nonexistent     = timestamp (duration (-2));
+  const timestamp::rep timestamp_unreal_rep      = -1;
+  const timestamp      timestamp_unreal          = timestamp (duration (-1));
 
   // Print human-readable representation of the timestamp.
   //
