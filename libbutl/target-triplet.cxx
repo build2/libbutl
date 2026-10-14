@@ -5,6 +5,7 @@
 
 #include <cerrno>
 #include <cstdlib>   // strtoull()
+#include <cstdint>   // uint64_t
 #include <stdexcept> // invalid_argument
 
 using namespace std;
