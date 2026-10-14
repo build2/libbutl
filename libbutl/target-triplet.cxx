@@ -3,6 +3,8 @@
 
 #include <libbutl/target-triplet.hxx>
 
+#include <cerrno>
+#include <cstdlib>   // strtoull()
 #include <stdexcept> // invalid_argument
 
 using namespace std;
@@ -111,6 +113,36 @@ namespace butl
     {
       version.assign (system, v, string::npos);
       system.resize (system.size () - version.size ());
+    }
+    else if (system.compare (0, 5,  "macos") == 0)
+    {
+      // Some setups use, for example, arm64-apple-macos14.0 instead of the
+      // canonical arm64-apple-darwin23.0.0 (see GH #536 for background). So
+      // we canonicalize it to darwin and also map the version. The mapping
+      // is based on the information found in Clang's Triple.cpp with some
+      // corrections.
+      //
+      const char* b (system.c_str ());
+      char* e (nullptr);
+      errno = 0; // We must clear it according to POSIX.
+      uint64_t m (strtoull (b + 5, &e, 10)); // Can't throw.
+
+      if (errno == ERANGE || (e != b + system.size () && *e != '.'))
+        bad ("invalid system version format");
+
+      if (m == 10)                 // MacOS 10.4 -> Darwin 8.
+        version = "8";
+      else if (m >= 11 && m <= 15) // MacOS 11-15 -> Darwin 20-24.
+        version = to_string (m + 9);
+      else if (m == 26)            // MacOS 26    -> Darwin 25.
+        version = to_string (m - 1);
+      else if (m >= 27)            // MacOS 27+   -> Darwin 27+.
+        version = to_string (m);
+      else
+        bad ("invalid system version value"); // No MacOS <10, 16-25.
+
+      version += ".0.0";
+      system = "darwin";
     }
     else if (vendor == "apple" && system.compare (0, 3, "ios") == 0)
     {

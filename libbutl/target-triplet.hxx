@@ -86,6 +86,7 @@ namespace butl
   // x86_64-pc-windows-msvc19.11.25547 x86_64             windows-msvc   19.11.25547
   // wasm32-unknown-emscripten         wasm32             emscripten
   // arm64-apple-darwin20.1.0          aarch64 apple      darwin         20.1.0
+  // arm64-apple-macos11.0             aarch64 apple      darwin         20.0.0
   // arm64-apple-ios14.4               aarch64 apple      ios            14.4
   // arm64-apple-ios14.4-simulator     aarch64 apple      ios-simulator  14.4
   // x86_64-apple-ios14.4-macabi       x86_64  apple      ios-macabi     14.4
@@ -97,7 +98,7 @@ namespace butl
   // are recognized:
   //
   // linux     *-*-linux-*
-  // macos     *-apple-darwin*
+  // macos     *-apple-darwin*|*-apple-macos*
   // bsd       *-*-(freebsd|openbsd|netbsd)*
   // windows   *-*-win32-* | *-*-windows-* | *-*-mingw32
   // ios       *-apple-ios*

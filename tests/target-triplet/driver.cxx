@@ -122,6 +122,14 @@ main ()
                 "aarch64-apple-darwin20.1.0",
                 "aarch64", "apple", "darwin", "20.1.0", "macos"));
 
+  assert (test ("arm64-apple-macos15.1",
+                "aarch64-apple-darwin24.0.0",
+                "aarch64", "apple", "darwin", "24.0.0", "macos"));
+
+  assert (test ("arm64-apple-macos26",
+                "aarch64-apple-darwin25.0.0",
+                "aarch64", "apple", "darwin", "25.0.0", "macos"));
+
   assert (test ("arm64-apple-ios14.4",
                 "aarch64-apple-ios14.4",
                 "aarch64", "apple", "ios", "14.4", "ios"));
