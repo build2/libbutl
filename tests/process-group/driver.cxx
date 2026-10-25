@@ -8,7 +8,6 @@
 #  include <unistd.h> // getpid(), _exit()
 #  include <string.h> // memset()
 
-#  include <thread>
 #  include <algorithm> // copy()
 #  include <exception> // terminate()
 #else
@@ -33,6 +32,12 @@
 #include <cstring>      // strlen()
 #include <iostream>     // cerr
 #include <system_error>
+
+#ifndef LIBBUTL_MINGW_STDTHREAD
+#  include <thread>
+#else
+#  include <libbutl/mingw-thread.hxx>
+#endif
 
 #include <libbutl/path.hxx>
 #include <libbutl/process.hxx>
@@ -226,7 +231,10 @@ struct proc: process
   //
   // NOTE: the process path and arguments are stored by reference.
   //
-  proc (const butl::path&, const strings& args, bool new_group = true);
+  proc (const butl::path&,
+        const strings& args,
+        bool new_group = true,
+        const char* cwd = nullptr);
 
   // Return true, if the process was started successfully and was not reaped
   // yet.
@@ -250,7 +258,7 @@ struct proc: process
 };
 
 proc::
-proc (const butl::path& p, const strings& as, bool new_group)
+proc (const butl::path& p, const strings& as, bool new_group, const char* cwd)
     : path (&p),
       args (&as),
       wait_retries (0)
@@ -271,7 +279,7 @@ proc (const butl::path& p, const strings& as, bool new_group)
     static_cast <process&> (*this) =
       process (args,
                0 /* in */, 1 /* out */, 2 /* err */,
-               nullptr /* cwd */,
+               cwd,
                nullptr /* envvars */,
                new_group);
 
@@ -1253,8 +1261,66 @@ exec_tests (const path& p)
     assert (wait_abnormal (pr2, DBG_TERMINATE_PROCESS, true /* use_try_wait */));
     assert (wait_abnormal (pr1, DBG_TERMINATE_PROCESS));
   }
-
 #endif
+
+#ifndef LIBBUTL_MINGW_STDTHREAD
+  using std::thread;
+#else
+  using mingw_stdthread::thread;
+#endif
+
+  // Make sure that spawning/waiting of the group leaders in parallel doesn't
+  // end up with some intermittent failures.
+  //
+  {
+    strings args;
+    vector<thread> threads;
+
+    for (size_t i (0); i != 16; ++i)
+    {
+      threads.emplace_back (
+        [&args, &p]
+        {
+          for (size_t i (0); i != 1000; ++i)
+          {
+            proc pr (p, args);
+            assert (pr.started ());
+            assert (wait_normal (pr, 0));
+          }
+        });
+    }
+
+    for (thread& t: threads)
+      t.join ();
+  }
+
+  // As above but specify the current working directory for the child
+  // processes.
+  //
+  // Note that specifying the current working directory may result in using
+  // fork() instead of posix_spawn() on some platforms.
+  //
+  {
+    strings args;
+    vector<thread> threads;
+
+    for (size_t i (0); i != 16; ++i)
+    {
+      threads.emplace_back (
+        [&args, &p]
+        {
+          for (size_t i (0); i != 1000; ++i)
+          {
+            proc pr (p, args, true /* new_group */, "./");
+            assert (pr.started ());
+            assert (wait_normal (pr, 0));
+          }
+        });
+    }
+
+    for (thread& t: threads)
+      t.join ();
+  }
 
   return 0;
 }
@@ -1325,10 +1391,13 @@ main (int argc, const char* argv[])
   thread sigwait_thread;
   sigset_t prev_signal_mask;
 
-  // Process the immediate -S options and remove them from the arguments.
+  // Use sigwait() for the (multi-threaded) root test process and, by default,
+  // install custom signal handlers for the (single-threaded) child processes.
   //
-  bool use_sigwait (false);
+  bool use_sigwait (argc == 1);
   {
+    // Process the immediate -S options and remove them from the arguments.
+    //
     size_t level (0); // { ... } nesting level.
 
     for (int i (1); i != argc; )

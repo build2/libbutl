@@ -11,7 +11,7 @@
                          // sigismember(), pthread_sigmask(), sigaction(),
                          // sigpending()
 #  include <unistd.h>    // execvp(), fork(), dup2(), pipe(), chdir(),
-                         // *_FILENO, getpid(), setpgid()
+                         // *_FILENO, getpid(), setpgid(), getpgid()
 #  include <sys/wait.h>  // waitpid(), waitid()
 #  include <sys/types.h> // _stat
 #  include <sys/stat.h>  // _stat(), S_IS*
@@ -830,10 +830,29 @@ namespace butl
           // race condition in the same way as the fork-based implementation
           // below.
           //
-          if (setpgid (handle, handle) != 0 &&
-              errno != EACCES               &&
-              errno != ESRCH)
-            fail (errno);
+          for (size_t i (0);; ++i)
+          {
+            if (setpgid (handle, handle) != 0 &&
+                errno != EACCES               &&
+                errno != ESRCH)
+            {
+              if (errno != EPERM)
+                fail (errno);
+
+              if (getpgid (handle) != handle)
+              {
+                if (i == 100)
+                  fail (EPERM);
+
+                this_thread::sleep_for (1ms);
+                continue;
+              }
+
+              // Fall through.
+            }
+
+            break;
+          }
 
           group = handle;
           groups.push_back (group);
@@ -862,12 +881,12 @@ namespace butl
     //
 #ifndef LIBBUTL_POSIX_SPAWN_CHDIR
     {
-      auto fail = [] (bool child)
+      auto fail = [] (int error, bool child)
       {
         if (child)
-          throw process_child_error (errno);
+          throw process_child_error (error);
         else
-          throw process_error (errno);
+          throw process_error (error);
       };
 
       // Retry to create the child process after the "resource temporarily
@@ -905,7 +924,7 @@ namespace butl
           sigfillset (&sigblock);
 
           if (int r = pthread_sigmask (SIG_SETMASK, &sigblock, &prev_sigblock))
-            fail (r);
+            fail (r, false /* child */);
         }
 
         // Note that the file descriptors with the FD_CLOEXEC flag stay open
@@ -950,10 +969,37 @@ namespace butl
             // in the same way as EACCES here, since we know for sure that
             // this process exists (potentially as a defunct).
             //
-            if (setpgid (handle, handle) != 0 &&
-                errno != EACCES               &&
-                errno != ESRCH)
-              fail (false /* child */);
+            // And yet, for some platforms (for example, MacOS as of 27.0.1),
+            // we may end up with EPERM in the parent or child process due to
+            // some race condition (see GH issue #581). In this case, we will
+            // check if the child process group id is set as expected
+            // (presumably by the opposite end) and, if that's the case, will
+            // just carry on. If it is not set as expected, then we will keep
+            // retrying setpgid() for a while.
+            //
+            for (size_t i (0);; ++i)
+            {
+              if (setpgid (handle, handle) != 0 &&
+                  errno != EACCES               &&
+                  errno != ESRCH)
+              {
+                if (errno != EPERM)
+                  fail (errno, false /* child */);
+
+                if (getpgid (handle) != handle)
+                {
+                  if (i == 100)
+                    fail (EPERM, false /* child */);
+
+                  this_thread::sleep_for (1ms);
+                  continue;
+                }
+
+                // Fall through.
+              }
+
+              break;
+            }
 
             group = handle;
             groups.push_back (group);
@@ -969,7 +1015,7 @@ namespace butl
           // ulock::unlock() call to throw.
           //
           if (int r = pthread_sigmask (SIG_SETMASK, &prev_sigblock, nullptr))
-            fail (r);
+            fail (r, false /* child */);
         }
 
         if (handle != -1)
@@ -981,7 +1027,7 @@ namespace butl
           l.lock ();
         }
         else
-          fail (false /* child */);
+          fail (err, false /* child */);
       }
 
       if (handle == 0)
@@ -1025,8 +1071,27 @@ namespace butl
           // Note: 0 has the "use the calling process PID" semantics for both
           //       arguments.
           //
-          if (setpgid (0, 0) != 0)
-            fail (true /* child */);
+          for (size_t i (0);; ++i)
+          {
+            if (setpgid (0, 0) != 0)
+            {
+              if (errno != EPERM)
+                fail (errno, true /* child */);
+
+              if (getpgid (0) != getpid ())
+              {
+                if (i == 100)
+                  fail (EPERM, true /* child */);
+
+                this_thread::sleep_for (1ms);
+                continue;
+              }
+
+              // Fall through.
+            }
+
+            break;
+          }
         }
 
         // Reset all the signals to the default handlers and unblock them.
@@ -1062,7 +1127,7 @@ namespace butl
           sigfillset (&sigunblock);
 
           if (int r = pthread_sigmask (SIG_UNBLOCK, &sigunblock, nullptr))
-            fail (r);
+            fail (r, true /* child */);
         }
 
         // Duplicate the user-supplied (fd > -1) or the created pipe descriptor
@@ -1077,7 +1142,7 @@ namespace butl
           assert (fd > -1);
 
           if (dup2 (fd, sd) == -1)
-            fail (true /* child */);
+            fail (errno, true /* child */);
 
           pd.in.reset ();  // Silently close.
           pd.out.reset (); // Silently close.
@@ -1110,7 +1175,7 @@ namespace butl
         // Change current working directory if requested.
         //
         if (cwd != nullptr && *cwd != '\0' && chdir (cwd) != 0)
-          fail (true /* child */);
+          fail (errno, true /* child */);
 
         // Set/unset non-overridden environment variables.
         //
@@ -1186,7 +1251,7 @@ namespace butl
           this_thread::sleep_for (i * 10ms);
         }
 
-        fail (true /* child */);
+        fail (errno, true /* child */);
       }
     }  // Release the lock in parent.
 #endif // LIBBUTL_POSIX_SPAWN_CHDIR
