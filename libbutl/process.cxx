@@ -1248,7 +1248,8 @@ namespace butl
           if (errno != ETXTBSY)
             break;
 
-          this_thread::sleep_for (i * 10ms);
+          if (i != 10 - 1) // Not the last iteration?
+            this_thread::sleep_for (i * 10ms);
         }
 
         fail (errno, true /* child */);
