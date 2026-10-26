@@ -178,8 +178,9 @@ namespace butl
     return move (trim_right (s));
   }
 
-  // Find the beginning and end positions of the next word. Return the size
-  // of the word or 0 and set b = e = n if there are no more words. For
+  // Find the beginning and end positions of the next word. Return the size of
+  // the word or 0 and set b = e = n if there are no more words. Note that if
+  // '\0' is one of the delimiters, then it should be specified as d1. For
   // example:
   //
   // for (size_t b (0), e (0); next_word (s, b, e); )
@@ -225,18 +226,21 @@ namespace butl
   // Note also that you may erase up to (but not including) the delimiter from
   // the string, provided you adjust b, e, and n before calling next_word().
   //
+  // @@ TODO: we should probably add support for specifying delimiters as a
+  //          string (instead of adding d4).
+  //
   std::size_t
   next_word (const std::string&, std::size_t& b, std::size_t& e,
-             char d1 = ' ', char d2 = '\0');
+             char d1 = ' ', char d2 = '\0', char d3 = '\0');
 
   std::size_t
   next_word (const std::string&, std::size_t n, std::size_t& b, std::size_t& e,
-             char d1 = ' ', char d2 = '\0');
+             char d1 = ' ', char d2 = '\0', char d3 = '\0');
 
   std::size_t
   next_word (const std::string&, std::size_t n,
              std::size_t& b, std::size_t& e, std::size_t& m,
-             char d1 = ' ', char d2 = '\0');
+             char d1 = ' ', char d2 = '\0', char d3 = '\0');
 
   // Sanitize a string to only contain characters valid in an identifier
   // (ASCII alphanumeric plus `_`) replacing all others with `_`.

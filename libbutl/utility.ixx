@@ -196,22 +196,27 @@ namespace butl
 
   inline std::size_t
   next_word (const std::string& s, std::size_t& b, std::size_t& e,
-             char d1, char d2)
+             char d1, char d2, char d3)
   {
-    return next_word (s, s.size (), b, e, d1, d2);
+    return next_word (s, s.size (), b, e, d1, d2, d3);
   }
 
   inline std::size_t
   next_word (const std::string& s,
              std::size_t n, std::size_t& b, std::size_t& e,
-             char d1, char d2)
+             char d1, char d2, char d3)
   {
     if (b != e)
       b = e;
 
     // Skip leading delimiters.
     //
-    for (; b != n && (s[b] == d1 || s[b] == d2); ++b) ;
+    char c;
+    for (;
+         b != n && ((c = s[b]) == d1 ||
+                    (d2 != '\0' && c == d2) ||
+                    (d3 != '\0' && c == d3));
+         ++b) ;
 
     if (b == n)
     {
@@ -221,7 +226,12 @@ namespace butl
 
     // Find first trailing delimiter.
     //
-    for (e = b + 1; e != n && s[e] != d1 && s[e] != d2; ++e) ;
+    for (e = b + 1;
+         (e != n                  &&
+          (c = s[e]) != d1        &&
+          (d2 == '\0' || c != d2) &&
+          (d3 == '\0' || c != d3));
+         ++e) ;
 
     return e - b;
   }
@@ -229,7 +239,7 @@ namespace butl
   inline std::size_t
   next_word (const std::string& s,
              std::size_t n, std::size_t& b, std::size_t& e, std::size_t& m,
-             char d1, char d2)
+             char d1, char d2, char d3)
   {
     // An empty word will necessarily be represented as b and e being the
     // position of a delimiter. Consider these corner cases (in all three we
@@ -270,7 +280,10 @@ namespace butl
     m = 0;
     for (e = b; e != n; ++e)
     {
-      if (s[e] == d1 || s[e] == d2)
+      char c (s[e]);
+      if (c == d1 ||
+          (d2 != '\0' && c == d2) ||
+          (d3 != '\0' && c == d3))
       {
         m = 1;
 
