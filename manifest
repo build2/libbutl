@@ -3,7 +3,7 @@ name: libbutl
 version: 0.19.0-a.0.z
 project: build2
 summary: build2 utility library
-license: MIT AND BSD-3-Clause AND BSD-2-Clause AND ISC AND blessing; MIT except for files from other projects (all permissively licensed).
+license: MIT AND BSD-3-Clause AND BSD-2-Clause AND Apache-2.0 WITH LLVM-exception AND ISC AND blessing; MIT except for files from other projects (all permissively licensed).
 topics: build toolchain
 description-file: README
 changes-file: NEWS
