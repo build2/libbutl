@@ -9,10 +9,10 @@
 #include <cstddef> // size_t
 #include <cassert>
 
-#include <libstud/regex/regex.hxx>
-#include <libstud/regex/export.hxx>
+#include <libbutl/regex/regex.hxx>
+#include <libbutl/export.hxx>
 
-namespace stud
+namespace butl
 {
   namespace regex
   {
@@ -82,7 +82,7 @@ namespace stud
       regex
     };
 
-    struct LIBSTUD_REGEX_SYMEXPORT line_char
+    struct LIBBUTL_SYMEXPORT line_char
     {
       // Steal last two bits from the pointer to store the type.
       //
@@ -206,7 +206,7 @@ namespace stud
     // literal type must share the same pool (strings are compared by pointers
     // not by values).
     //
-    LIBSTUD_REGEX_SYMEXPORT bool
+    LIBBUTL_SYMEXPORT bool
     operator== (const line_char&, const line_char&);
 
     // Return false if arguments are equal (operator==() returns true).
@@ -223,7 +223,7 @@ namespace stud
     // basic_regex implementations that potentially can compare line_chars as
     // they compare them with expressions of other types (see below).
     //
-    LIBSTUD_REGEX_SYMEXPORT bool
+    LIBBUTL_SYMEXPORT bool
     operator< (const line_char&, const line_char&);
 
     inline bool
@@ -317,7 +317,7 @@ namespace stud
     }
 
     template <>
-    struct LIBSTUD_REGEX_SYMEXPORT regex_char_traits<line_char>
+    struct LIBBUTL_SYMEXPORT regex_char_traits<line_char>
     {
       // CharTraits requirements.
       //
@@ -396,7 +396,7 @@ namespace stud
     // "C" locale that has std::ctype<line_char> facet installed. Used in the
     // regex_traits<line_char> specialization (see below).
     //
-    class LIBSTUD_REGEX_SYMEXPORT line_char_locale: public std::locale
+    class LIBBUTL_SYMEXPORT line_char_locale: public std::locale
     {
     public:
       // Create a copy of the C++ locale that implements the classic "C"
@@ -422,7 +422,7 @@ namespace std
   // std::ctype_base only in this case.
   //
   template <>
-  class LIBSTUD_REGEX_SYMEXPORT ctype<stud::regex::line_char>:
+  class LIBBUTL_SYMEXPORT ctype<butl::regex::line_char>:
     public ctype_base
 #if (!defined(_MSVC_STL_VERSION) && !defined(_CPPLIB_VER)) || \
     ( defined(_MSVC_STL_VERSION) && _MSVC_STL_VERSION >= 150) // Not yet existing.
@@ -431,10 +431,10 @@ namespace std
   {
     // Used by the implementation only.
     //
-    using line_type = stud::regex::line_type;
+    using line_type = butl::regex::line_type;
 
   public:
-    using char_type = stud::regex::line_char;
+    using char_type = butl::regex::line_char;
 
     static locale::id id;
 
@@ -509,7 +509,7 @@ namespace std
   };
 }
 
-namespace stud
+namespace butl
 {
   namespace regex
   {
@@ -524,7 +524,7 @@ namespace stud
     // reason.
     //
     template <>
-    class LIBSTUD_REGEX_SYMEXPORT regex_traits<line_char>
+    class LIBBUTL_SYMEXPORT regex_traits<line_char>
     {
     public:
       using char_type       = line_char;
@@ -631,4 +631,4 @@ namespace stud
   }
 }
 
-#include <libstud/regex/line-regex.ixx>
+#include <libbutl/regex/line-regex.ixx>

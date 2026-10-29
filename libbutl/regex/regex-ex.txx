@@ -2,7 +2,7 @@
 #include <cctype>    // toupper(), tolower()
 #include <stdexcept> // invalid_argument
 
-namespace stud
+namespace butl
 {
   namespace regex
   {

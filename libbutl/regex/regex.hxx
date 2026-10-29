@@ -789,8 +789,8 @@ typedef regex_token_iterator<wstring::const_iterator> wsregex_token_iterator;
 } // std
 */
 
-#include <libstud/regex/config.hxx>
-#include <libstud/regex/details.hxx>
+#include <libbutl/regex/config.hxx>
+#include <libbutl/regex/details.hxx>
 
 #if __cplusplus < 201103L && defined(LIBSTUD_REGEX_USE_FROZEN_CXX03_HEADERS)
 #  include <__cxx03/regex>
@@ -1592,7 +1592,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI __node() {}
@@ -1615,7 +1615,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI __end_state() {}
@@ -1668,7 +1668,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI explicit __empty_state(__node<_CharT>* __s) : base(__s) {}
@@ -1692,7 +1692,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI explicit __empty_non_own_state(__node<_CharT>* __s) : base(__s) {}
@@ -1716,7 +1716,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI explicit __repeat_one_loop(__node<_CharT>* __s) : base(__s) {}
@@ -1776,7 +1776,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI explicit __loop(
@@ -1877,7 +1877,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI explicit __alternate(__owns_one_state<_CharT>* __s1, __owns_one_state<_CharT>* __s2)
@@ -1913,7 +1913,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI explicit __begin_marked_subexpression(unsigned __mexp, __node<_CharT>* __s)
@@ -1941,7 +1941,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI explicit __end_marked_subexpression(unsigned __mexp, __node<_CharT>* __s)
@@ -1970,7 +1970,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI explicit __back_ref(unsigned __mexp, __node<_CharT>* __s) : base(__s), __mexp_(__mexp) {}
@@ -2016,7 +2016,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI explicit __back_ref_icase(const _Traits& __traits, unsigned __mexp, __node<_CharT>* __s)
@@ -2062,7 +2062,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI explicit __back_ref_collate(const _Traits& __traits, unsigned __mexp, __node<_CharT>* __s)
@@ -2108,7 +2108,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI explicit __word_boundary(const _Traits& __traits, bool __invert, __node<_CharT>* __s)
@@ -2167,7 +2167,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI __l_anchor_multiline(bool __multiline, __node<_CharT>* __s)
@@ -2206,7 +2206,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI __r_anchor_multiline(bool __multiline, __node<_CharT>* __s)
@@ -2243,7 +2243,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI __match_any(__node<_CharT>* __s) : base(__s) {}
@@ -2273,7 +2273,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI __match_any_but_newline(__node<_CharT>* __s) : base(__s) {}
@@ -2322,7 +2322,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI __match_char(_CharT __c, __node<_CharT>* __s) : base(__s), __c_(__c) {}
@@ -2358,7 +2358,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI __match_char_icase(const _Traits& __traits, _CharT __c, __node<_CharT>* __s)
@@ -2395,7 +2395,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI __match_char_collate(const _Traits& __traits, _CharT __c, __node<_CharT>* __s)
@@ -2449,7 +2449,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI
@@ -2692,8 +2692,8 @@ private:
   typedef std::__state<_CharT> __state;
   typedef std::__node<_CharT> __node;
 #else
-  typedef stud::regex::__state<_CharT> __state;
-  typedef stud::regex::__node<_CharT> __node;
+  typedef butl::regex::__state<_CharT> __state;
+  typedef butl::regex::__node<_CharT> __node;
 #endif
 
   using size_t = std::size_t;
@@ -3187,7 +3187,7 @@ public:
 #if 0
   typedef std::__state<_CharT> __state;
 #else
-  typedef stud::regex::__state<_CharT> __state;
+  typedef butl::regex::__state<_CharT> __state;
 #endif
 
   LIBSTUD_REGEX_HIDE_FROM_ABI

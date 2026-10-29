@@ -8,7 +8,7 @@
 #include <iterator>
 #include <type_traits>
 
-#include <libstud/regex/config.hxx>
+#include <libbutl/regex/config.hxx>
 
 #ifdef __cpp_lib_three_way_comparison
 #  include <compare>
@@ -21,7 +21,7 @@
 // mention the amount of work). Thus, let's keep the original names and see
 // how it goes.
 //
-namespace stud { namespace regex { namespace details {
+namespace butl { namespace regex { namespace details {
 
 // libcxx/include/__type_traits/void_t.h
 //
@@ -664,7 +664,7 @@ struct regex_traits_proxy
 };
 
 template <>
-struct LIBSTUD_REGEX_SYMEXPORT regex_traits_proxy<char>
+struct LIBBUTL_SYMEXPORT regex_traits_proxy<char>
 {
   void
   imbue (const std::locale&);
@@ -686,7 +686,7 @@ private:
 };
 
 template <>
-struct LIBSTUD_REGEX_SYMEXPORT regex_traits_proxy<wchar_t>
+struct LIBBUTL_SYMEXPORT regex_traits_proxy<wchar_t>
 {
   void
   imbue (const std::locale&);

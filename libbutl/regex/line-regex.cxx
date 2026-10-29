@@ -1,4 +1,4 @@
-#include <libstud/regex/line-regex.hxx>
+#include <libbutl/regex/line-regex.hxx>
 
 #include <locale>
 #include <string>
@@ -8,7 +8,7 @@
 #include <utility>   // move()
 #include <algorithm>
 
-namespace stud
+namespace butl
 {
   namespace regex
   {
@@ -360,7 +360,7 @@ namespace stud
 
 namespace std
 {
-  using namespace stud::regex;
+  using namespace butl::regex;
 
   // ctype<line_char>
   //
