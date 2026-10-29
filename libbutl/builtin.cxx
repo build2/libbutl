@@ -38,7 +38,6 @@
 #  include <thread> // this_thread::sleep_for()
 #endif
 
-#include <libbutl/regex.hxx>
 #include <libbutl/xxh64.hxx>
 #include <libbutl/mutex.hxx>
 #include <libbutl/sha256.hxx>
@@ -50,6 +49,10 @@
 #include <libbutl/small-vector.hxx>
 
 #include <libbutl/builtin-options.hxx>
+
+#include <libbutl/regex/regex.hxx>
+#include <libbutl/regex/regex-io.hxx>
+#include <libbutl/regex/regex-ex.hxx>
 
 // NOTE: don't forget to update build2::script::run_pipe() if adding a new
 //       builtin or changing any existing builtin, so that it now does/doesn't
@@ -2430,9 +2433,12 @@ namespace butl
       if (ops.expression ().empty ())
         fail () << "missing script";
 
+      using namespace regex;
+      using butl::regex::regex;
+
       struct subst
       {
-        std::regex regex;
+        butl::regex::regex regex;
         string replacement;
         bool global;
         bool print;
@@ -2507,9 +2513,7 @@ namespace butl
         }
         catch (const regex_error& e)
         {
-          // Print regex_error description if meaningful (no space).
-          //
-          fail () << "invalid regex '" << rf.first << "' in '" << v << "'"
+          fail () << "invalid regex '" << rf.first << "' in '" << v << "': "
                   << e;
         }
       }
@@ -2603,9 +2607,9 @@ namespace butl
                       ps,
                       s.regex,
                       s.replacement,
-                      s.global
-                      ? regex_constants::format_default
-                      : regex_constants::format_first_only));
+                      (s.global
+                       ? regex_constants::format_default
+                       : regex_constants::format_first_only)));
 
             // If the regex matches, then override the pattern space with the
             // replacement result and print it and proceed to the next line,

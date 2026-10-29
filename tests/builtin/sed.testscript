@@ -177,11 +177,8 @@ test.options += -c
 
         : invalid
         :
-        : Note that old versions of libc++ (for example 1.1) do not detect some
-        : regex errors. For example '*' is parsed successfully.
-        :
         $* -e 's/foo[/bar/' 2>>~%EOE% != 0
-          %sed: invalid regex 'foo\[' in 's/foo\[/bar/'.*%
+          %sed: invalid regex 'foo\[' in 's/foo\[/bar/': .+%
           EOE
       }}
 
@@ -375,8 +372,7 @@ test.options += -c
 : deep-recursion
 :
 : Test that sed doesn't crash on a potentially deep recursion (the file size
-: is about 4K), which may occur for the recursive implementations of regex
-: (GCC, etc).
+: is about 4K), which could occur for the recursive implementations of regex.
 :
 {
   s="--------------------------------"
