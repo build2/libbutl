@@ -1,11 +1,11 @@
-#include <libstud/regex/regex-io.hxx>
+#include <libbutl/regex/regex-io.hxx>
 
 #include <string>
 #include <cctype>  // tolower()
 #include <ostream>
 #include <cassert>
 
-namespace stud
+namespace butl
 {
   namespace regex
   {

@@ -1,4 +1,4 @@
-namespace stud
+namespace butl
 {
   namespace regex
   {

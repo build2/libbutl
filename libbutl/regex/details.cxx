@@ -1,4 +1,4 @@
-#include <libstud/regex/details.hxx>
+#include <libbutl/regex/details.hxx>
 
 #if LIBSTUD_REGEX_DELEGATE_TO_STD_TRANSFORM_PRIMARY
 #  include <regex>
@@ -6,7 +6,7 @@
 #  include <memory> // make_unique()
 #endif
 
-namespace stud { namespace regex { namespace details {
+namespace butl { namespace regex { namespace details {
 
 #if LIBSTUD_REGEX_DELEGATE_TO_STD_TRANSFORM_PRIMARY
 using std::string;

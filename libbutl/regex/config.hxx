@@ -5,7 +5,7 @@
 //
 #include <cstddef>
 
-#include <libstud/regex/export.hxx>
+#include <libbutl/export.hxx>
 
 // Note that MSVC 12.0 (VS 2013) added the initial support for C++14 (see the
 // "Microsoft C/C++ language conformance by Visual Studio version"
@@ -69,7 +69,7 @@
 //
 #define LIBSTUD_REGEX_HAS_NO_PRAGMA_SYSTEM_HEADER    1
 
-#define LIBSTUD_REGEX_BEGIN_NAMESPACE_STD            namespace stud { namespace regex {
+#define LIBSTUD_REGEX_BEGIN_NAMESPACE_STD            namespace butl { namespace regex {
 #define LIBSTUD_REGEX_BEGIN_EXPLICIT_ABI_ANNOTATIONS
 #define LIBSTUD_REGEX_END_EXPLICIT_ABI_ANNOTATIONS
 #define LIBSTUD_REGEX_END_NAMESPACE_STD              } }
@@ -79,7 +79,7 @@
 
 #define LIBSTUD_REGEX_HIDE_FROM_ABI
 #define LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL
-#define LIBSTUD_REGEX_EXPORTED_FROM_ABI              LIBSTUD_REGEX_SYMEXPORT
+#define LIBSTUD_REGEX_EXPORTED_FROM_ABI              LIBBUTL_SYMEXPORT
 
 #define LIBSTUD_REGEX_CONSTEXPR                      constexpr
 #define LIBSTUD_REGEX_CONSTEXPR_SINCE_CXX14          constexpr

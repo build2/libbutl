@@ -1,4 +1,4 @@
-namespace stud
+namespace butl
 {
   namespace regex
   {
@@ -15,7 +15,7 @@ namespace stud
                : char_regex::flag_type ();
       }
 
-      LIBSTUD_REGEX_SYMEXPORT std::string
+      LIBBUTL_SYMEXPORT std::string
       transform_regex (const std::string&, char_flags);
     }
 

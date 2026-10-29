@@ -4,9 +4,9 @@
 #include <cstddef>  // size_t
 #include <iterator> // iterator_traits
 
-#include <libstud/regex/regex.hxx>
+#include <libbutl/regex/regex.hxx>
 
-namespace stud
+namespace butl
 {
   namespace regex
   {
@@ -118,5 +118,5 @@ namespace stud
   }
 }
 
-#include <libstud/regex/regex-ex.ixx>
-#include <libstud/regex/regex-ex.txx>
+#include <libbutl/regex/regex-ex.ixx>
+#include <libbutl/regex/regex-ex.txx>
