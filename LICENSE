@@ -12,6 +12,12 @@ libbutl/json/pdjson.[hc]:
 
   UNLICENSE (dedicated to the public domain).
 
+libbutl/regex/*.?xx:
+
+  Apache License v2.0 with LLVM Exceptions. For details, see:
+
+  https://github.com/libstud/libstud-regex/blob/master/LICENSE
+
 libbutl-pkg-config/**.[hc]:
 
   ISC License (see upstream/libpkg-config/LICENSE for details).
