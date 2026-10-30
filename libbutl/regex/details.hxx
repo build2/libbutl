@@ -26,7 +26,7 @@ namespace butl { namespace regex { namespace details {
 // libcxx/include/__type_traits/void_t.h
 //
 template <class...>
-using __void_t LIBSTUD_REGEX_NODEBUG = void;
+using __void_t LIBBUTL_REGEX_NODEBUG = void;
 
 // libcxx/include/__type_traits/enable_if.h
 //
@@ -34,7 +34,7 @@ template <bool _Bp, class _Tp = void>
 #if 0
 using __enable_if_t _LIBCPP_NODEBUG = typename enable_if<_Bp, _Tp>::type;
 #else
-using __enable_if_t LIBSTUD_REGEX_NODEBUG = typename std::enable_if<_Bp, _Tp>::type;
+using __enable_if_t LIBBUTL_REGEX_NODEBUG = typename std::enable_if<_Bp, _Tp>::type;
 #endif
 
 // libcxx/include/__type_traits/is_swappable.h
@@ -110,21 +110,21 @@ struct __is_nothrow_swappable_with<_Tp, _Up, true> {
 //
 template <class _Default, class _Void, template <class...> class _Op, class... _Args>
 struct __detector {
-  using type LIBSTUD_REGEX_NODEBUG = _Default;
+  using type LIBBUTL_REGEX_NODEBUG = _Default;
 };
 
 template <class _Default, template <class...> class _Op, class... _Args>
 struct __detector<_Default, __void_t<_Op<_Args...> >, _Op, _Args...> {
-  using type LIBSTUD_REGEX_NODEBUG = _Op<_Args...>;
+  using type LIBBUTL_REGEX_NODEBUG = _Op<_Args...>;
 };
 
 template <class _Default, template <class...> class _Op, class... _Args>
-using __detected_or_t LIBSTUD_REGEX_NODEBUG = typename __detector<_Default, void, _Op, _Args...>::type;
+using __detected_or_t LIBBUTL_REGEX_NODEBUG = typename __detector<_Default, void, _Op, _Args...>::type;
 
 // libcxx/include/__type_traits/conjunction.h
 //
 template <class...>
-using __expand_to_true LIBSTUD_REGEX_NODEBUG = std::true_type;
+using __expand_to_true LIBBUTL_REGEX_NODEBUG = std::true_type;
 
 template <class... _Pred>
 __expand_to_true<__enable_if_t<_Pred::value>...> __and_helper(int);
@@ -140,7 +140,7 @@ template <class... _Pred>
 #if 0
 using _And _LIBCPP_NODEBUG = decltype(std::__and_helper<_Pred...>(0));
 #else
-using _And LIBSTUD_REGEX_NODEBUG = decltype(__and_helper<_Pred...>(0));
+using _And LIBBUTL_REGEX_NODEBUG = decltype(__and_helper<_Pred...>(0));
 #endif
 
 // libcxx/include/__type_traits/disjunction.h
@@ -151,21 +151,21 @@ struct _OrImpl;
 template <>
 struct _OrImpl<true> {
   template <class _Res, class _First, class... _Rest>
-  using _Result LIBSTUD_REGEX_NODEBUG =
+  using _Result LIBBUTL_REGEX_NODEBUG =
     typename _OrImpl<!bool(_First::value) && sizeof...(_Rest) != 0>::template _Result<_First, _Rest...>;
 };
 
 template <>
 struct _OrImpl<false> {
   template <class _Res, class...>
-  using _Result LIBSTUD_REGEX_NODEBUG = _Res;
+  using _Result LIBBUTL_REGEX_NODEBUG = _Res;
 };
 
 template <class... _Args>
 #if 0
 using _Or _LIBCPP_NODEBUG = typename _OrImpl<sizeof...(_Args) != 0>::template _Result<false_type, _Args...>;
 #else
-using _Or LIBSTUD_REGEX_NODEBUG = typename _OrImpl<sizeof...(_Args) != 0>::template _Result<std::false_type, _Args...>;
+using _Or LIBBUTL_REGEX_NODEBUG = typename _OrImpl<sizeof...(_Args) != 0>::template _Result<std::false_type, _Args...>;
 #endif
 
 // libcxx/include/__type_traits/remove_reference.h
@@ -200,7 +200,7 @@ using __libcpp_remove_reference_t = typename std::remove_reference<_Tp>::type;
 // libcxx/include/__type_traits/make_const_lvalue_ref.h
 //
 template <class _Tp>
-using __make_const_lvalue_ref LIBSTUD_REGEX_NODEBUG = const __libcpp_remove_reference_t<_Tp>&;
+using __make_const_lvalue_ref LIBBUTL_REGEX_NODEBUG = const __libcpp_remove_reference_t<_Tp>&;
 
 // libcxx/include/__type_traits/decay.h
 //
@@ -216,13 +216,13 @@ using __decay_t _LIBCPP_NODEBUG = __decay(_Tp);
 #else
 
 template <class _Tp>
-using __decay_t LIBSTUD_REGEX_NODEBUG = typename std::decay<_Tp>::type;
+using __decay_t LIBBUTL_REGEX_NODEBUG = typename std::decay<_Tp>::type;
 #endif
 
 // libcxx/include/__type_traits/nat.h
 //
 struct __nat {
-#ifndef LIBSTUD_REGEX_CXX03_LANG
+#ifndef LIBBUTL_REGEX_CXX03_LANG
   __nat()                        = delete;
   __nat(const __nat&)            = delete;
   __nat& operator=(const __nat&) = delete;
@@ -233,7 +233,7 @@ struct __nat {
 // libcxx/include/__memory/pointer_traits.h
 //
 template <class _Tp>
-LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR _Tp* __to_address(_Tp* __p) LIBSTUD_REGEX_NOEXCEPT {
+LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR _Tp* __to_address(_Tp* __p) LIBBUTL_REGEX_NOEXCEPT {
 #if 0
   static_assert(!is_function<_Tp>::value, "_Tp is a function type");
 #else
@@ -255,8 +255,8 @@ constexpr bool
                        decltype((void)std::pointer_traits<_Pointer>::to_address(std::declval<const _Pointer&>()))> = true;
 
 template <class _Pointer, __enable_if_t<__has_to_address_v<_Pointer>, int> = 0>
-LIBSTUD_REGEX_CONSTEXPR __decay_t<decltype(std::pointer_traits<_Pointer>::to_address(std::declval<const _Pointer&>()))>
-__to_address(const _Pointer& __p) LIBSTUD_REGEX_NOEXCEPT {
+LIBBUTL_REGEX_CONSTEXPR __decay_t<decltype(std::pointer_traits<_Pointer>::to_address(std::declval<const _Pointer&>()))>
+__to_address(const _Pointer& __p) LIBBUTL_REGEX_NOEXCEPT {
   return std::pointer_traits<_Pointer>::to_address(__p);
 }
 
@@ -274,8 +274,8 @@ struct __has_to_address<_Pointer,
 };
 
 template <class _Pointer, __enable_if_t<__has_to_address<_Pointer>::value, int> = 0>
-LIBSTUD_REGEX_CONSTEXPR __decay_t<decltype(std::pointer_traits<_Pointer>::to_address(std::declval<const _Pointer&>()))>
-__to_address(const _Pointer& __p) LIBSTUD_REGEX_NOEXCEPT {
+LIBBUTL_REGEX_CONSTEXPR __decay_t<decltype(std::pointer_traits<_Pointer>::to_address(std::declval<const _Pointer&>()))>
+__to_address(const _Pointer& __p) LIBBUTL_REGEX_NOEXCEPT {
   return std::pointer_traits<_Pointer>::to_address(__p);
 };
 #endif
@@ -283,10 +283,10 @@ __to_address(const _Pointer& __p) LIBSTUD_REGEX_NOEXCEPT {
 // libcxx/include/__iterator/iterator_traits.h
 //
 template <class _Tp>
-using __iterator_category LIBSTUD_REGEX_NODEBUG = typename _Tp::iterator_category;
+using __iterator_category LIBBUTL_REGEX_NODEBUG = typename _Tp::iterator_category;
 
 template <class _Tp, class _Up>
-using __has_iterator_category_convertible_to LIBSTUD_REGEX_NODEBUG =
+using __has_iterator_category_convertible_to LIBBUTL_REGEX_NODEBUG =
 #if 0
     is_convertible<__detected_or_t<__nat, __iterator_category, iterator_traits<_Tp> >, _Up>;
 #else
@@ -294,7 +294,7 @@ using __has_iterator_category_convertible_to LIBSTUD_REGEX_NODEBUG =
 #endif
 
 template <class _Tp>
-using __has_exactly_input_iterator_category LIBSTUD_REGEX_NODEBUG =
+using __has_exactly_input_iterator_category LIBBUTL_REGEX_NODEBUG =
 #if 0
     integral_constant<bool,
                       __has_iterator_category_convertible_to<_Tp, input_iterator_tag>::value &&
@@ -306,7 +306,7 @@ using __has_exactly_input_iterator_category LIBSTUD_REGEX_NODEBUG =
 #endif
 
 template <class _Tp>
-using __has_forward_iterator_category LIBSTUD_REGEX_NODEBUG =
+using __has_forward_iterator_category LIBBUTL_REGEX_NODEBUG =
 #if 0
     __has_iterator_category_convertible_to<_Tp, forward_iterator_tag>;
 #else
@@ -317,13 +317,13 @@ template <class _Iter>
 #if 0
 using __iterator_reference _LIBCPP_NODEBUG = typename iterator_traits<_Iter>::reference;
 #else
-using __iterator_reference LIBSTUD_REGEX_NODEBUG = typename std::iterator_traits<_Iter>::reference;
+using __iterator_reference LIBBUTL_REGEX_NODEBUG = typename std::iterator_traits<_Iter>::reference;
 #endif
 
 // libcxx/include/__iterator/wrap_iter.h
 //
 template <class _Iter>
-class LIBSTUD_REGEX_WARN_UNUSED __wrap_iter {
+class LIBBUTL_REGEX_WARN_UNUSED __wrap_iter {
 public:
 #if 0
   typedef typename iterator_traits<_Iter>::value_type value_type;
@@ -356,7 +356,7 @@ public:
 #  pragma warning (push)
 #  pragma warning (disable:4814)
 #endif
-  LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter() LIBSTUD_REGEX_NOEXCEPT : __i_() {}
+  LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter() LIBBUTL_REGEX_NOEXCEPT : __i_() {}
   template <class _OtherIter,
             __enable_if_t<
 #if 0
@@ -369,57 +369,57 @@ public:
                       std::is_same<reference, __make_const_lvalue_ref<__iterator_reference<_OtherIter> > > > >::value,
 #endif
               int> = 0>
-  LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter(const __wrap_iter<_OtherIter>& __u) LIBSTUD_REGEX_NOEXCEPT
+  LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter(const __wrap_iter<_OtherIter>& __u) LIBBUTL_REGEX_NOEXCEPT
       : __i_(__u.__i_) {}
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR_SINCE_CXX14 reference operator*() const LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR_SINCE_CXX14 reference operator*() const LIBBUTL_REGEX_NOEXCEPT {
     return *__i_;
   }
-  LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR_SINCE_CXX14 pointer operator->() const LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR_SINCE_CXX14 pointer operator->() const LIBBUTL_REGEX_NOEXCEPT {
 #if 0
     return std::__to_address(__i_);
 #else
     return __to_address(__i_);
 #endif
   }
-  LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter& operator++() LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter& operator++() LIBBUTL_REGEX_NOEXCEPT {
     ++__i_;
     return *this;
   }
-  LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter operator++(int) LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter operator++(int) LIBBUTL_REGEX_NOEXCEPT {
     __wrap_iter __tmp(*this);
     ++(*this);
     return __tmp;
   }
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter& operator--() LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter& operator--() LIBBUTL_REGEX_NOEXCEPT {
     --__i_;
     return *this;
   }
-  LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter operator--(int) LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter operator--(int) LIBBUTL_REGEX_NOEXCEPT {
     __wrap_iter __tmp(*this);
     --(*this);
     return __tmp;
   }
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter
-  operator+(difference_type __n) const LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter
+  operator+(difference_type __n) const LIBBUTL_REGEX_NOEXCEPT {
     __wrap_iter __w(*this);
     __w += __n;
     return __w;
   }
-  LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter& operator+=(difference_type __n) LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter& operator+=(difference_type __n) LIBBUTL_REGEX_NOEXCEPT {
     __i_ += __n;
     return *this;
   }
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter
-  operator-(difference_type __n) const LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter
+  operator-(difference_type __n) const LIBBUTL_REGEX_NOEXCEPT {
     return *this + (-__n);
   }
-  LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter& operator-=(difference_type __n) LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter& operator-=(difference_type __n) LIBBUTL_REGEX_NOEXCEPT {
     *this += -__n;
     return *this;
   }
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR_SINCE_CXX14 reference
-  operator[](difference_type __n) const LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR_SINCE_CXX14 reference
+  operator[](difference_type __n) const LIBBUTL_REGEX_NOEXCEPT {
     return __i_[__n];
   }
 #if defined(_MSC_VER) && _MSC_VER < 1910
@@ -427,7 +427,7 @@ public:
 #endif
 
 private:
-  LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR_SINCE_CXX14 explicit __wrap_iter(_Iter __x) LIBSTUD_REGEX_NOEXCEPT : __i_(__x) {}
+  LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR_SINCE_CXX14 explicit __wrap_iter(_Iter __x) LIBBUTL_REGEX_NOEXCEPT : __i_(__x) {}
 
   template <class _Up>
   friend class __wrap_iter;
@@ -445,83 +445,83 @@ private:
 #endif
 
 #ifndef __cpp_lib_three_way_comparison
-  LIBSTUD_REGEX_HIDE_FROM_ABI friend LIBSTUD_REGEX_CONSTEXPR bool
-  operator==(const __wrap_iter& __x, const __wrap_iter& __y) LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI friend LIBBUTL_REGEX_CONSTEXPR bool
+  operator==(const __wrap_iter& __x, const __wrap_iter& __y) LIBBUTL_REGEX_NOEXCEPT {
     return __x.__i_ == __y.__i_;
   }
 
   template <class _Iter2>
-  LIBSTUD_REGEX_HIDE_FROM_ABI friend LIBSTUD_REGEX_CONSTEXPR bool
-  operator==(const __wrap_iter& __x, const __wrap_iter<_Iter2>& __y) LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI friend LIBBUTL_REGEX_CONSTEXPR bool
+  operator==(const __wrap_iter& __x, const __wrap_iter<_Iter2>& __y) LIBBUTL_REGEX_NOEXCEPT {
     return __x.__i_ == __y.__i_;
   }
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI friend LIBSTUD_REGEX_CONSTEXPR bool
-  operator<(const __wrap_iter& __x, const __wrap_iter& __y) LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI friend LIBBUTL_REGEX_CONSTEXPR bool
+  operator<(const __wrap_iter& __x, const __wrap_iter& __y) LIBBUTL_REGEX_NOEXCEPT {
     return __x.__i_ < __y.__i_;
   }
 
   template <class _Iter2>
-  LIBSTUD_REGEX_HIDE_FROM_ABI friend LIBSTUD_REGEX_CONSTEXPR bool
-  operator<(const __wrap_iter& __x, const __wrap_iter<_Iter2>& __y) LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI friend LIBBUTL_REGEX_CONSTEXPR bool
+  operator<(const __wrap_iter& __x, const __wrap_iter<_Iter2>& __y) LIBBUTL_REGEX_NOEXCEPT {
     return __x.__i_ < __y.__i_;
   }
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI friend LIBSTUD_REGEX_CONSTEXPR bool
-  operator!=(const __wrap_iter& __x, const __wrap_iter& __y) LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI friend LIBBUTL_REGEX_CONSTEXPR bool
+  operator!=(const __wrap_iter& __x, const __wrap_iter& __y) LIBBUTL_REGEX_NOEXCEPT {
     return !(__x == __y);
   }
 
   template <class _Iter2>
-  LIBSTUD_REGEX_HIDE_FROM_ABI friend LIBSTUD_REGEX_CONSTEXPR bool
-  operator!=(const __wrap_iter& __x, const __wrap_iter<_Iter2>& __y) LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI friend LIBBUTL_REGEX_CONSTEXPR bool
+  operator!=(const __wrap_iter& __x, const __wrap_iter<_Iter2>& __y) LIBBUTL_REGEX_NOEXCEPT {
     return !(__x == __y);
   }
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI friend LIBSTUD_REGEX_CONSTEXPR bool
-  operator>(const __wrap_iter& __x, const __wrap_iter& __y) LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI friend LIBBUTL_REGEX_CONSTEXPR bool
+  operator>(const __wrap_iter& __x, const __wrap_iter& __y) LIBBUTL_REGEX_NOEXCEPT {
     return __y < __x;
   }
 
   template <class _Iter2>
-  LIBSTUD_REGEX_HIDE_FROM_ABI friend LIBSTUD_REGEX_CONSTEXPR bool
-  operator>(const __wrap_iter& __x, const __wrap_iter<_Iter2>& __y) LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI friend LIBBUTL_REGEX_CONSTEXPR bool
+  operator>(const __wrap_iter& __x, const __wrap_iter<_Iter2>& __y) LIBBUTL_REGEX_NOEXCEPT {
     return __y < __x;
   }
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI friend LIBSTUD_REGEX_CONSTEXPR bool
-  operator>=(const __wrap_iter& __x, const __wrap_iter& __y) LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI friend LIBBUTL_REGEX_CONSTEXPR bool
+  operator>=(const __wrap_iter& __x, const __wrap_iter& __y) LIBBUTL_REGEX_NOEXCEPT {
     return !(__x < __y);
   }
 
   template <class _Iter2>
-  LIBSTUD_REGEX_HIDE_FROM_ABI friend LIBSTUD_REGEX_CONSTEXPR bool
-  operator>=(const __wrap_iter& __x, const __wrap_iter<_Iter2>& __y) LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI friend LIBBUTL_REGEX_CONSTEXPR bool
+  operator>=(const __wrap_iter& __x, const __wrap_iter<_Iter2>& __y) LIBBUTL_REGEX_NOEXCEPT {
     return !(__x < __y);
   }
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI friend LIBSTUD_REGEX_CONSTEXPR bool
-  operator<=(const __wrap_iter& __x, const __wrap_iter& __y) LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI friend LIBBUTL_REGEX_CONSTEXPR bool
+  operator<=(const __wrap_iter& __x, const __wrap_iter& __y) LIBBUTL_REGEX_NOEXCEPT {
     return !(__y < __x);
   }
 
   template <class _Iter2>
-  LIBSTUD_REGEX_HIDE_FROM_ABI friend LIBSTUD_REGEX_CONSTEXPR bool
-  operator<=(const __wrap_iter& __x, const __wrap_iter<_Iter2>& __y) LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_HIDE_FROM_ABI friend LIBBUTL_REGEX_CONSTEXPR bool
+  operator<=(const __wrap_iter& __x, const __wrap_iter<_Iter2>& __y) LIBBUTL_REGEX_NOEXCEPT {
     return !(__y < __x);
   }
 
 #else
-  LIBSTUD_REGEX_HIDE_FROM_ABI friend bool operator==(const __wrap_iter&, const __wrap_iter&) = default;
+  LIBBUTL_REGEX_HIDE_FROM_ABI friend bool operator==(const __wrap_iter&, const __wrap_iter&) = default;
 
   template <class _Iter2>
-  LIBSTUD_REGEX_HIDE_FROM_ABI friend constexpr bool
+  LIBBUTL_REGEX_HIDE_FROM_ABI friend constexpr bool
   operator==(const __wrap_iter& __x, const __wrap_iter<_Iter2>& __y) noexcept {
     return __x.__i_ == __y.__i_;
   }
 
   template <class _Iter2>
-  LIBSTUD_REGEX_HIDE_FROM_ABI friend constexpr std::strong_ordering
+  LIBBUTL_REGEX_HIDE_FROM_ABI friend constexpr std::strong_ordering
   operator<=>(const __wrap_iter& __x, const __wrap_iter<_Iter2>& __y) noexcept {
 #if 1
     using std::three_way_comparable_with;
@@ -539,23 +539,23 @@ private:
       return strong_ordering::greater;
     }
   }
-#endif // LIBSTUD_REGEX_STD_VER >= 20
+#endif // LIBBUTL_REGEX_STD_VER >= 20
 
-#ifndef LIBSTUD_REGEX_CXX03_LANG
+#ifndef LIBBUTL_REGEX_CXX03_LANG
   template <class _Iter2>
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI friend LIBSTUD_REGEX_CONSTEXPR_SINCE_CXX14 auto
-  operator-(const __wrap_iter& __x, const __wrap_iter<_Iter2>& __y) LIBSTUD_REGEX_NOEXCEPT->decltype(__x.__i_ - __y.__i_)
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI friend LIBBUTL_REGEX_CONSTEXPR_SINCE_CXX14 auto
+  operator-(const __wrap_iter& __x, const __wrap_iter<_Iter2>& __y) LIBBUTL_REGEX_NOEXCEPT->decltype(__x.__i_ - __y.__i_)
 #else
   template <class _Iter2>
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI friend LIBSTUD_REGEX_CONSTEXPR_SINCE_CXX14
-  typename __wrap_iter::difference_type operator-(const __wrap_iter& __x, const __wrap_iter<_Iter2>& __y) LIBSTUD_REGEX_NOEXCEPT
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI friend LIBBUTL_REGEX_CONSTEXPR_SINCE_CXX14
+  typename __wrap_iter::difference_type operator-(const __wrap_iter& __x, const __wrap_iter<_Iter2>& __y) LIBBUTL_REGEX_NOEXCEPT
 #endif // C++03
   {
     return __x.__i_ - __y.__i_;
   }
 
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI friend LIBSTUD_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter
-  operator+(typename __wrap_iter::difference_type __n, __wrap_iter __x) LIBSTUD_REGEX_NOEXCEPT {
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI friend LIBBUTL_REGEX_CONSTEXPR_SINCE_CXX14 __wrap_iter
+  operator+(typename __wrap_iter::difference_type __n, __wrap_iter __x) LIBBUTL_REGEX_NOEXCEPT {
     __x += __n;
     return __x;
   }
@@ -645,10 +645,10 @@ static_assert (
 
 // Delegate stud::regex::regex_traits::transform_primary() call to
 // std::regex_traits::transform_primary() (see
-// LIBSTUD_REGEX_DELEGATE_TO_STD_TRANSFORM_PRIMARY for details), but make sure
+// LIBBUTL_REGEX_DELEGATE_TO_STD_TRANSFORM_PRIMARY for details), but make sure
 // that no std::regex classes are exposed to the user.
 //
-#if LIBSTUD_REGEX_DELEGATE_TO_STD_TRANSFORM_PRIMARY
+#if LIBBUTL_REGEX_DELEGATE_TO_STD_TRANSFORM_PRIMARY
 template <typename C>
 struct regex_traits_proxy
 {

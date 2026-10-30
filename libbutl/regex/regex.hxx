@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LIBSTUD_REGEX_REGEX_HXX
-#define LIBSTUD_REGEX_REGEX_HXX
+#ifndef LIBBUTL_REGEX_REGEX_HXX
+#define LIBBUTL_REGEX_REGEX_HXX
 
 /*
     regex synopsis
@@ -792,7 +792,7 @@ typedef regex_token_iterator<wstring::const_iterator> wsregex_token_iterator;
 #include <libbutl/regex/config.hxx>
 #include <libbutl/regex/details.hxx>
 
-#if __cplusplus < 201103L && defined(LIBSTUD_REGEX_USE_FROZEN_CXX03_HEADERS)
+#if __cplusplus < 201103L && defined(LIBBUTL_REGEX_USE_FROZEN_CXX03_HEADERS)
 #  include <__cxx03/regex>
 #else
 #  if 0
@@ -818,7 +818,7 @@ typedef regex_token_iterator<wstring::const_iterator> wsregex_token_iterator;
 #endif
 #  include <initializer_list>
 
-#  if LIBSTUD_REGEX_HAS_LOCALIZATION
+#  if LIBBUTL_REGEX_HAS_LOCALIZATION
 
 #    if 0
 #    include <__algorithm/find.h>
@@ -865,19 +865,19 @@ typedef regex_token_iterator<wstring::const_iterator> wsregex_token_iterator;
 #    include <version>
 #    endif
 
-#    if !defined(LIBSTUD_REGEX_HAS_NO_PRAGMA_SYSTEM_HEADER)
+#    if !defined(LIBBUTL_REGEX_HAS_NO_PRAGMA_SYSTEM_HEADER)
 #      pragma GCC system_header
 #    endif
 
 #    if 0
-LIBSTUD_REGEX_PUSH_MACROS
+LIBBUTL_REGEX_PUSH_MACROS
 #    include <__undef_macros>
 #    endif
 
-#    define LIBSTUD_REGEX_REGEX_COMPLEXITY_FACTOR 4096
+#    define LIBBUTL_REGEX_REGEX_COMPLEXITY_FACTOR 4096
 
-LIBSTUD_REGEX_BEGIN_NAMESPACE_STD
-LIBSTUD_REGEX_BEGIN_EXPLICIT_ABI_ANNOTATIONS
+LIBBUTL_REGEX_BEGIN_NAMESPACE_STD
+LIBBUTL_REGEX_BEGIN_EXPLICIT_ABI_ANNOTATIONS
 
 namespace regex_constants {
 
@@ -888,7 +888,7 @@ enum syntax_option_type {
   nosubs   = 1 << 1,
   optimize = 1 << 2,
   collate  = 1 << 3,
-#    ifdef LIBSTUD_REGEX_ABI_REGEX_CONSTANTS_NONZERO
+#    ifdef LIBBUTL_REGEX_ABI_REGEX_CONSTANTS_NONZERO
   ECMAScript = 1 << 9,
 #    else
   ECMAScript = 0,
@@ -902,44 +902,44 @@ enum syntax_option_type {
   multiline = 1 << 10
 };
 
-LIBSTUD_REGEX_HIDE_FROM_ABI inline LIBSTUD_REGEX_CONSTEXPR syntax_option_type __get_grammar(syntax_option_type __g) {
-#    ifdef LIBSTUD_REGEX_ABI_REGEX_CONSTANTS_NONZERO
+LIBBUTL_REGEX_HIDE_FROM_ABI inline LIBBUTL_REGEX_CONSTEXPR syntax_option_type __get_grammar(syntax_option_type __g) {
+#    ifdef LIBBUTL_REGEX_ABI_REGEX_CONSTANTS_NONZERO
   return static_cast<syntax_option_type>(__g & 0x3F0);
 #    else
   return static_cast<syntax_option_type>(__g & 0x1F0);
 #    endif
 }
 
-inline LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR syntax_option_type operator~(syntax_option_type __x) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR syntax_option_type operator~(syntax_option_type __x) {
   return syntax_option_type(~int(__x) & 0x1FF);
 }
 
-inline LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR syntax_option_type
+inline LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR syntax_option_type
 operator&(syntax_option_type __x, syntax_option_type __y) {
   return syntax_option_type(int(__x) & int(__y));
 }
 
-inline LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR syntax_option_type
+inline LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR syntax_option_type
 operator|(syntax_option_type __x, syntax_option_type __y) {
   return syntax_option_type(int(__x) | int(__y));
 }
 
-inline LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR syntax_option_type
+inline LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR syntax_option_type
 operator^(syntax_option_type __x, syntax_option_type __y) {
   return syntax_option_type(int(__x) ^ int(__y));
 }
 
-inline LIBSTUD_REGEX_HIDE_FROM_ABI syntax_option_type& operator&=(syntax_option_type& __x, syntax_option_type __y) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI syntax_option_type& operator&=(syntax_option_type& __x, syntax_option_type __y) {
   __x = __x & __y;
   return __x;
 }
 
-inline LIBSTUD_REGEX_HIDE_FROM_ABI syntax_option_type& operator|=(syntax_option_type& __x, syntax_option_type __y) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI syntax_option_type& operator|=(syntax_option_type& __x, syntax_option_type __y) {
   __x = __x | __y;
   return __x;
 }
 
-inline LIBSTUD_REGEX_HIDE_FROM_ABI syntax_option_type& operator^=(syntax_option_type& __x, syntax_option_type __y) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI syntax_option_type& operator^=(syntax_option_type& __x, syntax_option_type __y) {
   __x = __x ^ __y;
   return __x;
 }
@@ -964,33 +964,33 @@ enum match_flag_type {
   __full_match      = 1 << 12
 };
 
-inline LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR match_flag_type operator~(match_flag_type __x) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR match_flag_type operator~(match_flag_type __x) {
   return match_flag_type(~int(__x) & 0x0FFF);
 }
 
-inline LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR match_flag_type operator&(match_flag_type __x, match_flag_type __y) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR match_flag_type operator&(match_flag_type __x, match_flag_type __y) {
   return match_flag_type(int(__x) & int(__y));
 }
 
-inline LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR match_flag_type operator|(match_flag_type __x, match_flag_type __y) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR match_flag_type operator|(match_flag_type __x, match_flag_type __y) {
   return match_flag_type(int(__x) | int(__y));
 }
 
-inline LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR match_flag_type operator^(match_flag_type __x, match_flag_type __y) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR match_flag_type operator^(match_flag_type __x, match_flag_type __y) {
   return match_flag_type(int(__x) ^ int(__y));
 }
 
-inline LIBSTUD_REGEX_HIDE_FROM_ABI match_flag_type& operator&=(match_flag_type& __x, match_flag_type __y) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI match_flag_type& operator&=(match_flag_type& __x, match_flag_type __y) {
   __x = __x & __y;
   return __x;
 }
 
-inline LIBSTUD_REGEX_HIDE_FROM_ABI match_flag_type& operator|=(match_flag_type& __x, match_flag_type __y) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI match_flag_type& operator|=(match_flag_type& __x, match_flag_type __y) {
   __x = __x | __y;
   return __x;
 }
 
-inline LIBSTUD_REGEX_HIDE_FROM_ABI match_flag_type& operator^=(match_flag_type& __x, match_flag_type __y) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI match_flag_type& operator^=(match_flag_type& __x, match_flag_type __y) {
   __x = __x ^ __y;
   return __x;
 }
@@ -1018,9 +1018,9 @@ enum error_type {
 } // namespace regex_constants
 
 #if 0
-class LIBSTUD_REGEX_EXPORTED_FROM_ABI regex_error : public runtime_error {
+class LIBBUTL_REGEX_EXPORTED_FROM_ABI regex_error : public runtime_error {
 #else
-class LIBSTUD_REGEX_EXPORTED_FROM_ABI regex_error : public std::runtime_error {
+class LIBBUTL_REGEX_EXPORTED_FROM_ABI regex_error : public std::runtime_error {
 #endif
   regex_constants::error_type __code_;
 
@@ -1028,31 +1028,31 @@ public:
   explicit regex_error(regex_constants::error_type __ecode);
 
 #if 0
-  LIBSTUD_REGEX_HIDE_FROM_ABI regex_error(const regex_error&) LIBSTUD_REGEX_NOEXCEPT = default;
+  LIBBUTL_REGEX_HIDE_FROM_ABI regex_error(const regex_error&) LIBBUTL_REGEX_NOEXCEPT = default;
 #else
-  LIBSTUD_REGEX_HIDE_FROM_ABI regex_error(const regex_error& e) LIBSTUD_REGEX_NOEXCEPT
+  LIBBUTL_REGEX_HIDE_FROM_ABI regex_error(const regex_error& e) LIBBUTL_REGEX_NOEXCEPT
     : runtime_error (e), __code_ (e.__code_) {}
 #endif
 
-  ~regex_error() LIBSTUD_REGEX_NOEXCEPT override;
+  ~regex_error() LIBBUTL_REGEX_NOEXCEPT override;
 
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI regex_constants::error_type code() const { return __code_; }
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI regex_constants::error_type code() const { return __code_; }
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI regex_constants::error_type code() const { return __code_; }
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI regex_constants::error_type code() const { return __code_; }
 #endif
 };
 
 template <regex_constants::error_type _Ev>
 #if 0
-[[__noreturn__]] inline LIBSTUD_REGEX_HIDE_FROM_ABI void __throw_regex_error() {
+[[__noreturn__]] inline LIBBUTL_REGEX_HIDE_FROM_ABI void __throw_regex_error() {
 #else
-[[noreturn]] inline LIBSTUD_REGEX_HIDE_FROM_ABI void __throw_regex_error() {
+[[noreturn]] inline LIBBUTL_REGEX_HIDE_FROM_ABI void __throw_regex_error() {
 #endif
-#    if LIBSTUD_REGEX_HAS_EXCEPTIONS
+#    if LIBBUTL_REGEX_HAS_EXCEPTIONS
   throw regex_error(_Ev);
 #    else
-  LIBSTUD_REGEX_VERBOSE_ABORT("regex_error was thrown in -fno-exceptions mode");
+  LIBBUTL_REGEX_VERBOSE_ABORT("regex_error was thrown in -fno-exceptions mode");
 #    endif
 }
 
@@ -1103,7 +1103,7 @@ public:
 #if 0
   typedef basic_string<char_type> string_type;
   typedef locale locale_type;
-#    if defined(__BIONIC__) || LIBSTUD_REGEX_LIBC_NEWLIB
+#    if defined(__BIONIC__) || LIBBUTL_REGEX_LIBC_NEWLIB
   // Originally bionic's ctype_base used its own ctype masks because the
   // builtin ctype implementation wasn't in libc++ yet. Bionic's ctype mask
   // was only 8 bits wide and already saturated, so it used a wider type here
@@ -1144,64 +1144,64 @@ public:
   regex_traits();
 
 # if 0
-  LIBSTUD_REGEX_HIDE_FROM_ABI static size_t length(const char_type* __p) { return char_traits<char_type>::length(__p); }
+  LIBBUTL_REGEX_HIDE_FROM_ABI static size_t length(const char_type* __p) { return char_traits<char_type>::length(__p); }
 # else
-  LIBSTUD_REGEX_HIDE_FROM_ABI static size_t length(const char_type* __p) { return string_type::traits_type::length(__p); }
+  LIBBUTL_REGEX_HIDE_FROM_ABI static size_t length(const char_type* __p) { return string_type::traits_type::length(__p); }
 # endif
-  LIBSTUD_REGEX_HIDE_FROM_ABI char_type translate(char_type __c) const { return __c; }
+  LIBBUTL_REGEX_HIDE_FROM_ABI char_type translate(char_type __c) const { return __c; }
   char_type translate_nocase(char_type __c) const;
   template <class _ForwardIterator>
   string_type transform(_ForwardIterator __f, _ForwardIterator __l) const;
   template <class _ForwardIterator>
-  LIBSTUD_REGEX_HIDE_FROM_ABI string_type transform_primary(_ForwardIterator __f, _ForwardIterator __l) const {
+  LIBBUTL_REGEX_HIDE_FROM_ABI string_type transform_primary(_ForwardIterator __f, _ForwardIterator __l) const {
     return __transform_primary(__f, __l, char_type());
   }
   template <class _ForwardIterator>
-  LIBSTUD_REGEX_HIDE_FROM_ABI string_type lookup_collatename(_ForwardIterator __f, _ForwardIterator __l) const {
+  LIBBUTL_REGEX_HIDE_FROM_ABI string_type lookup_collatename(_ForwardIterator __f, _ForwardIterator __l) const {
     return __lookup_collatename(__f, __l, char_type());
   }
   template <class _ForwardIterator>
-  LIBSTUD_REGEX_HIDE_FROM_ABI char_class_type
+  LIBBUTL_REGEX_HIDE_FROM_ABI char_class_type
   lookup_classname(_ForwardIterator __f, _ForwardIterator __l, bool __icase = false) const {
     return __lookup_classname(__f, __l, __icase, char_type());
   }
   bool isctype(char_type __c, char_class_type __m) const;
-  LIBSTUD_REGEX_HIDE_FROM_ABI int value(char_type __ch, int __radix) const { return __regex_traits_value(__ch, __radix); }
+  LIBBUTL_REGEX_HIDE_FROM_ABI int value(char_type __ch, int __radix) const { return __regex_traits_value(__ch, __radix); }
   locale_type imbue(locale_type __l);
-  LIBSTUD_REGEX_HIDE_FROM_ABI locale_type getloc() const { return __loc_; }
+  LIBBUTL_REGEX_HIDE_FROM_ABI locale_type getloc() const { return __loc_; }
 
 private:
   void __init();
 
-#if LIBSTUD_REGEX_DELEGATE_TO_STD_TRANSFORM_PRIMARY
+#if LIBBUTL_REGEX_DELEGATE_TO_STD_TRANSFORM_PRIMARY
   details::regex_traits_proxy<char_type> proxy_;
 #endif
 
   template <class _ForwardIterator>
   string_type __transform_primary(_ForwardIterator __f, _ForwardIterator __l, char) const;
-#    if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+#    if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
   template <class _ForwardIterator>
   string_type __transform_primary(_ForwardIterator __f, _ForwardIterator __l, wchar_t) const;
 #    endif
   template <class _ForwardIterator>
   string_type __lookup_collatename(_ForwardIterator __f, _ForwardIterator __l, char) const;
-#    if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+#    if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
   template <class _ForwardIterator>
   string_type __lookup_collatename(_ForwardIterator __f, _ForwardIterator __l, wchar_t) const;
 #    endif
   template <class _ForwardIterator>
   char_class_type __lookup_classname(_ForwardIterator __f, _ForwardIterator __l, bool __icase, char) const;
-#    if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+#    if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
   template <class _ForwardIterator>
   char_class_type __lookup_classname(_ForwardIterator __f, _ForwardIterator __l, bool __icase, wchar_t) const;
 #    endif
 
   static int __regex_traits_value(unsigned char __ch, int __radix);
-  LIBSTUD_REGEX_HIDE_FROM_ABI int __regex_traits_value(char __ch, int __radix) const {
+  LIBBUTL_REGEX_HIDE_FROM_ABI int __regex_traits_value(char __ch, int __radix) const {
     return __regex_traits_value(static_cast<unsigned char>(__ch), __radix);
   }
-#    if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
-  LIBSTUD_REGEX_HIDE_FROM_ABI int __regex_traits_value(wchar_t __ch, int __radix) const;
+#    if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
+  LIBBUTL_REGEX_HIDE_FROM_ABI int __regex_traits_value(wchar_t __ch, int __radix) const;
 #    endif
 };
 
@@ -1247,7 +1247,7 @@ typename regex_traits<_CharT>::locale_type regex_traits<_CharT>::imbue(locale_ty
   __loc_     = __l;
   __init();
 
-#if LIBSTUD_REGEX_DELEGATE_TO_STD_TRANSFORM_PRIMARY
+#if LIBBUTL_REGEX_DELEGATE_TO_STD_TRANSFORM_PRIMARY
   proxy_.imbue (__loc_);
 #endif
   return __r;
@@ -1283,7 +1283,7 @@ regex_traits<_CharT>::__transform_primary(_ForwardIterator __f, _ForwardIterator
   const string_type __s(__f, __l);
   string_type __d = __col_->transform(__s.data(), __s.data() + __s.size());
 
-#if LIBSTUD_REGEX_DELEGATE_TO_STD_TRANSFORM_PRIMARY
+#if LIBBUTL_REGEX_DELEGATE_TO_STD_TRANSFORM_PRIMARY
   __d = proxy_.transform_primary(__s);
 #elif !defined(_WIN32)
 #    if defined(__FreeBSD__) || defined(__APPLE__)
@@ -1321,7 +1321,7 @@ regex_traits<_CharT>::__transform_primary(_ForwardIterator __f, _ForwardIterator
   return __d;
 }
 
-#    if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+#    if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
 template <class _CharT>
 template <class _ForwardIterator>
 typename regex_traits<_CharT>::string_type
@@ -1329,7 +1329,7 @@ regex_traits<_CharT>::__transform_primary(_ForwardIterator __f, _ForwardIterator
   const string_type __s(__f, __l);
   string_type __d = __col_->transform(__s.data(), __s.data() + __s.size());
 
-#if LIBSTUD_REGEX_DELEGATE_TO_STD_TRANSFORM_PRIMARY
+#if LIBBUTL_REGEX_DELEGATE_TO_STD_TRANSFORM_PRIMARY
   __d = proxy_.transform_primary(__s);
 #elif !defined(_WIN32)
 #      if defined(__FreeBSD__) || defined(__APPLE__) || defined(__GLIBC__)
@@ -1361,9 +1361,9 @@ regex_traits<_CharT>::__transform_primary(_ForwardIterator __f, _ForwardIterator
 // lookup_collatename is very FreeBSD-specific
 
 #if 0
-LIBSTUD_REGEX_EXPORTED_FROM_ABI string __get_collation_name(const char* __s);
+LIBBUTL_REGEX_EXPORTED_FROM_ABI string __get_collation_name(const char* __s);
 #else
-LIBSTUD_REGEX_EXPORTED_FROM_ABI std::string __get_collation_name(const char* __s);
+LIBBUTL_REGEX_EXPORTED_FROM_ABI std::string __get_collation_name(const char* __s);
 #endif
 
 template <class _CharT>
@@ -1389,7 +1389,7 @@ regex_traits<_CharT>::__lookup_collatename(_ForwardIterator __f, _ForwardIterato
   return __r;
 }
 
-#    if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+#    if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
 template <class _CharT>
 template <class _ForwardIterator>
 typename regex_traits<_CharT>::string_type
@@ -1421,11 +1421,11 @@ regex_traits<_CharT>::__lookup_collatename(_ForwardIterator __f, _ForwardIterato
   }
   return __r;
 }
-#    endif // LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+#    endif // LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
 
 // lookup_classname
 
-regex_traits<char>::char_class_type LIBSTUD_REGEX_EXPORTED_FROM_ABI __get_classname(const char* __s, bool __icase);
+regex_traits<char>::char_class_type LIBBUTL_REGEX_EXPORTED_FROM_ABI __get_classname(const char* __s, bool __icase);
 
 template <class _CharT>
 template <class _ForwardIterator>
@@ -1440,7 +1440,7 @@ regex_traits<_CharT>::__lookup_classname(_ForwardIterator __f, _ForwardIterator 
 #endif
 }
 
-#    if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+#    if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
 template <class _CharT>
 template <class _ForwardIterator>
 typename regex_traits<_CharT>::char_class_type
@@ -1460,7 +1460,7 @@ regex_traits<_CharT>::__lookup_classname(_ForwardIterator __f, _ForwardIterator 
   }
   return __get_classname(__n.c_str(), __icase);
 }
-#    endif // LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+#    endif // LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
 
 template <class _CharT>
 bool regex_traits<_CharT>::isctype(char_type __c, char_class_type __m) const {
@@ -1482,7 +1482,7 @@ bool regex_traits<_CharT>::isctype(char_type __c, char_class_type __m) const {
   return (__c == '_' && (__m & __regex_word));
 }
 
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool __is_07(unsigned char __c) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool __is_07(unsigned char __c) {
   return (__c & 0xF8u) ==
 #    if defined(__MVS__) && !defined(__NATIVE_ASCII_F)
          0xF0;
@@ -1491,7 +1491,7 @@ inline LIBSTUD_REGEX_HIDE_FROM_ABI bool __is_07(unsigned char __c) {
 #    endif
 }
 
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool __is_89(unsigned char __c) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool __is_89(unsigned char __c) {
   return (__c & 0xFEu) ==
 #    if defined(__MVS__) && !defined(__NATIVE_ASCII_F)
          0xF8;
@@ -1500,7 +1500,7 @@ inline LIBSTUD_REGEX_HIDE_FROM_ABI bool __is_89(unsigned char __c) {
 #    endif
 }
 
-inline LIBSTUD_REGEX_HIDE_FROM_ABI unsigned char __to_lower(unsigned char __c) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI unsigned char __to_lower(unsigned char __c) {
 #    if defined(__MVS__) && !defined(__NATIVE_ASCII_F)
   return __c & 0xBF;
 #    else
@@ -1524,7 +1524,7 @@ int regex_traits<_CharT>::__regex_traits_value(unsigned char __ch, int __radix) 
   return -1;
 }
 
-#    if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+#    if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
 template <class _CharT>
 inline int regex_traits<_CharT>::__regex_traits_value(wchar_t __ch, int __radix) const {
   return __regex_traits_value(static_cast<unsigned char>(__ct_->narrow(__ch, char_type())), __radix);
@@ -1574,7 +1574,7 @@ struct __state {
   regex_constants::match_flag_type __flags_;
   bool __at_first_;
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI __state()
+  LIBBUTL_REGEX_HIDE_FROM_ABI __state()
       : __do_(0),
         __first_(nullptr),
         __current_(nullptr),
@@ -1595,15 +1595,15 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI __node() {}
+  LIBBUTL_REGEX_HIDE_FROM_ABI __node() {}
   __node(const __node&)            = delete;
   __node& operator=(const __node&) = delete;
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL
   virtual ~__node() {}
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL
   virtual void __exec(__state&) const {}
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL
   virtual void __exec_split(bool, __state&) const {}
 };
 
@@ -1618,9 +1618,9 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI __end_state() {}
+  LIBBUTL_REGEX_HIDE_FROM_ABI __end_state() {}
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
 };
 
 template <class _CharT>
@@ -1635,10 +1635,10 @@ class __has_one_state : public __node<_CharT> {
   __node<_CharT>* __first_;
 
 public:
-  LIBSTUD_REGEX_HIDE_FROM_ABI explicit __has_one_state(__node<_CharT>* __s) : __first_(__s) {}
+  LIBBUTL_REGEX_HIDE_FROM_ABI explicit __has_one_state(__node<_CharT>* __s) : __first_(__s) {}
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI __node<_CharT>* first() const { return __first_; }
-  LIBSTUD_REGEX_HIDE_FROM_ABI __node<_CharT>*& first() { return __first_; }
+  LIBBUTL_REGEX_HIDE_FROM_ABI __node<_CharT>* first() const { return __first_; }
+  LIBBUTL_REGEX_HIDE_FROM_ABI __node<_CharT>*& first() { return __first_; }
 };
 
 // __owns_one_state
@@ -1648,7 +1648,7 @@ class __owns_one_state : public __has_one_state<_CharT> {
   typedef __has_one_state<_CharT> base;
 
 public:
-  LIBSTUD_REGEX_HIDE_FROM_ABI explicit __owns_one_state(__node<_CharT>* __s) : base(__s) {}
+  LIBBUTL_REGEX_HIDE_FROM_ABI explicit __owns_one_state(__node<_CharT>* __s) : base(__s) {}
 
   ~__owns_one_state() override;
 };
@@ -1671,9 +1671,9 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI explicit __empty_state(__node<_CharT>* __s) : base(__s) {}
+  LIBBUTL_REGEX_HIDE_FROM_ABI explicit __empty_state(__node<_CharT>* __s) : base(__s) {}
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
 };
 
 template <class _CharT>
@@ -1695,9 +1695,9 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI explicit __empty_non_own_state(__node<_CharT>* __s) : base(__s) {}
+  LIBBUTL_REGEX_HIDE_FROM_ABI explicit __empty_non_own_state(__node<_CharT>* __s) : base(__s) {}
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
 };
 
 template <class _CharT>
@@ -1719,9 +1719,9 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI explicit __repeat_one_loop(__node<_CharT>* __s) : base(__s) {}
+  LIBBUTL_REGEX_HIDE_FROM_ABI explicit __repeat_one_loop(__node<_CharT>* __s) : base(__s) {}
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
 };
 
 template <class _CharT>
@@ -1739,12 +1739,12 @@ class __owns_two_states : public __owns_one_state<_CharT> {
   base* __second_;
 
 public:
-  LIBSTUD_REGEX_HIDE_FROM_ABI explicit __owns_two_states(__node<_CharT>* __s1, base* __s2) : base(__s1), __second_(__s2) {}
+  LIBBUTL_REGEX_HIDE_FROM_ABI explicit __owns_two_states(__node<_CharT>* __s1, base* __s2) : base(__s1), __second_(__s2) {}
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual ~__owns_two_states();
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual ~__owns_two_states();
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI base* second() const { return __second_; }
-  LIBSTUD_REGEX_HIDE_FROM_ABI base*& second() { return __second_; }
+  LIBBUTL_REGEX_HIDE_FROM_ABI base* second() const { return __second_; }
+  LIBBUTL_REGEX_HIDE_FROM_ABI base*& second() { return __second_; }
 };
 
 template <class _CharT>
@@ -1779,7 +1779,7 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI explicit __loop(
+  LIBBUTL_REGEX_HIDE_FROM_ABI explicit __loop(
       unsigned __loop_id,
       __node<_CharT>* __s1,
       __owns_one_state<_CharT>* __s2,
@@ -1805,11 +1805,11 @@ public:
         __mexp_end_(__mexp_end),
         __greedy_(__greedy) {}
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state& __s) const;
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec_split(bool __second, __state& __s) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state& __s) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec_split(bool __second, __state& __s) const;
 
 private:
-  LIBSTUD_REGEX_HIDE_FROM_ABI void __init_repeat(__state& __s) const {
+  LIBBUTL_REGEX_HIDE_FROM_ABI void __init_repeat(__state& __s) const {
     __s.__loop_data_[__loop_id_].second = __s.__current_;
     for (size_t __i = __mexp_begin_ - 1; __i != __mexp_end_ - 1; ++__i) {
       __s.__sub_matches_[__i].first   = __s.__last_;
@@ -1880,11 +1880,11 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI explicit __alternate(__owns_one_state<_CharT>* __s1, __owns_one_state<_CharT>* __s2)
+  LIBBUTL_REGEX_HIDE_FROM_ABI explicit __alternate(__owns_one_state<_CharT>* __s1, __owns_one_state<_CharT>* __s2)
       : base(__s1, __s2) {}
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state& __s) const;
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec_split(bool __second, __state& __s) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state& __s) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec_split(bool __second, __state& __s) const;
 };
 
 template <class _CharT>
@@ -1916,10 +1916,10 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI explicit __begin_marked_subexpression(unsigned __mexp, __node<_CharT>* __s)
+  LIBBUTL_REGEX_HIDE_FROM_ABI explicit __begin_marked_subexpression(unsigned __mexp, __node<_CharT>* __s)
       : base(__s), __mexp_(__mexp) {}
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
 };
 
 template <class _CharT>
@@ -1944,10 +1944,10 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI explicit __end_marked_subexpression(unsigned __mexp, __node<_CharT>* __s)
+  LIBBUTL_REGEX_HIDE_FROM_ABI explicit __end_marked_subexpression(unsigned __mexp, __node<_CharT>* __s)
       : base(__s), __mexp_(__mexp) {}
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
 };
 
 template <class _CharT>
@@ -1973,9 +1973,9 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI explicit __back_ref(unsigned __mexp, __node<_CharT>* __s) : base(__s), __mexp_(__mexp) {}
+  LIBBUTL_REGEX_HIDE_FROM_ABI explicit __back_ref(unsigned __mexp, __node<_CharT>* __s) : base(__s), __mexp_(__mexp) {}
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
 };
 
 template <class _CharT>
@@ -2019,10 +2019,10 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI explicit __back_ref_icase(const _Traits& __traits, unsigned __mexp, __node<_CharT>* __s)
+  LIBBUTL_REGEX_HIDE_FROM_ABI explicit __back_ref_icase(const _Traits& __traits, unsigned __mexp, __node<_CharT>* __s)
       : base(__s), __traits_(__traits), __mexp_(__mexp) {}
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
 };
 
 template <class _CharT, class _Traits>
@@ -2065,10 +2065,10 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI explicit __back_ref_collate(const _Traits& __traits, unsigned __mexp, __node<_CharT>* __s)
+  LIBBUTL_REGEX_HIDE_FROM_ABI explicit __back_ref_collate(const _Traits& __traits, unsigned __mexp, __node<_CharT>* __s)
       : base(__s), __traits_(__traits), __mexp_(__mexp) {}
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
 };
 
 template <class _CharT, class _Traits>
@@ -2111,10 +2111,10 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI explicit __word_boundary(const _Traits& __traits, bool __invert, __node<_CharT>* __s)
+  LIBBUTL_REGEX_HIDE_FROM_ABI explicit __word_boundary(const _Traits& __traits, bool __invert, __node<_CharT>* __s)
       : base(__s), __traits_(__traits), __invert_(__invert) {}
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
 };
 
 template <class _CharT, class _Traits>
@@ -2153,7 +2153,7 @@ void __word_boundary<_CharT, _Traits>::__exec(__state& __s) const {
 // __l_anchor
 
 template <class _CharT>
-LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR bool __is_eol(_CharT __c) {
+LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR bool __is_eol(_CharT __c) {
   return __c == '\r' || __c == '\n';
 }
 
@@ -2170,10 +2170,10 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI __l_anchor_multiline(bool __multiline, __node<_CharT>* __s)
+  LIBBUTL_REGEX_HIDE_FROM_ABI __l_anchor_multiline(bool __multiline, __node<_CharT>* __s)
       : base(__s), __multiline_(__multiline) {}
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
 };
 
 template <class _CharT>
@@ -2209,10 +2209,10 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI __r_anchor_multiline(bool __multiline, __node<_CharT>* __s)
+  LIBBUTL_REGEX_HIDE_FROM_ABI __r_anchor_multiline(bool __multiline, __node<_CharT>* __s)
       : base(__s), __multiline_(__multiline) {}
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
 };
 
 template <class _CharT>
@@ -2246,9 +2246,9 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI __match_any(__node<_CharT>* __s) : base(__s) {}
+  LIBBUTL_REGEX_HIDE_FROM_ABI __match_any(__node<_CharT>* __s) : base(__s) {}
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
 };
 
 template <class _CharT>
@@ -2276,17 +2276,17 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI __match_any_but_newline(__node<_CharT>* __s) : base(__s) {}
+  LIBBUTL_REGEX_HIDE_FROM_ABI __match_any_but_newline(__node<_CharT>* __s) : base(__s) {}
 
   void __exec(__state&) const override;
 };
 
 #if 0
 template <>
-LIBSTUD_REGEX_EXPORTED_FROM_ABI void __match_any_but_newline<char>::__exec(__state&) const;
-#    if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+LIBBUTL_REGEX_EXPORTED_FROM_ABI void __match_any_but_newline<char>::__exec(__state&) const;
+#    if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
 template <>
-LIBSTUD_REGEX_EXPORTED_FROM_ABI void __match_any_but_newline<wchar_t>::__exec(__state&) const;
+LIBBUTL_REGEX_EXPORTED_FROM_ABI void __match_any_but_newline<wchar_t>::__exec(__state&) const;
 #    endif
 #else
 template <class _CharT>
@@ -2325,12 +2325,12 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI __match_char(_CharT __c, __node<_CharT>* __s) : base(__s), __c_(__c) {}
+  LIBBUTL_REGEX_HIDE_FROM_ABI __match_char(_CharT __c, __node<_CharT>* __s) : base(__s), __c_(__c) {}
 
   __match_char(const __match_char&)            = delete;
   __match_char& operator=(const __match_char&) = delete;
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
 };
 
 template <class _CharT>
@@ -2361,13 +2361,13 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI __match_char_icase(const _Traits& __traits, _CharT __c, __node<_CharT>* __s)
+  LIBBUTL_REGEX_HIDE_FROM_ABI __match_char_icase(const _Traits& __traits, _CharT __c, __node<_CharT>* __s)
       : base(__s), __traits_(__traits), __c_(__traits.translate_nocase(__c)) {}
 
   __match_char_icase(const __match_char_icase&)            = delete;
   __match_char_icase& operator=(const __match_char_icase&) = delete;
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
 };
 
 template <class _CharT, class _Traits>
@@ -2398,13 +2398,13 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI __match_char_collate(const _Traits& __traits, _CharT __c, __node<_CharT>* __s)
+  LIBBUTL_REGEX_HIDE_FROM_ABI __match_char_collate(const _Traits& __traits, _CharT __c, __node<_CharT>* __s)
       : base(__s), __traits_(__traits), __c_(__traits.translate(__c)) {}
 
   __match_char_collate(const __match_char_collate&)            = delete;
   __match_char_collate& operator=(const __match_char_collate&) = delete;
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
 };
 
 template <class _CharT, class _Traits>
@@ -2452,7 +2452,7 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI
+  LIBBUTL_REGEX_HIDE_FROM_ABI
   __bracket_expression(const _Traits& __traits, __node<_CharT>* __s, bool __negate, bool __icase, bool __collate)
       : base(__s),
         __traits_(__traits),
@@ -2466,11 +2466,11 @@ public:
   __bracket_expression(const __bracket_expression&)            = delete;
   __bracket_expression& operator=(const __bracket_expression&) = delete;
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI bool __negated() const { return __negate_; }
+  LIBBUTL_REGEX_HIDE_FROM_ABI bool __negated() const { return __negate_; }
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI void __add_char(_CharT __c) {
+  LIBBUTL_REGEX_HIDE_FROM_ABI void __add_char(_CharT __c) {
     if (__icase_)
       __chars_.push_back(__traits_.translate_nocase(__c));
     else if (__collate_)
@@ -2478,7 +2478,7 @@ public:
     else
       __chars_.push_back(__c);
   }
-  LIBSTUD_REGEX_HIDE_FROM_ABI void __add_neg_char(_CharT __c) {
+  LIBBUTL_REGEX_HIDE_FROM_ABI void __add_neg_char(_CharT __c) {
     if (__icase_)
       __neg_chars_.push_back(__traits_.translate_nocase(__c));
     else if (__collate_)
@@ -2486,7 +2486,7 @@ public:
     else
       __neg_chars_.push_back(__c);
   }
-  LIBSTUD_REGEX_HIDE_FROM_ABI void __add_range(string_type __b, string_type __e) {
+  LIBBUTL_REGEX_HIDE_FROM_ABI void __add_range(string_type __b, string_type __e) {
     if (__collate_) {
       if (__icase_) {
         for (size_t __i = 0; __i < __b.size(); ++__i)
@@ -2516,7 +2516,7 @@ public:
       __ranges_.push_back(std::make_pair(std::move(__b), std::move(__e)));
     }
   }
-  LIBSTUD_REGEX_HIDE_FROM_ABI void __add_digraph(_CharT __c1, _CharT __c2) {
+  LIBBUTL_REGEX_HIDE_FROM_ABI void __add_digraph(_CharT __c1, _CharT __c2) {
     if (__icase_)
       __digraphs_.push_back(std::make_pair(__traits_.translate_nocase(__c1), __traits_.translate_nocase(__c2)));
     else if (__collate_)
@@ -2524,9 +2524,9 @@ public:
     else
       __digraphs_.push_back(std::make_pair(__c1, __c2));
   }
-  LIBSTUD_REGEX_HIDE_FROM_ABI void __add_equivalence(const string_type& __s) { __equivalences_.push_back(__s); }
-  LIBSTUD_REGEX_HIDE_FROM_ABI void __add_class(typename regex_traits<_CharT>::char_class_type __mask) { __mask_ |= __mask; }
-  LIBSTUD_REGEX_HIDE_FROM_ABI void __add_neg_class(typename regex_traits<_CharT>::char_class_type __mask) {
+  LIBBUTL_REGEX_HIDE_FROM_ABI void __add_equivalence(const string_type& __s) { __equivalences_.push_back(__s); }
+  LIBBUTL_REGEX_HIDE_FROM_ABI void __add_class(typename regex_traits<_CharT>::char_class_type __mask) { __mask_ |= __mask; }
+  LIBBUTL_REGEX_HIDE_FROM_ABI void __add_neg_class(typename regex_traits<_CharT>::char_class_type __mask) {
     __neg_mask_ |= __mask;
   }
 };
@@ -2661,12 +2661,12 @@ template <class _CharT, class _Traits = regex_traits<_CharT> >
 class basic_regex;
 
 typedef basic_regex<char> regex;
-#    if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+#    if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
 typedef basic_regex<wchar_t> wregex;
 #    endif
 
 template <class _CharT, class _Traits>
-class LIBSTUD_REGEX_PREFERRED_NAME(regex) LIBSTUD_REGEX_IF_WIDE_CHARACTERS(LIBSTUD_REGEX_PREFERRED_NAME(wregex)) basic_regex {
+class LIBBUTL_REGEX_PREFERRED_NAME(regex) LIBBUTL_REGEX_IF_WIDE_CHARACTERS(LIBBUTL_REGEX_PREFERRED_NAME(wregex)) basic_regex {
 public:
   // types:
   typedef _CharT value_type;
@@ -2747,18 +2747,18 @@ public:
   static const regex_constants::syntax_option_type multiline  = regex_constants::multiline;
 
   // construct/copy/destroy:
-  LIBSTUD_REGEX_HIDE_FROM_ABI basic_regex()
+  LIBBUTL_REGEX_HIDE_FROM_ABI basic_regex()
       : __flags_(regex_constants::ECMAScript),
         __marked_count_(0),
         __loop_count_(0),
         __open_count_(0),
         __end_(nullptr) {}
-  LIBSTUD_REGEX_HIDE_FROM_ABI explicit basic_regex(const value_type* __p, flag_type __f = regex_constants::ECMAScript)
+  LIBBUTL_REGEX_HIDE_FROM_ABI explicit basic_regex(const value_type* __p, flag_type __f = regex_constants::ECMAScript)
       : __flags_(__f), __marked_count_(0), __loop_count_(0), __open_count_(0), __end_(nullptr) {
     __init(__p, __p + __traits_.length(__p));
   }
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI basic_regex(const value_type* __p, size_t __len, flag_type __f = regex_constants::ECMAScript)
+  LIBBUTL_REGEX_HIDE_FROM_ABI basic_regex(const value_type* __p, size_t __len, flag_type __f = regex_constants::ECMAScript)
       : __flags_(__f), __marked_count_(0), __loop_count_(0), __open_count_(0), __end_(nullptr) {
     __init(__p, __p + __len);
   }
@@ -2766,58 +2766,58 @@ public:
   //     basic_regex(const basic_regex&) = default;
   //     basic_regex(basic_regex&&) = default;
   template <class _ST, class _SA>
-  LIBSTUD_REGEX_HIDE_FROM_ABI explicit basic_regex(const basic_string<value_type, _ST, _SA>& __p,
+  LIBBUTL_REGEX_HIDE_FROM_ABI explicit basic_regex(const basic_string<value_type, _ST, _SA>& __p,
                                              flag_type __f = regex_constants::ECMAScript)
       : __flags_(__f), __marked_count_(0), __loop_count_(0), __open_count_(0), __end_(nullptr) {
     __init(__p.begin(), __p.end());
   }
 
   template <class _ForwardIterator>
-  LIBSTUD_REGEX_HIDE_FROM_ABI
+  LIBBUTL_REGEX_HIDE_FROM_ABI
   basic_regex(_ForwardIterator __first, _ForwardIterator __last, flag_type __f = regex_constants::ECMAScript)
       : __flags_(__f), __marked_count_(0), __loop_count_(0), __open_count_(0), __end_(nullptr) {
     __init(__first, __last);
   }
-#    ifndef LIBSTUD_REGEX_CXX03_LANG
-  LIBSTUD_REGEX_HIDE_FROM_ABI basic_regex(initializer_list<value_type> __il, flag_type __f = regex_constants::ECMAScript)
+#    ifndef LIBBUTL_REGEX_CXX03_LANG
+  LIBBUTL_REGEX_HIDE_FROM_ABI basic_regex(initializer_list<value_type> __il, flag_type __f = regex_constants::ECMAScript)
       : __flags_(__f), __marked_count_(0), __loop_count_(0), __open_count_(0), __end_(nullptr) {
     __init(__il.begin(), __il.end());
   }
-#    endif // LIBSTUD_REGEX_CXX03_LANG
+#    endif // LIBBUTL_REGEX_CXX03_LANG
 
   //    ~basic_regex() = default;
 
   //     basic_regex& operator=(const basic_regex&) = default;
   //     basic_regex& operator=(basic_regex&&) = default;
-  LIBSTUD_REGEX_HIDE_FROM_ABI basic_regex& operator=(const value_type* __p) { return assign(__p); }
-#    ifndef LIBSTUD_REGEX_CXX03_LANG
-  LIBSTUD_REGEX_HIDE_FROM_ABI basic_regex& operator=(initializer_list<value_type> __il) { return assign(__il); }
-#    endif // LIBSTUD_REGEX_CXX03_LANG
+  LIBBUTL_REGEX_HIDE_FROM_ABI basic_regex& operator=(const value_type* __p) { return assign(__p); }
+#    ifndef LIBBUTL_REGEX_CXX03_LANG
+  LIBBUTL_REGEX_HIDE_FROM_ABI basic_regex& operator=(initializer_list<value_type> __il) { return assign(__il); }
+#    endif // LIBBUTL_REGEX_CXX03_LANG
   template <class _ST, class _SA>
-  LIBSTUD_REGEX_HIDE_FROM_ABI basic_regex& operator=(const basic_string<value_type, _ST, _SA>& __p) {
+  LIBBUTL_REGEX_HIDE_FROM_ABI basic_regex& operator=(const basic_string<value_type, _ST, _SA>& __p) {
     return assign(__p);
   }
 
   // assign:
-  LIBSTUD_REGEX_HIDE_FROM_ABI basic_regex& assign(const basic_regex& __that) { return *this = __that; }
-#    ifndef LIBSTUD_REGEX_CXX03_LANG
-  LIBSTUD_REGEX_HIDE_FROM_ABI basic_regex& assign(basic_regex&& __that) LIBSTUD_REGEX_NOEXCEPT { return *this = std::move(__that); }
+  LIBBUTL_REGEX_HIDE_FROM_ABI basic_regex& assign(const basic_regex& __that) { return *this = __that; }
+#    ifndef LIBBUTL_REGEX_CXX03_LANG
+  LIBBUTL_REGEX_HIDE_FROM_ABI basic_regex& assign(basic_regex&& __that) LIBBUTL_REGEX_NOEXCEPT { return *this = std::move(__that); }
 #    endif
-  LIBSTUD_REGEX_HIDE_FROM_ABI basic_regex& assign(const value_type* __p, flag_type __f = regex_constants::ECMAScript) {
+  LIBBUTL_REGEX_HIDE_FROM_ABI basic_regex& assign(const value_type* __p, flag_type __f = regex_constants::ECMAScript) {
     return assign(__p, __p + __traits_.length(__p), __f);
   }
-  LIBSTUD_REGEX_HIDE_FROM_ABI basic_regex&
+  LIBBUTL_REGEX_HIDE_FROM_ABI basic_regex&
   assign(const value_type* __p, size_t __len, flag_type __f = regex_constants::ECMAScript) {
     return assign(__p, __p + __len, __f);
   }
   template <class _ST, class _SA>
-  LIBSTUD_REGEX_HIDE_FROM_ABI basic_regex&
+  LIBBUTL_REGEX_HIDE_FROM_ABI basic_regex&
   assign(const basic_string<value_type, _ST, _SA>& __s, flag_type __f = regex_constants::ECMAScript) {
     return assign(__s.begin(), __s.end(), __f);
   }
 
   template <class _InputIterator, __enable_if_t<__has_exactly_input_iterator_category<_InputIterator>::value, int> = 0>
-  LIBSTUD_REGEX_HIDE_FROM_ABI basic_regex&
+  LIBBUTL_REGEX_HIDE_FROM_ABI basic_regex&
   assign(_InputIterator __first, _InputIterator __last, flag_type __f = regex_constants::ECMAScript) {
 #if 0
     basic_string<_CharT> __t(__first, __last);
@@ -2828,7 +2828,7 @@ public:
   }
 
 private:
-  LIBSTUD_REGEX_HIDE_FROM_ABI void __member_init(flag_type __f) {
+  LIBBUTL_REGEX_HIDE_FROM_ABI void __member_init(flag_type __f) {
     __flags_        = __f;
     __marked_count_ = 0;
     __loop_count_   = 0;
@@ -2838,48 +2838,48 @@ private:
 
 public:
   template <class _ForwardIterator, __enable_if_t<__has_forward_iterator_category<_ForwardIterator>::value, int> = 0>
-  LIBSTUD_REGEX_HIDE_FROM_ABI basic_regex&
+  LIBBUTL_REGEX_HIDE_FROM_ABI basic_regex&
   assign(_ForwardIterator __first, _ForwardIterator __last, flag_type __f = regex_constants::ECMAScript) {
     return assign(basic_regex(__first, __last, __f));
   }
 
-#    ifndef LIBSTUD_REGEX_CXX03_LANG
+#    ifndef LIBBUTL_REGEX_CXX03_LANG
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI basic_regex&
+  LIBBUTL_REGEX_HIDE_FROM_ABI basic_regex&
   assign(initializer_list<value_type> __il, flag_type __f = regex_constants::ECMAScript) {
     return assign(__il.begin(), __il.end(), __f);
   }
 
-#    endif // LIBSTUD_REGEX_CXX03_LANG
+#    endif // LIBBUTL_REGEX_CXX03_LANG
 
   // const operations:
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI unsigned mark_count() const { return __marked_count_; }
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI flag_type flags() const { return __flags_; }
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI unsigned mark_count() const { return __marked_count_; }
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI flag_type flags() const { return __flags_; }
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI unsigned mark_count() const { return __marked_count_; }
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI flag_type flags() const { return __flags_; }
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI unsigned mark_count() const { return __marked_count_; }
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI flag_type flags() const { return __flags_; }
 #endif
 
   // locale:
-  LIBSTUD_REGEX_HIDE_FROM_ABI locale_type imbue(locale_type __loc) {
+  LIBBUTL_REGEX_HIDE_FROM_ABI locale_type imbue(locale_type __loc) {
     __member_init(ECMAScript);
     __start_.reset();
     return __traits_.imbue(__loc);
   }
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI locale_type getloc() const { return __traits_.getloc(); }
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI locale_type getloc() const { return __traits_.getloc(); }
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI locale_type getloc() const { return __traits_.getloc(); }
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI locale_type getloc() const { return __traits_.getloc(); }
 #endif
 
   // swap:
   void swap(basic_regex& __r);
 
 private:
-  LIBSTUD_REGEX_HIDE_FROM_ABI unsigned __loop_count() const { return __loop_count_; }
+  LIBBUTL_REGEX_HIDE_FROM_ABI unsigned __loop_count() const { return __loop_count_; }
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI bool __use_multiline() const {
+  LIBBUTL_REGEX_HIDE_FROM_ABI bool __use_multiline() const {
     return __get_grammar(__flags_) == ECMAScript && (__flags_ & multiline);
   }
 
@@ -3009,15 +3009,15 @@ private:
 
   bool __test_back_ref(_CharT);
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI void __push_l_anchor();
+  LIBBUTL_REGEX_HIDE_FROM_ABI void __push_l_anchor();
   void __push_r_anchor();
   void __push_match_any();
   void __push_match_any_but_newline();
-  LIBSTUD_REGEX_HIDE_FROM_ABI void __push_greedy_inf_repeat(
+  LIBBUTL_REGEX_HIDE_FROM_ABI void __push_greedy_inf_repeat(
       size_t __min, __owns_one_state<_CharT>* __s, unsigned __mexp_begin = 0, unsigned __mexp_end = 0) {
     __push_loop(__min, numeric_limits<size_t>::max(), __s, __mexp_begin, __mexp_end);
   }
-  LIBSTUD_REGEX_HIDE_FROM_ABI void __push_nongreedy_inf_repeat(
+  LIBBUTL_REGEX_HIDE_FROM_ABI void __push_nongreedy_inf_repeat(
       size_t __min, __owns_one_state<_CharT>* __s, unsigned __mexp_begin = 0, unsigned __mexp_end = 0) {
     __push_loop(__min, numeric_limits<size_t>::max(), __s, __mexp_begin, __mexp_end, false);
   }
@@ -3122,7 +3122,7 @@ private:
 // particular, it doesn't support the deduction guides.
 //
 #  if 0
-#    if LIBSTUD_REGEX_STD_VER >= 17
+#    if LIBBUTL_REGEX_STD_VER >= 17
 template <class _ForwardIterator, __enable_if_t<__has_forward_iterator_category<_ForwardIterator>::value, int> = 0>
 basic_regex(_ForwardIterator, _ForwardIterator, regex_constants::syntax_option_type = regex_constants::ECMAScript)
     -> basic_regex<typename iterator_traits<_ForwardIterator>::value_type>;
@@ -3169,7 +3169,7 @@ void basic_regex<_CharT, _Traits>::swap(basic_regex& __r) {
 }
 
 template <class _CharT, class _Traits>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI void swap(basic_regex<_CharT, _Traits>& __x, basic_regex<_CharT, _Traits>& __y) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI void swap(basic_regex<_CharT, _Traits>& __x, basic_regex<_CharT, _Traits>& __y) {
   return __x.swap(__y);
 }
 
@@ -3190,14 +3190,14 @@ public:
   typedef butl::regex::__state<_CharT> __state;
 #endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI
+  LIBBUTL_REGEX_HIDE_FROM_ABI
   __lookahead(const basic_regex<_CharT, _Traits>& __exp, bool __invert, __node<_CharT>* __s, unsigned __mexp)
       : base(__s), __exp_(__exp), __mexp_(__mexp), __invert_(__invert) {}
 
   __lookahead(const __lookahead&)            = delete;
   __lookahead& operator=(const __lookahead&) = delete;
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI_VIRTUAL virtual void __exec(__state&) const;
 };
 
 template <class _CharT, class _Traits>
@@ -4649,7 +4649,7 @@ _ForwardIterator basic_regex<_CharT, _Traits>::__parse_character_escape(
 #else
         __throw_regex_error<regex_constants::error_escape>();
       __sum = 16 * __sum + static_cast<unsigned>(__hd);
-      LIBSTUD_REGEX_FALLTHROUGH;
+      LIBBUTL_REGEX_FALLTHROUGH;
 #endif
     case 'x':
       ++__first;
@@ -4935,21 +4935,21 @@ void basic_regex<_CharT, _Traits>::__push_lookahead(const basic_regex& __exp, bo
 typedef sub_match<const char*> csub_match;
 #if 0
 typedef sub_match<string::const_iterator> ssub_match;
-#    if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+#    if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
 typedef sub_match<const wchar_t*> wcsub_match;
 typedef sub_match<wstring::const_iterator> wssub_match;
 #    endif
 #else
 typedef sub_match<std::string::const_iterator> ssub_match;
-#    if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+#    if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
 typedef sub_match<const wchar_t*> wcsub_match;
 typedef sub_match<std::wstring::const_iterator> wssub_match;
 #    endif
 #endif
 
 template <class _BidirectionalIterator>
-class LIBSTUD_REGEX_PREFERRED_NAME(csub_match) LIBSTUD_REGEX_IF_WIDE_CHARACTERS(LIBSTUD_REGEX_PREFERRED_NAME(wcsub_match))
-    LIBSTUD_REGEX_PREFERRED_NAME(ssub_match) LIBSTUD_REGEX_IF_WIDE_CHARACTERS(LIBSTUD_REGEX_PREFERRED_NAME(wssub_match)) sub_match
+class LIBBUTL_REGEX_PREFERRED_NAME(csub_match) LIBBUTL_REGEX_IF_WIDE_CHARACTERS(LIBBUTL_REGEX_PREFERRED_NAME(wcsub_match))
+    LIBBUTL_REGEX_PREFERRED_NAME(ssub_match) LIBBUTL_REGEX_IF_WIDE_CHARACTERS(LIBBUTL_REGEX_PREFERRED_NAME(wssub_match)) sub_match
 #if 0
     : public pair<_BidirectionalIterator, _BidirectionalIterator> {
 #else
@@ -4971,37 +4971,37 @@ public:
 
   bool matched;
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI LIBSTUD_REGEX_CONSTEXPR sub_match() : matched() {}
+  LIBBUTL_REGEX_HIDE_FROM_ABI LIBBUTL_REGEX_CONSTEXPR sub_match() : matched() {}
 
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI difference_type length() const {
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI difference_type length() const {
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI difference_type length() const {
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI difference_type length() const {
 #endif
     return matched ? std::distance(this->first, this->second) : 0;
   }
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI string_type str() const {
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI string_type str() const {
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI string_type str() const {
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI string_type str() const {
 #endif
     return matched ? string_type(this->first, this->second) : string_type();
   }
-  LIBSTUD_REGEX_HIDE_FROM_ABI operator string_type() const { return str(); }
+  LIBBUTL_REGEX_HIDE_FROM_ABI operator string_type() const { return str(); }
 
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI int compare(const sub_match& __s) const { return str().compare(__s.str()); }
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI int compare(const string_type& __s) const { return str().compare(__s); }
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI int compare(const value_type* __s) const { return str().compare(__s); }
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI int compare(const sub_match& __s) const { return str().compare(__s.str()); }
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI int compare(const string_type& __s) const { return str().compare(__s); }
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI int compare(const value_type* __s) const { return str().compare(__s); }
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI void swap(sub_match& __s) LIBSTUD_REGEX_NOEXCEPT_(__is_nothrow_swappable_v<_BidirectionalIterator>) {
+  LIBBUTL_REGEX_HIDE_FROM_ABI void swap(sub_match& __s) LIBBUTL_REGEX_NOEXCEPT_(__is_nothrow_swappable_v<_BidirectionalIterator>) {
     this->pair<_BidirectionalIterator, _BidirectionalIterator>::swap(__s);
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI int compare(const sub_match& __s) const { return str().compare(__s.str()); }
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI int compare(const string_type& __s) const { return str().compare(__s); }
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI int compare(const value_type* __s) const { return str().compare(__s); }
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI int compare(const sub_match& __s) const { return str().compare(__s.str()); }
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI int compare(const string_type& __s) const { return str().compare(__s); }
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI int compare(const value_type* __s) const { return str().compare(__s); }
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI void swap(sub_match& __s) LIBSTUD_REGEX_NOEXCEPT_(details::__is_nothrow_swappable<_BidirectionalIterator>::value) {
+  LIBBUTL_REGEX_HIDE_FROM_ABI void swap(sub_match& __s) LIBBUTL_REGEX_NOEXCEPT_(details::__is_nothrow_swappable<_BidirectionalIterator>::value) {
     std::pair<_BidirectionalIterator, _BidirectionalIterator>::swap(__s);
 #endif
     std::swap(matched, __s.matched);
@@ -5009,13 +5009,13 @@ public:
 };
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool operator==(const sub_match<_BiIter>& __x, const sub_match<_BiIter>& __y) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool operator==(const sub_match<_BiIter>& __x, const sub_match<_BiIter>& __y) {
   return __x.compare(__y) == 0;
 }
 
 #ifdef __cpp_lib_three_way_comparison
 template <class _BiIter>
-using __sub_match_cat LIBSTUD_REGEX_NODEBUG =
+using __sub_match_cat LIBBUTL_REGEX_NODEBUG =
 #if 0
     compare_three_way_result_t<basic_string<typename iterator_traits<_BiIter>::value_type>>;
 # else
@@ -5023,37 +5023,37 @@ using __sub_match_cat LIBSTUD_REGEX_NODEBUG =
 #endif
 
 template <class _BiIter>
-LIBSTUD_REGEX_HIDE_FROM_ABI auto operator<=>(const sub_match<_BiIter>& __x, const sub_match<_BiIter>& __y) {
+LIBBUTL_REGEX_HIDE_FROM_ABI auto operator<=>(const sub_match<_BiIter>& __x, const sub_match<_BiIter>& __y) {
   return static_cast<__sub_match_cat<_BiIter>>(__x.compare(__y) <=> 0);
 }
-#    else  // LIBSTUD_REGEX_STD_VER >= 20
+#    else  // LIBBUTL_REGEX_STD_VER >= 20
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool operator!=(const sub_match<_BiIter>& __x, const sub_match<_BiIter>& __y) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool operator!=(const sub_match<_BiIter>& __x, const sub_match<_BiIter>& __y) {
   return !(__x == __y);
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool operator<(const sub_match<_BiIter>& __x, const sub_match<_BiIter>& __y) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool operator<(const sub_match<_BiIter>& __x, const sub_match<_BiIter>& __y) {
   return __x.compare(__y) < 0;
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool operator<=(const sub_match<_BiIter>& __x, const sub_match<_BiIter>& __y) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool operator<=(const sub_match<_BiIter>& __x, const sub_match<_BiIter>& __y) {
   return !(__y < __x);
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool operator>=(const sub_match<_BiIter>& __x, const sub_match<_BiIter>& __y) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool operator>=(const sub_match<_BiIter>& __x, const sub_match<_BiIter>& __y) {
   return !(__x < __y);
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool operator>(const sub_match<_BiIter>& __x, const sub_match<_BiIter>& __y) {
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool operator>(const sub_match<_BiIter>& __x, const sub_match<_BiIter>& __y) {
   return __y < __x;
 }
 
 template <class _BiIter, class _ST, class _SA>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator==(const basic_string<typename iterator_traits<_BiIter>::value_type, _ST, _SA>& __x,
 #else
@@ -5064,7 +5064,7 @@ operator==(const std::basic_string<typename std::iterator_traits<_BiIter>::value
 }
 
 template <class _BiIter, class _ST, class _SA>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator!=(const basic_string<typename iterator_traits<_BiIter>::value_type, _ST, _SA>& __x,
 #else
@@ -5075,7 +5075,7 @@ operator!=(const std::basic_string<typename std::iterator_traits<_BiIter>::value
 }
 
 template <class _BiIter, class _ST, class _SA>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator<(const basic_string<typename iterator_traits<_BiIter>::value_type, _ST, _SA>& __x,
 #else
@@ -5086,7 +5086,7 @@ operator<(const std::basic_string<typename std::iterator_traits<_BiIter>::value_
 }
 
 template <class _BiIter, class _ST, class _SA>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator>(const basic_string<typename iterator_traits<_BiIter>::value_type, _ST, _SA>& __x,
 #else
@@ -5097,7 +5097,7 @@ operator>(const std::basic_string<typename std::iterator_traits<_BiIter>::value_
 }
 
 template <class _BiIter, class _ST, class _SA>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator>=(const basic_string<typename iterator_traits<_BiIter>::value_type, _ST, _SA>& __x,
 #else
@@ -5108,7 +5108,7 @@ operator>=(const std::basic_string<typename std::iterator_traits<_BiIter>::value
 }
 
 template <class _BiIter, class _ST, class _SA>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator<=(const basic_string<typename iterator_traits<_BiIter>::value_type, _ST, _SA>& __x,
 #else
@@ -5117,10 +5117,10 @@ operator<=(const std::basic_string<typename std::iterator_traits<_BiIter>::value
            const sub_match<_BiIter>& __y) {
   return !(__y < __x);
 }
-#    endif // LIBSTUD_REGEX_STD_VER >= 20
+#    endif // LIBBUTL_REGEX_STD_VER >= 20
 
 template <class _BiIter, class _ST, class _SA>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 operator==(const sub_match<_BiIter>& __x,
 #if 0
            const basic_string<typename iterator_traits<_BiIter>::value_type, _ST, _SA>& __y) {
@@ -5132,7 +5132,7 @@ operator==(const sub_match<_BiIter>& __x,
 
 #ifdef __cpp_lib_three_way_comparison
 template <class _BiIter, class _ST, class _SA>
-LIBSTUD_REGEX_HIDE_FROM_ABI auto
+LIBBUTL_REGEX_HIDE_FROM_ABI auto
 operator<=>(const sub_match<_BiIter>& __x,
 #if 0
             const basic_string<typename iterator_traits<_BiIter>::value_type, _ST, _SA>& __y) {
@@ -5142,9 +5142,9 @@ operator<=>(const sub_match<_BiIter>& __x,
   return static_cast<__sub_match_cat<_BiIter>>(
       __x.compare(typename sub_match<_BiIter>::string_type(__y.data(), __y.size())) <=> 0);
 }
-#    else  // LIBSTUD_REGEX_STD_VER >= 20
+#    else  // LIBBUTL_REGEX_STD_VER >= 20
 template <class _BiIter, class _ST, class _SA>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 operator!=(const sub_match<_BiIter>& __x,
 #if 0
            const basic_string<typename iterator_traits<_BiIter>::value_type, _ST, _SA>& __y) {
@@ -5155,7 +5155,7 @@ operator!=(const sub_match<_BiIter>& __x,
 }
 
 template <class _BiIter, class _ST, class _SA>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 operator<(const sub_match<_BiIter>& __x,
 #if 0
           const basic_string<typename iterator_traits<_BiIter>::value_type, _ST, _SA>& __y) {
@@ -5166,7 +5166,7 @@ operator<(const sub_match<_BiIter>& __x,
 }
 
 template <class _BiIter, class _ST, class _SA>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 operator>(const sub_match<_BiIter>& __x,
 #if 0
           const basic_string<typename iterator_traits<_BiIter>::value_type, _ST, _SA>& __y) {
@@ -5177,7 +5177,7 @@ operator>(const sub_match<_BiIter>& __x,
 }
 
 template <class _BiIter, class _ST, class _SA>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 operator>=(const sub_match<_BiIter>& __x,
 #if 0
            const basic_string<typename iterator_traits<_BiIter>::value_type, _ST, _SA>& __y) {
@@ -5188,7 +5188,7 @@ operator>=(const sub_match<_BiIter>& __x,
 }
 
 template <class _BiIter, class _ST, class _SA>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 operator<=(const sub_match<_BiIter>& __x,
 #if 0
            const basic_string<typename iterator_traits<_BiIter>::value_type, _ST, _SA>& __y) {
@@ -5199,7 +5199,7 @@ operator<=(const sub_match<_BiIter>& __x,
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator==(typename iterator_traits<_BiIter>::value_type const* __x, const sub_match<_BiIter>& __y) {
 #else
@@ -5209,7 +5209,7 @@ operator==(typename std::iterator_traits<_BiIter>::value_type const* __x, const 
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator!=(typename iterator_traits<_BiIter>::value_type const* __x, const sub_match<_BiIter>& __y) {
 #else
@@ -5219,7 +5219,7 @@ operator!=(typename std::iterator_traits<_BiIter>::value_type const* __x, const 
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator<(typename iterator_traits<_BiIter>::value_type const* __x, const sub_match<_BiIter>& __y) {
 #else
@@ -5229,7 +5229,7 @@ operator<(typename std::iterator_traits<_BiIter>::value_type const* __x, const s
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator>(typename iterator_traits<_BiIter>::value_type const* __x, const sub_match<_BiIter>& __y) {
 #else
@@ -5239,7 +5239,7 @@ operator>(typename std::iterator_traits<_BiIter>::value_type const* __x, const s
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator>=(typename iterator_traits<_BiIter>::value_type const* __x, const sub_match<_BiIter>& __y) {
 #else
@@ -5249,7 +5249,7 @@ operator>=(typename std::iterator_traits<_BiIter>::value_type const* __x, const 
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator<=(typename iterator_traits<_BiIter>::value_type const* __x, const sub_match<_BiIter>& __y) {
 #else
@@ -5257,10 +5257,10 @@ operator<=(typename std::iterator_traits<_BiIter>::value_type const* __x, const 
 #endif
   return !(__y < __x);
 }
-#    endif // LIBSTUD_REGEX_STD_VER >= 20
+#    endif // LIBBUTL_REGEX_STD_VER >= 20
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator==(const sub_match<_BiIter>& __x, typename iterator_traits<_BiIter>::value_type const* __y) {
 #else
@@ -5271,7 +5271,7 @@ operator==(const sub_match<_BiIter>& __x, typename std::iterator_traits<_BiIter>
 
 #ifdef __cpp_lib_three_way_comparison
 template <class _BiIter>
-LIBSTUD_REGEX_HIDE_FROM_ABI auto
+LIBBUTL_REGEX_HIDE_FROM_ABI auto
 #if 0
 operator<=>(const sub_match<_BiIter>& __x, typename iterator_traits<_BiIter>::value_type const* __y) {
 #else
@@ -5279,9 +5279,9 @@ operator<=>(const sub_match<_BiIter>& __x, typename std::iterator_traits<_BiIter
 #endif
   return static_cast<__sub_match_cat<_BiIter>>(__x.compare(__y) <=> 0);
 }
-#    else  // LIBSTUD_REGEX_STD_VER >= 20
+#    else  // LIBBUTL_REGEX_STD_VER >= 20
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator!=(const sub_match<_BiIter>& __x, typename iterator_traits<_BiIter>::value_type const* __y) {
 #else
@@ -5291,7 +5291,7 @@ operator!=(const sub_match<_BiIter>& __x, typename std::iterator_traits<_BiIter>
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator<(const sub_match<_BiIter>& __x, typename iterator_traits<_BiIter>::value_type const* __y) {
 #else
@@ -5301,7 +5301,7 @@ operator<(const sub_match<_BiIter>& __x, typename std::iterator_traits<_BiIter>:
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator>(const sub_match<_BiIter>& __x, typename iterator_traits<_BiIter>::value_type const* __y) {
 #else
@@ -5311,7 +5311,7 @@ operator>(const sub_match<_BiIter>& __x, typename std::iterator_traits<_BiIter>:
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator>=(const sub_match<_BiIter>& __x, typename iterator_traits<_BiIter>::value_type const* __y) {
 #else
@@ -5321,7 +5321,7 @@ operator>=(const sub_match<_BiIter>& __x, typename std::iterator_traits<_BiIter>
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator<=(const sub_match<_BiIter>& __x, typename iterator_traits<_BiIter>::value_type const* __y) {
 #else
@@ -5331,7 +5331,7 @@ operator<=(const sub_match<_BiIter>& __x, typename std::iterator_traits<_BiIter>
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator==(typename iterator_traits<_BiIter>::value_type const& __x, const sub_match<_BiIter>& __y) {
   typedef basic_string<typename iterator_traits<_BiIter>::value_type> string_type;
@@ -5343,7 +5343,7 @@ operator==(typename std::iterator_traits<_BiIter>::value_type const& __x, const 
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator!=(typename iterator_traits<_BiIter>::value_type const& __x, const sub_match<_BiIter>& __y) {
 #else
@@ -5353,7 +5353,7 @@ operator!=(typename std::iterator_traits<_BiIter>::value_type const& __x, const 
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator<(typename iterator_traits<_BiIter>::value_type const& __x, const sub_match<_BiIter>& __y) {
   typedef basic_string<typename iterator_traits<_BiIter>::value_type> string_type;
@@ -5365,7 +5365,7 @@ operator<(typename std::iterator_traits<_BiIter>::value_type const& __x, const s
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator>(typename iterator_traits<_BiIter>::value_type const& __x, const sub_match<_BiIter>& __y) {
 #else
@@ -5375,7 +5375,7 @@ operator>(typename std::iterator_traits<_BiIter>::value_type const& __x, const s
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator>=(typename iterator_traits<_BiIter>::value_type const& __x, const sub_match<_BiIter>& __y) {
 #else
@@ -5385,7 +5385,7 @@ operator>=(typename std::iterator_traits<_BiIter>::value_type const& __x, const 
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator<=(typename iterator_traits<_BiIter>::value_type const& __x, const sub_match<_BiIter>& __y) {
 #else
@@ -5393,10 +5393,10 @@ operator<=(typename std::iterator_traits<_BiIter>::value_type const& __x, const 
 #endif
   return !(__y < __x);
 }
-#    endif // LIBSTUD_REGEX_STD_VER >= 20
+#    endif // LIBBUTL_REGEX_STD_VER >= 20
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator==(const sub_match<_BiIter>& __x, typename iterator_traits<_BiIter>::value_type const& __y) {
   typedef basic_string<typename iterator_traits<_BiIter>::value_type> string_type;
@@ -5409,7 +5409,7 @@ operator==(const sub_match<_BiIter>& __x, typename std::iterator_traits<_BiIter>
 
 #ifdef __cpp_lib_three_way_comparison
 template <class _BiIter>
-LIBSTUD_REGEX_HIDE_FROM_ABI auto
+LIBBUTL_REGEX_HIDE_FROM_ABI auto
 #if 0
 operator<=>(const sub_match<_BiIter>& __x, typename iterator_traits<_BiIter>::value_type const& __y) {
   using string_type = basic_string<typename iterator_traits<_BiIter>::value_type>;
@@ -5419,9 +5419,9 @@ operator<=>(const sub_match<_BiIter>& __x, typename std::iterator_traits<_BiIter
 #endif
   return static_cast<__sub_match_cat<_BiIter>>(__x.compare(string_type(1, __y)) <=> 0);
 }
-#    else  // LIBSTUD_REGEX_STD_VER >= 20
+#    else  // LIBBUTL_REGEX_STD_VER >= 20
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator!=(const sub_match<_BiIter>& __x, typename iterator_traits<_BiIter>::value_type const& __y) {
 #else
@@ -5431,7 +5431,7 @@ operator!=(const sub_match<_BiIter>& __x, typename std::iterator_traits<_BiIter>
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator<(const sub_match<_BiIter>& __x, typename iterator_traits<_BiIter>::value_type const& __y) {
   typedef basic_string<typename iterator_traits<_BiIter>::value_type> string_type;
@@ -5443,7 +5443,7 @@ operator<(const sub_match<_BiIter>& __x, typename std::iterator_traits<_BiIter>:
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator>(const sub_match<_BiIter>& __x, typename iterator_traits<_BiIter>::value_type const& __y) {
 #else
@@ -5453,7 +5453,7 @@ operator>(const sub_match<_BiIter>& __x, typename std::iterator_traits<_BiIter>:
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator>=(const sub_match<_BiIter>& __x, typename iterator_traits<_BiIter>::value_type const& __y) {
 #else
@@ -5463,7 +5463,7 @@ operator>=(const sub_match<_BiIter>& __x, typename std::iterator_traits<_BiIter>
 }
 
 template <class _BiIter>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 operator<=(const sub_match<_BiIter>& __x, typename iterator_traits<_BiIter>::value_type const& __y) {
 #else
@@ -5471,14 +5471,14 @@ operator<=(const sub_match<_BiIter>& __x, typename std::iterator_traits<_BiIter>
 #endif
   return !(__y < __x);
 }
-#    endif // LIBSTUD_REGEX_STD_VER >= 20
+#    endif // LIBBUTL_REGEX_STD_VER >= 20
 
 template <class _CharT, class _ST, class _BiIter>
 #if 0
-inline LIBSTUD_REGEX_HIDE_FROM_ABI basic_ostream<_CharT, _ST>&
+inline LIBBUTL_REGEX_HIDE_FROM_ABI basic_ostream<_CharT, _ST>&
 operator<<(basic_ostream<_CharT, _ST>& __os, const sub_match<_BiIter>& __m) {
 #else
-inline LIBSTUD_REGEX_HIDE_FROM_ABI std::basic_ostream<_CharT, _ST>&
+inline LIBBUTL_REGEX_HIDE_FROM_ABI std::basic_ostream<_CharT, _ST>&
 operator<<(std::basic_ostream<_CharT, _ST>& __os, const sub_match<_BiIter>& __m) {
 #endif
   return __os << __m.str();
@@ -5487,21 +5487,21 @@ operator<<(std::basic_ostream<_CharT, _ST>& __os, const sub_match<_BiIter>& __m)
 typedef match_results<const char*> cmatch;
 #if 0
 typedef match_results<string::const_iterator> smatch;
-#    if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+#    if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
 typedef match_results<const wchar_t*> wcmatch;
 typedef match_results<wstring::const_iterator> wsmatch;
 #    endif
 #else
 typedef match_results<std::string::const_iterator> smatch;
-#    if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+#    if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
 typedef match_results<const wchar_t*> wcmatch;
 typedef match_results<std::wstring::const_iterator> wsmatch;
 #    endif
 #endif
 
 template <class _BidirectionalIterator, class _Allocator>
-class LIBSTUD_REGEX_PREFERRED_NAME(cmatch) LIBSTUD_REGEX_IF_WIDE_CHARACTERS(LIBSTUD_REGEX_PREFERRED_NAME(wcmatch))
-    LIBSTUD_REGEX_PREFERRED_NAME(smatch) LIBSTUD_REGEX_IF_WIDE_CHARACTERS(LIBSTUD_REGEX_PREFERRED_NAME(wsmatch)) match_results {
+class LIBBUTL_REGEX_PREFERRED_NAME(cmatch) LIBBUTL_REGEX_IF_WIDE_CHARACTERS(LIBBUTL_REGEX_PREFERRED_NAME(wcmatch))
+    LIBBUTL_REGEX_PREFERRED_NAME(smatch) LIBBUTL_REGEX_IF_WIDE_CHARACTERS(LIBBUTL_REGEX_PREFERRED_NAME(wsmatch)) match_results {
 public:
   typedef _Allocator allocator_type;
   typedef sub_match<_BidirectionalIterator> value_type;
@@ -5548,7 +5548,7 @@ public:
 #endif
 
   // construct/copy/destroy:
-#    ifndef LIBSTUD_REGEX_CXX03_LANG
+#    ifndef LIBBUTL_REGEX_CXX03_LANG
   match_results() : match_results(allocator_type()) {}
   explicit match_results(const allocator_type& __a);
 #    else
@@ -5561,97 +5561,97 @@ public:
   //    match_results& operator=(match_results&& __m) = default;
   //    ~match_results() = default;
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI bool ready() const { return __ready_; }
+  LIBBUTL_REGEX_HIDE_FROM_ABI bool ready() const { return __ready_; }
 
   // size:
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI size_type size() const LIBSTUD_REGEX_NOEXCEPT { return __matches_.size(); }
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI size_type max_size() const LIBSTUD_REGEX_NOEXCEPT { return __matches_.max_size(); }
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI bool empty() const LIBSTUD_REGEX_NOEXCEPT { return size() == 0; }
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI size_type size() const LIBBUTL_REGEX_NOEXCEPT { return __matches_.size(); }
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI size_type max_size() const LIBBUTL_REGEX_NOEXCEPT { return __matches_.max_size(); }
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI bool empty() const LIBBUTL_REGEX_NOEXCEPT { return size() == 0; }
 
   // element access:
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI difference_type length(size_type __sub = 0) const {
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI difference_type length(size_type __sub = 0) const {
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI size_type size() const LIBSTUD_REGEX_NOEXCEPT { return __matches_.size(); }
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI size_type max_size() const LIBSTUD_REGEX_NOEXCEPT { return __matches_.max_size(); }
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI bool empty() const LIBSTUD_REGEX_NOEXCEPT { return size() == 0; }
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI size_type size() const LIBBUTL_REGEX_NOEXCEPT { return __matches_.size(); }
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI size_type max_size() const LIBBUTL_REGEX_NOEXCEPT { return __matches_.max_size(); }
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI bool empty() const LIBBUTL_REGEX_NOEXCEPT { return size() == 0; }
 
   // element access:
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI difference_type length(size_type __sub = 0) const {
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI difference_type length(size_type __sub = 0) const {
 #endif
     // If the match results are not ready, this will return `0`.
-    LIBSTUD_REGEX_ASSERT_PEDANTIC(ready(), "match_results::length() called when not ready");
+    LIBBUTL_REGEX_ASSERT_PEDANTIC(ready(), "match_results::length() called when not ready");
     return (*this)[__sub].length();
   }
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI difference_type position(size_type __sub = 0) const {
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI difference_type position(size_type __sub = 0) const {
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI difference_type position(size_type __sub = 0) const {
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI difference_type position(size_type __sub = 0) const {
 #endif
     // If the match results are not ready, this will return the result of subtracting two default-constructed iterators
     // (which is typically a well-defined operation).
-    LIBSTUD_REGEX_ASSERT_PEDANTIC(ready(), "match_results::position() called when not ready");
+    LIBBUTL_REGEX_ASSERT_PEDANTIC(ready(), "match_results::position() called when not ready");
     return std::distance(__position_start_, (*this)[__sub].first);
   }
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI string_type str(size_type __sub = 0) const {
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI string_type str(size_type __sub = 0) const {
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI string_type str(size_type __sub = 0) const {
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI string_type str(size_type __sub = 0) const {
 #endif
     // If the match results are not ready, this will return an empty string.
-    LIBSTUD_REGEX_ASSERT_PEDANTIC(ready(), "match_results::str() called when not ready");
+    LIBBUTL_REGEX_ASSERT_PEDANTIC(ready(), "match_results::str() called when not ready");
     return (*this)[__sub].str();
   }
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI const_reference operator[](size_type __n) const {
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI const_reference operator[](size_type __n) const {
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI const_reference operator[](size_type __n) const {
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI const_reference operator[](size_type __n) const {
 #endif
     // If the match results are not ready, this call will be equivalent to calling this function with `__n >= size()`,
     // returning an empty subrange.
-    LIBSTUD_REGEX_ASSERT_PEDANTIC(ready(), "match_results::operator[]() called when not ready");
+    LIBBUTL_REGEX_ASSERT_PEDANTIC(ready(), "match_results::operator[]() called when not ready");
     return __n < __matches_.size() ? __matches_[__n] : __unmatched_;
   }
 
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI const_reference prefix() const {
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI const_reference prefix() const {
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI const_reference prefix() const {
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI const_reference prefix() const {
 #endif
     // If the match results are not ready, this will return a default-constructed empty `__suffix_`.
-    LIBSTUD_REGEX_ASSERT_PEDANTIC(ready(), "match_results::prefix() called when not ready");
+    LIBBUTL_REGEX_ASSERT_PEDANTIC(ready(), "match_results::prefix() called when not ready");
     return __prefix_;
   }
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI const_reference suffix() const {
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI const_reference suffix() const {
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI const_reference suffix() const {
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI const_reference suffix() const {
 #endif
     // If the match results are not ready, this will return a default-constructed empty `__suffix_`.
-    LIBSTUD_REGEX_ASSERT_PEDANTIC(ready(), "match_results::suffix() called when not ready");
+    LIBBUTL_REGEX_ASSERT_PEDANTIC(ready(), "match_results::suffix() called when not ready");
     return __suffix_;
   }
 
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI const_iterator begin() const {
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI const_iterator begin() const {
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI const_iterator begin() const {
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI const_iterator begin() const {
 #endif
     return empty() ? __matches_.end() : __matches_.begin();
   }
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI const_iterator end() const { return __matches_.end(); }
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI const_iterator cbegin() const {
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI const_iterator end() const { return __matches_.end(); }
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI const_iterator cbegin() const {
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI const_iterator end() const { return __matches_.end(); }
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI const_iterator cbegin() const {
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI const_iterator end() const { return __matches_.end(); }
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI const_iterator cbegin() const {
 #endif
     return empty() ? __matches_.end() : __matches_.begin();
   }
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI const_iterator cend() const { return __matches_.end(); }
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI const_iterator cend() const { return __matches_.end(); }
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI const_iterator cend() const { return __matches_.end(); }
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI const_iterator cend() const { return __matches_.end(); }
 #endif
 
   // format:
@@ -5661,7 +5661,7 @@ public:
                      const char_type* __fmt_last,
                      regex_constants::match_flag_type __flags = regex_constants::format_default) const;
   template <class _OutputIter, class _ST, class _SA>
-  LIBSTUD_REGEX_HIDE_FROM_ABI _OutputIter
+  LIBBUTL_REGEX_HIDE_FROM_ABI _OutputIter
   format(_OutputIter __output_iter,
          const basic_string<char_type, _ST, _SA>& __fmt,
          regex_constants::match_flag_type __flags = regex_constants::format_default) const {
@@ -5669,9 +5669,9 @@ public:
   }
   template <class _ST, class _SA>
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI basic_string<char_type, _ST, _SA>
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI basic_string<char_type, _ST, _SA>
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI basic_string<char_type, _ST, _SA>
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI basic_string<char_type, _ST, _SA>
 #endif
   format(const basic_string<char_type, _ST, _SA>& __fmt,
          regex_constants::match_flag_type __flags = regex_constants::format_default) const {
@@ -5680,9 +5680,9 @@ public:
     return __r;
   }
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI string_type
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI string_type
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI string_type
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI string_type
 #endif
   format(const char_type* __fmt, regex_constants::match_flag_type __flags = regex_constants::format_default) const {
     string_type __r;
@@ -5696,16 +5696,16 @@ public:
 
   // allocator:
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI allocator_type get_allocator() const { return __matches_.get_allocator(); }
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI allocator_type get_allocator() const { return __matches_.get_allocator(); }
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI allocator_type get_allocator() const { return __matches_.get_allocator(); }
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI allocator_type get_allocator() const { return __matches_.get_allocator(); }
 #endif
 
   // swap:
   void swap(match_results& __m);
 
   template <class _Bp, class _Ap>
-  LIBSTUD_REGEX_HIDE_FROM_ABI void
+  LIBBUTL_REGEX_HIDE_FROM_ABI void
   __assign(_BidirectionalIterator __f,
            _BidirectionalIterator __l,
            const match_results<_Bp, _Ap>& __m,
@@ -5779,7 +5779,7 @@ _OutputIter match_results<_BidirectionalIterator, _Allocator>::format(
     const char_type* __fmt_last,
     regex_constants::match_flag_type __flags) const {
   // Note: this duplicates a check in `vector::operator[]` but provides a better error message.
-  LIBSTUD_REGEX_ASSERT_VALID_ELEMENT_ACCESS(ready(), "match_results::format() called when not ready");
+  LIBBUTL_REGEX_ASSERT_VALID_ELEMENT_ACCESS(ready(), "match_results::format() called when not ready");
   if (__flags & regex_constants::format_sed) {
     for (; __fmt_first != __fmt_last; ++__fmt_first) {
       if (*__fmt_first == '&')
@@ -5860,7 +5860,7 @@ void match_results<_BidirectionalIterator, _Allocator>::swap(match_results& __m)
 }
 
 template <class _BidirectionalIterator, class _Allocator>
-LIBSTUD_REGEX_HIDE_FROM_ABI bool operator==(const match_results<_BidirectionalIterator, _Allocator>& __x,
+LIBBUTL_REGEX_HIDE_FROM_ABI bool operator==(const match_results<_BidirectionalIterator, _Allocator>& __x,
                                       const match_results<_BidirectionalIterator, _Allocator>& __y) {
   if (__x.__ready_ != __y.__ready_)
     return false;
@@ -5871,14 +5871,14 @@ LIBSTUD_REGEX_HIDE_FROM_ABI bool operator==(const match_results<_BidirectionalIt
 
 #    ifndef __cpp_impl_three_way_comparison
 template <class _BidirectionalIterator, class _Allocator>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool operator!=(const match_results<_BidirectionalIterator, _Allocator>& __x,
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool operator!=(const match_results<_BidirectionalIterator, _Allocator>& __x,
                                              const match_results<_BidirectionalIterator, _Allocator>& __y) {
   return !(__x == __y);
 }
 #    endif
 
 template <class _BidirectionalIterator, class _Allocator>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI void
+inline LIBBUTL_REGEX_HIDE_FROM_ABI void
 swap(match_results<_BidirectionalIterator, _Allocator>& __x, match_results<_BidirectionalIterator, _Allocator>& __y) {
   __x.swap(__y);
 }
@@ -5920,7 +5920,7 @@ bool basic_regex<_CharT, _Traits>::__match_at_start_ecma(
 #endif
     do {
       ++__counter;
-      if (__counter % LIBSTUD_REGEX_REGEX_COMPLEXITY_FACTOR == 0 && __counter / LIBSTUD_REGEX_REGEX_COMPLEXITY_FACTOR >= __length)
+      if (__counter % LIBBUTL_REGEX_REGEX_COMPLEXITY_FACTOR == 0 && __counter / LIBBUTL_REGEX_REGEX_COMPLEXITY_FACTOR >= __length)
 #if 0
         std::__throw_regex_error<regex_constants::error_complexity>();
 #else
@@ -6003,7 +6003,7 @@ bool basic_regex<_CharT, _Traits>::__match_at_start_posix_nosubs(
 #endif
     do {
       ++__counter;
-      if (__counter % LIBSTUD_REGEX_REGEX_COMPLEXITY_FACTOR == 0 && __counter / LIBSTUD_REGEX_REGEX_COMPLEXITY_FACTOR >= __length)
+      if (__counter % LIBBUTL_REGEX_REGEX_COMPLEXITY_FACTOR == 0 && __counter / LIBBUTL_REGEX_REGEX_COMPLEXITY_FACTOR >= __length)
 #if 0
         std::__throw_regex_error<regex_constants::error_complexity>();
 #else
@@ -6106,7 +6106,7 @@ bool basic_regex<_CharT, _Traits>::__match_at_start_posix_subs(
 #endif
     do {
       ++__counter;
-      if (__counter % LIBSTUD_REGEX_REGEX_COMPLEXITY_FACTOR == 0 && __counter / LIBSTUD_REGEX_REGEX_COMPLEXITY_FACTOR >= __length)
+      if (__counter % LIBBUTL_REGEX_REGEX_COMPLEXITY_FACTOR == 0 && __counter / LIBBUTL_REGEX_REGEX_COMPLEXITY_FACTOR >= __length)
 #if 0
         std::__throw_regex_error<regex_constants::error_complexity>();
 #else
@@ -6229,7 +6229,7 @@ bool basic_regex<_CharT, _Traits>::__search(
 }
 
 template <class _BidirectionalIterator, class _Allocator, class _CharT, class _Traits>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 regex_search(_BidirectionalIterator __first,
              _BidirectionalIterator __last,
              match_results<_BidirectionalIterator, _Allocator>& __m,
@@ -6248,7 +6248,7 @@ regex_search(_BidirectionalIterator __first,
 }
 
 template <class _Iter, class _Allocator, class _CharT, class _Traits>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 regex_search(__wrap_iter<_Iter> __first,
              __wrap_iter<_Iter> __last,
@@ -6272,7 +6272,7 @@ regex_search(details::__wrap_iter<_Iter> __first,
 }
 
 template <class _Allocator, class _CharT, class _Traits>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 regex_search(const _CharT* __first,
              const _CharT* __last,
              match_results<const _CharT*, _Allocator>& __m,
@@ -6282,7 +6282,7 @@ regex_search(const _CharT* __first,
 }
 
 template <class _BidirectionalIterator, class _CharT, class _Traits>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 regex_search(_BidirectionalIterator __first,
              _BidirectionalIterator __last,
              const basic_regex<_CharT, _Traits>& __e,
@@ -6297,7 +6297,7 @@ regex_search(_BidirectionalIterator __first,
 }
 
 template <class _CharT, class _Traits>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 regex_search(const _CharT* __first,
              const _CharT* __last,
              const basic_regex<_CharT, _Traits>& __e,
@@ -6307,7 +6307,7 @@ regex_search(const _CharT* __first,
 }
 
 template <class _CharT, class _Allocator, class _Traits>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 regex_search(const _CharT* __str,
              match_results<const _CharT*, _Allocator>& __m,
              const basic_regex<_CharT, _Traits>& __e,
@@ -6316,7 +6316,7 @@ regex_search(const _CharT* __str,
 }
 
 template <class _CharT, class _Traits>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 regex_search(const _CharT* __str,
              const basic_regex<_CharT, _Traits>& __e,
              regex_constants::match_flag_type __flags = regex_constants::match_default) {
@@ -6329,7 +6329,7 @@ regex_search(const _CharT* __str,
 }
 
 template <class _ST, class _SA, class _CharT, class _Traits>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 regex_search(const basic_string<_CharT, _ST, _SA>& __s,
 #else
@@ -6348,7 +6348,7 @@ regex_search(const std::basic_string<_CharT, _ST, _SA>& __s,
 //
 #if 0
 template <class _ST, class _SA, class _Allocator, class _CharT, class _Traits>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 regex_search(const basic_string<_CharT, _ST, _SA>& __s,
              match_results<typename basic_string<_CharT, _ST, _SA>::const_iterator, _Allocator>& __m,
              const basic_regex<_CharT, _Traits>& __e,
@@ -6360,7 +6360,7 @@ regex_search(const basic_string<_CharT, _ST, _SA>& __s,
 }
 #else
 template <class _ST, class _SA, class _Allocator, class _CharT, class _Traits>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 regex_search(const std::basic_string<_CharT, _ST, _SA>& __s,
              match_results<typename std::basic_string<_CharT, _ST, _SA>::const_iterator, _Allocator>& __m,
              const basic_regex<_CharT, _Traits>& __e,
@@ -6372,7 +6372,7 @@ regex_search(const std::basic_string<_CharT, _ST, _SA>& __s,
 }
 #endif
 
-#    if LIBSTUD_REGEX_STD_VER >= 14
+#    if LIBBUTL_REGEX_STD_VER >= 14
 template <class _ST, class _SA, class _Ap, class _Cp, class _Tp>
 #if 0
 bool regex_search(const basic_string<_Cp, _ST, _SA>&& __s,
@@ -6388,7 +6388,7 @@ bool regex_search(const std::basic_string<_Cp, _ST, _SA>&& __s,
 // regex_match
 
 template <class _BidirectionalIterator, class _Allocator, class _CharT, class _Traits>
-LIBSTUD_REGEX_HIDE_FROM_ABI bool
+LIBBUTL_REGEX_HIDE_FROM_ABI bool
 regex_match(_BidirectionalIterator __first,
             _BidirectionalIterator __last,
             match_results<_BidirectionalIterator, _Allocator>& __m,
@@ -6409,7 +6409,7 @@ regex_match(_BidirectionalIterator __first,
 }
 
 template <class _BidirectionalIterator, class _CharT, class _Traits>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 regex_match(_BidirectionalIterator __first,
             _BidirectionalIterator __last,
             const basic_regex<_CharT, _Traits>& __e,
@@ -6423,7 +6423,7 @@ regex_match(_BidirectionalIterator __first,
 }
 
 template <class _CharT, class _Allocator, class _Traits>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 regex_match(const _CharT* __str,
             match_results<const _CharT*, _Allocator>& __m,
             const basic_regex<_CharT, _Traits>& __e,
@@ -6436,7 +6436,7 @@ regex_match(const _CharT* __str,
 }
 
 template <class _ST, class _SA, class _Allocator, class _CharT, class _Traits>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 regex_match(const basic_string<_CharT, _ST, _SA>& __s,
             match_results<typename basic_string<_CharT, _ST, _SA>::const_iterator, _Allocator>& __m,
@@ -6452,9 +6452,9 @@ regex_match(const std::basic_string<_CharT, _ST, _SA>& __s,
 #endif
 }
 
-#    if LIBSTUD_REGEX_STD_VER >= 14
+#    if LIBBUTL_REGEX_STD_VER >= 14
 template <class _ST, class _SA, class _Allocator, class _CharT, class _Traits>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 regex_match(const basic_string<_CharT, _ST, _SA>&& __s,
             match_results<typename basic_string<_CharT, _ST, _SA>::const_iterator, _Allocator>& __m,
@@ -6467,7 +6467,7 @@ regex_match(const std::basic_string<_CharT, _ST, _SA>&& __s,
 #    endif
 
 template <class _CharT, class _Traits>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 regex_match(const _CharT* __str,
             const basic_regex<_CharT, _Traits>& __e,
             regex_constants::match_flag_type __flags = regex_constants::match_default) {
@@ -6479,7 +6479,7 @@ regex_match(const _CharT* __str,
 }
 
 template <class _ST, class _SA, class _CharT, class _Traits>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI bool
+inline LIBBUTL_REGEX_HIDE_FROM_ABI bool
 #if 0
 regex_match(const basic_string<_CharT, _ST, _SA>& __s,
             const basic_regex<_CharT, _Traits>& __e,
@@ -6507,23 +6507,23 @@ class regex_iterator;
 #if 0
 typedef regex_iterator<const char*> cregex_iterator;
 typedef regex_iterator<string::const_iterator> sregex_iterator;
-#    if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+#    if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
 typedef regex_iterator<const wchar_t*> wcregex_iterator;
 typedef regex_iterator<wstring::const_iterator> wsregex_iterator;
 #    endif
 #else
 typedef regex_iterator<const char*> cregex_iterator;
 typedef regex_iterator<std::string::const_iterator> sregex_iterator;
-#    if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+#    if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
 typedef regex_iterator<const wchar_t*> wcregex_iterator;
 typedef regex_iterator<std::wstring::const_iterator> wsregex_iterator;
 #    endif
 #endif
 
 template <class _BidirectionalIterator, class _CharT, class _Traits>
-class LIBSTUD_REGEX_PREFERRED_NAME(cregex_iterator) LIBSTUD_REGEX_IF_WIDE_CHARACTERS(LIBSTUD_REGEX_PREFERRED_NAME(wcregex_iterator))
-    LIBSTUD_REGEX_PREFERRED_NAME(sregex_iterator)
-        LIBSTUD_REGEX_IF_WIDE_CHARACTERS(LIBSTUD_REGEX_PREFERRED_NAME(wsregex_iterator)) regex_iterator {
+class LIBBUTL_REGEX_PREFERRED_NAME(cregex_iterator) LIBBUTL_REGEX_IF_WIDE_CHARACTERS(LIBBUTL_REGEX_PREFERRED_NAME(wcregex_iterator))
+    LIBBUTL_REGEX_PREFERRED_NAME(sregex_iterator)
+        LIBBUTL_REGEX_IF_WIDE_CHARACTERS(LIBBUTL_REGEX_PREFERRED_NAME(wsregex_iterator)) regex_iterator {
   using ptrdiff_t = std::ptrdiff_t;
   using forward_iterator_tag = std::forward_iterator_tag;
 
@@ -6534,7 +6534,7 @@ public:
   typedef const value_type* pointer;
   typedef const value_type& reference;
   typedef forward_iterator_tag iterator_category;
-#    if LIBSTUD_REGEX_STD_VER >= 20
+#    if LIBBUTL_REGEX_STD_VER >= 20
 #      if 0
   typedef input_iterator_tag iterator_concept;
 #      else
@@ -6555,38 +6555,38 @@ public:
                  _BidirectionalIterator __b,
                  const regex_type& __re,
                  regex_constants::match_flag_type __m = regex_constants::match_default);
-#    if LIBSTUD_REGEX_STD_VER >= 14
+#    if LIBBUTL_REGEX_STD_VER >= 14
   regex_iterator(_BidirectionalIterator __a,
                  _BidirectionalIterator __b,
                  const regex_type&& __re,
                  regex_constants::match_flag_type __m = regex_constants::match_default) = delete;
 #    endif
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI bool operator==(const regex_iterator& __x) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI bool operator==(const regex_iterator& __x) const;
 #  if 0
-#    if LIBSTUD_REGEX_STD_VER >= 20
-  LIBSTUD_REGEX_HIDE_FROM_ABI bool operator==(default_sentinel_t) const { return *this == regex_iterator(); }
+#    if LIBBUTL_REGEX_STD_VER >= 20
+  LIBBUTL_REGEX_HIDE_FROM_ABI bool operator==(default_sentinel_t) const { return *this == regex_iterator(); }
 #    endif
-#    if LIBSTUD_REGEX_STD_VER < 20
-  LIBSTUD_REGEX_HIDE_FROM_ABI bool operator!=(const regex_iterator& __x) const { return !(*this == __x); }
+#    if LIBBUTL_REGEX_STD_VER < 20
+  LIBBUTL_REGEX_HIDE_FROM_ABI bool operator!=(const regex_iterator& __x) const { return !(*this == __x); }
 #    endif
 #  else
 #    ifdef __cpp_lib_ranges
-  LIBSTUD_REGEX_HIDE_FROM_ABI bool operator==(std::default_sentinel_t) const { return *this == regex_iterator(); }
+  LIBBUTL_REGEX_HIDE_FROM_ABI bool operator==(std::default_sentinel_t) const { return *this == regex_iterator(); }
 #    else
-  LIBSTUD_REGEX_HIDE_FROM_ABI bool operator!=(const regex_iterator& __x) const { return !(*this == __x); }
+  LIBBUTL_REGEX_HIDE_FROM_ABI bool operator!=(const regex_iterator& __x) const { return !(*this == __x); }
 #    endif
 #  endif
 
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI reference operator*() const { return __match_; }
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI reference operator*() const { return __match_; }
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI reference operator*() const { return __match_; }
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI reference operator*() const { return __match_; }
 #endif
-  LIBSTUD_REGEX_HIDE_FROM_ABI pointer operator->() const { return std::addressof(__match_); }
+  LIBBUTL_REGEX_HIDE_FROM_ABI pointer operator->() const { return std::addressof(__match_); }
 
   regex_iterator& operator++();
-  LIBSTUD_REGEX_HIDE_FROM_ABI regex_iterator operator++(int) {
+  LIBBUTL_REGEX_HIDE_FROM_ABI regex_iterator operator++(int) {
     regex_iterator __t(*this);
     ++(*this);
     return __t;
@@ -6681,23 +6681,23 @@ class regex_token_iterator;
 typedef regex_token_iterator<const char*> cregex_token_iterator;
 #if 0
 typedef regex_token_iterator<string::const_iterator> sregex_token_iterator;
-#    if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+#    if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
 typedef regex_token_iterator<const wchar_t*> wcregex_token_iterator;
 typedef regex_token_iterator<wstring::const_iterator> wsregex_token_iterator;
 #    endif
 #else
 typedef regex_token_iterator<std::string::const_iterator> sregex_token_iterator;
-#    if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
+#    if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
 typedef regex_token_iterator<const wchar_t*> wcregex_token_iterator;
 typedef regex_token_iterator<std::wstring::const_iterator> wsregex_token_iterator;
 #    endif
 #endif
 
 template <class _BidirectionalIterator, class _CharT, class _Traits>
-class LIBSTUD_REGEX_PREFERRED_NAME(cregex_token_iterator)
-    LIBSTUD_REGEX_IF_WIDE_CHARACTERS(LIBSTUD_REGEX_PREFERRED_NAME(wcregex_token_iterator))
-        LIBSTUD_REGEX_PREFERRED_NAME(sregex_token_iterator)
-            LIBSTUD_REGEX_IF_WIDE_CHARACTERS(LIBSTUD_REGEX_PREFERRED_NAME(wsregex_token_iterator)) regex_token_iterator {
+class LIBBUTL_REGEX_PREFERRED_NAME(cregex_token_iterator)
+    LIBBUTL_REGEX_IF_WIDE_CHARACTERS(LIBBUTL_REGEX_PREFERRED_NAME(wcregex_token_iterator))
+        LIBBUTL_REGEX_PREFERRED_NAME(sregex_token_iterator)
+            LIBBUTL_REGEX_IF_WIDE_CHARACTERS(LIBBUTL_REGEX_PREFERRED_NAME(wsregex_token_iterator)) regex_token_iterator {
   using ptrdiff_t = std::ptrdiff_t;
   using forward_iterator_tag = std::forward_iterator_tag;
 
@@ -6714,7 +6714,7 @@ public:
   typedef const value_type* pointer;
   typedef const value_type& reference;
   typedef forward_iterator_tag iterator_category;
-#    if LIBSTUD_REGEX_STD_VER >= 20
+#    if LIBBUTL_REGEX_STD_VER >= 20
 #      if 0
   typedef input_iterator_tag iterator_concept;
 #      else
@@ -6738,7 +6738,7 @@ public:
                        const regex_type& __re,
                        int __submatch                       = 0,
                        regex_constants::match_flag_type __m = regex_constants::match_default);
-#    if LIBSTUD_REGEX_STD_VER >= 14
+#    if LIBBUTL_REGEX_STD_VER >= 14
   regex_token_iterator(_BidirectionalIterator __a,
                        _BidirectionalIterator __b,
                        const regex_type&& __re,
@@ -6751,7 +6751,7 @@ public:
                        const regex_type& __re,
                        const vector<int>& __submatches,
                        regex_constants::match_flag_type __m = regex_constants::match_default);
-#    if LIBSTUD_REGEX_STD_VER >= 14
+#    if LIBBUTL_REGEX_STD_VER >= 14
   regex_token_iterator(_BidirectionalIterator __a,
                        _BidirectionalIterator __b,
                        const regex_type&& __re,
@@ -6759,28 +6759,28 @@ public:
                        regex_constants::match_flag_type __m = regex_constants::match_default) = delete;
 #    endif
 
-#    ifndef LIBSTUD_REGEX_CXX03_LANG
+#    ifndef LIBBUTL_REGEX_CXX03_LANG
   regex_token_iterator(_BidirectionalIterator __a,
                        _BidirectionalIterator __b,
                        const regex_type& __re,
                        initializer_list<int> __submatches,
                        regex_constants::match_flag_type __m = regex_constants::match_default);
 
-#      if LIBSTUD_REGEX_STD_VER >= 14
+#      if LIBBUTL_REGEX_STD_VER >= 14
   regex_token_iterator(_BidirectionalIterator __a,
                        _BidirectionalIterator __b,
                        const regex_type&& __re,
                        initializer_list<int> __submatches,
                        regex_constants::match_flag_type __m = regex_constants::match_default) = delete;
 #      endif
-#    endif // LIBSTUD_REGEX_CXX03_LANG
+#    endif // LIBBUTL_REGEX_CXX03_LANG
   template <size_t _Np>
   regex_token_iterator(_BidirectionalIterator __a,
                        _BidirectionalIterator __b,
                        const regex_type& __re,
                        const int (&__submatches)[_Np],
                        regex_constants::match_flag_type __m = regex_constants::match_default);
-#    if LIBSTUD_REGEX_STD_VER >= 14
+#    if LIBBUTL_REGEX_STD_VER >= 14
   template <size_t _Np>
   regex_token_iterator(_BidirectionalIterator __a,
                        _BidirectionalIterator __b,
@@ -6792,31 +6792,31 @@ public:
   regex_token_iterator(const regex_token_iterator&);
   regex_token_iterator& operator=(const regex_token_iterator&);
 
-  LIBSTUD_REGEX_HIDE_FROM_ABI bool operator==(const regex_token_iterator& __x) const;
+  LIBBUTL_REGEX_HIDE_FROM_ABI bool operator==(const regex_token_iterator& __x) const;
 #  if 0
-#    if LIBSTUD_REGEX_STD_VER >= 20
-  LIBSTUD_REGEX_HIDE_FROM_ABI bool operator==(default_sentinel_t) const { return *this == regex_token_iterator(); }
+#    if LIBBUTL_REGEX_STD_VER >= 20
+  LIBBUTL_REGEX_HIDE_FROM_ABI bool operator==(default_sentinel_t) const { return *this == regex_token_iterator(); }
 #    endif
-#    if LIBSTUD_REGEX_STD_VER < 20
-  LIBSTUD_REGEX_HIDE_FROM_ABI bool operator!=(const regex_token_iterator& __x) const { return !(*this == __x); }
+#    if LIBBUTL_REGEX_STD_VER < 20
+  LIBBUTL_REGEX_HIDE_FROM_ABI bool operator!=(const regex_token_iterator& __x) const { return !(*this == __x); }
 #    endif
 #  else
 #    ifdef __cpp_lib_ranges
-  LIBSTUD_REGEX_HIDE_FROM_ABI bool operator==(std::default_sentinel_t) const { return *this == regex_token_iterator(); }
+  LIBBUTL_REGEX_HIDE_FROM_ABI bool operator==(std::default_sentinel_t) const { return *this == regex_token_iterator(); }
 #    else
-  LIBSTUD_REGEX_HIDE_FROM_ABI bool operator!=(const regex_token_iterator& __x) const { return !(*this == __x); }
+  LIBBUTL_REGEX_HIDE_FROM_ABI bool operator!=(const regex_token_iterator& __x) const { return !(*this == __x); }
 #    endif
 #  endif
 
 #if 0
-  [[__nodiscard__]] LIBSTUD_REGEX_HIDE_FROM_ABI const value_type& operator*() const { return *__result_; }
+  [[__nodiscard__]] LIBBUTL_REGEX_HIDE_FROM_ABI const value_type& operator*() const { return *__result_; }
 #else
-  LIBSTUD_REGEX_NODISCARD LIBSTUD_REGEX_HIDE_FROM_ABI const value_type& operator*() const { return *__result_; }
+  LIBBUTL_REGEX_NODISCARD LIBBUTL_REGEX_HIDE_FROM_ABI const value_type& operator*() const { return *__result_; }
 #endif
-  LIBSTUD_REGEX_HIDE_FROM_ABI const value_type* operator->() const { return __result_; }
+  LIBBUTL_REGEX_HIDE_FROM_ABI const value_type* operator->() const { return __result_; }
 
   regex_token_iterator& operator++();
-  LIBSTUD_REGEX_HIDE_FROM_ABI regex_token_iterator operator++(int) {
+  LIBBUTL_REGEX_HIDE_FROM_ABI regex_token_iterator operator++(int) {
     regex_token_iterator __t(*this);
     ++(*this);
     return __t;
@@ -6872,7 +6872,7 @@ regex_token_iterator<_BidirectionalIterator, _CharT, _Traits>::regex_token_itera
   __init(__a, __b);
 }
 
-#    ifndef LIBSTUD_REGEX_CXX03_LANG
+#    ifndef LIBBUTL_REGEX_CXX03_LANG
 
 template <class _BidirectionalIterator, class _CharT, class _Traits>
 regex_token_iterator<_BidirectionalIterator, _CharT, _Traits>::regex_token_iterator(
@@ -6885,7 +6885,7 @@ regex_token_iterator<_BidirectionalIterator, _CharT, _Traits>::regex_token_itera
   __init(__a, __b);
 }
 
-#    endif // LIBSTUD_REGEX_CXX03_LANG
+#    endif // LIBBUTL_REGEX_CXX03_LANG
 
 template <class _BidirectionalIterator, class _CharT, class _Traits>
 template <size_t _Np>
@@ -6979,7 +6979,7 @@ regex_token_iterator<_BidirectionalIterator, _CharT, _Traits>::operator++() {
 // regex_replace
 
 template <class _OutputIterator, class _BidirectionalIterator, class _Traits, class _CharT>
-LIBSTUD_REGEX_HIDE_FROM_ABI _OutputIterator regex_replace(
+LIBBUTL_REGEX_HIDE_FROM_ABI _OutputIterator regex_replace(
     _OutputIterator __output_iter,
     _BidirectionalIterator __first,
     _BidirectionalIterator __last,
@@ -7013,7 +7013,7 @@ LIBSTUD_REGEX_HIDE_FROM_ABI _OutputIterator regex_replace(
 }
 
 template <class _OutputIterator, class _BidirectionalIterator, class _Traits, class _CharT, class _ST, class _SA>
-inline LIBSTUD_REGEX_HIDE_FROM_ABI _OutputIterator regex_replace(
+inline LIBBUTL_REGEX_HIDE_FROM_ABI _OutputIterator regex_replace(
     _OutputIterator __output_iter,
     _BidirectionalIterator __first,
     _BidirectionalIterator __last,
@@ -7031,7 +7031,7 @@ inline LIBSTUD_REGEX_HIDE_FROM_ABI _OutputIterator regex_replace(
 
 template <class _Traits, class _CharT, class _ST, class _SA, class _FST, class _FSA>
 #if 0
-inline LIBSTUD_REGEX_HIDE_FROM_ABI basic_string<_CharT, _ST, _SA>
+inline LIBBUTL_REGEX_HIDE_FROM_ABI basic_string<_CharT, _ST, _SA>
 regex_replace(const basic_string<_CharT, _ST, _SA>& __s,
               const basic_regex<_CharT, _Traits>& __e,
               const basic_string<_CharT, _FST, _FSA>& __fmt,
@@ -7039,7 +7039,7 @@ regex_replace(const basic_string<_CharT, _ST, _SA>& __s,
   basic_string<_CharT, _ST, _SA> __r;
   std::regex_replace(std::back_inserter(__r), __s.begin(), __s.end(), __e, __fmt.c_str(), __flags);
 #else
-inline LIBSTUD_REGEX_HIDE_FROM_ABI std::basic_string<_CharT, _ST, _SA>
+inline LIBBUTL_REGEX_HIDE_FROM_ABI std::basic_string<_CharT, _ST, _SA>
 regex_replace(const std::basic_string<_CharT, _ST, _SA>& __s,
               const basic_regex<_CharT, _Traits>& __e,
               const std::basic_string<_CharT, _FST, _FSA>& __fmt,
@@ -7052,7 +7052,7 @@ regex_replace(const std::basic_string<_CharT, _ST, _SA>& __s,
 
 template <class _Traits, class _CharT, class _ST, class _SA>
 #if 0
-inline LIBSTUD_REGEX_HIDE_FROM_ABI basic_string<_CharT, _ST, _SA>
+inline LIBBUTL_REGEX_HIDE_FROM_ABI basic_string<_CharT, _ST, _SA>
 regex_replace(const basic_string<_CharT, _ST, _SA>& __s,
               const basic_regex<_CharT, _Traits>& __e,
               const _CharT* __fmt,
@@ -7060,7 +7060,7 @@ regex_replace(const basic_string<_CharT, _ST, _SA>& __s,
   basic_string<_CharT, _ST, _SA> __r;
   std::regex_replace(std::back_inserter(__r), __s.begin(), __s.end(), __e, __fmt, __flags);
 #else
-inline LIBSTUD_REGEX_HIDE_FROM_ABI std::basic_string<_CharT, _ST, _SA>
+inline LIBBUTL_REGEX_HIDE_FROM_ABI std::basic_string<_CharT, _ST, _SA>
 regex_replace(const std::basic_string<_CharT, _ST, _SA>& __s,
               const basic_regex<_CharT, _Traits>& __e,
               const _CharT* __fmt,
@@ -7073,7 +7073,7 @@ regex_replace(const std::basic_string<_CharT, _ST, _SA>& __s,
 
 template <class _Traits, class _CharT, class _ST, class _SA>
 #if 0
-inline LIBSTUD_REGEX_HIDE_FROM_ABI basic_string<_CharT>
+inline LIBBUTL_REGEX_HIDE_FROM_ABI basic_string<_CharT>
 regex_replace(const _CharT* __s,
               const basic_regex<_CharT, _Traits>& __e,
               const basic_string<_CharT, _ST, _SA>& __fmt,
@@ -7081,7 +7081,7 @@ regex_replace(const _CharT* __s,
   basic_string<_CharT> __r;
   std::regex_replace(std::back_inserter(__r), __s, __s + char_traits<_CharT>::length(__s), __e, __fmt.c_str(), __flags);
 #else
-inline LIBSTUD_REGEX_HIDE_FROM_ABI typename _Traits::string_type
+inline LIBBUTL_REGEX_HIDE_FROM_ABI typename _Traits::string_type
 regex_replace(const _CharT* __s,
               const basic_regex<_CharT, _Traits>& __e,
               const std::basic_string<_CharT, _ST, _SA>& __fmt,
@@ -7094,7 +7094,7 @@ regex_replace(const _CharT* __s,
 
 template <class _Traits, class _CharT>
 #if 0
-inline LIBSTUD_REGEX_HIDE_FROM_ABI basic_string<_CharT>
+inline LIBBUTL_REGEX_HIDE_FROM_ABI basic_string<_CharT>
 regex_replace(const _CharT* __s,
               const basic_regex<_CharT, _Traits>& __e,
               const _CharT* __fmt,
@@ -7102,7 +7102,7 @@ regex_replace(const _CharT* __s,
   basic_string<_CharT> __r;
   std::regex_replace(std::back_inserter(__r), __s, __s + char_traits<_CharT>::length(__s), __e, __fmt, __flags);
 #else
-inline LIBSTUD_REGEX_HIDE_FROM_ABI typename _Traits::string_type
+inline LIBBUTL_REGEX_HIDE_FROM_ABI typename _Traits::string_type
 regex_replace(const _CharT* __s,
               const basic_regex<_CharT, _Traits>& __e,
               const _CharT* __fmt,
@@ -7113,35 +7113,35 @@ regex_replace(const _CharT* __s,
   return __r;
 }
 
-LIBSTUD_REGEX_END_EXPLICIT_ABI_ANNOTATIONS
-LIBSTUD_REGEX_END_NAMESPACE_STD
+LIBBUTL_REGEX_END_EXPLICIT_ABI_ANNOTATIONS
+LIBBUTL_REGEX_END_NAMESPACE_STD
 
 #    ifdef __cpp_lib_polymorphic_allocator
-LIBSTUD_REGEX_BEGIN_NAMESPACE_STD
+LIBBUTL_REGEX_BEGIN_NAMESPACE_STD
 namespace pmr {
 template <class _BidirT>
-using match_results LIBSTUD_REGEX_AVAILABILITY_PMR =
+using match_results LIBBUTL_REGEX_AVAILABILITY_PMR =
 #      if 0
     std::match_results<_BidirT, polymorphic_allocator<std::sub_match<_BidirT>>>;
 #      else
     match_results<_BidirT, std::pmr::polymorphic_allocator<sub_match<_BidirT>>>;
 #      endif
 
-using cmatch LIBSTUD_REGEX_AVAILABILITY_PMR = match_results<const char*>;
-using smatch LIBSTUD_REGEX_AVAILABILITY_PMR = match_results<std::pmr::string::const_iterator>;
+using cmatch LIBBUTL_REGEX_AVAILABILITY_PMR = match_results<const char*>;
+using smatch LIBBUTL_REGEX_AVAILABILITY_PMR = match_results<std::pmr::string::const_iterator>;
 
-#      if LIBSTUD_REGEX_HAS_WIDE_CHARACTERS
-using wcmatch LIBSTUD_REGEX_AVAILABILITY_PMR = match_results<const wchar_t*>;
-using wsmatch LIBSTUD_REGEX_AVAILABILITY_PMR = match_results<std::pmr::wstring::const_iterator>;
+#      if LIBBUTL_REGEX_HAS_WIDE_CHARACTERS
+using wcmatch LIBBUTL_REGEX_AVAILABILITY_PMR = match_results<const wchar_t*>;
+using wsmatch LIBBUTL_REGEX_AVAILABILITY_PMR = match_results<std::pmr::wstring::const_iterator>;
 #      endif
 } // namespace pmr
-LIBSTUD_REGEX_END_NAMESPACE_STD
+LIBBUTL_REGEX_END_NAMESPACE_STD
 #    endif
 
-LIBSTUD_REGEX_POP_MACROS
+LIBBUTL_REGEX_POP_MACROS
 
-#  endif // LIBSTUD_REGEX_HAS_LOCALIZATION
+#  endif // LIBBUTL_REGEX_HAS_LOCALIZATION
 
-#endif // __cplusplus < 201103L && defined(LIBSTUD_REGEX_USE_FROZEN_CXX03_HEADERS)
+#endif // __cplusplus < 201103L && defined(LIBBUTL_REGEX_USE_FROZEN_CXX03_HEADERS)
 
-#endif // LIBSTUD_REGEX_REGEX_HXX
+#endif // LIBBUTL_REGEX_REGEX_HXX

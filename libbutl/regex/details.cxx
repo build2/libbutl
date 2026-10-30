@@ -1,6 +1,6 @@
 #include <libbutl/regex/details.hxx>
 
-#if LIBSTUD_REGEX_DELEGATE_TO_STD_TRANSFORM_PRIMARY
+#if LIBBUTL_REGEX_DELEGATE_TO_STD_TRANSFORM_PRIMARY
 #  include <regex>
 #  include <string>
 #  include <memory> // make_unique()
@@ -8,7 +8,7 @@
 
 namespace butl { namespace regex { namespace details {
 
-#if LIBSTUD_REGEX_DELEGATE_TO_STD_TRANSFORM_PRIMARY
+#if LIBBUTL_REGEX_DELEGATE_TO_STD_TRANSFORM_PRIMARY
 using std::string;
 using std::wstring;
 using std::locale;
