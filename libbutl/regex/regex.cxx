@@ -15,8 +15,8 @@
 #include <string>
 #include <cstring>
 
-LIBSTUD_REGEX_BEGIN_NAMESPACE_STD
-LIBSTUD_REGEX_BEGIN_EXPLICIT_ABI_ANNOTATIONS
+LIBBUTL_REGEX_BEGIN_NAMESPACE_STD
+LIBBUTL_REGEX_BEGIN_EXPLICIT_ABI_ANNOTATIONS
 
 using std::ctype_base;
 using std::strcmp;
@@ -75,7 +75,7 @@ regex_error::regex_error(regex_constants::error_type ecode)
 #if 0
 regex_error::~regex_error() throw() {}
 #else
-regex_error::~regex_error() LIBSTUD_REGEX_NOEXCEPT {}
+regex_error::~regex_error() LIBBUTL_REGEX_NOEXCEPT {}
 #endif
 
 namespace {
@@ -418,5 +418,5 @@ void __match_any_but_newline<wchar_t>::__exec(__state& __s) const {
 }
 #endif
 
-LIBSTUD_REGEX_END_EXPLICIT_ABI_ANNOTATIONS
-LIBSTUD_REGEX_END_NAMESPACE_STD
+LIBBUTL_REGEX_END_EXPLICIT_ABI_ANNOTATIONS
+LIBBUTL_REGEX_END_NAMESPACE_STD
