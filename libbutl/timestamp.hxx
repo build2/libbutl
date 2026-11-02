@@ -30,9 +30,6 @@ namespace butl
   //
   using std::chrono::system_clock;
 
-  // Note that the default-initialized timestamp has the timestamp_nonexistent
-  // value.
-  //
   using timestamp = system_clock::time_point;
   using duration = system_clock::duration;
 

@@ -219,10 +219,10 @@ struct proc: process
   const butl::path* path;
   const strings*    args;
 
-  timestamp starting_at;
-  timestamp started_at;
-  timestamp reaping_at;
-  timestamp reaped_at;
+  timestamp starting_at = timestamp_nonexistent;
+  timestamp started_at = timestamp_nonexistent;
+  timestamp reaping_at = timestamp_nonexistent;
+  timestamp reaped_at = timestamp_nonexistent;
   uint64_t wait_retries;
 
   // Start a child process with the specified arguments (see the below usage
