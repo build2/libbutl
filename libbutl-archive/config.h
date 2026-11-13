@@ -1098,9 +1098,11 @@
 #  endif
 #endif
 
-#if defined(_WIN32) && !defined(__MINGW32__)
+#ifdef _WIN32
+#  ifndef __MINGW32__
 typedef int pid_t;
+typedef unsigned short mode_t;
+#  endif
 typedef short uid_t;
 typedef short gid_t;
-typedef unsigned short mode_t;
 #endif
