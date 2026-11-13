@@ -23,6 +23,16 @@ switch $name($import.target)
     export $out_root/libbutl-pkg-config/$import.target
   }
 
+  case 'butl-archive'
+  {
+    $out_root/
+    {
+      include libbutl-archive/
+    }
+
+    export $out_root/libbutl-archive/$import.target
+  }
+
   default
   {
     $out_root/
