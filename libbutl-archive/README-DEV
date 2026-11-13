@@ -1,0 +1,2 @@
+Note that the zlib source is currently an implementation detail and the
+zlib.h header is not installed (it includes zconf.h and this config.h).

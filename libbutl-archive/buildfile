@@ -1,0 +1,55 @@
+# file      : libbutl-archive/buildfile
+# license   : MIT; see accompanying LICENSE file
+
+windows = ($c.target.class == 'windows')
+
+gcc  = ($c.class == 'gcc')
+msvc = ($c.class == 'msvc')
+
+lib{butl-archive}: {h c}{* -archive_windows}
+lib{butl-archive}: {h c}{archive_windows}: include = $windows
+
+# Build options.
+#
+c.poptions =+ "-I$src_base"
+
+# Note that __LIBARCHIVE_BUILD is defined by archive_platform.h.
+#
+# @@ _WIN32_WINNT?
+#
+c.poptions += -DHAVE_CONFIG_H # @@ Not Windows or maybe yes?
+
+obja{*}: c.poptions += -DLIBARCHIVE_STATIC
+
+# Disable warnings.
+#
+if $gcc
+  c.coptions += -Wno-implicit-fallthrough
+
+# Export options.
+#
+lib{butl-archive}: c.export.poptions = "-I$src_base"
+liba{butl-archive}: c.export.poptions += -DLIBARCHIVE_STATIC
+
+# For pre-releases use the complete version to make sure they cannot be used
+# in place of another pre-release or the final version. See the version module
+# for details on the version.* variable values.
+#
+if $version.pre_release
+  lib{butl-archive}: bin.lib.version = @"-$version.project_id"
+else
+  lib{butl-archive}: bin.lib.version = @"-$version.major.$version.minor"
+
+# Install into the libbutl/archive/ subdirectory of, say, /usr/include (so we
+# end up with libbutl/archive/archive.h, etc). Arrange via pkg-config to be
+# able to include headers as <archive.h>, etc., to be compatible with
+# system-installed libarchive.
+#
+# The reason we add an extra archive/ subdirectory instead of installing
+# directly into libbutl/ is because adding -I for libbutl/ will make all the
+# libbutl headers includable without a prefix and thus prone to clashes.
+#
+h{*}: install = false
+h{archive}@./ h{archive_entry}@./: install = include/libbutl/archive/
+
+lib{butl-archive}: c.pkgconfig.include = include/libbutl/archive/

@@ -1,0 +1,11 @@
+# file      : tests/archive/testscript
+# license   : MIT; see accompanying LICENSE file
+
+: basic
+:
+{
+  cat <:'Hello, World!' >=test.txt
+  $* test.tar.gz test.txt &test.tar.gz
+  sha256sum --sum-only test.tar.gz \
+    >'473652763d1d53436d2d73e99c2b1e50fa7dc50ee973a25eb904cc228581e7e6'
+}
