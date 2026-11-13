@@ -796,6 +796,40 @@
 #undef HAVE_LINUX_FS_H
 #undef HAVE_LOCALCHARSET_H
 #undef HAVE_LOCALE_CHARSET
+/* Base BUILD2_AUTOCONF_LIBC_VERSION already defined. */
+
+
+#ifndef BUILD2_AUTOCONF_LIBC_VERSION
+#  error BUILD2_AUTOCONF_LIBC_VERSION appears to be conditionally included
+#endif
+
+#undef HAVE_LOCALTIME_R
+
+/*  Check for the localtime_r() function.
+ *
+ *  Since glibc 2.0, 4.3BSD, FreeBSD 8.0, OpenBSD 2.5 (May 1999), NetBSD 1.4,
+ *  MacOS 10.0, Mingw-w64 2.0, POSIX.1c, SVr4. Not available on Windows
+ *  (except Mingw-w64).
+ */
+#if BUILD2_AUTOCONF_GLIBC_PREREQ(2, 0)     || \
+    BUILD2_AUTOCONF_FREEBSD_PREREQ(8, 0)   || \
+    BUILD2_AUTOCONF_OPENBSD_PREREQ(199905) || \
+    BUILD2_AUTOCONF_NETBSD_PREREQ(1, 4)    || \
+    BUILD2_AUTOCONF_MACOS_PREREQ(10, 2)    || \
+    BUILD2_AUTOCONF_MINGW_PREREQ(2, 0)     || \
+    ((defined(__sun) && defined(__SVR4)) || defined(__sun__))
+#  define HAVE_LOCALTIME_R 1
+#endif
+#undef HAVE_LOCALTIME_S
+
+/*  Check for the localtime_s() function.
+ *
+ *  This function is defined by the optional C11 Annex K and is only provided
+ *  on Windows. All POSIX targets appears to prefer POSIX localtime_r().
+ */
+#ifdef _WIN32
+#  define HAVE_LOCALTIME_S 1
+#endif
 #undef HAVE_LZ4_H
 #undef HAVE_LZMA_H
 #undef HAVE_MBRTOWC
@@ -837,9 +871,6 @@
 #ifndef _WIN32
 #  define HAVE_NL_LANGINFO 1
 #endif
-#undef HAVE_STDARG_H
-
-#define HAVE_STDARG_H 1
 #undef HAVE_STDCKDINT_H
 
 /* Check for the stdckdint.h header.
@@ -1020,6 +1051,9 @@
  */
 #define HAVE_WMEMMOVE 1
 #define HAVE_ZLIB_H 1
+#undef HAVE_STDARG_H
+
+#define HAVE_STDARG_H 1
 
 /* If ssize_t is already defined, assume it's correct and use it as-is.
  *
