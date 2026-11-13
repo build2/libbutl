@@ -58,3 +58,12 @@
 #undef HAVE_WMEMCPY
 #undef HAVE_WMEMMOVE
 #undef HAVE_ZLIB_H
+
+#undef ssize_t
+
+#ifdef _WIN32
+typedef int pid_t;
+typedef short uid_t;
+typedef short gid_t;
+typedef unsigned short mode_t;
+#endif
