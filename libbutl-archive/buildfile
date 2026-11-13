@@ -17,7 +17,7 @@ c.poptions =+ "-I$src_base"
 #
 # @@ _WIN32_WINNT?
 #
-c.poptions += -DHAVE_CONFIG_H # @@ Not Windows or maybe yes?
+c.poptions += -DHAVE_CONFIG_H
 
 obja{*}: c.poptions += -DLIBARCHIVE_STATIC
 
@@ -25,6 +25,8 @@ obja{*}: c.poptions += -DLIBARCHIVE_STATIC
 #
 if $gcc
   c.coptions += -Wno-implicit-fallthrough
+elif $msvc
+  c.coptions += /wd4244 /wd4267
 
 # Export options.
 #

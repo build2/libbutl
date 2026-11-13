@@ -1054,6 +1054,20 @@
 #undef HAVE_STDARG_H
 
 #define HAVE_STDARG_H 1
+#undef HAVE_SYS_SYSMACROS_H
+
+/* Check for the sys/sysmacros.h header.
+ *
+ * Only provided on Linux.
+ */
+#if defined(__linux__)
+#  define HAVE_SYS_SYSMACROS_H 1
+#endif
+
+#undef MAJOR_IN_SYSMACROS
+#ifdef HAVE_SYS_SYSMACROS_H
+#  define MAJOR_IN_SYSMACROS HAVE_SYS_SYSMACROS_H
+#endif
 
 /* If ssize_t is already defined, assume it's correct and use it as-is.
  *
@@ -1084,7 +1098,7 @@
 #  endif
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
 typedef int pid_t;
 typedef short uid_t;
 typedef short gid_t;
