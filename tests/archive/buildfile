@@ -1,7 +1,6 @@
 # file      : tests/archive/buildfile
 # license   : MIT; see accompanying LICENSE file
 
-import libs  = libbutl%lib{butl-archive}
-import libs += libbutl%lib{butl}
+import libs = libbutl%lib{butl-archive}
 
 exe{driver}: {hxx cxx}{*} $libs testscript

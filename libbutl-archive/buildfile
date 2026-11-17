@@ -1,25 +1,40 @@
 # file      : libbutl-archive/buildfile
 # license   : MIT; see accompanying LICENSE file
 
+import intf_libs = libbutl%lib{butl}
+
 windows = ($c.target.class == 'windows')
 
 gcc  = ($c.class == 'gcc')
 msvc = ($c.class == 'msvc')
 
+lib{butl-archive}: {hxx cxx}{*}
 lib{butl-archive}: {h c}{* -archive_windows}
 lib{butl-archive}: {h c}{archive_windows}: include = $windows
+lib{butl-archive}: $intf_libs
 
 # Build options.
 #
-c.poptions =+ "-I$src_base"
+cc.poptions =+ "-I$src_root"
 
+obja{*}: cxx.poptions += -DLIBBUTL_ARCHIVE_STATIC_BUILD
+objs{*}: cxx.poptions += -DLIBBUTL_ARCHIVE_SHARED_BUILD
+
+# We treat libarchive and libz sources as implementation details with hidden
+# symbols to prevent clashes (e.g., if a build system module links "real"
+# libarchive or libz).
+#
 # Note that __LIBARCHIVE_BUILD is defined by archive_platform.h.
 #
 # @@ _WIN32_WINNT?
 #
-c.poptions += -DHAVE_CONFIG_H
+c.poptions += -DHAVE_CONFIG_H -DLIBARCHIVE_STATIC
 
-obja{*}: c.poptions += -DLIBARCHIVE_STATIC
+# Note that we don't need -fvisibility-inlines-hidden since all inline
+# functions (only in libarchive) are static.
+#
+if $gcc
+  c.coptions += -fvisibility=hidden
 
 # Disable warnings.
 #
@@ -30,8 +45,14 @@ elif $msvc
 
 # Export options.
 #
-lib{butl-archive}: c.export.poptions = "-I$src_base"
-liba{butl-archive}: c.export.poptions += -DLIBARCHIVE_STATIC
+lib{butl-archive}:
+{
+  cxx.export.poptions = "-I$src_root"
+  cxx.export.libs = $intf_libs
+}
+
+liba{butl-archive}: cxx.export.poptions += -DLIBBUTL_ARCHIVE_STATIC
+libs{butl-archive}: cxx.export.poptions += -DLIBBUTL_ARCHIVE_SHARED
 
 # For pre-releases use the complete version to make sure they cannot be used
 # in place of another pre-release or the final version. See the version module
@@ -42,16 +63,16 @@ if $version.pre_release
 else
   lib{butl-archive}: bin.lib.version = @"-$version.major.$version.minor"
 
-# Install into the libbutl/archive/ subdirectory of, say, /usr/include (so we
-# end up with libbutl/archive/archive.h, etc). Arrange via pkg-config to be
-# able to include headers as <archive.h>, etc., to be compatible with
-# system-installed libarchive.
+# Install into the libbutl/archive/libbutl-archive/ subdirectory of, say,
+# /usr/include (so we end up with libbutl/archive/libbutl-archive/...).
+# Arrange via pkg-config to be able to include headers as
+# <libbutl-archive/...>.
 #
 # The reason we add an extra archive/ subdirectory instead of installing
 # directly into libbutl/ is because adding -I for libbutl/ will make all the
 # libbutl headers includable without a prefix and thus prone to clashes.
 #
 h{*}: install = false
-h{archive}@./ h{archive_entry}@./: install = include/libbutl/archive/
+hxx{*}: install = include/libbutl/archive/libbutl-archive/
 
 lib{butl-archive}: c.pkgconfig.include = include/libbutl/archive/
