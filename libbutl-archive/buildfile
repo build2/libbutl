@@ -28,9 +28,10 @@ objs{*}: cxx.poptions += -DLIBBUTL_ARCHIVE_SHARED_BUILD
 #
 # @@ _WIN32_WINNT?
 #
-c.poptions =+ "-I$src_base" # Needed for <zconf.h> inclusion.
+cc.poptions += -DLIBARCHIVE_STATIC
 
-c.poptions += -DHAVE_CONFIG_H -DLIBARCHIVE_STATIC
+c.poptions =+ "-I$src_base" # Needed for <zconf.h> inclusion.
+c.poptions += -DHAVE_CONFIG_H
 
 # Note that we don't need -fvisibility-inlines-hidden since all inline
 # functions (only in libarchive) are static.
