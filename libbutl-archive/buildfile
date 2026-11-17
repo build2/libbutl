@@ -1,7 +1,7 @@
 # file      : libbutl-archive/buildfile
 # license   : MIT; see accompanying LICENSE file
 
-import intf_libs = libbutl%lib{butl}
+import intf_libs = lib{butl}
 
 windows = ($c.target.class == 'windows')
 
