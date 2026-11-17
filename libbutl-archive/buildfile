@@ -79,3 +79,52 @@ h{*}: install = false
 hxx{*}: install = include/libbutl/archive/libbutl-archive/
 
 lib{butl-archive}: c.pkgconfig.include = include/libbutl/archive/
+
+# Static config.h generation (see README-DEV for details).
+#
+#\
+using autoconf
+
+h{config}: in{config}
+{
+  autoconf.aliases =
+
+  autoconf.aliases += HAVE_DECL_INT32_MAX@HAVE_INT32_MAX
+  autoconf.aliases += HAVE_DECL_INT32_MIN@HAVE_INT32_MIN
+  autoconf.aliases += HAVE_DECL_INT64_MAX@HAVE_INT64_MAX
+  autoconf.aliases += HAVE_DECL_INT64_MIN@HAVE_INT64_MIN
+
+  autoconf.aliases += HAVE_DECL_UINT32_MAX@HAVE_UINT32_MAX
+  autoconf.aliases += HAVE_DECL_UINT64_MAX@HAVE_UINT64_MAX
+
+  autoconf.aliases += HAVE_DECL_INTMAX_MAX@HAVE_INTMAX_MAX
+  autoconf.aliases += HAVE_DECL_INTMAX_MIN@HAVE_INTMAX_MIN
+  autoconf.aliases += HAVE_DECL_UINTMAX_MAX@HAVE_UINTMAX_MAX
+
+  autoconf.aliases += HAVE_DECL_SIZE_MAX@HAVE_SIZE_MAX
+  autoconf.aliases += HAVE_DECL_SSIZE_MAX@HAVE_SSIZE_MAX
+
+  autoconf.aliases += MAJOR_IN_SYSMACROS@HAVE_SYS_SYSMACROS_H
+
+  # For now we only have gzip compression.
+  #
+  HAVE_ZLIB_H = true
+  HAVE_LZMA_H = false
+  HAVE_BZLIB_H = false
+  HAVE_LZ4_H = false
+
+  # None of these should be needed for our use-case.
+  #
+  HAVE_ICONV = false
+  HAVE_ICONV_H = false
+  HAVE_LOCALCHARSET_H = false
+  HAVE_LOCALE_CHARSET = false
+
+  HAVE_ACL_SET_FD = false
+  HAVE_ACL_SET_FD_NP = false
+
+  HAVE_EXT2FS_EXT2_FS_H = false
+  HAVE_LINUX_EXT2_FS_H = false
+  HAVE_LINUX_FS_H = false
+}
+#\

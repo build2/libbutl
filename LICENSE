@@ -5,6 +5,7 @@ libbutl/sha1.c:
 libbutl/{sha256c.c, strptime.c, timelocal.[hc]}:
 libbutl/{xxhash.[hc], lz4*.[hc]}:
 libbutl/mingw-*.hxx:
+libbutl-archive/{archive_*.[hc], android_lf.h}:
 
   2-clause BSD License; see the file headers for details.
 
@@ -34,6 +35,10 @@ libbutl-odb/odb/{**.h **.?xx}:
   For details, see:
 
   https://git.codesynthesis.com/cgit/odb/odb-etc/tree/license-exceptions/build2-odb-license-exception.txt
+
+libbutl-archive/{adler32.c, crc32.[hc], deflate.[hc], gzguts.h, tree.[hc],
+                 zconf.h, zlib.h, zutil.[hc]}:
+  zlib License.
 
 The rest:
 

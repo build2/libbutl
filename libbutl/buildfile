@@ -85,7 +85,7 @@ if! $windows
 # pick up an installed one) and don't remove it when cleaning in src (so that
 # clean results in a state identical to distributed).
 #
-hxx{version}: in{version} $src_root/manifest
+[rule_hint=version.in] hxx{version}: in{version} $src_root/manifest
 hxx{version}:
 {
   dist  = true
