@@ -60,7 +60,10 @@
 #undef HAVE_WMEMMOVE
 #undef HAVE_ZLIB_H
 #undef HAVE_STDARG_H
+
 #undef MAJOR_IN_SYSMACROS
+#undef SIZEOF_INT
+#undef SIZEOF_LONG
 
 #undef ssize_t
 

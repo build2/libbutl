@@ -1054,6 +1054,7 @@
 #undef HAVE_STDARG_H
 
 #define HAVE_STDARG_H 1
+
 #undef HAVE_SYS_SYSMACROS_H
 
 /* Check for the sys/sysmacros.h header.
@@ -1067,6 +1068,34 @@
 #undef MAJOR_IN_SYSMACROS
 #ifdef HAVE_SYS_SYSMACROS_H
 #  define MAJOR_IN_SYSMACROS HAVE_SYS_SYSMACROS_H
+#endif
+#undef SIZEOF_INT
+
+#ifdef _MSC_VER
+#  define SIZEOF_INT 4
+#else
+/* Both GCC and Clang (and maybe others) define __SIZEOF_INT__. */
+#  ifdef __SIZEOF_INT__
+#    define SIZEOF_INT __SIZEOF_INT__
+#  endif
+#endif
+
+#ifndef SIZEOF_INT
+#  error unable to determine size of int
+#endif
+#undef SIZEOF_LONG
+
+#ifdef _MSC_VER
+#  define SIZEOF_LONG 4
+#else
+/* Both GCC and Clang (and maybe others) define __SIZEOF_LONG__. */
+#  ifdef __SIZEOF_LONG__
+#    define SIZEOF_LONG __SIZEOF_LONG__
+#  endif
+#endif
+
+#ifndef SIZEOF_LONG
+#  error unable to determine size of long int
 #endif
 
 /* If ssize_t is already defined, assume it's correct and use it as-is.

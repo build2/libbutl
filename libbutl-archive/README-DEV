@@ -18,7 +18,7 @@ sed -re 's/(HAVE_[A-Z_0-9]+)/\n\1\n/g' *.c *.h | \
   sort -u >config.h.in
 # Manually remove HAVE_CONFIG_H, HAVE_XXX, HAVE_MAJOR, HAVE_DECL_UINT64_MIN,
 # HAVE_WAITPID, HAVE_UTIMENSAT, HAVE_FUTIMENS
-# Manually add MAJOR_IN_SYSMACROS
+# Manually add MAJOR_IN_SYSMACROS, SIZEOF_INT, SIZEOF_LONG
 # Manually add `#undef ssize_t`.
 # Manually add:
 
@@ -35,5 +35,8 @@ typedef short gid_t;
 # Manually remove HAVE_HIDDEN, HAVE_MEMCPY, HAVE_VSNPRINTF (zlib)
 
 # Uncomment config.h generation in buildfile.
-b h{config}
+b h{config} # Copy over from out dir.
 # Comment config.h generation in buildfile.
+
+Note: if updating to a newer version of libarchive/libz, diff *.h.in files
+for any new checks that do not start with HAVE_.
