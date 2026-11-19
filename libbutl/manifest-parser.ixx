@@ -3,7 +3,6 @@
 
 namespace butl
 {
-
   inline auto manifest_parser::
   get (const char* what) -> xchar
   {
