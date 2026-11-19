@@ -191,10 +191,13 @@ namespace butl
 
   void archive_writer::
   add_file_entry (const path& fpath,
+                  bool text,
                   const path& apath,
                   unsigned short mode,
                   timestamp mt)
   {
+    archive* a (archive_.get ());
+
     if (apath.absolute ())
       throw archive_error (apath, "archive entry path is absolute");
 
@@ -220,6 +223,60 @@ namespace butl
       throw archive_error (
         fpath, "archive entry is not a regular file on filesystem");
 
+    auto open_fpath = [&fpath, a, text] () -> auto_fd
+    {
+      auto_fd fd;
+      try
+      {
+        fd = fdopen (fpath,
+                     (fdopen_mode::in |
+                      (text ? fdopen_mode::none : fdopen_mode::binary)));
+      }
+      catch (const ios::failure& e)
+      {
+        archive_write_fail (a); // Mark the archive object as failed.
+
+        ostringstream oss;
+        oss << "unable to open archive entry on filesystem: " << e;
+        throw archive_error (fpath, oss.str ());
+      }
+
+      return fd;
+    };
+
+    char buf[fdstreambuf::buffer_size];
+
+#ifdef _WIN32
+    // With the CRLF translation the returned size will not match what will be
+    // written. So we recalculate it.
+    //
+    if (text && p.second.size != 0)
+    {
+      p.second.size = 0;
+
+      // Note: similar code to below.
+      //
+      auto_fd fd (open_fpath ());
+
+      for (streamsize n;;)
+      {
+        n = fdread (fd.get (), buf, sizeof (buf));
+
+        if (n < 0)
+        {
+          archive_write_fail (a); // Mark the archive object as failed.
+          throw archive_error (
+            fpath, "unable to read archive entry on filesystem");
+        }
+
+        if (n == 0)
+          break;
+
+        p.second.size += static_cast<size_t> (n);
+      }
+    }
+#endif
+
     unique_ptr<archive_entry, archive_entry_deleter> ae (archive_entry_new ());
 
     if (ae == nullptr)
@@ -242,8 +299,6 @@ namespace butl
       archive_entry_set_mtime (e, s, static_cast<long> (ns.count ()));
     }
 
-    archive* a (archive_.get ());
-
     // Note that we don't expect to get ARCHIVE_WARN or ARCHIVE_RETRY.
     //
     if (archive_write_header (a, e) != ARCHIVE_OK)
@@ -252,24 +307,13 @@ namespace butl
 
     if (p.second.size != 0)
     {
-      auto_fd fd;
-      try
-      {
-        fd = fdopen (fpath, fdopen_mode::in);
-      }
-      catch (const ios::failure& e)
-      {
-        archive_write_fail (a); // Mark the archive object as failed.
+      // Note: similar code to above.
+      //
+      auto_fd fd (open_fpath ());
 
-        ostringstream oss;
-        oss << "unable to open archive entry on filesystem: " << e;
-        throw archive_error (fpath, oss.str ());
-      }
-
-      char b[fdstreambuf::buffer_size];
       for (streamsize n;;)
       {
-        n = fdread (fd.get (), b, sizeof (b));
+        n = fdread (fd.get (), buf, sizeof (buf));
 
         if (n < 0)
         {
@@ -281,7 +325,7 @@ namespace butl
         if (n == 0)
           break;
 
-        if (archive_write_data (a, b, static_cast<size_t> (n)) < 0)
+        if (archive_write_data (a, buf, static_cast<size_t> (n)) < 0)
           throw archive_error (
             file_.path, a, "unable to write archive entry data");
       }

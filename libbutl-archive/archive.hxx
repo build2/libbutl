@@ -48,13 +48,15 @@ namespace butl
     archive_writer (path file);
 
     // Add a file to the archive. It must exist and be a regular file. The
-    // archive path must be relative.
+    // archive path must be relative. If text is true, open the file in text
+    // mode and binary otherwise.
     //
     // Throw std::bad_alloc if unable to allocate memory and archive_error for
     // all other errors (including IO).
     //
     void
     add_file_entry (const path& filesystem_path,
+                    bool text,
                     const path& archive_path,
                     unsigned short mode,
                     timestamp mtime);

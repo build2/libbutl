@@ -30,6 +30,7 @@ main (int argc, char* argv[])
     archive_writer a (ap);
 
     a.add_file_entry (efp,
+                      true /* text */,
                       eap,
                       0644,
                       system_clock::from_time_t (1)); // One second since epoch.
