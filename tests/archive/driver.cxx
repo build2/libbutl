@@ -11,7 +11,7 @@
 #undef NDEBUG
 #include <cassert>
 
-// Usage: driver <tar-file> <entry-file>
+// Usage: driver <archive-file> <entry-archive-path> <entry-filesystem-path>
 //
 int
 main (int argc, char* argv[])
@@ -19,17 +19,18 @@ main (int argc, char* argv[])
   using namespace std;
   using namespace butl;
 
-  assert (argc == 3);
+  assert (argc == 4);
 
-  path af (argv[1]);
-  path ef (argv[2]);
+  path ap (argv[1]);
+  path eap (argv[2]);
+  path efp (argv[3]);
 
   try
   {
-    archive_writer a (af);
+    archive_writer a (ap);
 
-    a.add_file_entry (ef,
-                      ef,
+    a.add_file_entry (efp,
+                      eap,
                       0644,
                       system_clock::from_time_t (1)); // One second since epoch.
 

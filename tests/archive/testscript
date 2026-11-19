@@ -5,16 +5,26 @@
 :
 {
   cat <:'Hello, World!' >=test.txt
-  $* test.tar.gz test.txt &test.tar.gz
+  $* test.tar.gz test.txt test.txt &test.tar.gz
   sha256sum --sum-only test.tar.gz \
     >'473652763d1d53436d2d73e99c2b1e50fa7dc50ee973a25eb904cc228581e7e6'
+}
+
+: posix-path
+:
+{
+  cat <:'Hello, World!' >=test.txt
+  set </'libfoo-1.2.3+2/test.txt' eap # Translate directory separator.
+  $* test.tar.gz $eap test.txt &test.tar.gz
+  sha256sum --sum-only test.tar.gz \
+    >'3d98496e118d0990f7df83f77c9e48e8721bae0eeb3aa36030b62cc032e0be29'
 }
 
 : crlf
 :
 {
   echo 'Hello, World!' >=test.txt
-  $* test.tar.gz test.txt &test.tar.gz
+  $* test.tar.gz test.txt test.txt &test.tar.gz
   sha256sum --sum-only test.tar.gz \
     >'b70faf44b3e1555313f5d350753a9603a430483e2c8a72c3737d633183759297'
 }
