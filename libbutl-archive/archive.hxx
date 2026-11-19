@@ -71,6 +71,8 @@ namespace butl
     archive_writer& operator= (archive_writer&&) = delete;
     archive_writer& operator= (const archive_writer&) = delete;
 
+    ~archive_writer ();
+
   private:
     struct archive_deleter
     {

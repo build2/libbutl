@@ -84,6 +84,9 @@ namespace butl
 
   // archive
   //
+  archive_writer::
+  ~archive_writer () = default;
+
   streamsize archive_writer::
   write_callback (archive* a, void* data, const void* buf, size_t size)
   {
