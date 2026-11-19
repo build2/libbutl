@@ -9,3 +9,12 @@
   sha256sum --sum-only test.tar.gz \
     >'473652763d1d53436d2d73e99c2b1e50fa7dc50ee973a25eb904cc228581e7e6'
 }
+
+: crlf
+:
+{
+  echo 'Hello, World!' >=test.txt
+  $* test.tar.gz test.txt &test.tar.gz
+  sha256sum --sum-only test.tar.gz \
+    >'b70faf44b3e1555313f5d350753a9603a430483e2c8a72c3737d633183759297'
+}
